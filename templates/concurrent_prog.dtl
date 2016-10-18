@@ -1,0 +1,280 @@
+{% extends "base.dtl" %}
+
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-lg-12">
+      <div class="divider"><p/></div>
+    </div>
+    <div class="static_div">
+      <img src="/img/erlang_small.gif" alt="Erlang logo" align="right" border="0">
+
+<h1><a name=top>Concurrent Programming</a></h1>
+<hr>
+
+<ul>
+<li><a href=#defs>Definitions</a>
+<li><a href=#newproc>Creating a new process</a>
+<li><a href=#messages>Simple message passing</a>
+<li><a href=#echo>An Echo Process</a>
+<li><a href=#select>Selective Message Reception</a>
+<li><a href=#selectany>Selection of Any Message</a>
+<li><a href=#telephone>A Telephony Example</a>
+<li><a href=#pidmsg>Pids can be sent in messages</a>
+<li><a href=#registered>Registered Processes</a>
+<li><a href=#clientserver>The Client Server Model</a>
+<li><a href=#timeouts>Timeouts</a>
+</ul>
+<hr>
+
+
+<h1><a name=defs>Definitions</a></h1>
+<ul>
+
+    <li><strong>Process</strong> - A  concurrent  activity. A complete
+virtual  machine.  The   system  may have  many   concurrent processes
+executing at the same time.
+<li><strong>Message</strong> - A method of communication between processes.
+
+<li><strong>Timeout</strong> - Mechanism for waiting for a given time period.
+
+<li><strong>Registered Process</strong> - Process which has been registered under a name.
+
+<li><strong>Client/Server Model</strong> - Standard model used in building concurrent systems.
+</ul>
+<p><a href=#top>back to top</a>
+<hr>
+
+<h1><a name=newproc>Creating a New Process</a></h1>
+
+Before:<p>
+<img alt="Single process" src="/img/course/conc01.gif"><p>
+
+Code in Pid1<p>
+Pid2 = spawn(Mod, Func, Args)<br>
+After<br>
+<img alt="Two processes" src="/img/course/conc02.gif"><p>
+Pid2 is process identifier of the new process - this is known only to process Pid1.
+<p><a href=#top>back to top</a>
+<hr>
+
+<h1><a name=messages>Simple Message Passing</a></h1>
+
+<img alt="Simple message with self()" src="/img/course/conc03.gif"><p>
+<b>self()</b> - returns the Process Identity (Pid) of the process executing this function.<p>
+
+<b>From</b> and <b>Msg</b> become bound when the message is received.
+Messages can carry data.<p>
+<img alt="Message with data" src="/img/course/conc04.gif"><p>
+<ul>
+<li>Messages can carry data and be selectively unpacked.
+<li>The variables<b> A</b> and<b> D</b> become bound when receiving
+the message.
+<li>If<b> A</b> is bound before receiving a message then only data from this process is accepted.
+</ul>
+<p><a href=#top>back to top</a>
+<hr>
+
+<h1><a name=echo>An Echo process</a></h1>
+
+<pre>
+
+-module(echo).
+-export([go/0, loop/0]).
+
+go() -&gt;
+	Pid2 = spawn(echo, loop, []),
+	Pid2 ! {self(), hello},
+	receive
+		{Pid2, Msg} -&gt;
+			io:format("P1 ~w~n",[Msg])
+	end,
+	Pid2 ! stop.
+
+loop() -&gt;
+	receive
+		{From, Msg} -&gt;
+			From ! {self(), Msg},
+			loop();
+		stop -&gt;
+			true
+	end.
+</pre>
+
+<p><a href=#top>back to top</a>
+<hr>
+
+<h1><a name=select>Selective Message Reception</a></h1>
+<img alt="Two sender and one reader using two receive statements" src="/img/course/conc05.gif"><p>
+
+The message<b> foo</b> is received - then the message<b> bar</b> - irrespective of the order in which they were sent.<p>
+<p><a href=#top>back to top</a>
+<hr>
+
+<h1><a name=selectany>Selection of any message</a></h1>
+<img alt="Two sender and one reader using one receive statement" src="/img/course/conc06.gif"><p>
+
+
+    The  first  message to  arrive  at  the  process<b>  C </b>will be
+processed - the  variable<b> Msg</b> in the  process<b>  C</b> will be
+bound  to one of  the atoms  <b>foo</b> or  <b>bar</b> depending on
+which arrives first.
+
+<p><a href=#top>back to top</a>
+<hr>
+
+<h1><a name=telephone>A Telephony Example</a></h1>
+<img alt="A and B sends to Call" src="/img/course/conc07.gif"><p>
+<pre>
+ringing_a(A, B) -&gt;
+	receive
+		{A, on_hook} -&gt;
+			A ! {stop_tone, ring},
+			B ! terminate,
+			idle(A);
+		{B, answered} -&gt;
+			A ! {stop_tone, ring},
+			switch ! {connect, A, B},
+			conversation_a(A, B)
+	end.
+</pre>
+
+    This   is the code  in   the process <b>`Call</b>.<b> A</b> and<b>
+B</b> are local bound variables in the process <b>Call</b>.<p>
+
+<p><a href=#top>back to top</a>
+<hr>
+
+<h1><a name=pidmsg>Pids can be sent in messages</a></h1>
+
+<img alt="Pass messages" src="/img/course/conc08.gif"><p>
+<ul>
+<li><b> A</b> sends a message to<b> B</b> containing the Pid of<b> A</b>.
+<li>	<b>B</b> sends a transfer message to<b> C</b>.
+<li><b>C</b> replies directly to<b> A</b>.
+</ul>
+<p><a href=#top>back to top</a>
+<hr>
+
+<h1><a name=registered>Registered Processes</a></h1>
+
+<b>register(Alias, Pid)</b> Registers the process<b> Pid</b> with the name
+<b> Alias</b>.<p>
+<pre>
+start() -&gt;
+	Pid = spawn(num_anal, server, [])
+	register(analyser, Pid).
+
+analyse(Seq) -&gt;
+	analyser ! {self(),{analyse,Seq}},
+	receive
+		{analysis_result,R} -&gt;
+			R
+	end.
+</pre>
+Any process can send a message to a registered process.<p>
+
+<p><a href=#top>back to top</a>
+<hr>
+
+<h1><a name=clientserver>Client Server Model</a></h1>
+
+<img alt="Cliends/server" src="/img/course/conc09.gif"><p>
+Protocol<p>
+<img alt="Protocol" src="/img/course/conc10.gif"><p>
+<h2>Server code</h2>
+<pre>
+-module(myserver).
+
+server(Data) -&gt;
+	receive
+		{From,{request,X}} -&gt;
+			{R, Data1} = fn(X, Data),
+			From ! {myserver,{reply, R}},
+			server(Data1)
+	end.
+</pre>
+<h2>Interface Library</h2>
+<pre>
+-export([request/1]).
+
+request(Req) -&gt;
+	myserver ! {self(),{request,Req}},
+	receive
+		{myserver,{reply,Rep}} -&gt;
+			Rep
+	end.
+</pre>
+
+
+<p><a href=#top>back to top</a>
+<hr>
+
+<h1><a name=timeouts>Timeouts</a></h1>
+
+<img alt="Action after timeout" src="/img/course/conc11.gif"><p>
+
+    If  the  message<b> foo</b>  is received  from<b> A </b>within the
+time  <b>Time</b>   perform<b>    Actions1</b> otherwise    perform<b>
+Actions2</b>.<p>
+
+<h2>Uses of Timeouts</h2>
+<b>sleep(T)</b>- process suspends for<b> T</b> ms.<p>
+<pre>
+sleep(T) -&gt;
+	receive
+	after
+		T -&gt;
+			true
+	end.
+</pre>
+<b>suspend()</b> - process suspends indefinitely.
+<pre>
+suspend() -&gt;
+	receive
+	after
+		infinity -&gt;
+			true
+	end.
+</pre>
+<b>alarm(T, What)</b> - The message <b>What</b> is sent to the current process iin <b>T</b> miliseconds from now<p>
+<pre>
+set_alarm(T, What) -&gt;
+	spawn(timer, set, [self(),T,What]).
+
+set(Pid, T, Alarm) -&gt;
+	receive
+	after
+		T -&gt;
+			Pid ! Alarm
+	end.
+receive
+	Msg -&gt;
+		... ;
+end
+</pre>
+
+<b>flush()</b> - flushes the message buffer<p>
+<pre>
+
+flush() -&gt;
+	receive
+		Any -&gt;
+			flush()
+	after
+		0 -&gt;
+			true
+	end.
+</pre>
+
+    A value of 0 in  the timeout means  check the message buffer first
+and if it is empty execute the following code.
+
+<p><a href=#top>back to top</a>
+
+<hr>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

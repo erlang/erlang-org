@@ -1,0 +1,297 @@
+{% extends "base.dtl" %}
+
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-lg-12">
+      <div class="divider"><p/></div>
+    </div>
+    <div class="static_div">
+      <img src="/img/erlang_small.gif" alt="Erlang logo" align="right" border="0">
+
+      <h1><a name=top>Error Handling</a></h1>
+<hr>
+
+<ul>
+<li><a href=#defs>Definitions</a>
+<li><a href=#exits>Exit signals are sent when processes crash</a>
+<li><a href=#exitlink>Exit Signals propagate through Links</a>
+<li><a href=#exittrap>Processes can trap exit signals</a>
+<li><a href=#complex>Complex Exit signal Propagation</a>
+<li><a href=#layer>Robust Systems can be made by Layering</a>
+<li><a href=#prims>Primitives For Exit Signal Handling</a>
+<li><a href=#robust>A Robust Server</a>
+<li><a href=#allocerr>Allocator with Error Recovery</a>
+<li><a href=#utils>Allocator Utilities</a>
+</ul>
+
+<hr>
+
+<h1><a name=defs>Definitions</a></h1>
+
+<ul>
+<li><b>Link</b> A bi-directional propagation path
+for exit signals.
+<li><b>	Exit Signal</b> - Transmit process termination information.
+<li><b>	Error trapping</b> - The ability of a process
+to process exit signals as if they were
+messages.
+</ul>
+
+<p><a href=#top>back to top</a>
+<hr>
+
+<h1><a name=exits>Exit Signals are Sent when Processes Crash</a></h1>
+
+When a process crashes (e.g. failure of a
+BIF or a pattern match) Exit Signals are
+sent to all processes to which the failing
+process is currently linked.<p>
+
+<img alt="Dies and sends signal to linked processes" src="/img/course/error01.gif"><p>
+
+<p><a href=#top>back to top</a>
+<hr>
+
+<h1><a name=exitlink>Exit Signals propagate through Links</a></h1>
+
+    Suppose we have  a number of processes  which are linked together,
+as in the following diagram. Process A is linked to  B, B is linked to
+C <i>(The links are shown by the arrows)</i>.<p>
+
+    Now suppose process  A fails  - exit  signals start  to  propogate
+through the links:<p>
+
+<img alt="Exit signals propagating, A to B to C..." src="/img/course/error02.gif"><p>
+
+    These exit signals  eventuall reach all   the processes which  are
+linked together.<p>
+
+
+    The  rule  for  propagating errors   is:  <i>If the process  which
+receives an  exit signal, caused by an   error, is not  trapping exits
+then  the process   dies and  sends exit   signals to all  its  linked
+processes.</i>
+
+<p><a href=#top>back to top</a>
+<hr>
+
+<h1><a name=exittrap>Processes can trap exit signals</a></h1>
+In the following diagram P1 is linked to P2 and P2 is linked to P3. An error
+occurs in P1 - the error propagates to P2. P2 traps the error and the error is <b> not</b> propagated to P3.<p>
+
+<img alt="Process traps exit and does not propagate exit" src="/img/course/error03.gif"><p>
+P2 has the following code:<p>
+<pre>
+receive
+    {'EXIT', P1, Why} -&gt;
+	... exit signals ...
+    {P3, Msg} -&gt;
+	... normal messages ...
+end
+</pre>
+
+<p><a href=#top>back to top</a>
+<hr>
+
+<h1><a name=complex>Complex Exit signal Propagation</a></h1>
+Suppose we have the following set of processes and links:<p>
+<img alt="Bidirectional links in chain of processes" src="/img/course/error04.gif"><p>
+The process marked with a <i>double ring</i> is an error trapping process.<p>
+<img alt="Process that traps exit stops propagation" src="/img/course/error05.gif"><p>
+
+    If an error occurs in any of A,  B, or C  then <i>All</i> of these
+process will die (through propagation of errors). Process D will be unaffected.
+
+
+<p><a href=#top>back to top</a>
+<hr>
+
+
+<h1><a name=propag>Exit Signal Propagation Semantics</a></h1>
+<ul>
+<li>	When a process terminates it sends an
+exit signal, either normal or non-normal,
+to the processes in its link set.
+<li>	A process which is not trapping exit signals
+(a normal process) dies if it receives
+a non-normal exit signal. When it dies it
+sends a non-normal exit signal to the
+processes in its link set.
+<li>	A process which is trapping exit signals
+converts all incoming exit signals to
+conventional messages which it can
+receive in a receive statement.
+<li>	Errors in BIFs or pattern matching errors
+send automatic exit signals to the link set
+of the process where the error occured.
+
+</ul>
+
+<p><a href=#top>back to top</a>
+<hr>
+
+
+<h1><a name=layer>Robust Systems can be made by Layering</a></h1>
+
+    By building a system in layers we can make a robust system. Level1
+traps and  corrects errors   occuring   in Level2. Level2   traps  and
+corrects errors ocuring in the application level.<p>
+
+    In  a well  designed    system we  can  arrange that   application
+programers will  not have to write  any error handling code  since all
+error handling is isolated to deper levels in the system.<p>
+
+<img alt="Hierarhical layered trapping - supervision" src="/img/course/error06.gif"><p>
+
+
+<p><a href=#top>back to top</a>
+<hr>
+
+
+<h1><a name=prims>Primitives For Exit Signal Handling</a></h1>
+
+<ul>
+<li><b>link(Pid)</b> - Set a bi-directional link
+between the current process and the
+process <b>Pid</b>
+
+<li><b>process_flag(trap_exit, true)</b> - Set the
+current process to convert exit signals to
+exit messages, these messages can then
+be received in a normal receive statement.
+
+<li><b>exit(Reason)</b> - Terminates the process
+and generates an exit signal where the
+process termination information is <b>Reason.</b>
+</ul>
+
+What really happens is as follows: Each
+process has an associated mailbox -
+<b>Pid�!�Msg </b>sends the message <b>Msg</b> to the
+mailbox associated with the process <b>Pid</b>.
+<p>
+
+The<b> receive .. end</b> construct attempts to
+remove messages from the mailbox of the
+current process. Exit signals which arrive at
+a process either cause the process to crash (if
+the process is not trapping exit signals) or
+are treated as normal messages and placed in
+the process mailbox (if the process is trapping
+exit signals). Exit signals are sent
+implicitly (as a result of evaluating a BIF
+with incorrect arguments) or explicitly
+(using <b>exit(Pid, Reason)</b>, or <b>exit(Reason) </b>
+).<p>
+
+If<b> Reason</b> is the atom<b> normal</b> - the
+receiving process ignores the signal (if it is
+not trapping exits). When a process terminates
+without an error it sends normal exit
+signals to all linked processes. <i>Don't say you didn't ask!</i>
+
+
+<p><a href=#top>back to top</a>
+<hr>
+
+
+<h1><a name=robust>A Robust Server</a></h1>
+The following server  <i>assumes</i> that a client process
+will send an<b> alloc</b> message to allocate a resource and then send a
+<b> release</b> message to deallocate the resource.<p>
+This is unreliable - <i>What happens if the client crashes before it
+sends the release message?</I><p>
+
+<pre>
+top(Free, Allocated) -&gt;
+    receive
+	{Pid, alloc} -&gt;
+	    top_alloc(Free, Allocated, Pid);
+	{Pid ,{release, Resource}} -&gt;
+	    Allocated1 = delete({Resource,Pid},�Allocated),
+    	    top([Resource|Free], Allocated1)
+    end.
+
+top_alloc([], Allocated, Pid) -&gt;
+    Pid ! no,
+    top([], Allocated);
+
+top_alloc([Resource|Free], Allocated, Pid) -&gt;
+    Pid ! {yes, Resource},
+    top(Free, [{Resource,Pid}|Allocated]).
+</pre>
+
+This is the top loop of an allocator with no
+error recovery.<b> Free</b> is a list of unreserved
+resources.<b> Allocated</b> is a list of pairs
+<b>{Resource, Pid}</b> - showing which resource
+has been allocated to which process.
+
+<p><a href=#top>back to top</a>
+<hr>
+
+<h1><a name=allocerr>Allocator with Error Recovery</a></h1>
+
+The following is a <i> reliable</i> server. If a client craches <i>after</i>
+it has allocated a resource and <i>before</i> it has released the resource, then the server will automatically release the resource.<p>
+
+The server is linked to the client during the time interval when the
+resource is allocted. If an exit message comes from the
+client during this time the resource is released.<p>
+
+
+<pre>
+top_recover_alloc([], Allocated, Pid) -&gt;
+    Pid ! no,
+    top_recover([], Allocated);
+
+top_recover_alloc([Resource|Free], Allocated, Pid) -&gt;
+    %% No need to unlink.
+    Pid ! {yes, Resource},
+    link(Pid),
+    top_recover(Free, [{Resource,Pid}|Allocated]).
+
+top_recover(Free, Allocated) -&gt;
+    receive
+	{Pid , alloc} -&gt;
+	    top_recover_alloc(Free, Allocated, Pid);
+	{Pid, {release, Resource}} -&gt;
+	    unlink(Pid),
+ 	    Allocated1 = delete({Resource, Pid}, Allocated),
+	    top_recover([Resource|Free], Allocated1);
+	{'EXIT', Pid, Reason} -&gt;
+	    %% No need to unlink.
+	    Resource = lookup(Pid, Allocated),
+	    Allocated1 = delete({Resource, Pid}, Allocated),
+	    top_recover([Resource|Free], Allocated1)
+    end.
+</pre>
+Not done -- multiple allocation to same
+process. i.e. before doing the<b> unlink(Pid)</b> we
+should check to see that the process has not
+allocated more than one device.<p>
+
+<p><a href=#top>back to top</a>
+<hr>
+
+
+<h1><a name=utils>Allocator Utilities</a></h1>
+<pre>
+delete(H, [H|T]) -&gt;
+    T;
+delete(X, [H|T]) -&gt;
+    [H|delete(X, T)].
+
+lookup(Pid, [{Resource,Pid}|_]) -&gt;
+    Resource;
+lookup(Pid, [_|Allocated]) -&gt;
+    lookup(Pid, Allocated).
+</pre>
+
+<p><a href=#top>back to top</a>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

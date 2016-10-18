@@ -1,0 +1,487 @@
+{% extends "base.dtl" %}
+
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-lg-12">
+      <div class="divider"><p/></div>
+    </div>
+    <div class="static_div">
+      <img src="/img/erlang_small.gif" alt="Erlang logo" align="right" border="0">
+
+<h1><a name="top">Advanced Topics</a></h1>
+
+<hr>
+<ul>
+<li><a href="#scope">Scope of variables</a>
+<li><a href="#catch">Catch/throw</a>
+<li><a href="#catchuse">Use of Catch and Throw</a>
+<li><a href="#errh">The module error_handler</a>
+<li><a href="#load">The Code loading mechanism</a>
+<li><a href="#ports">Ports</a>
+<li><a href="#portproto">Port Protocols</a>
+<li><a href="#bin">Binaries</a>
+<li><a href="#refs">References</a>
+<li><a href="#space">Space saving optimisations</a>
+<li><a href="#lastc">Last Call Optimisation</a>
+<li><a href="#dict">Process Dictionary</a>
+<li><a href="#sys">Obtaining System Information</a>
+</ul>
+<hr>
+
+<h1><a name="scope">Scope of Variables</a></h1>
+
+Variables in a clause exist between the
+point where the variable is first bound
+and the last textual reference to the variable.<p>
+
+Consider the following code:<p>
+<pre>
+1...	f(X) -&gt;
+2...		Y = g(X),
+3...		h(Y, X),
+4...		p(Y),
+5...		f(12).
+</pre>
+
+<ul>
+<li>line 1 - the variable<b> X</b> is defined (i.e. it becomes bound
+when the function is entered).
+<li>line 2 - <B>X</B> is used, <B>Y</B> is defined (first occurrence).
+<li>line 3 - <B>X</B> and <B>Y</B> are used.
+<li>line 4 - <B>Y</B> is used. The space used by the system for
+storing <B>X</B> can be reclaimed.
+<li>line 5 - the space used for <B>Y</B> can be reclaimed.
+</ul>
+
+<h2>Scope of variables in if/case/receive </h2>
+The set of variables introduced in the
+different branches of an <b>if/case/receive </b>
+form must be the same for all branches in
+the form except if the missing variables
+are not referred to after the form.
+<p>
+<pre>
+f(X) -&gt;
+    case g(X) of
+	true -&gt; A = h(X), B = 7;
+	false -&gt; B = 6
+    end,
+    ...,
+    h(A),
+    ...
+</pre>
+If the <b>true</b> branch of the form is evaluated, the variables<b> A</b>
+and <b>B</b> become defined, whereas in the <b>false</b> branch only <b>B</b>
+is defined.<p>
+
+
+    Whether or  not this an error depends  upon what happens after the
+case function. In  this example it is  an error, a future reference is
+made to<b> A </b>in the call<b>  h(A)</b> - if the<b> false</b> branch
+of the case form had been evaluated then<b> A</b> would have been undefined.
+
+<p><a href="#top">back to top</a>
+<hr>
+
+<h1><a name="catch">Catch and Throw</a></h1>
+
+Suppose we have defined the following:<p>
+
+<pre>
+
+-module(try).
+-export([foo/1]).
+
+foo(1) -&gt; hello;
+foo(2) -&gt; throw({myerror, abc});
+foo(3) -&gt; tuple_to_list(a);
+foo(4) -&gt; exit({myExit, 222}).
+</pre>
+<b>try:foo(1)</b>       evaluates     to    hello.    <p>
+<b>try:foo(2)</b> tries to  evaluate<b>  throw({myerror, abc})</b> but
+no catch exists. The  process  evaluating<b> foo(2)</b> exits  and the
+signal<b> {`EXIT',Pid,nocatch}</b> is broadcast to the link set of the
+process.  <p>
+
+<b>try:foo(3)</b> broadcasts <b>{`EXIT', Pid, badarg}</b> signals to all
+linked processes.
+<p>
+
+<b>try:foo(4) </b>since no catch is set the signal
+<b>{`EXIT',Pid,{myexit, 222}}</b> is broadcast to all linked processes.
+
+<p>
+
+<b>try:foo(5)</b> broadcasts the signal
+<b>{`EXIT',Pid,function_clause}</b> to all linked processes.<p>
+
+<b>catch try:foo(1)</b> evaluates to <b>hello</b>.<br>
+<b>catch try:foo(2)</b> evaluates to <b>{myError,abc}</b>.<br>
+<b>catch try:foo(3)</b> evaluates to <b>{`EXIT',badarg}.</b><br>
+<b>catch try:foo(4)</b> evaluates to <b>{`EXIT',{myExit,222}}</b>.<br>
+<b>catch try:foo(5)</b> evaluates to <b> {`EXIT',function_clause}</b>.
+
+<p><a href="#top">back to top</a>
+<hr>
+
+<h1><a name="catchuse">Use of Catch and Throw</a></h1>
+
+Catch and throw can be used to:
+<ul>
+<li>Protect from bad code
+<li> Cause non-local return from a function
+</ul>
+Example:
+<pre>
+f(X) -&gt;
+    case catch func(X) of
+	{`EXIT', Why} -&gt;
+            ... error in BIF ....
+            ........ BUG............
+	{exception1, Args} -&gt;
+            ... planned exception ....
+	Normal -&gt;
+            .... normal case ....
+    end.
+
+func(X) -&gt;
+    ...
+
+func(X) -&gt;
+   bar(X),
+   ...
+...
+
+bar(X) -&gt;
+   throw({exception1, ...}).
+...
+</pre>
+<p><a href="#top">back to top</a>
+
+<hr>
+
+<h1><a name="errh">The module error_handler</a></h1>
+
+The module <b>error_handler</b>	is called when an undefined function is
+called.<p>
+
+If a call is made to<b> Mod:Func(Arg0,...,ArgN)</b> and no code
+exists for this function then<br>
+<b>undefined_call(Mod, Func,[Arg0,...,ArgN])</b>
+in the module error_handler will be called.
+
+The code in <b>error_handler</b> is <i>almost</I> like this:
+<pre>
+
+-module(error_handler).
+-export([undefined_call/3]).
+
+undefined_call(Module, Func, Args) -&gt;
+    case code:if_loaded(Module) of
+	true -&gt;
+            %% Module is loaded but not the function
+		...
+            exit({undefined_function, {Mod, Func, Args}});
+    ����false -&gt;
+ 	    case code:load(Module) of
+            ����{module, _} -&gt;
+                    apply(Module, Func, Args);
+            ����false -&gt;
+                    ....
+    end.
+</pre>
+
+    By evaluating  <b>process_flag(error_handler, MyMod)</b>  the user
+can     define  a private     error  handler.    In   this case    the
+function:<b>MyMod:undefined_function</B>  will  be  called  <i>instead
+of</i> <b>error_handler:undefined_function</B>.
+<p>Note:<i>This is extremely dangerous</i>
+<p><a href="#top">back to top</a>
+<hr>
+
+<h1><a name="load">The Code loading mechanism</a></h1>
+
+Consider the following:<p>
+<pre>
+-module(m).
+-export([start/0,server/0]).
+
+start() -&gt;
+    spawn(m,server,[]).
+
+server() -&gt;
+    receive
+	Message -&gt;
+            do_something(Message),
+            m:server()
+    end.
+</pre>
+
+    When the function <b>m:server()</B> is called then  a call is made
+to the <i>latest version</i> of code for this module.<p>
+
+If the call had been written as follows:<p>
+<pre>
+server() -&gt;
+    receive
+	Message -&gt;
+            do_something(Message),
+            server()
+    end.
+</pre>
+Then a   call would have  been  made to  the <i>current
+version</i> of the code for this module.<p>
+
+Prefixing the module name (i.e. using the <b>:</b> form of call allows
+the user to change the executing code on the fly.<p>
+
+The rules for evaluation are as follows:
+<ul>
+<li>Must have the module prefix in the
+recursive call ( m:server() ) if we want to
+change the executing code on the fly.
+<li>	Without prefix, the executing code will
+not be exchanged with the new one.
+<li>We can't have more than two versions of
+the same module in the system at the
+same time.
+</ul>
+
+<p><a href="#top">back to top</a>
+<hr>
+
+<h1><a name="ports">Ports</a></h1>
+
+Ports:
+<ul>
+<li>Provide byte stream interfaces to external UNIX processes.
+<li>Look like normal Erlang processes, that
+are not trapping exits, with a specific
+protocol. That is, they can be linked to, and
+send out/react to exit signals.
+<li>Communicates with a single
+Erlang process, this process is said to be connected.
+</ul>
+The command:
+<ul>
+<b>Port = open_port ( {spawn,Process} ,	{packet,2} )</b>
+</ul>
+Starts an external UNIX process - this
+process reads commands from Erlang on
+file descriptor 0 and sends commands to
+Erlang by writing to file descriptor 1.<p>
+
+<p><a href="#top">back to top</a>
+<hr>
+
+<h1><a name="portproto">Port Protocols</a></h1>
+
+Data is passed as a sequence of bytes between the Erlang
+processes and the external UNIX processes.
+he number of bytes passed is given in
+a 2 bytes length field.<p>
+
+<img alt="Erlang process passig data to Unix process" src="/img/course/advan01.gif"><p>
+"C" should check return value from read.
+See p.259 in the book for more info.
+
+<p><a href="#top">back to top</a>
+<hr>
+
+<h1><a name="bin">Binaries</a></h1>
+
+<ul>
+<li>	A binary is a reference to a chunk of
+untyped memory.
+<li>	Binaries are primarily used for code
+loading over the network.
+<li>	Also useful when applications wants
+to shuffle around large amount of raw
+data.
+<li>	Several BIF's exist for manipulating
+binaries, such as: <b>binary_to_term/1,
+term_to_binary/1, binary_to_list/1, split_binary/2
+concat_binary/1 </b>, etc..
+<li>open_port/2 can produce and send
+binaries.
+<li>There is also a  guard called binary(B) which succeeds if its argument is a Binary
+</ul>
+
+<p><a href="#top">back to top</a>
+<hr>
+
+<h1><a name="refs">References</a></h1>
+
+References are erlang objects with exactly two properties:
+
+<ul>
+<li>They can be created by a program (using <b>make_ref/0</b>), and,
+<li>They can be compared for equality.
+</ul>
+
+<p>Erlang references are unique, the system guarantees that no two
+references created by different calls to <b>make_ref</b> will ever
+match. <i>The guarantee is not 100% - but differs from 100% by an
+insignificantly small amount :-)</i>.
+
+<p>
+References can be used for writing a safe remote procedure call
+interface,
+for example:
+<pre>
+
+ask(Server, Question) -&gt;
+    Ref = make_ref(),
+    Server ! {self(), Ref, Question},
+    receive
+        {Ref, Answer} -&gt;
+	    Answer
+    end.
+
+server(Data) -&gt;
+    receive
+	{From, Ref, Question} -&gt;
+            Reply = func(Question, Data),
+            From ! {Ref, Reply},
+            server(Data);
+	...
+    end.
+</pre>
+
+<p><a href="#top">back to top</a>
+<hr>
+
+<h1><a name="space">Space Saving Optimisations</a></h1>
+
+Here are two ways of computing the sum of a set of numbers contained in a list.
+The first is a recursive routine:
+<pre>
+sum([H|T]) -&gt;
+    H + sum(T);
+sum([]) -&gt;
+    0.
+</pre>
+Note that we canot Evaluate '+' until both its arguments are known.
+This formulation of
+sum(X) evaluates in
+space O(length(X)).<p>
+The second is a <i>tail recursive</i> which makes use of an <i>accumulator</i>
+<b>Acc</b>:<p>
+<pre>
+sum(X) -&gt;
+    sum(X, 0).
+
+sum([H|T], Acc) -&gt;
+   sum(T, H + Acc);
+sum([], Acc) -&gt;
+    Acc.
+</pre>
+The tail recursive
+formulation of sum(X).
+Evaluates in constant
+space.<p>
+
+Tail recursive = the last
+thing the function does is
+to call itself.
+
+<p><a href="#top">back to top</a>
+<hr>
+
+<h1><a name="lastc">Last Call Optimisation</a></h1>
+
+The last call optimisation <b>must</b> be used in persistant servers.<p>
+For example:
+<pre>
+server(Date) -&gt;
+    receive
+	{From, Info} -&gt;
+            Data1 = process_info(From, Info, Data),
+            server(Data1);
+	{From, Ref, Query} -&gt;
+             {Reply, Data1} = process_query(From, Query,Data),
+             From ! {Ref, Reply},
+             server(Data1)
+    end.
+</pre>
+Note that the last thing to be done in any thread of
+computation must be to call the server.
+
+<p><a href="#top">back to top</a>
+<hr>
+
+
+<h1><a name="dict">Process Dictionary</a></h1>
+
+Each process has a <i>local</i> store called the "Process Dictionary". The following BIFs are used to manipulate the process dictionary:
+<ul>
+<li><b>get()</b> returns the entire process dictionary.
+<li><b>get(Key)</b> returns the item associated
+with <b>Key</b> (<b>Key</b> is any Erlang data structure), or,
+returns the special atom <b>undefined</b> if no value is associated with
+<b>Key</b>.
+<li> <b>put(Key, Value)</b> associate <b>Value</b> with
+<b>Key</b>. Returns the old value associated
+with <b>Key</b>, or, <b>undefined</b> if no such association exists.
+<li><b>erase()</b> erases the entire process dictionary. Returns the entire
+process diction before it was erased.
+<li><b>erase(Key)</b> erases the value associated
+with <b>Key</b>. Returns the old value associated with <b>Key</b>,
+or,<b> undefined</b> if no such
+association exists.
+<li><b>get_keys(Value)</b> returns a list of all
+keys whose associated value is <b>Value</b>.
+</ul>
+Note that using the Process Dictionary:
+<ul>
+<li>Destroys referencial transparency
+<li>Makes debugging difficult
+<li>Survives Catch/Throw
+</ul>
+So:
+<ul>
+<li>Use with care
+<li>Do not over use - try the clean version
+first
+</ul>
+
+<p><a href="#top">back to top</a>
+<hr>
+
+<h1><a name="sys">Obtaining System Information</a></h1>
+
+The following calls exist to access system information:
+<ul>
+<li><b>processes()</b> returns a list of all
+processes currently know to the system.
+
+<li><b>process_info(Pid)</b> returns a dictionary
+containing information about <b>Pid</b>.
+<li><b>Module:module_info()</b> returns a dic
+tionary containing information about the
+code in module <b>Module</b>.
+</ul>
+If you use these BIFs remember:
+<ul>
+<li>Use with extreme care
+<li>Don't assume fixed positions for items in
+the dictionaries.
+</ul>
+But you can do some fun things like:
+<ul>
+<li>Writing real filthy programs, e.g. message
+sending by remote polling of dictionaries <i>Why should anybody want to
+do this?</i>
+<li>Killing random processes
+<li>Write Metasystem programs
+<li>Poll system regularly for zomby processes
+<li>Poll system to detect or break deadlock
+<li>Analyse system performance
+</ul>
+<p><a href="#top">back to top</a>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
