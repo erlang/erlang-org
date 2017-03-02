@@ -36,7 +36,10 @@ versions() ->
   {ok, Regex} = re:compile(DocBase ++ "(?<VER>.*)"),
 
   Versions = [version(DocBase, Regex, FilePath) || FilePath <- Paths],
-  lists:reverse(Versions).
+  lists:reverse(Versions),
+  lists:sort(
+    fun(X, Y) -> maps:get(version, X) > maps:get(version, Y) end,
+    Versions).
 
 version(DocBase, Regex, Path) ->
   {match, [{A, B}]} = re:run(Path, Regex, [{capture, ['VER']}]),
