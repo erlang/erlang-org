@@ -36,6 +36,21 @@ The website will be available at http://localhost:8080.
 
 The templates for rendering the web pages are located at `templates/*.dtl`. Learn more about the [ErlyDTL](https://github.com/erlydtl/erlydtl/wiki) templates at https://github.com/erlydtl/erlydtl/wiki.
 
+### Project Structure
+
+Since this project is built with [sumo_db](http://github.com/inaka/sumo_db), it's code structure uses the _repository pattern_. Therefore, the code is organized in the following folders:
+
+* **handlers:** In it you will find handlers for cowboy. For example, `erlang_docs_handler` is the one used to serve the `/docs` page.
+* **models:** In this folder you will find _sumo_db_ models and repos. For each entity in the system you'll find two modules:
+  - one of them represents the Abstract Data Type that models the entity (e.g. `erlorg_articles` contains all the functions that allow you to manipulate entities with type `erlorg_articles:article()`, but there is no business logic in it).
+  - the other one (with suffix `_repo`) contains the business logic associated with the entity. For example, in `erlorg_articles_repo` you'll find functions to _create_, _fetch_, _list_, etc. entities with type `erlorg_articles:article()`. These functions only manipulate the internal data for those entities using the functions in the `erlorg_articles` module. And they talk to the database using functions in the `sumo` model, like `sumo:persist/2` to store objects.
+* **stores:** In this folder you will find _sumo_db_ stores. This is the place where database specific logic is written. Functions that are specific to the underlying persistence tool we're using (in this case postgreSQL) and not generic are written in `erlorg_store_pgsql`.
+* **utils:** In this folder we have utility functions to deal with some non-sumo-specific datatypes like binaries, datetimes and cowboy requests.
+
+For more documentation on SumoDB, you can check its [hex.pm page](http://hex.pm/packages/sumo_db) and if you want to contribute to this project and you are unsure about where to put your code or how to write it don't hesitate to contact [Inaka](http://inaka.net) through their [public hipchat room](http://inaka.net/hipchat).
+
+---
+
 ## License
 
 ```
