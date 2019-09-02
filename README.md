@@ -5,9 +5,17 @@ Source code for the Erlang.org website.
 
 Erlang.org uses [Cowboy](https://github.com/ninenines/cowboy) for web server support and [ErlyDTL](https://github.com/erlydtl/erlydtl) for rendering the web pages. It uses [sumo_db](https://github.com/inaka/sumo_db) to connect to a PostgreSQL database.
 
+### Setting up Erlang.org using docker
+
+Run:
+
+   docker-compiler up
+
+Then connect to http://localhost:8080 and enjoy.
+
 ### Erlang/OTP
 
-Use Erlang/OTP 17.5. Follow the instructions on https://github.com/kerl/kerl to install Erlang/OTP.
+Use Erlang/OTP 18.3. Follow the instructions on https://github.com/kerl/kerl to install Erlang/OTP.
 
 ### Configure ops.config
 
