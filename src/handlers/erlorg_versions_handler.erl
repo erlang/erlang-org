@@ -36,7 +36,18 @@ versions() ->
   {ok, Regex} = re:compile(DocBase ++ "(?<VER>.*)"),
 
   Versions = [version(DocBase, Regex, FilePath) || FilePath <- Paths],
-  lists:reverse(Versions).
+  lists:sort(fun(#{ version := V1 }, #{ version := V2 }) ->
+                     case {ver2list(V1),ver2list(V2)} of
+                         {Vsn,Vsn} ->
+                             true;
+                         {{Vsn,""},{Vsn,_}} ->
+                             true;
+                         {{Vsn,_},{Vsn,""}} ->
+                             false;
+                         {V1Vsn,V2Vsn} ->
+                             V1Vsn >= V2Vsn
+                     end
+             end, Versions).
 
 version(DocBase, Regex, Path) ->
   {match, [{A, B}]} = re:run(Path, Regex, [{capture, ['VER']}]),
@@ -46,6 +57,11 @@ version(DocBase, Regex, Path) ->
     pdf  => filelib:is_dir(filename:join(Path, "pdf")),
     release => ver2rel(DocBase, Ver),
     version => Ver}.
+
+ver2list(VerStr) ->
+    [Ver | Post] = string:tokens(VerStr,"-"),
+    {[try list_to_integer(I) of Int -> Int catch _:_ -> I end
+      || I <- string:tokens(Ver,".")],Post}.
 
 %% Pre-R13 hardcoded version mapping
 ver2rel(_, "4.7.3") -> "R4B";
