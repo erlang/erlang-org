@@ -9,7 +9,7 @@ Erlang.org uses [Cowboy](https://github.com/ninenines/cowboy) for web server sup
 
 Run:
 
-   docker-compiler up
+   docker-compose up
 
 Then connect to http://localhost:8080 and enjoy.
 
