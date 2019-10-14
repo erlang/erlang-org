@@ -1,6 +1,6 @@
 FROM erlang:18.3.4.11
 
-RUN apt-get update && apt-get -y upgrade
+RUN apt-get update && apt-get -y upgrade && apt-get install -y rsync
 
 RUN mkdir -p /build/erlorg
 WORKDIR /build/erlorg
