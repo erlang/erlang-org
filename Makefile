@@ -11,4 +11,4 @@ update:
 setup: vendor/bundle node_modules
 
 serve: setup
-	bundle exec jekyll serve
+	bundle exec jekyll serve --trace --livereload
