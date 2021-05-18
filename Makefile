@@ -1,4 +1,7 @@
 
+build: setup
+	bundler exec jekyll build
+
 vendor/bundle:
 	bundler install --path vendor/bundle
 
