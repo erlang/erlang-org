@@ -28,7 +28,64 @@ Most likely earlier versions of these tools will work, but they have not been te
 
 TODO: Create docker image to make sure we have the correct versions
 
-## Manipulating CSS
+
+## Development
+
+
+### Layout
+
+erlang.org uses a combination of CSS Grid layout and Bootstrap 5
+grid layout. The goal is to use CSS Grid for all responsive layouts
+and then use Bootstrap Grid for all the non-responsive things.
+
+The HTML for a normal page looks something like this:
+
+```html
+<body>
+    <header class="container header">
+        <nav></nav>
+    </header>
+    <div class="container body">
+      <aside class="sidebar"></aside>
+      <main class="main">
+          <div class="top"></div>
+          <div class="content"></div>
+      </main>
+    </div>
+    <footer class="container footer"></footer>
+</body>
+```
+
+In the above the `container` class is part of bootstrap and is used for
+styling and then we use CSS grid to place the content of the `body` and
+`main` classes responsively:
+
+```scss
+@include media-breakpoint-up(lg) {
+    .body {
+        display: grid;
+        /* 2 columns on > lg screens */
+        grid-template-columns: 1fr auto;
+    }
+    .main {
+        display: grid;
+    }
+}
+@include media-breakpoint-down(lg) {
+    .body {
+        display: grid;
+        /* Hide the sidebar on small screens */
+        .sidebar {
+            display: none;
+        }
+    }
+    .main {
+        display: grid;
+    }
+}
+```
+
+### Manipulating CSS
 
 Bootstrap 5 comes with a lot of css entities built in. You should have a look around in the [bootstrap docs] to see what you can use.
 
