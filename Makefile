@@ -8,10 +8,10 @@ vendor/bundle:
 node_modules: package-lock.json
 	npm install
 
-_data:
-	mkdir _data
-_data/releases.json: _data
-	curl -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/erlang/otp/releases > $@
+_releases:
+	mkdir -p $@
+_data/releases.json: _releases node_modules
+	npx ts-node _data/download.ts _data/releases.json _releases/
 update:
 	npm update
 
