@@ -3,7 +3,7 @@ JS=_site/assets/js
 NM=_site/node_modules
 build: setup
 	bundler exec jekyll build
-	npx purgecss --css _site/assets/css/*.css --content `find _site -name "*.html" | grep -v _site/doc/ | grep -v _site/docs/`  -o _site/assets/css/
+	npx purgecss --css _site/assets/css/*.css --safelist "token" --content `find _site -name "*.html" | grep -v _site/doc/ | grep -v _site/docs/`  -o _site/assets/css/
 	# rm -rf $(JS)/{bootstrap,@fortawesome,prismjs}
 	# mkdir -p $(JS)/bootstrap/dist/js/ $(JS)/prismjs/components $(JS)/@fortawesome/fontawesome-free/
 	# cp $(NM)/bootstrap/dist/js/bootstrap.*min.js* $(JS)/bootstrap/dist/js/
