@@ -20,8 +20,8 @@ node_modules: package-lock.json
 
 setup_npm: node_modules assets/js
 	if [ ! -L assets/js/bootstrap ]; then ln -s ../../node_modules/bootstrap assets/js/bootstrap; fi
-	if [ ! -L assets/js/@fortawesome ]; then ln -s ../../node_modules/bootstrap assets/js/@fortawesome; fi
-	if [ ! -L assets/js/prismjs ]; then ln -s ../../node_modules/bootstrap assets/js/prismjs; fi
+	if [ ! -L assets/js/@fortawesome ]; then ln -s ../../node_modules/@fortawesome assets/js/@fortawesome; fi
+	if [ ! -L assets/js/prismjs ]; then ln -s ../../node_modules/prismjs assets/js/prismjs; fi
 
 otp_versions.table:
 	curl https://raw.githubusercontent.com/erlang/otp/master/otp_versions.table > $@
