@@ -3,7 +3,7 @@ build: setup
 	bundler exec jekyll build
 	npx purgecss --css _site/assets/css/*.css --content `find _site -name "*.html" | grep -v _site/doc/ | grep -v _site/docs/`  -o _site/assets/css/
 	mkdir -p _site/tmp/bootstrap/dist/js/ _site/tmp/prismjs/components _site/tmp/@fortawesome/fontawesome-free/
-	cp _site/node_modules/bootstrap/dist/js/bootstrap.min.js* _site/tmp/bootstrap/dist/js/
+	cp _site/node_modules/bootstrap/dist/js/bootstrap.*min.js* _site/tmp/bootstrap/dist/js/
 	cp _site/node_modules/prismjs/prism.js _site/tmp/prismjs/
 	cp _site/node_modules/prismjs/components/prism-erlang.js _site/tmp/prismjs/components/
 	cp -r _site/node_modules/@fortawesome/fontawesome-free/webfonts _site/tmp/@fortawesome/fontawesome-free/
