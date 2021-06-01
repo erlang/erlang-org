@@ -32,4 +32,4 @@ CURRENT_VSN=$(echo "${MAJOR_VSNs}" | head -1)
 
 ln -s "docs/${CURRENT_VSN}" doc
 
-rm f docs/otp_doc_html_*.tar.gz
+rm -f docs/otp_doc_html_*.tar.gz
