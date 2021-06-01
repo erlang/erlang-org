@@ -60,7 +60,7 @@ getAllReleases().then(releases => {
 
         const keys = ["html_url", "tag_name", "name", "published_at"];
 
-        let frontMatter = "";
+        let frontMatter = "layout: release\n";
         keys.forEach(key => {
             frontMatter += key + ": " + release[key] + "\n";
         });

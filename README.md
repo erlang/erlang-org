@@ -34,9 +34,17 @@ TODO: Create docker image to make sure we have the correct versions
 
 ### Layout
 
-erlang.org uses a combination of CSS Grid layout and Bootstrap 5
-grid layout. The goal is to use CSS Grid for all responsive layouts
+erlang.org uses a combination of [CSS Grid] layout and [Bootstrap 5
+Grid] layout. The goal is to use CSS Grid for all responsive layouts
 and then use Bootstrap Grid for all the non-responsive things.
+
+Using CSS Grid to do the responsive layout instead of Bootstrap
+removes a lot of extra divs and `order` classes that are needed
+otherwise. However, it removes the layout from the html, so it
+sometimes becomes less obvious what is going on.
+
+[CSS Grid]: https://css-tricks.com/snippets/css/complete-guide-grid/
+[Bootstrap 5 Grid]: https://getbootstrap.com/docs/5.0/layout/grid/
 
 The HTML for a normal page looks something like this:
 
@@ -85,6 +93,8 @@ styling and then we use CSS grid to place the content of the `body` and
 }
 ```
 
+
+
 ### Manipulating CSS
 
 Bootstrap 5 comes with a lot of css entities built in. You should have a look around in the [bootstrap docs] to see what you can use.
@@ -98,3 +108,15 @@ You can of course also create your own styles, but we try to stay with the boots
 [bootstrap docs]: https://getbootstrap.com/docs/5.0/
 
 ## Architecture
+
+## TODO
+
+* Import Erlang FAQ
+* Import Erlang Blog
+* Import Erlang Enhancement Proposals
+* Integrate algolia search into erlang.org/doc
+* Add opensearch.xml support
+* Add plausable.io tracking
+* Add rss feed (https://github.com/elixir-lang/elixir-lang.github.com/blob/master/atom.xml)
+## Ideas
+

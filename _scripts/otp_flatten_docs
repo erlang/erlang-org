@@ -1,0 +1,391 @@
+#!/usr/bin/perl -w
+
+#
+# Generate flat documentation (without version numbers) from the standard
+# documentation. Typical use (as user 'erlang'):
+#
+# cd www/erlang.org/public
+# /home/otp/bin/otp_flatten_doc documentation/doc-5.5.5
+#
+# $Id: otp_flatten_doc,v 1.12 2018/05/22 12:11:46 otptest Exp $
+#
+use strict;
+use File::Find;
+use File::Basename;
+use File::Copy;
+use Cwd;
+
+if (@ARGV != 1) {
+    usage();
+}
+
+my $src = shift;
+my $src_base = basename($src);
+$src = getcwd() . "/$src" unless $src =~ m@^/@;
+
+usage() unless -d $src;
+usage() unless $src_base =~ /^doc-([\d.]+)$/;
+my $version = $1;
+
+# Open log file
+my $log_file = "/tmp/otp_flatten_doc.log";
+open(FLATTEN_LOG, '>', $log_file);
+print FLATTEN_LOG "Opened log file...\n";
+print STDERR "Writing log to $log_file \n";
+
+print STDERR "Examining directory $src...\n";
+check_dir("$src/erts-$version");
+check_dir("$src/lib");
+
+flatten_doc($src);
+
+my $app_dir;
+my @modules;
+my %module;
+my %gifs;
+my $dest_len;
+
+close(FLATTEN_LOG);
+
+
+sub flatten_doc {
+    my($src) = @_;
+    my $dest = getcwd() . "/doc";
+    my $i = 1;
+    
+    while (-e "$dest-$i") {
+	$i++;
+    }
+    $dest = "$dest-$i";
+    mkdir $dest or die "$0: Failed to make directory $dest: $!\n";
+    print STDERR "Writing flattened documentation to $dest...\n";
+    $dest_len = length($dest);
+
+    #
+    # Scan the documentation to find the names of all html pages documenting a
+    # module. (Actually, if there is an 'refpage' comment in the html file, we
+    # we consider it to be a module.)
+    #
+    # Note, since there is currently two erlang.html (erts, kernel), we add
+    # the erts version to the end.
+    #
+    find_module_doc("$src/lib");
+    find_module_doc("$src/erts-$version");
+
+
+    #
+    # Copy the HTML pages for all modules into the 'man' sub directory.
+    # Make a note of all GIF files refered from the modules.
+    #
+
+    my $module_dir = "$dest/man";
+    mkdir $module_dir;
+
+    foreach (@modules) {
+	my $base = basename($_);
+
+	# application.html is ambigous; partial workaround.
+	next if $base eq 'application.html';
+	$module{$base} = 1;
+    }
+
+    foreach (@modules) {
+	my $base = basename($_);
+	copy_html($_, "$module_dir/$base");
+    }
+
+    #
+    # Copy all GIF files that was referred from modules into the 'man'
+    # directory.
+    #
+
+    foreach (keys %gifs) {
+	copy($_, "$module_dir/" . basename($_));
+    }
+
+    #
+    # Copy everything in the 'doc' directory to the top-level.
+    #
+
+    my $top_dir = "$dest";
+    my $doc_src = "$src/doc";
+    my $doc_src_len = length($doc_src);
+
+    find(sub {
+	return if length($File::Find::name) == $doc_src_len;
+	my $rel = substr($File::Find::name, $doc_src_len+1);
+	if (-d $_) {
+	    mkdir "$top_dir/$rel";
+	} elsif (/^otp-system-documentation-.*[.]pdf$/) {
+	    return copy_doc($_, "$top_dir/pdf/otp-system-documentation.pdf");
+	} else {
+	    copy_html($_, "$top_dir/$rel");
+	}
+    }, $doc_src);
+
+    #
+    # Create an 'apps' directory and copy all applications to it.
+    #
+    $app_dir = "$dest/apps";
+    mkdir $app_dir;
+
+   
+    foreach (<$src/lib/*>) {
+	copy_application($_);
+    }
+    my($erts) = <$src/erts-*>;
+    copy_application($erts);
+
+    #
+    # Copy the man_index to man/index.html.
+    #
+    # Kludge: We know that application.html is a module in this context.
+    #
+
+    $module{'application.html'} = 1;
+    copy_html("$src/doc/man_index.html", "$dest/man/index.html");
+
+    #
+    # Copy some stuff again to get references to application.html correct.
+    #
+    copy_html("$src/doc/man_index.html", "$dest/man_index.html");
+
+}
+
+sub find_module_doc {
+    my $search_src = shift(@_);
+    print FLATTEN_LOG "Searching for modules in $search_src \n";
+    find(sub {
+	return unless /\.html$/ and -f $_;
+	open(FILE,$_) or die "ERROR: Can't open $File::Find::name: $!\n";
+	my $line; 
+
+	while (defined ($line = <FILE>)) {
+	    if ($line =~ /<!-- refpage -->/) {
+		close FILE;
+		push @modules, $File::Find::name;
+		return;
+	    }
+	}
+	close FILE;
+     }, $search_src);
+}
+
+sub copy_application {
+    my($src_base) = @_;
+    my $app = basename($src_base);
+    $app =~ s/-.*$//;
+    my $dir = "$app_dir/$app";
+    $src_base .= "/doc";
+    $src = "$src_base/html";
+    my $src_len = length($src);
+
+    # Copy HTML
+    mkdir $dir;
+    find(sub {
+	return if length($File::Find::name) == $src_len;
+	my $rel = substr($File::Find::name, $src_len+1);
+	if (-d $_) {
+	    mkdir "$dir/$rel";
+	} elsif (!$module{$_}) {
+	    copy_html($File::Find::name, "$dir/$rel");
+	}
+    }, $src);
+
+    # Potential javadoc
+    $src = "$src_base/javadoc";
+    if (-d $src) {
+	$src_len = length($src);
+	$dir .= "/javadoc";
+	mkdir $dir;
+	find(sub {
+	    return if length($File::Find::name) == $src_len;
+	    my $rel = substr($File::Find::name, $src_len+1);
+	    if (-d $_) {
+		mkdir "$dir/$rel";
+	    } elsif (!$module{$_}) {
+		copy_doc($File::Find::name, "$dir/$rel");
+	    }
+	}, $src);
+    }
+
+    # Copy PDF file.
+    foreach my $pdf (<$src_base/pdf/*>) {
+	my $new = basename($pdf);
+	$new =~ s/-[\d.]+[.]pdf$/.pdf/;
+	copy_doc($pdf, "$dir/$new");
+    }
+}
+
+sub copy_html {
+    my($src,$dest) = @_;
+    
+    if (-e $dest) {
+	print STDERR "Warning! Replacing $dest with $src \n";
+    } 
+
+    if ($src !~ /\.html$/) {
+	return copy_doc($src, $dest);
+    }
+    my $rel = substr($dest, $dest_len+1);
+    my $analytics = get_analytics();
+
+    open SRC, $src or die "ERROR: Can't open $src: $!\n";
+    open DEST, ">$dest" or die "ERROR: Can't open $dest for writing: $!\n";
+    while (<SRC>) {
+	s/(.)(<a href=)/$1\0$2/g;
+	foreach (split "\0") {
+	    if (m@<!-- Generated by javadoc@) {
+		close SRC;
+		close DEST;
+		return copy_doc($src, $dest);
+	    }
+	    s@src="[^\"]*erlang-logo.png"@"src=\"" . path_to("erlang-logo.png", $rel) . '"' @e;
+	    s@src="[^\"]*flipmenu[.]js"@"src=\"" . path_to("js/flipmenu/flipmenu.js", $rel) . '"' @e;
+	    s@image[Pp]ath="[^\"]*flipmenu"@"imagePath=\"" . path_to("js/flipmenu", $rel) . '"' @e;
+            s@src="[^\"]*erlresolvelinks[.]js"@"src=\"" . path_to("js/erlresolvelinks.js", $rel) . '"' @e;
+            s@src="[^\"]*highlight[.]js"@"src=\"" . path_to("js/highlight.js", $rel) . '"' @e;
+            s@__otpTopDocDir = '[^\']*doc/js/'@"__otpTopDocDir = '" . path_to("js/", $rel) . "'" @e;
+	    if (m/href="([^\"]*)"/i) {
+		my $href = $1;
+		if ($href =~ /^javascript:erlhref\((.*)\);/) {
+		    # my $url;
+		    my(undef,$part,$mod) = split(/,\s*/, $1);
+		    $mod =~ tr/\'//d;
+		    $part =~ tr/\'//d;
+		    my $mod_name = $mod;
+		    $mod_name =~ s/#.*$//;
+		    if ($module{$mod_name}) {
+			$href = path_to("man/$mod", $rel);
+		    } elsif ($part =~ m@doc/(.*)@) {
+			$href = path_to($1, $rel) . "/$mod";
+		    } else {
+			$href = path_to("apps/$part/$mod", $rel);
+		    }
+		    $_ =~ s/href="[^\"]*"/href="$href"/i;
+		} elsif ($href !~ /^https?:/ && $href !~ /^\#/ && $href !~ /^javascript:/) {
+		    $href = normalize_link($href, $src);
+		    my $base = $href;
+		    my $anchor = '';
+		    if ($base =~ s/(\#.*)$//) {
+			$anchor = $1;
+		    }
+		    $base = basename($base);
+		    if ($base eq 'otp_doc.css') {
+			$href = path_to($base, $rel);
+		    } elsif ($base =~ /^otp-system-documentation-.*[.]pdf$/) {
+			$href = path_to("pdf/otp-system-documentation.pdf",
+					$rel);
+		    } elsif ($base =~ /[.]pdf$/) {
+			my $app;
+			($app = $base) =~ s/-[\d.]+[.]pdf$//;
+			$href = path_to("apps/$app/$app.pdf", $rel);
+		    } elsif ($href =~ m@^([.][.]/)+doc/(.*?.html)@) {
+			$href = path_to($2, $rel);
+		    } elsif ($href =~ m@^[.][.]/javadoc/(.*)@) {
+			$href = path_to($1, $rel);
+		    } elsif ($href =~ m@/([A-Za-z][^\-/]*)-[\d.]+/doc/html/index\.html@) {
+			$href = path_to("apps/$1", $rel) . "/index.html";
+		    } elsif ($module{$base}) {
+			$href = path_to("man/$base$anchor", $rel);
+		    } else {
+			my $app = find_app($src);
+			$href = path_to("apps/$app/$href", $rel)
+			    if defined $app;
+		    }
+		    $_ =~ s/href="[^\"]*"/href="$href"/i;
+		}
+		print DEST $_;
+	    } else {
+		note_img_ref($src,$_);
+		s@</body>@$analytics$&@;
+		print DEST $_;
+	    }
+	}
+    }
+    close DEST;
+    close SRC;
+}
+
+sub normalize_link {
+    my($link,$src) = @_;
+
+    if ($link =~ m@^[.][.]/([^/]*)/(.*)@ && $1 eq basename(dirname($src))) {
+	return $2;
+    }
+    $link;
+}
+
+sub find_app {
+    my($dir) = @_;
+
+    for (;;) {
+	my $base = basename($dir);
+	if ($base =~ /^([^\-]+)-[\d.]+$/) {
+	    return $1;
+	}
+	$dir = dirname($dir);
+	return if $dir eq '/' or $dir eq '.';
+    }
+}
+sub note_img_ref {
+    my($src,$line) = @_;
+
+    if ($line =~ /<IMG(.*?)>/) {
+	$line = $1;
+	if ($line =~ /SRC="([^\"]*)"/) {
+	    my $gif = dirname($src) . "/$1";
+	    $gifs{$gif} = 1;
+	}
+    }
+}
+
+sub path_to {
+    my($to,$where) = @_;
+    my $base = basename($to);
+    return $base if dirname($to) eq dirname($where);
+    my $up = up($where);
+    "$up$to";
+}
+
+sub up {
+    my($up) = @_;
+
+    $up =~ s@[^/]+@..@g;
+    $up .= "/";
+    $up =~ s@^../@@;
+    $up;
+}
+
+sub check_dir {
+    my($name) = @_;
+    -d $name or die "$0: Missing directory $name\n";
+}
+
+sub check_file {
+    my($name) = @_;
+    -f $name or die "$0: Missing file $name\n";
+}
+
+sub copy_doc {
+    my($doc_src) = $_[0];
+    my($doc_dest) = $_[1];
+    print FLATTEN_LOG ("Copying $doc_src to $doc_dest\n");
+    copy($doc_src, $doc_dest);
+}
+
+sub usage {
+    die "usage: $0 doc-<version>\n";
+}
+
+sub get_analytics {
+    return '';
+#     <<'END'
+# <script src="http://www.google-analytics.com/urchin.js" type="text/javascript">
+# </script>
+# <script type="text/javascript">
+# _uacct = "UA-3045895-1";
+# urchinTracker();
+# </script> 
+# END
+}
