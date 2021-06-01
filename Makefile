@@ -20,7 +20,7 @@ otp_versions.table:
 	curl https://raw.githubusercontent.com/erlang/otp/master/otp_versions.table > $@
 
 docs: otp_versions.table
-	! mkdir $@
+	-mkdir $@
 	_scripts/download-docs.sh
 
 _releases:
