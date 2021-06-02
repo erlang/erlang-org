@@ -17,7 +17,7 @@ works and show you benchmark results comparing the performance of ETS
 
 ## Try it Out!
 
-[This escript](/code/insert_disjoint_ranges.erl) makes it convenient for you
+[This escript](/blog/code/insert_disjoint_ranges.erl) makes it convenient for you
 to try the new `ordered_set` implementation on your own machine with
 Erlang/OTP 22+ installed.
 
@@ -78,7 +78,7 @@ overheads).
 The structure of a CA tree is illustrated in the following
 picture:
 
-![alt text](/images/ca_tree/ca_tree_9.png "Contention Adapting Search Tree Structure")
+![alt text](/blog/images/ca_tree/ca_tree_9.png "Contention Adapting Search Tree Structure")
 
 The actual items stored in the CA tree are located in
 sequential data structures in the bottom layer. These
@@ -102,7 +102,7 @@ going through an example:
    sequential data structure as is depicted in the picture below:
    
    
-   ![alt text](/images/ca_tree/ca_tree_1.png "Initial Contention Adapting Search Tree")
+   ![alt text](/blog/images/ca_tree/ca_tree_1.png "Initial Contention Adapting Search Tree")
 2. If parallel threads access the CA tree, the value of a base node's
    counter may eventually reach the threshold that indicates that the
    base node should be split. A base node split divides the items in a
@@ -112,29 +112,29 @@ going through an example:
    pointed to by the tree's root has been split:
    
    
-   ![alt text](/images/ca_tree/ca_tree_2.png "First Split Contention Adapting Search Tree")
+   ![alt text](/blog/images/ca_tree/ca_tree_2.png "First Split Contention Adapting Search Tree")
 3. The process of base node splitting will continue as long as there
    is enough contention in base node locks or until the max depth of the
    routing layer is reached. The following picture shows how the CA
    tree looks like after another split:
    
    
-   ![alt text](/images/ca_tree/ca_tree_3.png "Second Split Contention Adapting Search Tree")
+   ![alt text](/blog/images/ca_tree/ca_tree_3.png "Second Split Contention Adapting Search Tree")
 4. The synchronization granularity may differ in different parts of a
    CA tree if, for example, a particular part of a CA tree is accessed
    more frequently in parallel than the rest. The following picture
    shows the CA tree after yet another split:
    
    
-   ![alt text](/images/ca_tree/ca_tree_4.png "Third Split Contention Adapting Search Tree")
+   ![alt text](/blog/images/ca_tree/ca_tree_4.png "Third Split Contention Adapting Search Tree")
 5. The following picture shows the CA tree after the fourth split:
    
    
-   ![alt text](/images/ca_tree/ca_tree_5.png "Fourth Split Contention Adapting Search Tree")
+   ![alt text](/blog/images/ca_tree/ca_tree_5.png "Fourth Split Contention Adapting Search Tree")
 6. The following picture shows the CA tree after the fifth split:
    
    
-   ![alt text](/images/ca_tree/ca_tree_6.png "Fifth Split Contention Adapting Search Tree")
+   ![alt text](/blog/images/ca_tree/ca_tree_6.png "Fifth Split Contention Adapting Search Tree")
 7. Two base nodes holding adjacent ranges of items can be joined. Such
    a join will be triggered after an operation sees that a base
    node counter's value is below a certain threshold. Remember that a
@@ -147,7 +147,7 @@ going through an example:
    joined is also increased if operations that require both base nodes
    happens often enough (to reduce the overhead of acquiring locks).-->
    
-   ![alt text](/images/ca_tree/ca_tree_7.png "Join of two base nodes in a  Contention Adapting Search Tree")
+   ![alt text](/blog/images/ca_tree/ca_tree_7.png "Join of two base nodes in a  Contention Adapting Search Tree")
 8. As you might have noticed from the illustrations above, splitting
    and joining results in that old base nodes and
    routing nodes gets spliced-out from the tree. The memory that these
@@ -158,9 +158,9 @@ going through an example:
    which the ETS CA tree implementation uses to reclaim these nodes
    safely.
    
-   ![alt text](/images/ca_tree/ca_tree_8.png "Spliced-out base nodes and routing nodes have been reclaimed.")
+   ![alt text](/blog/images/ca_tree/ca_tree_8.png "Spliced-out base nodes and routing nodes have been reclaimed.")
 
-[Click here](/images/ca_tree/ca_tree_ani.gif) to see an animation of the example.
+[Click here](/blog/images/ca_tree/ca_tree_ani.gif) to see an animation of the example.
 
 ## Benchmark
 
@@ -181,21 +181,21 @@ can be found on [this
 page](http://blog.erlang.org/bench/ets_ord_set_21_vs_22/21_vs_22.html).
 
 
-![alt text](/bench/ets_ord_set_21_vs_22/plot_1.png "benchmark results")
+![alt text](/blog/bench/ets_ord_set_21_vs_22/plot_1.png "benchmark results")
 
-![alt text](/bench/ets_ord_set_21_vs_22/plot_2.png "benchmark results")
+![alt text](/blog/bench/ets_ord_set_21_vs_22/plot_2.png "benchmark results")
 
-![alt text](/bench/ets_ord_set_21_vs_22/plot_3.png "benchmark results")
+![alt text](/blog/bench/ets_ord_set_21_vs_22/plot_3.png "benchmark results")
 
-![alt text](/bench/ets_ord_set_21_vs_22/plot_7.png "benchmark results")
+![alt text](/blog/bench/ets_ord_set_21_vs_22/plot_7.png "benchmark results")
 
-![alt text](/bench/ets_ord_set_21_vs_22/plot_8.png "benchmark results")
+![alt text](/blog/bench/ets_ord_set_21_vs_22/plot_8.png "benchmark results")
 
-![alt text](/bench/ets_ord_set_21_vs_22/plot_5.png "benchmark results")
+![alt text](/blog/bench/ets_ord_set_21_vs_22/plot_5.png "benchmark results")
 
-![alt text](/bench/ets_ord_set_21_vs_22/plot_6.png "benchmark results")
+![alt text](/blog/bench/ets_ord_set_21_vs_22/plot_6.png "benchmark results")
 
-![alt text](/bench/ets_ord_set_21_vs_22/plot_4.png "benchmark results")
+![alt text](/blog/bench/ets_ord_set_21_vs_22/plot_4.png "benchmark results")
 
 We see that the throughput of the CA tree-based `ordered_set` (OTP-22)
 improves when we add cores all the way up to 64 cores, while the old

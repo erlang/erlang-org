@@ -100,7 +100,7 @@ analyze the results.
 $ hotspot perf.data
 ```
 
-![alt text](/images/hotspot-dialyzer.png "Hotspot dialyzer")
+![alt text](/blog/images/hotspot-dialyzer.png "Hotspot dialyzer")
 
 In the above, we can see that we get roughly the same result as when using
 `eprof`, though interestingly not exactly the same. I'll leave the whys of
@@ -163,7 +163,7 @@ This behavior also extends into most of the Erlang code editors so that
 when you use VSCode or Emacs through [Erlang LS] or [flycheck] you also
 get a narrower warning/error indicator, for example in Emacs using [Erlang LS].
 
-![alt text](/images/column-numbers-highlight.png "Emacs columns numbers with Erlang-LS")
+![alt text](/blog/images/column-numbers-highlight.png "Emacs columns numbers with Erlang-LS")
 
 [Richard Carlsson]: https://github.com/richcarl
 [Hans Bolinder]: https://github.com/uabboli

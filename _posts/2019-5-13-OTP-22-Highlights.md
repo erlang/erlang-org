@@ -146,7 +146,7 @@ In the benchmark above we can see that on an `ordered_set` table the
 operations per seconds possible on a 64 core machine has increased
 dramatically between OTP 21 and OTP 22. You can see a description of
 the benchmark and the results of many more benchmarks
-[here](/bench/ets_ord_set_21_vs_22/21_vs_22.html).
+[here](/blog/bench/ets_ord_set_21_vs_22/21_vs_22.html).
 
 The data structure used to enable `write_concurrency` in the
 `ordered_set` is called contention adaptive search tree. In a
