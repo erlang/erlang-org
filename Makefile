@@ -28,7 +28,7 @@ docs: otp_versions.table
 	_scripts/download-docs.sh
 
 eep:
-	git clone git@github.com:erlang/eep
+	git clone https://github.com/erlang/eep
 	(cd eep && ./build.pl)
 
 _eeps: eep
