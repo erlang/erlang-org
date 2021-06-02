@@ -27,6 +27,20 @@ docs: otp_versions.table
 	-mkdir $@
 	_scripts/download-docs.sh
 
+eep:
+	git clone git@github.com:erlang/eep
+	(cd eep && ./build.pl)
+
+_eeps: eep
+	mkdir $@
+	cp -r $(wildcard eep/eeps/*.html) $(wildcard eep/eeps/*.png) $@/
+	sed -i '1s;^;---\nlayout: eep\n---\n{% raw %}\n;' $@/*.html
+	for i in ls $@/*.html; do echo "\n{% endraw %}" >> $$i; done
+eeps.html: _eeps
+	if [ ! -L eeps.html ]; then \
+		ln -s _eeps/eep-0000.html eeps.html; \
+	fi
+
 _releases assets/js:
 	mkdir -p $@
 
@@ -35,7 +49,7 @@ _data/releases.json: _releases node_modules _data/download.ts
 update:
 	npm update
 
-setup: vendor/bundle setup_npm _data/releases.json docs
+setup: vendor/bundle setup_npm _data/releases.json docs eeps.html
 
 serve: setup
 	bundle exec jekyll serve --trace --livereload
