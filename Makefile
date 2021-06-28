@@ -9,12 +9,15 @@ vendor/bundle:
 node_modules: package-lock.json
 	npm install
 
-setup_npm: node_modules assets/js
+setup_npm: node_modules assets/js assets/webfonts
 	if [ ! -L assets/js/bootstrap ]; then \
 		ln -s ../../node_modules/bootstrap assets/js/bootstrap;\
 	fi
-	if [ ! -L assets/js/@fortawesome ]; then \
-		ln -s ../../node_modules/@fortawesome assets/js/@fortawesome;\
+	if [ ! -L assets/js/fontawesome-free ]; then \
+		ln -s ../../node_modules/@fortawesome/fontawesome-free/js assets/js/fontawesome-free;\
+	fi
+	if [ ! -L assets/webfonts/fontawesome-free ]; then \
+		ln -s ../../node_modules/@fortawesome/fontawesome-free/webfonts assets/webfonts/fontawesome-free;\
 	fi
 	if [ ! -L assets/js/prismjs ]; then \
 		ln -s ../../node_modules/prismjs assets/js/prismjs;\
@@ -29,19 +32,13 @@ docs: otp_versions.table
 
 eep:
 	git clone https://github.com/erlang/eep
-	(cd eep && ./build.pl)
 
 _eeps: eep
 	mkdir $@
-	cp -r $(wildcard eep/eeps/*.html) $(wildcard eep/eeps/*.png) $@/
-	sed -i '1s;^;---\nlayout: eep\n---\n{% raw %}\n;' $@/*.html
-	for i in ls $@/*.html; do echo "\n{% endraw %}" >> $$i; done
-eeps.html: _eeps
-	if [ ! -L eeps.html ]; then \
-		ln -s _eeps/eep-0000.html eeps.html; \
-	fi
+	cp -r $(wildcard eep/eeps/*.md) $(wildcard eep/eeps/*.png) $@/
+	_scripts/fix-eeps.es $@/*.md
 
-_releases assets/js:
+_releases assets/js assets/webfonts:
 	mkdir -p $@
 
 _data/releases.json: _releases node_modules _data/download.ts
@@ -49,7 +46,7 @@ _data/releases.json: _releases node_modules _data/download.ts
 update:
 	npm update
 
-setup: vendor/bundle setup_npm _data/releases.json docs eeps.html
+setup: vendor/bundle setup_npm _data/releases.json docs _eeps
 
 serve: setup
 	bundle exec jekyll serve --trace --livereload
