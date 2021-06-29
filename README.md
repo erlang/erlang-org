@@ -20,9 +20,10 @@ You can view the latest prototype here: https://garazdawi.github.io/jekyll-test
 You need to have the following tools installed to build the erlang.org site:
 
 * GNU make 4.1 or later
-* ruby 2.6 or later
+* ruby 2.6.5 or later
 * bundler 1.16 or later
 * nodejs 14 or later
+* erlang 24 or later
 
 Most likely earlier versions of these tools will work, but they have not been tested.
 
@@ -111,12 +112,21 @@ You can of course also create your own styles, but we try to stay with the boots
 
 ## TODO
 
+* RSS feeds
+* Fix download design
+* Fix news design
 * Import Erlang FAQ
-* Import Erlang Blog
-* Import Erlang Enhancement Proposals
-* Integrate algolia search into erlang.org/doc
+* Integrate docsearch.algolia.com search into erlang.org/doc
 * Add opensearch.xml support
 * Add plausable.io tracking
 * Add rss feed (https://github.com/elixir-lang/elixir-lang.github.com/blob/master/atom.xml)
+* Use [BackstopJS](https://css-tricks.com/automating-css-regression-testing/) for regression testing 
+* Run [blc](https://www.npmjs.com/package/broken-link-checker) to check that all links are valid
+  * npx blc -roe http://localhost:4000
+
+## Things that have been removed
+
+* The course
+* The events
 ## Ideas
 
