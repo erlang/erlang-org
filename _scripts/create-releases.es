@@ -1,4 +1,9 @@
 #!/usr/bin/env escript
+%%
+%% This escript converts a set of EEPs from the style in the
+%% EEP repository to the style needed by jekyll. Mostly it is the
+%% metadata that is needed, but also som minor things in the styling
+%% is fixed.
 -mode(compile).
 
 main(EEPs) ->

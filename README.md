@@ -128,5 +128,7 @@ You can of course also create your own styles, but we try to stay with the boots
 
 * The course
 * The events
+* Documentation versions
+
 ## Ideas
 

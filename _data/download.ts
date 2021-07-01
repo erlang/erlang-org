@@ -53,28 +53,89 @@ consider setting GITHUB_TOKEN in order for the API to not throttle you.`)
 
 getAllReleases().then(releases => {
     let id = 0;
-    const majorReleases: number[] = [];
+    type MajorRelease = {
+        latest: string,
+        release: string,
+        patches: string[]
+    };
+    const majorReleases: MajorRelease[] = [];
     releases.forEach(release => {
+
         const majorReleaseVsn = release.tag_name.match(/^OTP-([0-9]+)/)?.[1]!;
-        majorReleases.push(parseInt(majorReleaseVsn));
+        let readmeFileId: number | undefined = undefined;
+        let majorRelease = majorReleases.find((v) => {
+            return v.release == majorReleaseVsn;
+        });
+        if (!majorRelease) {
+            majorRelease = {
+                release: majorReleaseVsn,
+                latest: release.tag_name.match(/^OTP-(.*)/)?.[1]!,
+                patches: []
+            };
+            majorReleases.push(majorRelease as MajorRelease);
+        }
+
+        majorRelease.patches.push(release.tag_name.match(/^OTP-(.*)/)?.[1]!);
 
         const keys = ["html_url", "tag_name", "name", "published_at"];
 
         let frontMatter = "layout: release\n";
+        frontMatter += "release: " + majorReleaseVsn + "\n";
+        release.assets.forEach(asset => {
+            if (asset.name.match(/^OTP-.*\.README$/)) {
+                readmeFileId = asset.id;
+                frontMatter += "readme: ";
+            } else if (asset.name.match(/^otp_doc_html.*/)) {
+                frontMatter += "html: ";
+            } else if (asset.name.match(/^otp_doc_man.*/)) {
+                frontMatter += "man: ";
+            } else if (asset.name.match(/^otp_win32.*/)) {
+                frontMatter += "win32: ";
+            } else if (asset.name.match(/^otp_win64.*/)) {
+                frontMatter += "win64: ";
+            } else if (asset.name.match(/^otp_src.*/)) {
+                frontMatter += "src: ";
+            } else {
+                return;
+            }
+
+            frontMatter += asset.browser_download_url + "\n";
+            
+        });
+
         keys.forEach(key => {
             frontMatter += key + ": " + release[key] + "\n";
         });
 
-        const releaseFile = "---\n" + frontMatter + "---\n" + release.body;
-        fs.writeFileSync(process.argv[3] + "/" + release.tag_name + ".md",
-            releaseFile);
+        octokit.rest.repos.getReleaseAsset({
+            headers: {
+                accept: "application/octet-stream"
+            },
+            owner: "erlang",
+            repo: "otp",
+            asset_id: readmeFileId!
+        }).then(readmeFile => {
+            let buffer = readmeFile.data as unknown as ArrayBuffer;
+            const releaseFile = "---\n" + frontMatter + "---\n" +
+                "```\n" + new TextDecoder().decode(buffer) + "```";
+            fs.writeFileSync(process.argv[3] + "/" + release.tag_name + ".md",
+                releaseFile);
+        }).catch(err => {
+            console.log("Failed to get " + release.tag_name);
+        });
     });
 
-    const uniqMajorReleases = majorReleases.filter(
-        (n, i) => majorReleases.indexOf(n) === i);
+    // majorReleases.forEach(release => {
+
+    //     let frontMatter = "layout: release\n";
+    //     frontMatter += "release: " + release.release + "\n";
+
+    //     fs.writeFileSync(process.argv[3] + "/OTP-" + release.release + ".md",
+    //         "---\n" + frontMatter + "---\n");
+    // });
 
     fs.writeFileSync(process.argv[2],
-        JSON.stringify(uniqMajorReleases, null, 2));
+        JSON.stringify(majorReleases, null, 2));
 
 }).catch(err => {
     console.log(err);

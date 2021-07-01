@@ -28,7 +28,7 @@ otp_versions.table:
 
 docs: otp_versions.table
 	-mkdir $@
-	_scripts/download-docs.sh
+	_scripts/download-docs.sh $<
 
 eep:
 	git clone https://github.com/erlang/eep
@@ -36,13 +36,13 @@ eep:
 _eeps: eep
 	mkdir $@
 	cp -r $(wildcard eep/eeps/*.md) $(wildcard eep/eeps/*.png) $@/
-	_scripts/fix-eeps.es $@/*.md
+	_scripts/format-eeps.es $@/*.md
 
 _releases assets/js assets/webfonts:
 	mkdir -p $@
 
-_data/releases.json: _releases node_modules _data/download.ts
-	npx ts-node _data/download.ts _data/releases.json _releases/
+_data/releases.json: _patches node_modules _data/download.ts
+	npx ts-node _data/download.ts _data/releases.json _patches/
 update:
 	npm update
 
