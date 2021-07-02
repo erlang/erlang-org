@@ -14,6 +14,8 @@ For a description of the changes that
 
 You can also clone the latest v
 
+<!--end_excerpt-->
+
 ### Compiling Erlang from source
 
 You can build Erlang from source on your own, following the [building and installation instructions](https://github.com/erlang/otp/blob/{{ release.latest.tag_name }}/HOWTO/INSTALL.md). In a nutshell to install a pre-built archive you need only do:
