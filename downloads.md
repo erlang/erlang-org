@@ -2,17 +2,13 @@
 layout: downloads
 ---
 {% assign sortedReleases = site.data.releases | sort: "release" | reverse %}
-{% assign latestRelease = sortedReleases | first %}
-{% assign allPatches = latestRelease.patches %}
-{% assign latestPatch = latestRelease.latest %}
-{% assign latestTag = 'OTP-' | append: latestPatch %}
-{% assign patch = site.releases | where: "tag_name", latestTag | first %}
+{% assign release = sortedReleases | first %}
 
 ### Download Erlang/OTP
 
-The latest version of Erlang/OTP is {{ latestPatch }} and it can be found [here]({{ patch.src }}).
+The latest version of Erlang/OTP is {{ release.latest.name }} and it can be found [here]({{ release.latest.src }}).
 
-Take a look at the [release description]( {% link _releases/OTP-{{ latestPatch }}.md %}) to see what Erlang/OTP {{ latestRelease.release }} brings. 
+Take a look at the [release description]( {% link _releases/{{ release.release }}.md %}) to see what changes Erlang/OTP {{ release.release }} brings. 
 
 For a description of the changes that 
 
@@ -20,8 +16,7 @@ You can also clone the latest v
 
 ### Compiling Erlang from source
 
-You can build Erlang from source on your own, following the [building and installation instructions](https://github.com/erlang/otp/blob/{{ latestPatch }}/HOWTO/INSTALL.md). In a nutshell
-to install a pre-built archive you need only do:
+You can build Erlang from source on your own, following the [building and installation instructions](https://github.com/erlang/otp/blob/{{ release.latest.tag_name }}/HOWTO/INSTALL.md). In a nutshell to install a pre-built archive you need only do:
 
 ```sh
 ./configure && make && make install

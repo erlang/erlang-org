@@ -53,15 +53,31 @@ consider setting GITHUB_TOKEN in order for the API to not throttle you.`)
 
 getAllReleases().then(releases => {
     let id = 0;
-    type MajorRelease = {
-        latest: string,
-        release: string,
-        patches: string[]
+    type Patch = {
+        name: string,
+        tag_name: string,
+        html_url: string,
+        readme?: string,
+        html?: string,
+        man?: string,
+        win32?: string,
+        win64?: string,
+        src?: string
     };
-    const majorReleases: MajorRelease[] = [];
+    type Release = {
+        latest: Patch,
+        release: string,
+        patches: Patch[]
+    };
+    const majorReleases: Release[] = [];
     releases.forEach(release => {
 
         const majorReleaseVsn = release.tag_name.match(/^OTP-([0-9]+)/)?.[1]!;
+        let patch: Patch = {
+            name: release.tag_name.match(/^OTP-(.*)/)?.[1]!,
+            tag_name: release.tag_name,
+            html_url: release.html_url
+        };
         let readmeFileId: number | undefined = undefined;
         let majorRelease = majorReleases.find((v) => {
             return v.release == majorReleaseVsn;
@@ -69,13 +85,13 @@ getAllReleases().then(releases => {
         if (!majorRelease) {
             majorRelease = {
                 release: majorReleaseVsn,
-                latest: release.tag_name.match(/^OTP-(.*)/)?.[1]!,
+                latest: patch,
                 patches: []
             };
-            majorReleases.push(majorRelease as MajorRelease);
+            majorReleases.push(majorRelease as Release);
         }
 
-        majorRelease.patches.push(release.tag_name.match(/^OTP-(.*)/)?.[1]!);
+        majorRelease.patches.push(patch);
 
         const keys = ["html_url", "tag_name", "name", "published_at"];
 
@@ -85,22 +101,28 @@ getAllReleases().then(releases => {
             if (asset.name.match(/^OTP-.*\.README$/)) {
                 readmeFileId = asset.id;
                 frontMatter += "readme: ";
+                patch.readme = asset.browser_download_url;
             } else if (asset.name.match(/^otp_doc_html.*/)) {
                 frontMatter += "html: ";
+                patch.html = asset.browser_download_url;
             } else if (asset.name.match(/^otp_doc_man.*/)) {
                 frontMatter += "man: ";
+                patch.man = asset.browser_download_url;
             } else if (asset.name.match(/^otp_win32.*/)) {
                 frontMatter += "win32: ";
+                patch.win32 = asset.browser_download_url;
             } else if (asset.name.match(/^otp_win64.*/)) {
                 frontMatter += "win64: ";
+                patch.win64 = asset.browser_download_url;
             } else if (asset.name.match(/^otp_src.*/)) {
                 frontMatter += "src: ";
+                patch.src = asset.browser_download_url;
             } else {
                 return;
             }
 
             frontMatter += asset.browser_download_url + "\n";
-            
+
         });
 
         keys.forEach(key => {

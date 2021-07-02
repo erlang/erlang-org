@@ -38,7 +38,7 @@ _eeps: eep
 	cp -r $(wildcard eep/eeps/*.md) $(wildcard eep/eeps/*.png) $@/
 	_scripts/format-eeps.es $@/*.md
 
-_releases assets/js assets/webfonts:
+_patches assets/js assets/webfonts:
 	mkdir -p $@
 
 _data/releases.json: _patches node_modules _data/download.ts
