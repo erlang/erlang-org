@@ -38,7 +38,7 @@ _scripts:
 eep:
 	git clone https://github.com/erlang/eep
 
-_eeps: _scripts/ eep
+_eeps: _scripts eep
 	-mkdir $@
 	cp -r $(wildcard eep/eeps/*.md) $(wildcard eep/eeps/*.png) $@/
 	_scripts/_build/default/bin/erlang-org format-eeps $@/*.md
