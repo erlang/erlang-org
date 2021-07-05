@@ -14,8 +14,8 @@ To ensure that changes are carefully considered, significant changes must be des
 
 Before submitting an EEP; read [EEP 1 - EEP Purpose and Guidelines] that thoroughly explains the purpose of EEPs, their life cycle, and prescribed format. The EEP editor will reject EEPs that do not follow the guidelines. Also check the list of existing [EEPs] before reinventing something.
 
-[EEP 1 - EEP Purpose and Guidelines]: ../eeps/eep-0001
-[EEPs]: ../eeps
+[EEP 1 - EEP Purpose and Guidelines]: {% link _eeps/eep-0001.md %}
+[EEPs]: {% link eeps.html %}
 
 ### EEP Editorial
 There is a mailing list for EEPs: eeps (at) erlang (dot) org, see [Mailing Lists](../community/mailinglists). Anyone interested can subscribe to the list. The EEP editor(s) are subscribed to the list, as well as the EEP repository owner. New EEPs should be sent here, as well as EEP updates. Note that as with all [erlang.org](http://www.erlang.org/) mailing lists only subscribers are allowed to post to the list.

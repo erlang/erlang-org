@@ -30,13 +30,18 @@ docs: otp_versions.table
 	-mkdir $@
 	_scripts/download-docs.sh $<
 
+.PHONY: _scripts
+
+_scripts:
+	make -C $@
+
 eep:
 	git clone https://github.com/erlang/eep
 
-_eeps: eep
-	mkdir $@
+_eeps: _scripts/ eep
+	-mkdir $@
 	cp -r $(wildcard eep/eeps/*.md) $(wildcard eep/eeps/*.png) $@/
-	_scripts/format-eeps.es $@/*.md
+	_scripts/_build/default/bin/erlang-org format-eeps $@/*.md
 
 _patches assets/js assets/webfonts:
 	mkdir -p $@
