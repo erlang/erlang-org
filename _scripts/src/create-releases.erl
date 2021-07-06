@@ -1,224 +1,271 @@
 -module('create-releases').
+-include_lib("kernel/include/logger.hrl").
+-include_lib("public_key/include/OTP-PUB-KEY.hrl").
 -export([main/1]).
 
-main(EEPs) ->
-    [fix_eep(EEP) || EEP <- EEPs].
+main([OTPVersionTable, ReleasesJson, PatchesDir]) ->
+    [?LOG_WARNING("Running without github authentication, consider setting GITHUB_TOKEN in order for the API to not throttle you.") || os:getenv("GITHUB_TOKEN") =:= undefined],
+    application:ensure_all_started(inets),
+    application:ensure_all_started(ssl),
+    Versions = parse_otp_versions_table(OTPVersionTable),
+    Downloads = parse_erlang_org_downloads(),
+    Tags = parse_github_tags(),
+    Releases = maps:map(fun(Key,Val) -> process_patches(Key,Val,Downloads,Tags) end, Versions),
+    ok = file:write_file(ReleasesJson, create_release_json(Releases)),
+    create_patches(PatchesDir, Releases),
+    ok.
 
-fix_eep(EEP) ->
-%    io:format("Parse eep: ~p~n",[EEP]),
-    {ok, Content} = file:read_file(EEP),
-    "eep-" ++ Num = filename:rootname(filename:basename(EEP)),
-    NewContent = gulp(Num, Content),
-    file:write_file(EEP, NewContent).
+parse_otp_versions_table(OTPVersionTable) ->
+    {ok, Versions} = file:read_file(OTPVersionTable),
+    parse_otp_versions_table(string:split(Versions, "\n", all), #{}).
+parse_otp_versions_table([<<>>|T], MajorVsns) ->
+    parse_otp_versions_table(T, MajorVsns);
+parse_otp_versions_table([Line|T], MajorVsns) ->
+    {match,[Vsn,Major]} = re:run(Line,"OTP-(([0-9]+)[^\\s]+)\\s:",
+                                 [{capture,all_but_first,binary}]),
+    Vsns = maps:get(Major, MajorVsns, []),
+    parse_otp_versions_table(T, MajorVsns#{ Major => Vsns ++ [Vsn] });
+parse_otp_versions_table([], MajorVsns) ->
+    MajorVsns.
 
-gulp(Num, B) ->
-    {FrontMatterStr, Matter} = gulp_frontmatter(B),
-    FrontMatter = parse_frontmatter(Num, iolist_to_binary(FrontMatterStr)),
-    [render_frontmatter(FrontMatter), gulp_matter(Matter)].
-
-%%
-%% Replace the EEP style front matter (i.e. RFC 822):
-%%
-%%     Author: John Doe
-%% ****
-%%
-%% with jekyll style frontmatter (i.e. yaml)
-%%
-%% ---
-%% Author: John Doe
-%% ---
-%%
-gulp_frontmatter(B) ->
-    [Line | Lines] = string:split(string:trim(B),"\n",all),
-    gulp_frontmatter(Lines, string:trim(Line),[]).
-%% RFC 2822 specifies that if the next line start with " " or "\t"
-%% it is a continuation of the previous line.
-gulp_frontmatter([<<"    ",WSC,Line/binary>>|Rest],CurrLine,Acc)
-  when WSC =:= $ ; WSC =:= $\t ->
-    gulp_frontmatter(Rest, [CurrLine, " ", string:trim(Line)],Acc);
-gulp_frontmatter([<<"    ",Line/binary>>|Rest],CurrLine,Acc) when Line =/= <<>> ->
-    gulp_frontmatter(Rest, string:trim(Line),[CurrLine|Acc]);
-gulp_frontmatter(Rest, CurrLine, Acc) ->
-    {[[Line,$\n] || Line <- lists:reverse([CurrLine | Acc])], lists:join($\n,Rest)}.
-
-%% Escape any '{{' with {% raw %} in order for liquid templates to work
-gulp_matter(Matter) ->
-    gulp_erlang_code(
-      iolist_to_binary(
-        re:replace(Matter,"{{","{% raw %}{{{% endraw %}",[global]))).
-
-%% Convert all code blocks to erlang code blocks.
-%% i.e.
-%%     foo() ->
-%%       bar.
-%%
-%% to
-%% ```erlang
-%% foo() ->
-%%   bar().
-%% ```
-gulp_erlang_code(<<"    ",_/binary>> = Matter) ->
-    %% Some EEPs (like EEP 2) are one large code block. We do not want
-    %% to make those into an erlang code block.
-    Matter;
-gulp_erlang_code(Matter) when is_binary(Matter) ->
-    [FirstLine | Rest] = string:split(string:trim(Matter),"\n",all),
-    Lines =
-        case re:run(FirstLine,"^\\*+$") of
-            {match,_} ->
-                Rest;
-            nomatch ->
-                [FirstLine | Rest]
-        end,
-    lists:join($\n,gulp_erlang_code(Lines, [])).
-gulp_erlang_code([],[]) ->
-    [];
-%% Handle when we are inside a list
-gulp_erlang_code([<<"    ",_/binary>> = Line|Rest],list) ->
-    [Line | gulp_erlang_code(Rest,list)];
-gulp_erlang_code([<<"\t",_/binary>> = Line|Rest],list) ->
-    [Line | gulp_erlang_code(Rest,list)];
-gulp_erlang_code([Line|Rest],list) ->
-    case is_bullet_list(Line) of
-        true ->
-            [Line | gulp_erlang_code(Rest,list)];
-        false ->
-            [Line | gulp_erlang_code(Rest,[])]
-    end;
-gulp_erlang_code([<<"    ",Line/binary>>|Rest],CodeBlock) ->
-    gulp_erlang_code(Rest,[Line|CodeBlock]);
-gulp_erlang_code([<<"\t",Line/binary>>|Rest],CodeBlock) ->
-    gulp_erlang_code(Rest,[Line|CodeBlock]);
-gulp_erlang_code([Line|Rest],[]) ->
-    case {is_bullet_list(Line),is_md_reference(Line)} of
-        {true, false} ->
-            [Line | gulp_erlang_code(Rest,list)];
-        {false, true} ->
-            case Rest of
-                [<<"    ",Title/binary>> | T] ->
-                    [[Line," ",Title] | gulp_erlang_code(T, [])];
-                [<<"\t",Title/binary>> | T] ->
-                    [[Line," ",Title] | gulp_erlang_code(T, [])];
-                _ ->
-                    [Line | gulp_erlang_code(Rest, [])]
-            end;
-        {false, false} ->
-            [Line | gulp_erlang_code(Rest,[])]
-    end;
-gulp_erlang_code(Rest,CodeBlock) ->
-    %% Check if the codeblock is only whitespace, if so ignore it
-    case re:run(CodeBlock,"^\\s*$") of
-        {match,_} ->
-            lists:reverse(CodeBlock) ++ gulp_erlang_code(Rest,[]);
-        nomatch ->
-            %% Fence the code block with ```erlang
-            ["```erlang"]++ lists:reverse(CodeBlock) ++ ["```"]
-                ++ gulp_erlang_code(Rest,[])
-    end.
-
-is_bullet_list(Line) ->
-    case re:run(Line,"^\\s*([0-9]+\\.|\\*|-)") of
-        {match,_} ->
-            true;
-        nomatch ->
-            false
-    end.
-
-is_md_reference(Line) ->
-    case re:run(Line,"^\\[[^\\]]+\\]:") of
-        {match,_} ->
-            true;
-        nomatch ->
-            false
-    end.
-
-parse_frontmatter(NumStr, FrontMatterStr) ->
-
-    %% Strip any leading 0s from NumStr
-    Num = case string:trim(NumStr, leading, "0") of
-        "" -> "0";
-        N -> N
-    end,
-    FrontMatter
-        = lists:foldl(
-            fun
-                (<<>>,M) ->
-                    M;
-                (Line,M) ->
-                    case string:split(string:trim(Line),":") of
-                        [Key,Value] ->
-                            M#{ Key => parse_frontmatter_value(
-                                         string:trim(Key),
-                                         string:trim(Value)) }
-                    end
-            end, #{ <<"Num">> => Num, <<"layout">> => "eep" },
-            string:split(FrontMatterStr,"\n",all)),
-    maps:fold(
-      fun(<<"Author">>,[{Owner,_}|_], M) ->
-              M#{ <<"Owner">> => Owner };
-         (<<"Type">>,Type, M) ->
-              M#{ <<"ShortType">> => short_type(Type) };
-         (<<"Status">>, Status, M) ->
-              maps:merge(M, Status);
-         (_,_,M) ->
-              M
-      end, FrontMatter, FrontMatter).
-
-parse_frontmatter_value(<<"Author">>, Value) ->
-    Authors = string:split(Value,", ",all),
-    lists:map(
-      fun(Author) ->
-              case re:run(Author, "^([^<]+)(<([^>]+)>)?$",[{capture,all_but_first,binary}]) of
-                  {match,[Name,_,Email]} ->
-                      { string:trim(Name), string:trim(Email) };
-                  {match,[Name]} ->
-                      { string:trim(Name), undefined }
+parse_erlang_org_downloads() ->
+    {match,Downloads} = re:run(download_erlang_org_downloads(),
+                               <<"<a href=\"([^\"/]+)\"">>,
+                               [global,{capture,all_but_first,binary}]),
+    Matches = #{ readme => "^(?:otp_src_|OTP-)(.*)\\.(?:readme|README)$",
+                 html => "^otp_(?:doc_)?html_(.*)\\.tar\\.gz$",
+                 man => "^otp_(?:doc_)?man_(.*)\\.tar\\.gz$",
+                 win32 => "^otp_win32_(.*)\\.exe$",
+                 win64 => "^otp_win64_(.*)\\.exe$",
+                 src => "^otp_src_(.*)\\.tar\\.gz$" },
+    lists:foldl(
+      fun(Download, Vsns) ->
+              case maps:fold(
+                     fun(Key, Match, Acc) ->
+                             case re:run(Download, Match, [{capture,all_but_first,binary}]) of
+                                 nomatch ->
+                                     Acc;
+                                 {match,[Vsn]} ->
+                                     {Vsn, Key}
+                             end
+                     end, undefined, Matches) of
+                  undefined ->
+                      Vsns;
+                  {Vsn, Key} ->
+                      Info = maps:get(Vsn, Vsns, #{}),
+                      Vsns#{ Vsn => Info#{ Key => iolist_to_binary(["https://erlang.org/download/",Download]) } }
               end
-      end, Authors);
-parse_frontmatter_value(<<"Status">>, Value) ->
-    %% This regexp matches "SomeStatus/SomeTag Some Description
-    case re:run(Value,"^([^/]+)(/?[^\s]*)\s*(.*)$",[{capture,all_but_first,binary}]) of
-        {match,[Status, Tag, Descr]} ->
-            #{ <<"Status">> => Status,
-               <<"ShortStatus">> => short_status(Status),
-               <<"StatusTag">> => Tag,
-               <<"StatusDescription">> => Descr }
-    end;
-parse_frontmatter_value(_, Value) ->
-    Value.
+      end, #{}, Downloads).
 
-short_status(Status) ->
-    maps:get(Status,
-             #{ <<"Active">> => "",
-                <<"Draft">> => "",
-                <<"Accepted">> => "A",
-                <<"Rejected">> => "R",
-                <<"Withdrawn">> => "W",
-                <<"Deferred">> => "D",
-                <<"Final">> => "F"}).
+download_erlang_org_downloads() ->
+    {ok,{{_,200,_},Hdrs,Body}} = httpc:request(get,{"https://erlang.org/download",[]},
+                                               ssl_opts("https://erlang.org/download"),[]),
+    case lists:member({"content-encoding","gzip"}, Hdrs) of
+        true ->
+            zlib:gunzip(Body);
+        false ->
+            Body
+    end.
 
-short_type(Type) ->
-    maps:get(Type,
-             #{ <<"Standards Track">> => "S",
-                <<"Process">> => "P" }).
+parse_github_tags() ->
+    {ok, Json} = ghget("/repos/erlang/otp/tags"),
+    maps:from_list(
+      [begin
+           TagName = maps:get(<<"name">>,Tag),
+           case re:run(TagName,"OTP[-_](.*)",[{capture,all_but_first,binary}]) of
+               {match,[Vsn]} ->
+                   {Vsn, TagName};
+               nomatch ->
+                   {TagName, TagName}
+           end
+       end || Tag <- Json]).
 
-render_frontmatter(FrontMatter) ->
-    io:format("~p~n",[FrontMatter]),
-    FM =
-        ["---"] ++
-         lists:map(
-           fun({<<"Author">> = Key,Value}) ->
-                   %% We create a yaml array out of the authors
-                   [Key,":",$\n,
-                    lists:join(
-                      $\n,
-                      lists:map(
-                        fun({Name,Email}) ->
-                                ["  - ",Name," <",Email,">"]
-                        end,Value))
-                    ];
-              ({Key,Value}) ->
-                   [Key,": ",Value]
-           end, maps:to_list(FrontMatter)) ++
-        ["---"],
-    [[Line,$\n] || Line <- FM].
+process_patches(Major, Patches, Downloads, Tags) ->
+    {ok, Releases} = ghget("/repos/erlang/otp/releases"),
+    NewPatches = pmap(fun(Patch) ->  process_patch(Patch, Releases, Downloads, Tags) end, Patches),
+    #{ patches => NewPatches,
+       latest => hd(NewPatches),
+       release => Major }.
+
+process_patch(PatchVsn, Releases, Downloads, Tags) ->
+    io:format("Process: ~p~n",[PatchVsn]),
+    Github =
+        case lists:search(
+               fun(Release) ->
+                       string:equal(maps:get(<<"tag_name">>, Release),"OTP-"++ PatchVsn)
+               end, Releases) of
+            {value, Json} ->
+                Assets = fetch_assets(
+                           maps:get(<<"assets">>, Json)),
+                Assets#{ name => PatchVsn,
+                         tag_name => maps:get(<<"tag_name">>, Json),
+                         published_at => maps:get(<<"published_at">>, Json),
+                         html_url => maps:get(<<"html_url">>, Json)};
+            false ->
+                #{ tag_name => maps:get(PatchVsn, Tags, undefined),
+                   name => PatchVsn }
+        end,
+    maps:merge(maps:get(PatchVsn, Downloads, #{}), Github).
+
+fetch_assets(Assets) ->
+    Matches = #{ readme => "^OTP-.*\\.README$",
+                 html => "^otp_doc_html.*",
+                 man => "^otp_doc_man.*",
+                 win32 => "^otp_win32.*",
+                 win64 => "^otp_win64.*",
+                 src => "^otp_src.*" },
+    maps:from_list(
+      lists:flatmap(
+        fun({Key, Match}) ->
+                case lists:search(
+                     fun(Asset) ->
+                             re:run(maps:get(<<"name">>,Asset),Match) =/= nomatch
+                     end, Assets) of
+                    {value,V} ->
+                        [{Key,#{ url => maps:get(<<"browser_download_url">>,V),
+                                 id => maps:get(<<"id">>,V) }}];
+                    false ->
+                        []
+                end
+        end, maps:to_list(Matches))).
+
+create_release_json(Releases) ->
+    jsone:encode(
+      lists:map(
+        fun({_Key, Release}) ->
+                Release#{ latest => strip_ids(maps:get(latest,Release)),
+                          patches => [strip_ids(Patch) || Patch <- maps:get(patches,Release)] }
+        end, maps:to_list(Releases)),
+     [native_forward_slash,{indent,2}]).
+
+strip_ids(Patch) ->
+    maps:map(fun(_Key, #{ id := _, url := Url }) ->
+                     Url;
+                (_,Value) ->
+                     Value
+             end, Patch).
+
+create_patches(Dir, Releases) ->
+    TmpDir = string:trim(os:cmd("mktemp -d")),
+    os:cmd("rsync --archive --verbose --compress --include='*.readme' --include='*.README' --exclude='*' erlang.org::erlang-download "++TmpDir ++ "/"),
+    maps:map(
+      fun(Release, #{ patches := Patches }) ->
+              pmap(
+                fun(#{ readme := #{ id := AssetId } } = Patch) ->
+                        {ok, Readme } =
+                            ghget(
+                              "/repos/erlang/otp/releases/assets/" ++ integer_to_list(AssetId),
+                              [{"Accept","application/octet-stream"}]),
+                        create_patch(Dir, strip_ids(Patch#{ release => Release }), Readme);
+                   (#{ readme := Url } = Patch) ->
+                        Name = lists:last(string:split(Url, "/", all)),
+                        {ok, Readme } = file:read_file(filename:join(TmpDir, Name)),
+                        create_patch(Dir, strip_ids(Patch#{ release => Release }), Readme)
+                end, Patches)
+      end, Releases),
+    file:del_dir_r(TmpDir).
+
+create_patch(Dir, Patch, Readme) ->
+    FrontMatter = lists:map(
+                    fun({Key,Value}) ->
+                            io_lib:format("~p: ~s\n",[Key,Value])
+                    end, maps:to_list(Patch)),
+    ok = file:write_file(
+           filename:join(Dir,iolist_to_binary([maps:get(tag_name,Patch),".md"])),
+           ["---\n"
+            "layout: release\n",
+            FrontMatter,
+            "---\n"
+            "```\n",
+            Readme,
+            "\n```"]).
+
+ghget(Url) ->
+    ghget(Url,[]).
+ghget(Url, GetHdrs) ->
+    Auth = case os:getenv("GITHUB_TOKEN") of
+               undefined -> [];
+               Token ->
+                   [{"Authorization","token " ++ Token}]
+           end,
+    FullUrl =
+        case string:prefix(Url, "https://") of
+            nomatch ->
+                "https://api.github.com" ++ Url;
+            _match ->
+                Url
+        end,
+    Accept = proplists:get_value("Accept", GetHdrs, "application/vnd.github.v3+json"),
+    case httpc:request(
+           get,
+           {FullUrl,
+            [{"Accept", Accept},
+             {"User-Agent","erlang-httpc"} | Auth]},ssl_opts(FullUrl),[{body_format,binary}]) of
+        {ok,{{_,200,_},Hdrs,Body}} when Accept =:= "application/vnd.github.v3+json" ->
+            case lists:keyfind("link",1,Hdrs) of
+                false ->
+                    {ok, jsone:decode(Body)};
+                {"link",Link} ->
+                    %% If there is a link header, the results are paginated, so
+                    %% we follow the pages until the end.
+                    case re:run(Link,"<([^>]+)>; rel=\"next\"",[{capture,all_but_first,binary}]) of
+                        nomatch ->
+                            {ok, jsone:decode(Body)};
+                        {match,[NextLink]} ->
+                            {ok, NextJson} = ghget(NextLink),
+                            {ok, jsone:decode(Body) ++ NextJson}
+                    end
+            end;
+        {ok,{{_,200,_},_Hdrs,Body}} ->
+            {ok, Body};
+        Else ->
+            {error, Else}
+    end.
+
+
+pmap(Fun, List) ->
+    Refs =
+        [begin
+             {_, Ref} = spawn_monitor(fun() -> exit(Fun(A)) end),
+             Ref
+         end || A <- List],
+    [receive
+         {'DOWN',Ref, _ , _, Value} ->
+             Value
+     end || Ref <- Refs].
+
+
+
+%% This code is gratefully copied from rebar3_util.erl
+ssl_opts(Url) ->
+    #{ host := Hostname } = uri_string:parse(Url),
+    VerifyFun = {fun ssl_verify_hostname:verify_fun/3,
+                 [{check_hostname, Hostname}]},
+    CACerts = certifi:cacerts(),
+    [{ssl,[{verify, verify_peer}, {depth, 2}, {cacerts, CACerts},
+           {partial_chain, fun partial_chain/1},
+           {verify_fun, VerifyFun},
+           {customize_hostname_check,
+            [{match_fun, public_key:pkix_verify_hostname_match_fun(https)}]}
+          ]}].
+
+partial_chain(Certs) ->
+    Certs1 = [{Cert, public_key:pkix_decode_cert(Cert, otp)} || Cert <- Certs],
+    CACerts = certifi:cacerts(),
+    CACerts1 = [public_key:pkix_decode_cert(Cert, otp) || Cert <- CACerts],
+    case lists:search(fun({_, Cert}) ->
+                               check_cert(CACerts1, Cert)
+                       end, Certs1) of
+        {value, Trusted} ->
+            {trusted_ca, element(1, Trusted)};
+        false ->
+            unknown_ca
+    end.
+
+extract_public_key_info(Cert) ->
+    ((Cert#'OTPCertificate'.tbsCertificate)#'OTPTBSCertificate'.subjectPublicKeyInfo).
+
+check_cert(CACerts, Cert) ->
+    lists:any(fun(CACert) ->
+                      extract_public_key_info(CACert) == extract_public_key_info(Cert)
+              end, CACerts).

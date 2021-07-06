@@ -1,6 +1,9 @@
 
 build: setup
 	bundler exec jekyll build
+	# We purge all extra css in order to create smaller CSS files
+	# The "token" css styles are used by prismjs so we need to make sure
+	# they remain
 	npx purgecss --css _site/assets/css/*.css --safelist "token" --content `find _site -name "*.html" | grep -v _site/doc/ | grep -v _site/docs/`  -o _site/assets/css/
 
 vendor/bundle:
@@ -46,12 +49,12 @@ _eeps: _scripts eep
 _patches assets/js assets/webfonts:
 	mkdir -p $@
 
-_data/releases.json: _patches node_modules _data/download.ts
-	npx ts-node _data/download.ts _data/releases.json _patches/
+_data/releases.json: _patches _scripts otp_versions.table
+	 _scripts/_build/default/bin/erlang-org create-releases otp_versions.table _data/releases.json _patches/
 update:
 	npm update
 
 setup: vendor/bundle setup_npm _data/releases.json docs _eeps
 
 serve: setup
-	bundle exec jekyll serve --trace --livereload
+	bundle exec jekyll serve --incremental --trace --livereload
