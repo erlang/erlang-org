@@ -235,19 +235,34 @@ pmap(Fun, List) ->
 
 
 
-%% This code is gratefully copied from rebar3_util.erl
 ssl_opts(Url) ->
     #{ host := Hostname } = uri_string:parse(Url),
     VerifyFun = {fun ssl_verify_hostname:verify_fun/3,
-                 [{check_hostname, Hostname}]},
-    CACerts = certifi:cacerts(),
-    [{ssl,[{verify, verify_peer}, {depth, 2}, {cacerts, CACerts},
-           {partial_chain, fun partial_chain/1},
+                  [{check_hostname, Hostname}]},
+    %% CACerts = certifi:cacerts(),
+    [{ssl,[{verify, verify_peer},
+           {cacertfile, "/etc/ssl/certs/ca-certificates.crt"},
            {verify_fun, VerifyFun},
            {customize_hostname_check,
             [{match_fun, public_key:pkix_verify_hostname_match_fun(https)}]}
           ]}].
 
+%% This code is gratefully copied from rebar3_util.erl
+%% It is currently not used as we try to use the OSs bundled certificates instead
+%% but I leave it down here in case it is needed in the future.
+-ifdef(USE_CERTIFI).
+ssl_opts_certify(Url) ->
+        #{ host := Hostname } = uri_string:parse(Url),
+    VerifyFun = {fun ssl_verify_hostname:verify_fun/3,
+                 [{check_hostname, Hostname}]},
+    CACerts = certifi:cacerts(),
+    [{ssl,[{verify, verify_peer},
+           {cacerts, CACerts},
+           {partial_chain, fun partial_chain/1},
+           {verify_fun, VerifyFun},
+           {customize_hostname_check,
+            [{match_fun, public_key:pkix_verify_hostname_match_fun(https)}]}]
+     }].
 partial_chain(Certs) ->
     Certs1 = [{Cert, public_key:pkix_decode_cert(Cert, otp)} || Cert <- Certs],
     CACerts = certifi:cacerts(),
@@ -268,3 +283,4 @@ check_cert(CACerts, Cert) ->
     lists:any(fun(CACert) ->
                       extract_public_key_info(CACert) == extract_public_key_info(Cert)
               end, CACerts).
+-endif.
