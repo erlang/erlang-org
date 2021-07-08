@@ -33,28 +33,39 @@ docs: otp_versions.table
 	-mkdir $@
 	_scripts/download-docs.sh $<
 
-.PHONY: _scripts
+.PHONY: _scripts patches
 
 _scripts:
 	make -C $@
 
-eep:
-	git clone https://github.com/erlang/eep
+_clones/eep: _clones
+	git clone https://github.com/erlang/eep $@
 
-_eeps: _scripts eep
+_clones/faq: _clones
+	git clone https://github.com/matthiasl/Erlang-FAQ $@
+	cd $@ && LC_ALL="en_US-UTF8" make
+
+faq: _clones/faq
+	cd $< && make install FAQ_ROOT=../../$@
+
+_eeps: _scripts _clones/eep
 	-mkdir $@
-	cp -r $(wildcard eep/eeps/*.md) $(wildcard eep/eeps/*.png) $@/
+	cp -r $(wildcard _clones/eep/eeps/*.md) $(wildcard _clones/eep/eeps/*.png) $@/
 	_scripts/_build/default/bin/erlang-org format-eeps $@/*.md
 
-_patches assets/js assets/webfonts:
+_patches assets/js assets/webfonts _clones:
 	mkdir -p $@
 
+patches:
+	_scripts/_build/default/bin/erlang-org create-releases otp_versions.table _data/releases.json _patches/
 _data/releases.json: _patches _scripts otp_versions.table
-	 _scripts/_build/default/bin/erlang-org create-releases otp_versions.table _data/releases.json _patches/
+	 make patches
+
 update:
 	npm update
 
-setup: vendor/bundle setup_npm _data/releases.json docs _eeps
+
+setup: vendor/bundle setup_npm _data/releases.json docs _eeps faq
 
 serve: setup
 	bundle exec jekyll serve --incremental --trace --livereload

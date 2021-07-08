@@ -88,7 +88,6 @@ process_patches(Major, Patches, Downloads, Tags) ->
        release => Major }.
 
 process_patch(PatchVsn, Releases, Downloads, Tags) ->
-    io:format("Process: ~p~n",[PatchVsn]),
     Github =
         case lists:search(
                fun(Release) ->
@@ -165,20 +164,20 @@ create_patches(Dir, Releases) ->
       end, Releases),
     file:del_dir_r(TmpDir).
 
-create_patch(Dir, Patch, Readme) ->
+create_patch(Dir, Patch, ReadmeStr) ->
     FrontMatter = lists:map(
                     fun({Key,Value}) ->
                             io_lib:format("~p: ~s\n",[Key,Value])
                     end, maps:to_list(Patch)),
+    Readme = otp_readme:parse(ReadmeStr),
     ok = file:write_file(
-           filename:join(Dir,iolist_to_binary([maps:get(tag_name,Patch),".md"])),
+           filename:join(Dir,iolist_to_binary([maps:get(tag_name,Patch),".html"])),
            ["---\n"
-            "layout: release\n",
+            "layout: patch\n",
             FrontMatter,
-            "---\n"
-            "```\n",
-            Readme,
-            "\n```"]).
+            otp_readme:render_yaml(Readme),
+            "---\n",
+            otp_readme:render(Readme)]).
 
 ghget(Url) ->
     ghget(Url,[]).
