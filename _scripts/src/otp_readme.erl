@@ -142,10 +142,8 @@ gulp_ticket(T, Ticket) ->
     {match,[Id,Body]} = re:run(T, "\s+(OTP-[0-9]+)(.*)",
                                [{capture,all_but_first,binary},dotall]),
     [MDStr, ReleaseNote] = string:split(Body,"\n\n"),
-    StrippedReleaseNote =
-        lists:join($\n, [ string:trim(Line) || Line <- string:split(ReleaseNote,"\n",all)]),
     MD = maps:merge(Ticket, gulp_ticket_metadata(MDStr,undefined,#{})),
-    MD#{ id => Id, release_note => string:trim(StrippedReleaseNote) }.
+    MD#{ id => Id, release_note => format_release_note(ReleaseNote) }.
 
 gulp_ticket_metadata(Ticket, Current, MD) ->
     case re:run(Ticket, "^\s\s+([A-Z][^:]+):(.*)",[{capture,all_but_first,binary},dotall]) of
@@ -162,6 +160,29 @@ gulp_ticket_metadata(Ticket, Current, MD) ->
                     MD#{ Current => string:trim([MDItem, " ", string:trim(Line)]) }
             end
     end.
+
+%%% Release notes have their lines split so that it never
+%%% becomes larger that 70 chars. However, there are also
+%%% lines that should break. So this function looks for places
+%%% where the automatic line break seems to have happened
+%%% and collapses those breaks.
+format_release_note(ReleaseNote) ->
+    Paragraphs = string:split(ReleaseNote,"\n\n",all),
+    lists:join("\n\n",[format_release_paragraph(string:split(P,"\n",all))
+                       || P <- Paragraphs]).
+
+format_release_paragraph([Line|[Next|_]=Rest]) ->
+    [Word | _] = string:split(string:trim(Next)," "),
+    Length = string:length([Line," ",Word]),
+    [string:trim(Line),
+     if Length >= 70 ->
+             " ";
+        true ->
+             "\n"
+     end,
+     format_release_paragraph(Rest)];
+format_release_paragraph(Line) ->
+    string:trim(Line).
 
 gulp_until(Str,Patterns) ->
     gulp_until(Str,Patterns,[]).
