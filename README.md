@@ -2,9 +2,9 @@
 
 This is the repository for the erlang.org website.
 
-We use [ruby] /w [jekyll] and [nodejs] /w [bootstrap 5] to build this website.
+We use [ruby] /w [jekyll], [nodejs] /w [bootstrap 5] and Erlang to build this website.
 
-To launch a local copy, install the correct [prerequisites](#Prerequisites) and do `make serve` and navigate to http://localhost:8080.
+To launch a local copy, install the correct [prerequisites](#Prerequisites) and do `make serve` and navigate to http://localhost:4000.
 
 You can view the latest prototype here: https://garazdawi.github.io/jekyll-test
 
@@ -13,7 +13,30 @@ You can view the latest prototype here: https://garazdawi.github.io/jekyll-test
 [nodejs]: https://nodejs.org
 [bootstrap 5]: https://getbootstrap.com/docs/5.0/
 
+## Makefile
+
+The makefile supports three targets
+
+* build (default) - depeds on setup
+  * Builds the entire site under `_site` for exporting
+* serve - depends on setup
+  * start jekyll to serve the erlang.org at http://localhost:4000
+* setup
+  * Download and generate all [Auto-generated Content](#Auto-generated-content).
+
 ## Adding content
+
+There are three major collections that you can add new items to: [News], Blog and Release. Each of these are markdown files found in _news, _posts and _releases respectively.
+
+There is a README file in each of those folders that describe the mandatory front matter for each item.
+
+[News]: /_news/README.md
+[Blog]: /_posts/README.md
+[Release]: /_releases/README.md
+
+## Auto-generated content
+
+When doing `make setup`
 
 ## Prerequisites
 
