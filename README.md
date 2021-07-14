@@ -20,13 +20,13 @@ The makefile supports three targets
 * build (default) - depeds on setup
   * Builds the entire site under `_site` for exporting
 * serve - depends on setup
-  * start jekyll to serve the erlang.org at http://localhost:4000
+  * start jekyll to serve the erlang.org site at http://localhost:4000
 * setup
   * Download and generate all [Auto-generated Content](#Auto-generated-content).
 
 ## Adding content
 
-There are three major collections that you can add new items to: [News], Blog and Release. Each of these are markdown files found in _news, _posts and _releases respectively.
+There are three major collections that you can add new items to: [News], [Blog] and [Release]. Each of these are markdown files found in _news, _posts and _releases respectively.
 
 There is a README file in each of those folders that describe the mandatory front matter for each item.
 
@@ -36,7 +36,40 @@ There is a README file in each of those folders that describe the mandatory fron
 
 ## Auto-generated content
 
-When doing `make setup`
+When doing `make setup` the auto-generated content is created. We auto-generate this:
+
+### EEPs
+
+This is placed under `_eeps`.
+
+Clone https://github.com/erlang/eep then parse using [_scripts/src/format-eeps.erl]. We do not use
+the perl markdown formatter for EEPs as the html produced does not look very nice.
+
+### FAQ
+
+This is placed under `faq`.
+
+Clone https://github.com/matthiasl/Erlang-FAQ and then build it.
+
+### Patches
+
+This is placed under `_data/release.json` and `_patches`.
+
+We fetch the latest [otp_versions.table] and from there use the [Github API](https://docs.github.com/en/rest)
+and the erlang.org rsync to fetch information about each patch released since OTP-17.0.
+
+The files in `_patches` and `_data/release.json` contain a lot of duplicate information. We could have kept the
+`_data/release.json` as the only place to keep the data, but we didn't as doing lookups in it turned out to
+be too slow for jekyll.
+
+[otp_versions.table]: https://github.com/erlang/otp/blob/master/otp_versions.table
+
+### Documentation
+
+This is placed under `docs`.
+
+The latest documentation for each release since OTP-17 is downloaded+flattened and put into the `docs` folder.
+The documentation is not built from scratch but rather fetched from github releases or erlang.org.
 
 ## Prerequisites
 
@@ -52,8 +85,8 @@ Most likely earlier versions of these tools will work, but they have not been te
 
 TODO: Create docker image to make sure we have the correct versions
 
-
 ## Development
+
 
 
 ### Layout
@@ -116,8 +149,6 @@ styling and then we use CSS grid to place the content of the `body` and
     }
 }
 ```
-
-
 
 ### Manipulating CSS
 
