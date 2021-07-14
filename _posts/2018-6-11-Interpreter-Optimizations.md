@@ -86,13 +86,15 @@ a configure script that looked at CFLAGS and LDFLAGS, asked the compiler what it
 by default etc etc. After tinkering for a while we came up with a simpler and so
 far stable solution:
 
-    #include <stdlib.h>
-    int main() {
-      if ((unsigned long long)&main < (1ull << 32)) {
-        exit(0);
-      }
-      exit(1);
-    }
+```C
+#include <stdlib.h>
+int main() {
+  if ((unsigned long long)&main < (1ull << 32)) {
+    exit(0);
+  }
+  exit(1);
+}
+```
 
 It would seem that [position-independent executable] always places code in
 segments > 4GB so we can just check where it put main in a small test program.
@@ -156,12 +158,14 @@ is\_eq\_exact\_immed\_frc would have this layout:
 The C code for the instruction would look something like this (I've removed all macros
 that beam\_makeops uses):
 
-    if (reg[0] != I[2]) {
-      I = I[1];
-      goto *(void**)I;
-    }
-    I+=3;
-    goto *(void**)I;
+```C
+if (reg[0] != I[2]) {
+  I = I[1];
+  goto *(void**)I;
+}
+I+=3;
+goto *(void**)I;
+```
 
 In this example it does not help to use part of the instruction word as both arguments
 are 8 bytes large. We also cannot use the same trick as the instruction word to make
@@ -192,12 +196,14 @@ the following layout instead:
 
 And generate this code:
 
-    if (reg[0] != I[1]) {
-      I += I[0] >> 32;
-      goto *(void**)(Uint64)(Uint32)I;
-    }
-    I+=2;
-    goto *(void**)(Uint64)(Uint32)I;
+```C
+if (reg[0] != I[1]) {
+  I += I[0] >> 32;
+  goto *(void**)(Uint64)(Uint32)I;
+}
+I+=2;
+goto *(void**)(Uint64)(Uint32)I;
+```
 
 The code ends up being a little bit more complicated, but the C compiler manages to optimize
 it into very efficient code. Basically for each jump label there is an extra add operation

@@ -59,7 +59,7 @@ Another great optimization is [PR2100](https://github.com/erlang/otp/pull/2100) 
 makes the compiler's type optimization pass work across functions within the same module.
 For instance in the code below:
 
-```
+```erlang
 -record(myrecord, {value}).
 
 h(#myrecord{value=Val}) ->
@@ -181,7 +181,7 @@ version that supports `TLSv1.3` (for instance 1.1.1b), compile Erlang/OTP using
 that OpenSSL version and generate the correct certificates. Then we can start a `TLSv1.3`
 server like this:
 
-```
+```erlang
 LOpts = [{certfile, "tls_server_cert.pem"},
 	     {keyfile, "tls_server_key.pem"},
 	     {versions, ['tlsv1.3']},
@@ -224,7 +224,7 @@ allowing smaller messages to be sent without being blocked for a long time.
 If we run the code below that does small rpc calls every 100ms millisecond and
 concurrently sends many 1/2 GB terms.
 
-```
+```erlang
 1> spawn(fun() ->
            (fun F(Max) ->
              {T, _} = timer:tc(fun() ->
@@ -270,7 +270,7 @@ A fun (and possibly useful) use case for `atomics` is to create a
 [shared mutable bit-vector](https://gist.github.com/garazdawi/48f1284c0d533ab5a39eeac6f8ff99a0).
 So, now we can spawn 100 processes and play flip that bit with each other:
 
-```
+```erlang
 BV = bit_vector:new(80),
 [spawn(fun F() ->
             bit_vector:flip(BV, rand:uniform(80)-1),

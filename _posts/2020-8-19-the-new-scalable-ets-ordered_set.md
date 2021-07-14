@@ -33,8 +33,7 @@ effect on `ordered_set` tables before the release of Erlang/OTP 22.
 We get the following results when running the escript on a developer laptop with
 two cores (Intel(R) Core(TM) i7-7500U CPU @ 2.70GHz):
 
-{% highlight console %}
-
+```bash
 $ escript insert_disjoint_ranges.erl old 1 10000000
 Time: 3.352332 seconds
 $ escript insert_disjoint_ranges.erl old 2 10000000
@@ -47,8 +46,7 @@ $ escript insert_disjoint_ranges.erl new 2 10000000
 Time: 2.109476 seconds
 $ escript insert_disjoint_ranges.erl new 4 10000000
 Time: 1.66509 seconds
-
-{% endhighlight %}
+```
 
 We see that in this particular benchmark, the CA tree has superior
 scalability to the old data structure. The benchmark ran about twice

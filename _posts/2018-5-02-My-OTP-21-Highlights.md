@@ -35,11 +35,15 @@ Another compiler change that has had quite a large impact (at least in our bench
 is OTP-14505 contributed by José Valim in [PR 1080](http://github.com/erlang/otp/pull/1080).
 The change makes the compiler re-write:
 
-    example({ok, Val}) -> {ok, Val}.
+```erlang
+example({ok, Val}) -> {ok, Val}.
+```
 
 to
 
-    example({ok, Val} = Tuple) -> Tuple.
+```erlang
+example({ok, Val} = Tuple) -> Tuple.
+```
 
 eliminating the extra creation of the tuple. As it turns out this is a quite
 common pattern in Erlang code so this will be good for all programs.

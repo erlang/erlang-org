@@ -11,7 +11,7 @@ while inserting elements in parallel.
 
 ### Scenario:
 
-```
+```erlang
 > Tab = ets:new(test_table,
                 [set, public, {write_concurrency, true}]).
 #Ref<0.1705802953.985792516.98626>

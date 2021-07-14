@@ -46,7 +46,7 @@ source code, albeit not perfectly.
 To see how much we will lose in translation, we will compile and
 pretty-print this module:
 
-```
+```erlang
 -module(trivial).
 -export([example/4]).
 -record(rec, {mod,func,result}).
@@ -74,7 +74,7 @@ pass pretty prints the abstract format, converting it back to Erlang
 source code and creating the file `trivial.P`.
 
 
-```
+```erlang
 $ cat trivial.P
 -file("trivial.erl", 1).
 
@@ -124,7 +124,7 @@ We will use `erl_scan:string/1` to tokenize our example. (The
 compiler will use other functions in `erl_scan`, but the principle
 is the same.)
 
-```
+```erlang
 1> {ok,Tokens,_} = erl_scan:string("A + (B*C*(D+42))."), Tokens.
 [{var,1,'A'},
  {'+',1},
@@ -164,7 +164,7 @@ and thus nothing to preprocess, so we will skip to the next step.
 The next step is to **parse** the tokens to produce the abstract
 format:
 
-```
+```erlang
 2> {ok,Abstract} = erl_parse:parse_exprs(Tokens), Abstract.
 [{op,1,'+',
      {var,1,'A'},
@@ -193,7 +193,7 @@ abstract format to produce a listing file.
 
 We can pretty print the abstract format of the example:
 
-```
+```erlang
 3> lists:flatten(erl_pp:exprs(Abstract)).
 "A + B * C * (D + 42)"
 ```
@@ -246,13 +246,15 @@ and so on.
 When we compile a module with problems, [erl_lint] will print
 error messages and terminate the compilation:
 
-```
+```erlang
 $ cat bug.erl
 -module(bug).
 -export([main/0]).
 
 main() ->
     A+B.
+```
+```
 $ erlc +time bug.erl
 Compiling "bug"
  remove_file                   :      0.000 s       2.1 kB
@@ -279,6 +281,8 @@ Compiling "trivial"
  lint_module                   :      0.002 s       5.5 kB
  expand_records                :      0.000 s       5.3 kB
  listing                       :      0.001 s       5.3 kB
+```
+```erlang
 $ cat trivial.E
 -file("trivial.erl", 1).
 
@@ -358,7 +362,7 @@ So how are the `?FUNCTION_NAME` and `?FUNCTION_ARITY` macros implemented?
 
 Here is an example of how tokens for a simple function looks like:
 
-```
+```erlang
 1> {ok,T,_} = erl_scan:string("foo({tag,X,Y}) -> ?FUNCTION_ARITY."), T.
 [{atom,1,foo},
  {'(',1},
