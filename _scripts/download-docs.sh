@@ -44,8 +44,6 @@ set -x
 ! timeout ${TIME_LIMIT} rsync --archive --verbose --compress "${RINCLUDE[@]}" --exclude='*' \
   erlang.org::erlang-download docs/
 
-set +x
-
 for ARCHIVE in docs/*.tar.gz; do
     mkdir "docs/tmp"
     tar xzf "${ARCHIVE}" -C "docs/tmp"
@@ -59,8 +57,10 @@ done
 
 CURRENT_VSN=$(echo "${MAJOR_VSNs}" | head -1)
 
-if [ ! -f doc ]; then
+if [ ! -L doc ]; then
     ln -s "docs/${CURRENT_VSN}" doc
 fi
 
 rm -f docs/otp_doc_html_*.tar.gz
+
+set +x
