@@ -11,7 +11,7 @@ Beginning in 2001 there have been Erlang workshops co-located or affiliated with
 
 The photograph shows Danie Schutte, Carlos Varela, Rex Page and Ulf Wiger in front of the Cliff Lodge, Snowbird, Utah, USA, before the Erlang workshop in September, 2004.
 
-<img class="img-fluid" style="float: right;" alt="Cliff Lodge, Snowbird, Utah, USA" src="https://erlang.org/workshop/2004/photos/PICT0005.JPG">
+<img class="img-fluid float-md-end" alt="Cliff Lodge, Snowbird, Utah, USA" src="https://erlang.org/workshop/2004/photos/PICT0005.JPG">
 
 * [PLI'2001](http://music.dsi.unifi.it/pli01/), Florence.
 * [Erlang Workshop 2001](https://erlang.org/workshop/2001/).
