@@ -129,7 +129,7 @@ Discover local Erlang Meetup groups in your city on [Meetup.com](http://erlang-p
 [Erlang Factory](http://erlang-factory.com/)
 : The Erlang Factory conferences provided inspiring talks, trainings and workshops with leading Erlang experts. In San Francisco Bay Area, London, Berlin and many other cities, ran last year 2017. Now renamed to CodeBeam *, above.
 
-[ACM SIGPLAN Erlang Workshops]({% link workshops.md %})
+[ACM SIGPLAN Erlang Workshops]({% link community/workshops.md %})
 : Erlang Workshops held in conjunction to ACM SIGPLAN International Conference on Functional Programming (ICFP).
  
 ### Projects
