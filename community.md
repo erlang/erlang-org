@@ -14,7 +14,7 @@ layout: markdown
 ### Contributing
 ---
 Bug Report
-:You can report bugs, improvements or new features on [the Erlang issue tracker](https://github.com/erlang/otp/issues).
+: You can report bugs, improvements or new features on [the Erlang issue tracker](https://github.com/erlang/otp/issues).
 
 Security Disclosure
 : Please [follow the guidelines](https://www.erlang.org/news/111) in order to report the issues regarding security in Erlang/OTP, and do not create a public issue for a security issue.
