@@ -1,5 +1,6 @@
 ---
 layout: markdown
+redirect_from: /workshop
 ---
 #  Erlang Workshops
 
