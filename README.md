@@ -30,6 +30,8 @@ There are three major collections that you can add new items to: [News], [Blog] 
 
 There is a README file in each of those folders that describe the mandatory front matter for each item.
 
+Links on the documentation page are added in [_data/doc-links.yaml].
+
 [News]: /_news/README.md
 [Blog]: /_posts/README.md
 [Release]: /_releases/README.md
