@@ -5,20 +5,27 @@
 -module('format-eeps').
 -export([main/1]).
 
-main(EEPs) ->
-    [fix_eep(EEP) || EEP <- EEPs].
+main([EEP0|EEPs]) ->
+    [fix_eep(EEP0, EEP) || EEP <- EEPs].
 
-fix_eep(EEP) ->
+fix_eep(EEP0, EEP) ->
 %    io:format("Parse eep: ~p~n",[EEP]),
     {ok, Content} = file:read_file(EEP),
     "eep-" ++ Num = filename:rootname(filename:basename(EEP)),
-    NewContent = gulp(Num, Content),
-    file:write_file(EEP, NewContent).
-
-gulp(Num, B) ->
-    {FrontMatterStr, Matter} = gulp_frontmatter(B),
+    {FrontMatterStr, Matter} = gulp_frontmatter(Content),
     FrontMatter = parse_frontmatter(Num, iolist_to_binary(FrontMatterStr)),
-    [render_frontmatter(FrontMatter), gulp_matter(Matter)].
+    NewContent =
+        case list_to_integer(Num) =/= 0 of
+            true ->
+                [render_frontmatter(FrontMatter), gulp_matter(Matter)];
+            false ->
+                {ok, EEP0Bin} = file:read_file(EEP0),
+                [_IgnoreFrontMatter, HtmlMatter] = string:split(EEP0Bin,"<hr />"),
+                [render_frontmatter(FrontMatter),
+                 re:replace(HtmlMatter,"(href=\")(eep-[0-9]+.md\")",
+                            "\\1https://github.com/erlang/eep/blob/master/eeps/\\2")]
+        end,
+    file:write_file(EEP, NewContent).
 
 %%
 %% Replace the EEP style front matter (i.e. RFC 822):
@@ -207,7 +214,6 @@ short_type(Type) ->
                 <<"Process">> => "P" }).
 
 render_frontmatter(FrontMatter) ->
-    io:format("~p~n",[FrontMatter]),
     FM =
         ["---"] ++
          lists:map(

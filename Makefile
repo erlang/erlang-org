@@ -40,6 +40,7 @@ _scripts:
 
 _clones/eep: _clones
 	git clone https://github.com/erlang/eep $@
+	cd $@ && ./build.pl
 
 _clones/faq: _clones
 	git clone https://github.com/matthiasl/Erlang-FAQ $@
@@ -51,7 +52,7 @@ faq: _clones/faq
 _eeps: _scripts _clones/eep
 	-mkdir $@
 	cp -r $(wildcard _clones/eep/eeps/*.md) $(wildcard _clones/eep/eeps/*.png) $@/
-	_scripts/_build/default/bin/erlang-org format-eeps $@/*.md
+	_scripts/_build/default/bin/erlang-org format-eeps _clones/eep/eeps/eep-0000.html $@/*.md
 
 _patches assets/js assets/webfonts _clones:
 	mkdir -p $@
