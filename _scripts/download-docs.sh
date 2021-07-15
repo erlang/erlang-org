@@ -46,21 +46,21 @@ set -x
 
 set +x
 
+CURRENT_VSN=$(echo "${MAJOR_VSNs}" | head -1)
+
 for ARCHIVE in docs/*.tar.gz; do
     mkdir "docs/tmp"
     tar xzf "${ARCHIVE}" -C "docs/tmp"
     ERTS_VSN=$(echo docs/tmp/erts-* | sed 's/.*erts-\(.*\)/\1/')
     MAJOR_VSN=$(echo "${ARCHIVE}" | sed 's/.*otp_doc_html_\([^.]\+\).*/\1/')
     mv "docs/tmp" "docs/doc-${ERTS_VSN}"
-    (cd docs && ../_scripts/otp_flatten_docs "doc-${ERTS_VSN}")
+    if [ "${MAJOR_VSN}" = "${CURRENT_VSN}" ]; then
+        (cd docs && ../_scripts/otp_flatten_docs "doc-${ERTS_VSN}" true)
+        mv docs/doc-1 "doc"
+    fi
+    (cd docs && ../_scripts/otp_flatten_docs "doc-${ERTS_VSN}" false)
     mv docs/doc-1 "docs/${MAJOR_VSN}"
     rm -rf "docs/doc-${ERTS_VSN}"
 done
-
-CURRENT_VSN=$(echo "${MAJOR_VSNs}" | head -1)
-
-if [ ! -L doc ]; then
-    ln -s "docs/${CURRENT_VSN}" doc
-fi
 
 rm -f docs/otp_doc_html_*.tar.gz

@@ -15,11 +15,21 @@ use File::Basename;
 use File::Copy;
 use Cwd;
 
-if (@ARGV != 1) {
+if (@ARGV == 0) {
     usage();
 }
 
 my $src = shift;
+my $include_docsearch = 0;
+if (@ARGV == 1) {
+    if (shift eq "true") {
+        $include_docsearch = 1;
+    }
+}
+if (@ARGV != 0) {
+    usage();
+}
+
 my $src_base = basename($src);
 $src = getcwd() . "/$src" unless $src =~ m@^/@;
 
@@ -117,7 +127,12 @@ sub flatten_doc {
 	if (-d $_) {
 	    mkdir "$top_dir/$rel";
 	} elsif (/^otp-system-documentation-.*[.]pdf$/) {
-	    return copy_doc($_, "$top_dir/pdf/otp-system-documentation.pdf");
+	    copy_doc($_, "$top_dir/pdf/otp-system-documentation.pdf");
+        } elsif ($include_docsearch && /^otp_doc[.]css$/) {
+	    copy_html($_, "$top_dir/$rel");
+            open FILE, ">>$top_dir/$rel";
+            print FILE get_docsearch_css();
+            close FILE;
 	} else {
 	    copy_html($_, "$top_dir/$rel");
 	}
@@ -131,6 +146,7 @@ sub flatten_doc {
 
    
     foreach (<$src/lib/*>) {
+        if (/erts/) { next; };
 	copy_application($_);
     }
     my($erts) = <$src/erts-*>;
@@ -229,6 +245,9 @@ sub copy_html {
     }
     my $rel = substr($dest, $dest_len+1);
     my $analytics = get_analytics();
+    my $docsearch = get_docsearch_js();
+    my $docsearch_css = get_docsearch_css_link();
+    my $docsearch_html = get_docsearch_html();
 
     open SRC, $src or die "ERROR: Can't open $src: $!\n";
     open DEST, ">$dest" or die "ERROR: Can't open $dest for writing: $!\n";
@@ -299,6 +318,11 @@ sub copy_html {
 	    } else {
 		note_img_ref($src,$_);
 		s@</body>@$analytics$&@;
+                if ($include_docsearch) {
+                    s@</body>@$docsearch$&@;
+                    s@</head>@$docsearch_css$&@;
+                    s@<div id="content">@$&$docsearch_html@;
+                }
 		print DEST $_;
 	    }
 	}
@@ -389,3 +413,89 @@ sub get_analytics {
 # </script> 
 # END
 }
+
+sub get_docsearch_js {
+    return <<'END'
+<script src="https://cdn.jsdelivr.net/npm/docsearch.js@2.6.3/dist/cdn/docsearch.min.js"></script>
+<script>
+(function() {
+  var a = document.getElementById('docsearch'), b;
+  if (!window.docsearch || !a)
+    return;
+  document.addEventListener('keydown', function (b) {
+    b.ctrlKey && b.key === '/' &&
+      (b.preventDefault(), a.focus())
+  });
+  window.docsearch({
+    // Your apiKey and indexName will be given to you once
+    // we create your config
+    apiKey: '25626fae796133dc1e734c6bcaaeac3c',
+    indexName: 'docsearch',
+    inputSelector: '#docsearch',
+    // Set debug to true to inspect the dropdown
+    debug: false,
+    });
+})();
+</script>
+END
+}
+
+sub get_docsearch_html {
+    return <<'END'
+<div id="topnav"><form class="search">
+  <input type="search" id="docsearch" placeholder="Search the docs"></input>
+</form></div>
+END
+}
+
+sub get_docsearch_css_link {
+    return '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsearch.js@2.6.3/dist/cdn/docsearch.min.css" />';
+}
+
+sub get_docsearch_css {
+    return <<'END'
+.search {
+  padding-left: 1rem;
+  padding-top: .5rem;
+}
+.search::after {
+  position: absolute;
+  top: .75rem;
+  left: 13rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.5rem;
+  padding-right: .25rem;
+  padding-left: .25rem;
+  font-size: .75rem;
+  color: #6c757d;
+  content: "Ctrl + /";
+  border: 1px solid #dee2e6;
+  border-radius: .125rem
+}
+
+#docsearch {
+  padding-left: .5rem;
+  padding-right: 3.75rem;
+  padding-top: .5rem;
+  padding-bottom: .5rem;
+}
+
+#topnav {
+  position: sticky;
+  top: 0px;
+  border-bottom: 1px solid #ccc;
+  height: 50px;
+  background-color: rgba(255,255,255,0.95);
+}
+
+/* See https://github.com/erlang/otp/pull/2571 for why we cannot do this.
+ #container {
+   // Reset the overflow in order for #topnav to scroll with content
+   overflow-x: unset;
+ } */
+
+END
+}
+  
