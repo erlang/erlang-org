@@ -44,6 +44,8 @@ set -x
 ! timeout ${TIME_LIMIT} rsync --archive --verbose --compress "${RINCLUDE[@]}" --exclude='*' \
   erlang.org::erlang-download docs/
 
+set +x
+
 for ARCHIVE in docs/*.tar.gz; do
     mkdir "docs/tmp"
     tar xzf "${ARCHIVE}" -C "docs/tmp"
@@ -62,5 +64,3 @@ if [ ! -L doc ]; then
 fi
 
 rm -f docs/otp_doc_html_*.tar.gz
-
-set +x
