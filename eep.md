@@ -1,5 +1,6 @@
 ---
 layout: markdown
+title: Erlang Enhancement Process
 ---
 # Erlang Enhancement Process
 
