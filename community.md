@@ -20,7 +20,7 @@ Security Disclosure
 : Please [follow the guidelines](https://www.erlang.org/news/111) in order to report the issues regarding security in Erlang/OTP, and do not create a public issue for a security issue.
 
 Contributing to Erlang
-: Go to the [Erlang issue tracker](https://github.com/erlang/otp/issues) and search for issues labelled with _Help Wanted_. Follow the [contribution guidelines](https://github.com/erlang/otp/wiki/Contribution-Guidelines) to submit a contribution.
+: Go to the [Erlang issue tracker](https://github.com/erlang/otp/issues) and search for issues labelled with [_Help Wanted_](https://github.com/erlang/otp/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22). Follow the [contribution guidelines](https://github.com/erlang/otp/wiki/Contribution-Guidelines) to submit a contribution.
 
 #### Editor/IDE
 
@@ -85,9 +85,14 @@ Contributing to Erlang
 
 Subscribe to the [mailing lists](https://erlang.org/mailman/listinfo/) to join the discussion with the Erlang community.
 
-* [erlang-questions](https://erlang.org/pipermail/erlang-questions/): The main forum for Erlang/OTP questions and discussions. You can ask any questions about Erlang programming. This list is mirrored by the [Google Group Erlang Programming](http://groups.google.com/group/erlang-programming).
-* [erlang-announce](https://erlang.org/pipermail/erlang-announce/): Subscribe to this list if you only want to receive the announcements of new Erlang/OTP releases. The announcements are also sent to erlang-questions.
-* [eeps](https://erlang.org/pipermail/eeps/): Discussions regarding specific Erlang Enhancement Proposals (EEPs). See more at [Erlang Enhancement Proposals]({% link eep.md %}).​​
+[erlang-questions](https://erlang.org/pipermail/erlang-questions/)
+: The main forum for Erlang/OTP questions and discussions. You can ask any questions about Erlang programming. This list is mirrored by the [Google Group Erlang Programming](http://groups.google.com/group/erlang-programming).
+
+[erlang-announce](https://erlang.org/pipermail/erlang-announce/)
+: Subscribe to this list if you only want to receive the announcements of new Erlang/OTP releases. The announcements are also sent to erlang-questions.
+
+[eeps](https://erlang.org/pipermail/eeps/)
+: Discussions regarding specific Erlang Enhancement Proposals (EEPs). See more at [Erlang Enhancement Proposals]({% link eep.md %}).​​
 
 #### Chat
 
