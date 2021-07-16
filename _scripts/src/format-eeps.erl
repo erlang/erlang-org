@@ -5,13 +5,15 @@
 -module('format-eeps').
 -export([main/1]).
 
-main([EEP0|EEPs]) ->
-    [fix_eep(EEP0, EEP) || EEP <- EEPs].
+main([Target,EEP0|EEPs]) ->
+    file:make_dir(Target),
+    [fix_eep(Target, EEP0, EEP) || EEP <- EEPs].
 
-fix_eep(EEP0, EEP) ->
-%    io:format("Parse eep: ~p~n",[EEP]),
+fix_eep(Target, EEP0, EEP) ->
+    % io:format("Parse eep: ~p~n",[EEP]),
     {ok, Content} = file:read_file(EEP),
-    "eep-" ++ Num = filename:rootname(filename:basename(EEP)),
+    Basename = filename:basename(EEP),
+    "eep-" ++ Num = filename:rootname(Basename),
     {FrontMatterStr, Matter} = gulp_frontmatter(Content),
     FrontMatter = parse_frontmatter(Num, iolist_to_binary(FrontMatterStr)),
     NewContent =
@@ -26,6 +28,7 @@ fix_eep(EEP0, EEP) ->
                             "\\1https://github.com/erlang/eep/blob/master/eeps/\\2")]
         end,
     file:write_file(EEP, NewContent).
+    ok = file:write_file(filename:join(Target, Basename), NewContent).
 
 %%
 %% Replace the EEP style front matter (i.e. RFC 822):
@@ -54,9 +57,10 @@ gulp_frontmatter(Rest, CurrLine, Acc) ->
 
 %% Escape any '{{' with {% raw %} in order for liquid templates to work
 gulp_matter(Matter) ->
-    gulp_erlang_code(
-      iolist_to_binary(
-        re:replace(Matter,"{{","{% raw %}{{{% endraw %}",[global]))).
+    gulp_erlang_code(iolist_to_binary(add_raw_tags(Matter))).
+
+add_raw_tags(Matter) ->
+    re:replace(Matter,"{{","{% raw %}{{{% endraw %}",[global]).
 
 %% Convert all code blocks to erlang code blocks.
 %% i.e.
