@@ -1,5 +1,8 @@
 
 build: setup
+	$(MAKE) build-no-setup
+
+build-no-setup:
 	bundler exec jekyll build
 	# We purge all extra css in order to create smaller CSS files
 	# The "token" css styles are used by prismjs so we need to make sure
@@ -36,7 +39,7 @@ docs: otp_versions.table
 .PHONY: _scripts patches
 
 _scripts:
-	make -C $@
+	$(MAKE) -C $@
 
 _clones/eep: | _clones
 	git clone https://github.com/erlang/eep $@
