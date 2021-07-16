@@ -12,7 +12,7 @@ vendor/bundle:
 node_modules: package-lock.json
 	npm install
 
-setup_npm: node_modules assets/js assets/webfonts
+setup_npm: node_modules | assets/js assets/webfonts
 	if [ ! -L assets/js/bootstrap ]; then \
 		ln -s ../../node_modules/bootstrap assets/js/bootstrap;\
 	fi
@@ -38,12 +38,12 @@ docs: otp_versions.table
 _scripts:
 	make -C $@
 
-_clones/eep: _clones
+_clones/eep: | _clones
 	git clone https://github.com/erlang/eep $@
 	cd $@ && ./build.pl
 
-_clones/faq: _clones
-	git clone https://github.com/matthiasl/Erlang-FAQ $@
+_clones/faq: | _clones
+	-git clone https://github.com/matthiasl/Erlang-FAQ $@
 	cd $@ && LC_ALL="en_US-UTF8" make
 
 faq: _clones/faq
@@ -61,7 +61,7 @@ _patches assets/js assets/webfonts _clones:
 
 patches:
 	_scripts/_build/default/bin/erlang-org create-releases otp_versions.table _data/releases.json _patches/
-_data/releases.json: _patches _scripts otp_versions.table
+_data/releases.json: _scripts otp_versions.table | _patches
 	 make patches
 
 update:
