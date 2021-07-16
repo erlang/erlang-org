@@ -171,8 +171,10 @@ You can of course also create your own styles, but we try to stay with the boots
 * Integrate docsearch.algolia.com search into erlang.org/doc
 * Add plausable.io tracking
 * Use [BackstopJS](https://css-tricks.com/automating-css-regression-testing/) for regression testing 
-* Run [blc](https://www.npmjs.com/package/broken-link-checker) to check that all links are valid
-  * npx blc -roe http://localhost:4000
+* Fix github ratelimiting issue.
+  * Download all READMEs from rsync erlang.org
+  * Update the github sync script to work better?
+    * https://github.com/erlang/otp/blob/master/.github/workflows/sync-github-releases.yaml
 
 ### Notes
 * `/docs`
