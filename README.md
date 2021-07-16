@@ -174,6 +174,21 @@ You can of course also create your own styles, but we try to stay with the boots
 * Run [blc](https://www.npmjs.com/package/broken-link-checker) to check that all links are valid
   * npx blc -roe http://localhost:4000
 
+### Notes
+* `/docs`
+  * Fix responsivness
+  * Other sections? Learning/Developing/References
+  * Add dynamic sections
+* `/community`
+  * Rewrite to same structure as `/docs`
+  * Beam Languages
+  * Other projects
+  * erlang companies.org
+* `/downloads`
+  * Link to blogpost about release
+* `/patches`
+  * Javascript collapse of sidebar
+
 ## Things that have been removed
 
 * The course
