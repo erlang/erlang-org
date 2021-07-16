@@ -67,8 +67,10 @@ _data/releases.json: _scripts otp_versions.table | _patches
 update:
 	npm update
 
-
 setup: vendor/bundle setup_npm _data/releases.json docs _eeps faq
 
 serve: setup
 	bundle exec jekyll serve --incremental --trace --livereload
+
+check: setup
+	_scripts/check.sh
