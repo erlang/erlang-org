@@ -77,7 +77,7 @@ Also it is now possible to open device files using file:open, see OTP-11462.
 
 The entire underlying mechanism for checking for I/O on sockets has been rewritten
 and optimized for modern OS kernel polling features. See OTP-14346 and
-[I/O polling options in OTP 21]({{ site.baseurl }}/IO-Polling) for more details.
+[I/O polling options in OTP 21]({% link _posts/2018-4-11-IO-Polling.md %}) for more details.
 
 ## Distribution ##
 
