@@ -27,7 +27,25 @@ fix_eep(Target, EEP0, EEP) ->
                  re:replace(HtmlMatter,"(href=\")(eep-[0-9]+.md\")",
                             "\\1https://github.com/erlang/eep/blob/master/eeps/\\2")]
         end,
-    file:write_file(EEP, NewContent).
+
+    %% Check if we can output the new content
+    try iolist_to_binary(NewContent) of
+        _ -> ok
+    catch _:_ ->
+            %% Flatten binaries and integers
+            Flat =
+                lists:foldl(
+                  fun(E,{Curr,Acc}) when is_binary(E) ->
+                          {<<Curr/binary,E/binary>>,Acc};
+                     (E,{Curr,Acc}) when E =< 255, 0 =< E ->
+                          {<<Curr/binary,E>>,Acc};
+                     (E,{<<>>,Acc}) ->
+                          {<<>>,Acc ++ [E]};
+                     (E,{Curr,Acc}) ->
+                          {<<>>,Acc ++ [Curr,E]}
+                  end,{<<>>,[]},lists:flatten(NewContent)),
+            io:format("~p~n",[Flat])
+    end,
     ok = file:write_file(filename:join(Target, Basename), NewContent).
 
 %%
@@ -227,7 +245,10 @@ render_frontmatter(FrontMatter) ->
                     lists:join(
                       $\n,
                       lists:map(
-                        fun({Name,Email}) ->
+                        fun
+                            ({Name,undefined}) ->
+                                ["  - ",Name];
+                            ({Name,Email}) ->
                                 ["  - ",Name," <",Email,">"]
                         end,Value))
                     ];
