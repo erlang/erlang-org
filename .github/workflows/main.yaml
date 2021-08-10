@@ -43,20 +43,24 @@ jobs:
       - name: Check Site
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          URL: ${{ secrets.URL }}
         run: make check
 
       - name: Install and Build 🔧
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          URL: ${{ secrets.URL }}
         run: |
-          URL=${URL:-"https://${{ github.repository_owner }}.github.io"}
+          if [ "${{ github.repository }}" = "erlang/erlang-org" ]; then
+            URL="https://beta.erlang.org"
+            REPOSITORY_NAME=
+          else
+            URL="https://${{ github.repository_owner }}.github.io"
+            REPOSITORY_NAME=$(echo ${{ github.repository }} | tr '/' ' ' | awk '{ print $2 }')
+          fi
           sed -i "s@url: \"https://erlang.org\"@url: \"${URL}\"@g" _config.yml
-          REPOSITORY_NAME=$(echo ${{ github.repository }} | tr '/' ' ' | awk '{ print $2 }')
           sed -i "s@baseurl: \"\"@baseurl: \"/$REPOSITORY_NAME\"@g" _config.yml
           make build-no-setup
           touch _site/.nojekyll
+          echo ${URL} > _site/CNAME
 
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@4.1.4
