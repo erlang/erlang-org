@@ -182,7 +182,6 @@ You can of course also create your own styles, but we try to stay with the boots
   * Other sections? Learning/Developing/References
   * Add dynamic sections
 * `/community`
-  * Rewrite to same structure as `/docs`
   * Beam Languages
   * Other projects
   * erlang companies.org
