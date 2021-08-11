@@ -180,7 +180,6 @@ You can of course also create your own styles, but we try to stay with the boots
 * `/docs`
   * Fix responsivness
   * Other sections? Learning/Developing/References
-  * Add dynamic sections
 * `/community`
   * Beam Languages
   * Other projects
