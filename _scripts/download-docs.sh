@@ -56,7 +56,10 @@ for ARCHIVE in docs/*.tar.gz; do
     mv "docs/tmp" "docs/doc-${ERTS_VSN}"
     if [ "${MAJOR_VSN}" = "${CURRENT_VSN}" ]; then
         (cd docs && ../_scripts/otp_flatten_docs "doc-${ERTS_VSN}" true)
-        mv docs/doc-1 "doc"
+        mv docs/doc-1 doc
+        URL=$(grep "^url: " _config.yml | sed 's@url: "\([^"]*\)".*@\1@')
+        BASEURL=$(grep "^baseurl: " _config.yml | sed 's@baseurl: "\([^"]*\)".*@\1@')
+        _scripts/otp_doc_sitemap doc "${URL}${BASEURL}/doc/" > doc/sitemap_algolia.xml
     fi
     (cd docs && ../_scripts/otp_flatten_docs "doc-${ERTS_VSN}" false)
     mv docs/doc-1 "docs/${MAJOR_VSN}"
