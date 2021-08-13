@@ -40,14 +40,7 @@ jobs:
           sudo apt update -y 
           sudo apt install xsltproc -y
 
-      - name: Check Site
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: make check
-
-      - name: Install and Build 🔧
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Configure Site
         run: |
           if [ "${{ github.repository }}" = "erlang/erlang-org" ]; then
             URL="beta.erlang.org"
@@ -58,9 +51,19 @@ jobs:
           fi
           sed -i "s@url: \"https://erlang.org\"@url: \"https://${URL}\"@g" _config.yml
           sed -i "s@baseurl: \"\"@baseurl: \"$REPOSITORY_NAME\"@g" _config.yml
+          echo ${URL} > CNAME
+
+      - name: Check Site
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: make check
+
+      - name: Install and Build 🔧
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
           make build-no-setup
           touch _site/.nojekyll
-          echo ${URL} > _site/CNAME
 
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@4.1.4
