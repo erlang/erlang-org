@@ -60,6 +60,7 @@ for ARCHIVE in docs/*.tar.gz; do
         URL=$(grep "^url: " _config.yml | sed 's@url: "\([^"]*\)".*@\1@')
         BASEURL=$(grep "^baseurl: " _config.yml | sed 's@baseurl: "\([^"]*\)".*@\1@')
         _scripts/otp_doc_sitemap doc "${URL}${BASEURL}/doc/" > doc/sitemap_algolia.xml
+        find "doc" -name "*.html" | xargs nodejs _scripts/normalize.js
     fi
     (cd docs && ../_scripts/otp_flatten_docs "doc-${ERTS_VSN}" false)
     mv docs/doc-1 "docs/${MAJOR_VSN}"
