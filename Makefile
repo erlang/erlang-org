@@ -4,9 +4,7 @@ build: setup
 
 build-no-setup:
 	bundler exec jekyll build
-	# We purge all extra css in order to create smaller CSS files
-	# Any CSS that is only used in javascript has to be safelisted here
-	npx purgecss --css _site/assets/css/*.css --safelist "collapsing" --safelist "token" --content `find _site -name "*.html" | grep -v _site/doc/ | grep -v _site/docs/`  -o _site/assets/css/
+	npx purgecss --css _site/assets/css/*.css --content `find _site -name "*.html" -o -name "*.js" | grep -v _site/doc/ | grep -v _site/docs/`  -o _site/assets/css/
 
 vendor/bundle:
 	bundler install --path vendor/bundle
