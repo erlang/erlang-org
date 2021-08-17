@@ -5,9 +5,8 @@ build: setup
 build-no-setup:
 	bundler exec jekyll build
 	# We purge all extra css in order to create smaller CSS files
-	# The "token" css styles are used by prismjs so we need to make sure
-	# they remain
-	npx purgecss --css _site/assets/css/*.css --safelist "token" --content `find _site -name "*.html" | grep -v _site/doc/ | grep -v _site/docs/`  -o _site/assets/css/
+	# Any CSS that is only used in javascript has to be safelisted here
+	npx purgecss --css _site/assets/css/*.css --safelist "collapsing" --safelist "token" --content `find _site -name "*.html" | grep -v _site/doc/ | grep -v _site/docs/`  -o _site/assets/css/
 
 vendor/bundle:
 	bundler install --path vendor/bundle
