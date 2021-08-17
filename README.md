@@ -26,15 +26,24 @@ The makefile supports three targets
 
 ## Adding content
 
-There are three major collections that you can add new items to: [News], [Blog] and [Release]. Each of these are markdown files found in _news, _posts and _releases respectively.
+Most pages are either html or markdown pages so they can be edited directly. They
+are located in the at the same place as the URL. So, for instance, the `/about` URL
+is implemented by [/about.md](/about.md) and `/community/euc` is implemented in
+[/community/euc](/community/euc.md).
 
-There is a README file in each of those folders that describe the mandatory front matter for each item.
+There are three major [collections](https://jekyllrb.com/docs/collections/) that
+you can add new items to: [News], [Blog] and [Release]. Each of these are
+markdown files found in _news, _posts and _releases respectively. There is a
+README file in each of those folders that describe the mandatory front matter
+for each item.
 
-Links on the documentation page are added in [_data/doc-links.yaml].
+There are also two yaml data files that contain the [documentation] and [community] links.
 
 [News]: /_news/README.md
 [Blog]: /_posts/README.md
 [Release]: /_releases/README.md
+[documentation]: [/_data/doc-links.yaml]
+[community]: [/_data/community-links.yaml]
 
 ## Auto-generated content
 
@@ -68,7 +77,7 @@ be too slow for jekyll.
 
 ### Documentation
 
-This is placed under `docs`.
+This is placed under `docs` and `doc`.
 
 The latest documentation for each release since OTP-17 is downloaded+flattened and put into the `docs` folder.
 The documentation is not built from scratch but rather fetched from github releases or erlang.org.
@@ -88,8 +97,6 @@ Most likely earlier versions of these tools will work, but they have not been te
 TODO: Create docker image to make sure we have the correct versions
 
 ## Development
-
-
 
 ### Layout
 
@@ -168,7 +175,6 @@ You can of course also create your own styles, but we try to stay with the boots
 
 ## TODO
 
-* Integrate docsearch.algolia.com search into erlang.org/doc
 * Add plausable.io tracking
 * Use [BackstopJS](https://css-tricks.com/automating-css-regression-testing/) for regression testing 
 * Fix github ratelimiting issue.
@@ -186,8 +192,6 @@ You can of course also create your own styles, but we try to stay with the boots
   * erlang companies.org
 * `/downloads`
   * Link to blogpost about release
-* `/patches`
-  * Javascript collapse of sidebar
 
 ## Things that have been removed
 
