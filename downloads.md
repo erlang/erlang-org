@@ -6,35 +6,27 @@ layout: downloads
 
 ### Download Erlang/OTP
 
-The latest version of Erlang/OTP is {{ release.latest.name }} and it can be found [here]({{ release.latest.src }}).
+The latest version of Erlang/OTP is [{{ release.latest.name }}]({% link _patches/OTP-{{ release.latest.name }}.html %}). To install Erlang you can either build it [from source](#source) or use a [pre-built package](#prebuilt).
 
-Take a look at the [release description]( {% link _releases/{{ release.release }}.md %}) to see what changes Erlang/OTP {{ release.release }} brings. 
+Take a look at the [Erlang/OTP {{ release.release }} release description]({% link _releases/{{ release.release }}.md %}) to see what changes Erlang/OTP {{ release.release }} brings over the previous major version.
 
-For a description of the changes that 
-
-You can also clone the latest v
+The Erlang/OTP version scheme is described in the [Erlang/OTP Systems Principles Guide]({% link doc/system_principles/versions.html %}#version-scheme).
 
 <!--end_excerpt-->
 
-### Compiling Erlang from source
+### Compiling Erlang from source <a href="#source" name="source">#</a>
 
-You can build Erlang from source on your own, following the [building and installation instructions](https://github.com/erlang/otp/blob/{{ release.latest.tag_name }}/HOWTO/INSTALL.md). In a nutshell to install a pre-built archive you need only do:
+You can build Erlang from source on your own, following the [building and installation instructions]({% link doc/installation_guide/INSTALL.html %}). In a nutshell to install a pre-built archive you need only do:
 
 ```sh
 ./configure && make && make install
 ```
 
-If you clone the release from git, there may be some additional steps needed depending
-on which version of Erlang/OTP you are compiling. So always make sure to read the
-build and install instruction of the release you are compiling.
+If you clone the release from git, there may be some additional steps needed depending on which version of Erlang/OTP you are compiling. So always make sure to read the build and install instruction of the release you are compiling.
 
 You can also use third-party tools such as [Kerl](https://github.com/kerl/kerl) or [asdf](https://github.com/asdf-vm/asdf-erlang) to compile Erlang. They help to remove the differences between Erlang/OTP releases and the OS you are compiling on.
 
-### Source Versions and Windows Binaries for Patches
-
-Detailed information about all released OTP versions since OTP 17.0 can be found at the [OTP Versions Tree](https://erlang.org/download/otp_versions_tree.html) page. This information includes a link to the GitHub source tag, and a link to the README. As of OTP 23, Windows binaries can also be downloaded from here for all patches.
-
-### Pre-built Binary Packages
+### Pre-built Binary Packages <a href="#prebuilt" name="prebuilt">#</a>
 
 Most OS package managers provide pre-built binary packages.
 
@@ -45,8 +37,7 @@ Most OS package managers provide pre-built binary packages.
 * For FreeBSD: `pkg install erlang`
 
 The OS provided packages tend to not contain the latest version of Erlang/OTP.
-So [Erlang Solutions](https://www.erlang-solutions.com/downloads/) provides up to date
-pre-built packages for the latest stable releases. Erlang Solutions provides pre-built binary packages for Ubuntu, Debian, Fedora, CentOS and other operating systems.
+So [Erlang Solutions](https://www.erlang-solutions.com/downloads/) provides up to date pre-built packages for the latest stable releases. Erlang Solutions provides pre-built binary packages for Ubuntu, Debian, Fedora, CentOS and other operating systems.
 
 ### License
 
