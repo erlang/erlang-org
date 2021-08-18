@@ -74,9 +74,9 @@ parse_github_tags() ->
            TagName = maps:get(<<"name">>,Tag),
            case re:run(TagName,"OTP[-_](.*)",[{capture,all_but_first,binary}]) of
                {match,[Vsn]} ->
-                   {Vsn, TagName};
+                   {Vsn, {TagName, maps:get(<<"tarball_url">>,Tag)}};
                nomatch ->
-                   {TagName, TagName}
+                   {TagName, {TagName, maps:get(<<"tarball_url">>,Tag)}}
            end
        end || Tag <- Json]).
 
@@ -88,23 +88,24 @@ process_patches(Major, Patches, Downloads, Tags) ->
        release => Major }.
 
 process_patch(PatchVsn, Releases, Downloads, Tags) ->
-    Github =
-        case lists:search(
-               fun(Release) ->
-                       string:equal(maps:get(<<"tag_name">>, Release),"OTP-"++ PatchVsn)
-               end, Releases) of
-            {value, Json} ->
-                Assets = fetch_assets(
-                           maps:get(<<"assets">>, Json)),
-                Assets#{ name => PatchVsn,
-                         tag_name => maps:get(<<"tag_name">>, Json),
-                         published_at => maps:get(<<"published_at">>, Json),
-                         html_url => maps:get(<<"html_url">>, Json)};
-            false ->
-                #{ tag_name => maps:get(PatchVsn, Tags, undefined),
-                   name => PatchVsn }
-        end,
-    maps:merge(maps:get(PatchVsn, Downloads, #{}), Github).
+    ErlangOrgDownload = maps:get(PatchVsn, Downloads, #{}),
+    case lists:search(
+           fun(Release) ->
+                   string:equal(maps:get(<<"tag_name">>, Release),"OTP-"++ PatchVsn)
+           end, Releases) of
+        {value, Json} ->
+            Assets = fetch_assets(
+                       maps:get(<<"assets">>, Json)),
+            Patch = #{ name => PatchVsn,
+                       tag_name => maps:get(<<"tag_name">>, Json),
+                       published_at => maps:get(<<"published_at">>, Json),
+                       html_url => maps:get(<<"html_url">>, Json)},
+            maps:merge(ErlangOrgDownload,maps:merge(Patch, Assets));
+        false ->
+            {TagName, Src} = maps:get(PatchVsn, Tags, {undefined, undefined}),
+            maps:merge(#{ tag_name => TagName, src => Src, name => PatchVsn },
+                       ErlangOrgDownload)
+    end.
 
 fetch_assets(Assets) ->
     Matches = #{ readme => "^OTP-.*\\.README$",
