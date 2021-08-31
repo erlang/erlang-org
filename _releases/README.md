@@ -1,6 +1,6 @@
 # Releases posts
 
-News items are displayed under `/downloads` and `/downloads/{{release}/`.
+Releases are displayed under `/downloads` and `/downloads/{{release}/`.
 
 Use the code below as a template:
 
