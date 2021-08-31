@@ -1,21 +1,25 @@
 # Blogs posts
 
-News items are displayed under `/blogs` and `/blog/{{title}/`.
+Blog posts are displayed under `/blog` and `/blog/{{title}}/`.
+
+All images are located in [/blog/images]. If your post has many images,
+place them in a folder dedicated to that blog post.
 
 Use the code below as a template:
 
 ```markdown
 ---
-id: 140
 layout: post
-title: "My new news item"
-lead: "The lead shown on index.html"
-date: "2020-05-13"
+title: "My new blog item"
 author: "John Doe"
 ---
-Some markdown
+The first paragraph will be shown on the index page. So make sure
+that it makes sense in its own and is not too long.
 
 ## Sub title
 
-Some more markdown
+Write any internal links (i.e. links to erlang.org) using the {% link blog/images/config.png %}
+syntax so that jekyll will do a check that it links to something that exists.
+
+Also remember that if markdown does not support doing something, <sup>you can always use html</sup>.
 ```
