@@ -53,8 +53,10 @@ When doing `make setup` the auto-generated content is created. We auto-generate 
 
 This is placed under `_eeps`.
 
-Clone https://github.com/erlang/eep then parse using [_scripts/src/format-eeps.erl]. We do not use
+Clone https://github.com/erlang/eep then parse using [format-eeps.erl]. We do not use
 the perl markdown formatter for EEPs as the html produced does not look very nice.
+
+[format-eeps.erl]: _scripts/src/format-eeps.erl
 
 ### FAQ
 
@@ -175,29 +177,24 @@ You can of course also create your own styles, but we try to stay with the boots
 
 ## TODO
 
-* Add plausable.io tracking
-* Use [BackstopJS](https://css-tricks.com/automating-css-regression-testing/) for regression testing 
 * Fix github ratelimiting issue.
   * Download all READMEs from rsync erlang.org
   * Update the github sync script to work better?
     * https://github.com/erlang/otp/blob/master/.github/workflows/sync-github-releases.yaml
-
-### Notes
 * `/docs`
   * Fix responsivness
   * Other sections? Learning/Developing/References
 * `/community`
   * Beam Languages
   * Other projects
-  * erlang companies.org
-* `/downloads`
-  * Link to blogpost about release
-
 ## Things that have been removed
 
 * The course
 * The events
-* Documentation versions
+* Documentation version index page
 
 ## Ideas
 
+* Add plausable.io tracking
+* Use [BackstopJS](https://css-tricks.com/automating-css-regression-testing/) for regression testing 
+* Rework /community to not just be a bunch of links. Maybe the rust page can give some inspiration? https://www.rust-lang.org/community
