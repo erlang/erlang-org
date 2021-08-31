@@ -182,7 +182,6 @@ You can of course also create your own styles, but we try to stay with the boots
   * Update the github sync script to work better?
     * https://github.com/erlang/otp/blob/master/.github/workflows/sync-github-releases.yaml
 * `/docs`
-  * Fix responsivness
   * Other sections? Learning/Developing/References
 * `/community`
   * Beam Languages
