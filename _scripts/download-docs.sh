@@ -26,44 +26,53 @@ RINCLUDE=()
 for VSN in ${MAJOR_VSNs}; do
     LATEST_VSN=$(_get_latest_vsn "^OTP-${VSN}")
     ARCHIVE="docs/otp_doc_html_${LATEST_VSN}.tar.gz"
-    if [ ! -f "${ARCHIVE}" ]; then
+    if [ ! -f "${ARCHIVE}" ] && [ ! -f "docs/${VSN}/${LATEST_VSN}" ]; then
         echo "Checking for ${LATEST_VSN} on github"
-        if ! curl --silent --location --fail --show-error "${HDR[@]}" "https://github.com/erlang/otp/releases/download/OTP-${LATEST_VSN}/otp_doc_html_${LATEST_VSN}.tar.gz" > "${ARCHIVE}"; then
+        if ! curl --silent --location --fail --show-error "${HDR[@]}" "https://github.com/erlang/otp/releases/download/OTP-${LATEST_VSN}/otp_doc_html_${LATEST_VSN}.tar.gz" > "${ARCHIVE}" 2>&1 | grep -v 404; then
             rm -f "${ARCHIVE}"
             LATEST_VSN=$(_get_latest_vsn "^OTP-${VSN}\.[0-9] ")
-            echo "Checking for ${LATEST_VSN} on erlang.org::erlang-download"
-            RINCLUDE=("--include=otp_doc_html_${LATEST_VSN}.tar.gz" "${RINCLUDE[@]}")
+            if [ ! -f "docs/${VSN}/${LATEST_VSN}" ]; then
+                echo "Checking for ${LATEST_VSN} on erlang.org::erlang-download"
+                RINCLUDE=("--include=otp_doc_html_${LATEST_VSN}.tar.gz" "${RINCLUDE[@]}")
+            else
+                echo "${LATEST_VSN} already exists"
+            fi
         fi
     else
         echo "${LATEST_VSN} already exists"
     fi
 done
 
-set -x
 
-! timeout ${TIME_LIMIT} rsync --archive --verbose --compress "${RINCLUDE[@]}" --exclude='*' \
-  erlang.org::erlang-download docs/
-
-set +x
+if [ ! "${RINCLUDE}" = "" ]; then
+    set -x
+    ! timeout ${TIME_LIMIT} rsync --archive --verbose --compress "${RINCLUDE[@]}" --exclude='*' \
+      erlang.org::erlang-download docs/
+    set +x
+fi
 
 CURRENT_VSN=$(echo "${MAJOR_VSNs}" | head -1)
 
 for ARCHIVE in docs/*.tar.gz; do
+    [ -f "${ARCHIVE}" ] || continue
     mkdir "docs/tmp"
     tar xzf "${ARCHIVE}" -C "docs/tmp"
     ERTS_VSN=$(echo docs/tmp/erts-* | sed 's/.*erts-\(.*\)/\1/')
-    MAJOR_VSN=$(echo "${ARCHIVE}" | sed 's/.*otp_doc_html_\([^.]\+\).*/\1/')
+    VSN=$(echo "${ARCHIVE}" | sed 's/.*otp_doc_html_\(.\+\)\.tar.gz/\1/')
+    MAJOR_VSN=$(echo "${VSN}" | awk -F. '{ print $1}')
     mv "docs/tmp" "docs/doc-${ERTS_VSN}"
     if [ "${MAJOR_VSN}" = "${CURRENT_VSN}" ]; then
         (cd docs && ../_scripts/otp_flatten_docs "doc-${ERTS_VSN}" true)
+        ! rm -rf "doc"
         mv docs/doc-1 doc
         URL=$(grep "^url: " _config.yml | sed 's@url: "\([^"]*\)".*@\1@')
         BASEURL=$(grep "^baseurl: " _config.yml | sed 's@baseurl: "\([^"]*\)".*@\1@')
         _scripts/otp_doc_sitemap doc "${URL}${BASEURL}/doc/" > doc/sitemap_algolia.xml
     fi
     (cd docs && ../_scripts/otp_flatten_docs "doc-${ERTS_VSN}" false)
+    touch "docs/doc-1/${VSN}"
+    ! rm -rf "docs/${MAJOR_VSN}"
     mv docs/doc-1 "docs/${MAJOR_VSN}"
     rm -rf "docs/doc-${ERTS_VSN}"
+    rm -f "${ARCHIVE}"
 done
-
-rm -f docs/otp_doc_html_*.tar.gz
