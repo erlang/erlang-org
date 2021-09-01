@@ -28,7 +28,7 @@ for VSN in ${MAJOR_VSNs}; do
     ARCHIVE="docs/otp_doc_html_${LATEST_VSN}.tar.gz"
     if [ ! -f "${ARCHIVE}" ] && [ ! -f "docs/${VSN}/${LATEST_VSN}" ]; then
         echo "Checking for ${LATEST_VSN} on github"
-        if ! curl --silent --location --fail --show-error "${HDR[@]}" "https://github.com/erlang/otp/releases/download/OTP-${LATEST_VSN}/otp_doc_html_${LATEST_VSN}.tar.gz" > "${ARCHIVE}" 2>&1 | grep -v 404; then
+        if ! curl --silent --location --fail --show-error "${HDR[@]}" "https://github.com/erlang/otp/releases/download/OTP-${LATEST_VSN}/otp_doc_html_${LATEST_VSN}.tar.gz" > "${ARCHIVE}"; then
             rm -f "${ARCHIVE}"
             LATEST_VSN=$(_get_latest_vsn "^OTP-${VSN}\.[0-9] ")
             if [ ! -f "docs/${VSN}/${LATEST_VSN}" ]; then
