@@ -27,8 +27,8 @@ otp_versions.table:
 documentation: otp_versions.table docs
 	_scripts/download-docs.sh $<
 
-_scripts:
-	$(MAKE) -C $@
+_scripts/_build/default/bin/erlang-org:
+	$(MAKE) -C _scripts
 
 _clones/eep: | _clones
 	git clone https://github.com/erlang/eep $@
@@ -45,17 +45,17 @@ eeps: _clones/eep
 	-mkdir $@
 	cp -r $(wildcard _clones/eep/eeps/*.md) $(wildcard _clones/eep/eeps/*.png) $(wildcard _clones/eep/eeps/*.diff) $@/
 
-_eeps: _scripts eeps
-	_scripts/_build/default/bin/erlang-org format-eeps $@ _clones/eep/eeps/eep-0000.html eeps/*.md
+_eeps: _scripts/_build/default/bin/erlang-org eeps
+	$< format-eeps $@ _clones/eep/eeps/eep-0000.html eeps/*.md
 
 _patches assets/js assets/webfonts _clones docs:
 	mkdir -p $@
 
-patches:
-	_scripts/_build/default/bin/erlang-org create-releases otp_versions.table _data/releases.json _patches/
+patches: _scripts/_build/default/bin/erlang-org _patches
+	$< create-releases otp_versions.table _data/releases.json _patches/
 
-_data/releases.json: otp_versions.table _scripts _patches
-	make patches
+_data/releases.json: otp_versions.table
+	$(MAKE) patches
 
 update:
 	npm update
