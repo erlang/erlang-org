@@ -248,6 +248,7 @@ sub copy_html {
     my $docsearch = get_docsearch_js();
     my $docsearch_css = get_docsearch_css_link();
     my $docsearch_html = get_docsearch_html();
+    my $docsearch_expand = get_docsearch_expand();
 
     open SRC, $src or die "ERROR: Can't open $src: $!\n";
     open DEST, ">$dest" or die "ERROR: Can't open $dest for writing: $!\n";
@@ -321,7 +322,8 @@ sub copy_html {
                 if ($include_docsearch) {
                     s@</body>@$docsearch$&@;
                     s@</head>@$docsearch_css$&@;
-                    s@<div id="content">@$&$docsearch_html@;
+                    s@<div id="container">@$&$docsearch_html@;
+                    s@<div class="search-expand[^"]*">@$&$docsearch_expand@;
                 }
 		print DEST $_;
 	    }
@@ -423,7 +425,7 @@ sub get_docsearch_js {
   if (!window.docsearch || !a)
     return;
   document.addEventListener('keydown', function (b) {
-    b.ctrlKey && b.key === '/' &&
+    b.ctrlKey && b.key === 'k' &&
       (b.preventDefault(), a.focus())
   });
   window.docsearch({
@@ -438,15 +440,36 @@ sub get_docsearch_js {
     }
     });
 })();
+function toggleSearch() {
+    var leftnav=document.getElementById('search');
+    var topbar=document.getElementsByClassName('search-expand')[0];
+    if (leftnav.classList.contains('show')) {
+        leftnav.classList.remove('show');
+        topbar.classList.remove('show');
+    } else {
+        leftnav.classList.add('show');
+        topbar.classList.add('show');
+    }
+}
 </script>
 END
 }
 
 sub get_docsearch_html {
     return <<'END'
-<div id="topnav"><form class="search">
-  <input type="search" id="docsearch" placeholder="Search the docs"></input>
-</form></div>
+    <div id="search">
+      <form class="search">
+        <input type="search" id="docsearch" placeholder="Search the docs"></input>
+      </form>
+    </div>
+END
+}
+
+sub get_docsearch_expand {
+    return <<'END'
+        <button onclick="toggleSearch();">
+          <div style="transform: rotate(45deg)">&#9906;</div>
+        </button>
 END
 }
 
@@ -456,26 +479,45 @@ sub get_docsearch_css_link {
 
 sub get_docsearch_css {
     return <<'END'
+
+#container {
+    grid-template-areas:
+        "search search"
+        "leftnav content";
+}
+
+@media screen and (max-width: 768px) {
+#container {
+    grid-template-areas:
+        "topbar"
+        "search"
+        "leftnav"
+        "content";
+}
+}
+
 .search {
     padding-left: 1rem;
     padding-top: .5rem;
-    width: 241px;
+    width: 245px;
 }
-.search::after {
-    position: absolute;
-    top: .75rem;
-    left: 13rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 1.5rem;
-    padding-right: .25rem;
-    padding-left: .25rem;
-    font-size: .75rem;
-    color: #6c757d;
-    content: "Ctrl + /";
-    border: 1px solid #dee2e6;
-    border-radius: .125rem
+@media screen and (min-width: 768px) {
+    .search::after {
+        position: absolute;
+        top: .75rem;
+        left: 13rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 1.5rem;
+        padding-right: .25rem;
+        padding-left: .25rem;
+        font-size: .75rem;
+        color: #6c757d;
+        content: "Ctrl + k";
+        border: 1px solid #dee2e6;
+        border-radius: .125rem
+    }
 }
 
 .algolia-autocomplete {
@@ -490,13 +532,37 @@ sub get_docsearch_css {
     width: 100%;
 }
 
-#topnav {
+#search {
     position: sticky;
+    grid-area: search;
     display: flex;
     top: 0px;
     border-bottom: 1px solid #ccc;
     height: 50px;
     background-color: rgba(255,255,255,0.95);
+    overflow: hidden;
+}
+@media screen and (min-width: 768px) {
+    .leftnav-tube {
+        top: 50px;
+        height: calc(100vh - 50px);
+    }
+}
+@media screen and (max-width: 768px) {
+    .search {
+        width: 100%;
+        padding-right: 1rem;
+    }
+    /* Styling of the navbar when shown/hidden */
+    #search:not(.show) {
+        max-height: 0px;
+        transition: max-height 0.35s ease;
+        border: 0px;
+    }
+    #search.show {
+        max-height: 50px;
+        transition: max-height 0.35s ease;
+    }
 }
 
 /* See https://github.com/erlang/otp/pull/2571 for why we cannot do this.
