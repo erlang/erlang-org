@@ -45,7 +45,7 @@ eeps: _clones/eep
 	-mkdir $@
 	cp -r $(wildcard _clones/eep/eeps/*.md) $(wildcard _clones/eep/eeps/*.png) $(wildcard _clones/eep/eeps/*.diff) $@/
 
-_eeps: | _scripts/_build/default/bin/erlang-org eeps
+_eeps: _scripts/_build/default/bin/erlang-org eeps
 	$< format-eeps $@ _clones/eep/eeps/eep-0000.html eeps/*.md
 
 _patches assets/js assets/webfonts _clones docs:
