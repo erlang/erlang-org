@@ -45,17 +45,16 @@ eeps: _clones/eep
 	-mkdir $@
 	cp -r $(wildcard _clones/eep/eeps/*.md) $(wildcard _clones/eep/eeps/*.png) $(wildcard _clones/eep/eeps/*.diff) $@/
 
-_eeps: _scripts/_build/default/bin/erlang-org eeps
+_eeps: | _scripts/_build/default/bin/erlang-org eeps
 	$< format-eeps $@ _clones/eep/eeps/eep-0000.html eeps/*.md
 
 _patches assets/js assets/webfonts _clones docs:
 	mkdir -p $@
 
-patches: _scripts/_build/default/bin/erlang-org _patches
-	$< create-releases otp_versions.table _data/releases.json _patches/
+patches: _data/releases.json
 
-_data/releases.json: otp_versions.table
-	$(MAKE) patches
+_data/releases.json: _scripts/_build/default/bin/erlang-org otp_versions.table _patches
+	$< create-releases otp_versions.table _data/releases.json _patches/
 
 update:
 	npm update
