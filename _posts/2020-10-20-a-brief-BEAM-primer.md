@@ -135,7 +135,7 @@ sum_body([Head | Tail]) ->
 sum_body([]) ->
     0.
 ```
-.
+
 <pre class="highlight">
 {function, sum_body, 1, 7}.
   {label,6}.
@@ -193,7 +193,7 @@ have a look:
 create_tuple(Term) ->
     {hello, Term}.
 ```
-.
+
 <pre class="highlight">
 {function, create_tuple, 1, 10}.
   {label,9}.
@@ -230,7 +230,7 @@ exception() ->
         throw:example -> hello
     end.
 ```
-.
+
 <pre class="highlight">
 {function, exception, 0, 12}.
   {label,11}.
@@ -284,7 +284,7 @@ selective_receive(Ref) ->
         {Ref, Result} -> Result
     end.
 ```
-.
+
 <pre class="highlight">
 {function, selective_receive, 1, 16}.
   {label,15}.
