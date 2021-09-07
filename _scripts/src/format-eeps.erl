@@ -106,11 +106,21 @@ gulp_erlang_code(Matter) when is_binary(Matter) ->
     lists:join($\n,gulp_erlang_code(Lines, [])).
 gulp_erlang_code([],[]) ->
     [];
+gulp_erlang_code([<<"\t",B/binary>>|Rest],list) ->
+    gulp_erlang_code([<<"        ",B/binary>>|Rest],list);
 %% Handle when we are inside a list
 gulp_erlang_code([<<"    ",_/binary>> = Line|Rest],list) ->
     [Line | gulp_erlang_code(Rest,list)];
-gulp_erlang_code([<<"\t",_/binary>> = Line|Rest],list) ->
+gulp_erlang_code([<<"   ">> = Line|Rest],list) ->
     [Line | gulp_erlang_code(Rest,list)];
+gulp_erlang_code([<<"  ">> = Line|Rest],list) ->
+    [Line | gulp_erlang_code(Rest,list)];
+gulp_erlang_code([<<" ">> = Line|Rest],list) ->
+    [Line | gulp_erlang_code(Rest,list)];
+gulp_erlang_code([<<"">> = Line|Rest],list) ->
+    [Line | gulp_erlang_code(Rest,list)];
+%% gulp_erlang_code([<<"\t",_/binary>> = Line|Rest],list) ->
+%%     [Line | gulp_erlang_code(Rest,list)];
 gulp_erlang_code([Line|Rest],list) ->
     case is_bullet_list(Line) of
         true ->
@@ -119,8 +129,6 @@ gulp_erlang_code([Line|Rest],list) ->
             [Line | gulp_erlang_code(Rest,[])]
     end;
 gulp_erlang_code([<<"    ",Line/binary>>|Rest],CodeBlock) ->
-    gulp_erlang_code(Rest,[Line|CodeBlock]);
-gulp_erlang_code([<<"\t",Line/binary>>|Rest],CodeBlock) ->
     gulp_erlang_code(Rest,[Line|CodeBlock]);
 gulp_erlang_code([Line|Rest],[]) ->
     case {is_bullet_list(Line),is_md_reference(Line)} of
@@ -139,15 +147,37 @@ gulp_erlang_code([Line|Rest],[]) ->
             [Line | gulp_erlang_code(Rest,[])]
     end;
 gulp_erlang_code(Rest,CodeBlock) ->
-    %% Check if the codeblock is only whitespace, if so ignore it
-    case re:run(CodeBlock,"^\\s*$") of
+    case length(Rest) > 0 andalso re:run(hd(Rest),"^\\s*$") of
         {match,_} ->
-            lists:reverse(CodeBlock) ++ gulp_erlang_code(Rest,[]);
-        nomatch ->
-            %% Fence the code block with ```erlang
-            ["```erlang"]++ lists:reverse(CodeBlock) ++ ["```"]
-                ++ gulp_erlang_code(Rest,[])
+            gulp_erlang_code(tl(Rest),[hd(Rest)|CodeBlock]);
+        _ ->
+            %% Check if the codeblock is only whitespace, if so ignore it
+            case re:run(CodeBlock,"^\\s*$") of
+                {match,_} ->
+                    lists:reverse(CodeBlock) ++ gulp_erlang_code(Rest,[]);
+                nomatch ->
+                    {TrimmedBlock, Tail} = trim(CodeBlock, []),
+                    %% Fence the code block with ```erlang
+                    ["```erlang"] ++ TrimmedBlock ++ ["```"]
+                        ++ gulp_erlang_code(Tail ++ Rest,[])
+            end
     end.
+
+%% This trim expects a list in reverse and returns all trimmed
+%% whitespace elements in the front of the list
+%% (i.e. the back of the string)
+trim([Line | Rest], Trimmed) ->
+    case re:run(Line,"^\\s*$") of
+        {match,_} ->
+            trim(Rest, [Line | Trimmed]);
+        _ ->
+            {lists:dropwhile(
+               fun(L) -> is_tuple(re:run(L,"^\\s*$")) end,
+               lists:reverse([Line|Rest])),
+             lists:reverse(Trimmed)}
+    end;
+trim(List, Trimmed) ->
+    {lists:reverse(List), lists:reverse(Trimmed)}.
 
 is_bullet_list(Line) ->
     case re:run(Line,"^\\s*([0-9]+\\.|\\*|-)") of
