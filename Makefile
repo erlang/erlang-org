@@ -5,7 +5,7 @@ build: setup
 	npx purgecss --css _site/assets/css/*.css --content `find _site -name "*.html" -o -name "*.js" | grep -v _site/doc/ | grep -v _site/docs/`  -o _site/assets/css/
 
 vendor/bundle:
-	bundler install --path vendor/bundle
+	bundler install
 
 node_modules: package-lock.json
 	npm install
