@@ -160,7 +160,11 @@ create_patches(Dir, Releases) ->
                    (#{ readme := Url } = Patch) ->
                         Name = lists:last(string:split(Url, "/", all)),
                         {ok, Readme } = file:read_file(filename:join(TmpDir, Name)),
-                        create_patch(Dir, strip_ids(Patch#{ release => Release }), Readme)
+                        create_patch(Dir, strip_ids(Patch#{ release => Release }), Readme);
+                   (_) ->
+                        %% Happens when the new patch has just been created and
+                        %% readme is not been updated yet
+                        ok
                 end, Patches)
       end, Releases),
     file:del_dir_r(TmpDir).
