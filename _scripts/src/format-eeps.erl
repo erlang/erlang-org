@@ -109,7 +109,7 @@ gulp_erlang_code([],[]) ->
 gulp_erlang_code([<<"\t",B/binary>>|Rest],list) ->
     gulp_erlang_code([<<"        ",B/binary>>|Rest],list);
 %% Handle when we are inside a list
-gulp_erlang_code([<<"    ",_/binary>> = Line|Rest],list) ->
+gulp_erlang_code([<<"  ",_/binary>> = Line|Rest],list) ->
     [Line | gulp_erlang_code(Rest,list)];
 gulp_erlang_code([<<"   ">> = Line|Rest],list) ->
     [Line | gulp_erlang_code(Rest,list)];
