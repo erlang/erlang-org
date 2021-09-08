@@ -186,9 +186,6 @@ You can of course also create your own styles, but we try to stay with the boots
 * `/community`
   * Beam Languages
   * Other projects
-* Index
-  * Add "more..." put a hard-cap on number of characters in item.
-  * Move EEF to under "What is OTP"
 * Check all unicode icons on all browsers
   * Safari (os x, ios)
   * Chrome (os x, android, linux, windows)
