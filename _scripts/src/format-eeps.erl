@@ -119,8 +119,6 @@ gulp_erlang_code([<<" ">> = Line|Rest],list) ->
     [Line | gulp_erlang_code(Rest,list)];
 gulp_erlang_code([<<"">> = Line|Rest],list) ->
     [Line | gulp_erlang_code(Rest,list)];
-%% gulp_erlang_code([<<"\t",_/binary>> = Line|Rest],list) ->
-%%     [Line | gulp_erlang_code(Rest,list)];
 gulp_erlang_code([Line|Rest],list) ->
     case is_bullet_list(Line) of
         true ->
@@ -128,7 +126,15 @@ gulp_erlang_code([Line|Rest],list) ->
         false ->
             [Line | gulp_erlang_code(Rest,[])]
     end;
+gulp_erlang_code([<<"```",_/binary>> = Line|Rest],[]) ->
+    [Line | gulp_erlang_code(Rest,fence)];
+gulp_erlang_code([<<"```",_/binary>> = Line|Rest],fence) ->
+    [Line | gulp_erlang_code(Rest,[])];
+gulp_erlang_code([Line|Rest],fence) ->
+    [Line | gulp_erlang_code(Rest,fence)];
 gulp_erlang_code([<<"    ",Line/binary>>|Rest],CodeBlock) ->
+    gulp_erlang_code(Rest,[Line|CodeBlock]);
+gulp_erlang_code([<<"\t",Line/binary>>|Rest],CodeBlock) ->
     gulp_erlang_code(Rest,[Line|CodeBlock]);
 gulp_erlang_code([Line|Rest],[]) ->
     case {is_bullet_list(Line),is_md_reference(Line)} of
@@ -180,7 +186,7 @@ trim(List, Trimmed) ->
     {lists:reverse(List), lists:reverse(Trimmed)}.
 
 is_bullet_list(Line) ->
-    case re:run(Line,"^\\s*([0-9]+\\.|\\*|-)") of
+    case re:run(Line,"^\\s*([0-9]+\\.|\\*|-)\\s{1,4}") of
         {match,_} ->
             true;
         nomatch ->
