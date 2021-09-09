@@ -30,8 +30,8 @@ You can also use third-party tools such as [Kerl](https://github.com/kerl/kerl) 
 
 Most OS package managers provide pre-built binary packages.
 
-* For Homebrew on OS X: `brew install erlang`
-* For MacPorts on OS X: `port install erlang`
+* For Homebrew on macOS: `brew install erlang`
+* For MacPorts on macOS: `port install erlang`
 * For Ubuntu and Debian: `apt-get install erlang`
 * For Fedora: `yum install erlang`
 * For FreeBSD: `pkg install erlang`
