@@ -68,7 +68,7 @@ check: setup
 	_scripts/check.sh
 
 lint:
-	yamllint .
+	yamllint -f standard .
 	npm run shellcheck
 
 algolia:
