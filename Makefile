@@ -67,5 +67,9 @@ serve: setup
 check: setup
 	_scripts/check.sh
 
+lint:
+	yamllint .
+	npm run shellcheck
+
 algolia:
 	_scripts/run_algolia_scraper.sh

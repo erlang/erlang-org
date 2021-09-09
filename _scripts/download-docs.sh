@@ -13,7 +13,7 @@ TOKEN=${2:-"token ${GITHUB_TOKEN}"}
 HDR=(-H "Authorization: ${TOKEN}")
 
 _get_vsns() {
-    grep "${1}" ${OTP_VERSIONS_TABLE} | awk '{print $1}' | sed 's/OTP-\(.*\)/\1/g'
+    grep "${1}" "${OTP_VERSIONS_TABLE}" | awk '{print $1}' | sed 's/OTP-\(.*\)/\1/g'
 }
 _get_latest_vsn() {
     _get_vsns "${1}" | head -1
@@ -46,10 +46,10 @@ for VSN in ${MAJOR_VSNs}; do
 done
 
 
-if [ ! "${RINCLUDE}" = "" ]; then
+if [ ! "${RINCLUDE[0]}" = "" ]; then
     set -x
-    ! timeout ${TIME_LIMIT} rsync --archive --verbose --compress "${RINCLUDE[@]}" --exclude='*' \
-      erlang.org::erlang-download docs/
+    timeout "${TIME_LIMIT}" rsync --archive --verbose --compress "${RINCLUDE[@]}" --exclude='*' \
+      erlang.org::erlang-download docs/ || true
     set +x
 fi
 
@@ -60,20 +60,21 @@ for ARCHIVE in docs/*.tar.gz; do
     mkdir "docs/tmp"
     tar xzf "${ARCHIVE}" -C "docs/tmp"
     ERTS_VSN=$(echo docs/tmp/erts-* | sed 's/.*erts-\(.*\)/\1/')
+    # shellcheck disable=SC2001
     VSN=$(echo "${ARCHIVE}" | sed 's/.*otp_doc_html_\(.\+\)\.tar.gz/\1/')
     MAJOR_VSN=$(echo "${VSN}" | awk -F. '{ print $1}')
     mv "docs/tmp" "docs/doc-${ERTS_VSN}"
     if [ "${MAJOR_VSN}" = "${CURRENT_VSN}" ]; then
         (cd docs && ../_scripts/otp_flatten_docs "doc-${ERTS_VSN}" true)
-        ! rm -rf "doc"
+        rm -rf "doc" || true
         mv docs/doc-1 doc
         URL=$(grep "^url: " _config.yml | sed 's@url: "\([^"]*\)".*@\1@')
         BASEURL=$(grep "^baseurl: " _config.yml | sed 's@baseurl: "\([^"]*\)".*@\1@')
-        _scripts/otp_doc_sitemap doc "${URL}${BASEURL}/doc/" > doc/sitemap_algolia.xml
+        _scripts/otp_doc_sitemap.sh doc "${URL}${BASEURL}/doc/" > doc/sitemap_algolia.xml
     fi
     (cd docs && ../_scripts/otp_flatten_docs "doc-${ERTS_VSN}" false)
     touch "docs/doc-1/${VSN}"
-    ! rm -rf "docs/${MAJOR_VSN}"
+    rm -rf "docs/${MAJOR_VSN}" || true
     mv docs/doc-1 "docs/${MAJOR_VSN}"
     rm -rf "docs/doc-${ERTS_VSN}"
     rm -f "${ARCHIVE}"
