@@ -9,6 +9,7 @@ vendor/bundle:
 
 node_modules: package-lock.json
 	npm install
+	npm run build
 
 assets/js/bootstrap: | assets/js
 	ln -s ../../node_modules/bootstrap assets/js/bootstrap
