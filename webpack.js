@@ -8,8 +8,7 @@ module.exports = {
     devtool: 'inline-source-map',
     output: {
         filename: '[name].bundle.js',
-        path: resolve(__dirname, './assets/js/'),
-        library: 'docSearch'
+        path: resolve(__dirname, './assets/js/')
     },
     optimization: {
         minimize: true
