@@ -9,7 +9,7 @@ module.exports = {
     output: {
         filename: '[name].bundle.js',
         path: resolve(__dirname, './assets/js/'),
-        library: 'index'
+        library: 'docSearch'
     },
     optimization: {
         minimize: true
