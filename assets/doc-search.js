@@ -1,24 +1,21 @@
-import docsearch from '@docsearch/js';
+import docsearch from '@docsearch/js/dist/umd';
 
-(function() {
-    var a = document.getElementById('docsearch'),
-        b;
-    document.addEventListener('keydown', function(b) {
-        b.ctrlKey && b.key === 'k' &&
-            (b.preventDefault(), a.focus())
-    });
-    docsearch({
-        appId: 'T71IQF5OFV',
-        apiKey: 'a2c3c6c0120e6eb2574bb328bd316967',
-        indexName: 'erlang_org',
-        container: '#docsearch',
-        // Set debug to true to inspect the dropdown
-        debug: false,
-        algoliaOptions: {
-            hitsPerPage: 10
-        }
-    });
-})();
+// import './app.css';
+import '@docsearch/css';
+
+docsearch({
+  container: '#docsearch',
+  indexName: 'erlang_org',
+  appId: 'T71IQF5OFV',
+  apiKey: 'a2c3c6c0120e6eb2574bb328bd316967',
+});
+
+docsearch({
+    container: '#docsearch-mobile',
+    indexName: 'erlang_org',
+    appId: 'T71IQF5OFV',
+    apiKey: 'a2c3c6c0120e6eb2574bb328bd316967',
+  });
 
 export function toggleSearch() {
     var leftnav = document.getElementById('search');

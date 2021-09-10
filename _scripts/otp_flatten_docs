@@ -246,7 +246,6 @@ sub copy_html {
     my $rel = substr($dest, $dest_len+1);
     my $analytics = get_analytics();
     my $docsearch = get_docsearch_js();
-    my $docsearch_css = get_docsearch_css_link();
     my $docsearch_html = get_docsearch_html();
     my $docsearch_expand = get_docsearch_expand();
 
@@ -321,8 +320,7 @@ sub copy_html {
 		s@</body>@$analytics$&@;
                 if ($include_docsearch) {
                     s@</body>@$docsearch$&@;
-                    s@</head>@$docsearch_css$&@;
-                    s@<div id="container">@$&$docsearch_html@;
+                    s@<ul class="expand-collapse-items">@$docsearch_html$&@;
                     s@<div class="search-expand[^"]*">@$&$docsearch_expand@;
                 }
 		print DEST $_;
@@ -424,155 +422,26 @@ END
 
 sub get_docsearch_html {
     return <<'END'
-      <div id="search" class="overflow-hidden">
-        <form>
-          <input type="search" id="docsearch" placeholder="Search the docs"></input>
-        </form>
-      </div>
+<div id="docsearch"></div>
 END
 }
 
 sub get_docsearch_expand {
     return <<'END'
-        <button onclick="docSearch.toggleSearch();"><svg style="width: 100%; height: auto;" fill="#000000" xmlns="http://www.w3.org/2000/svg"  viewBox="0 0 50 50" width="24" height="24"><path d="M 21 3 C 11.621094 3 4 10.621094 4 20 C 4 29.378906 11.621094 37 21 37 C 24.710938 37 28.140625 35.804688 30.9375 33.78125 L 44.09375 46.90625 L 46.90625 44.09375 L 33.90625 31.0625 C 36.460938 28.085938 38 24.222656 38 20 C 38 10.621094 30.378906 3 21 3 Z M 21 5 C 29.296875 5 36 11.703125 36 20 C 36 28.296875 29.296875 35 21 35 C 12.703125 35 6 28.296875 6 20 C 6 11.703125 12.703125 5 21 5 Z"/></svg>
+        <button id="docsearch-mobile"><svg style="width: 100%; height: auto;" fill="#000000" xmlns="http://www.w3.org/2000/svg"  viewBox="0 0 50 50" width="24" height="24"><path d="M 21 3 C 11.621094 3 4 10.621094 4 20 C 4 29.378906 11.621094 37 21 37 C 24.710938 37 28.140625 35.804688 30.9375 33.78125 L 44.09375 46.90625 L 46.90625 44.09375 L 33.90625 31.0625 C 36.460938 28.085938 38 24.222656 38 20 C 38 10.621094 30.378906 3 21 3 Z M 21 5 C 29.296875 5 36 11.703125 36 20 C 36 28.296875 29.296875 35 21 35 C 12.703125 35 6 28.296875 6 20 C 6 11.703125 12.703125 5 21 5 Z"/></svg>
         </button>
 END
 }
 
-sub get_docsearch_css_link {
-    return '<link rel="stylesheet" href="/assets/css/doc-search.css"/>';
-}
-
 sub get_docsearch_css {
     return <<'END'
-#container {
-    grid-template-areas:
-        "search search"
-        "leftnav content";
-}
 
-@media screen and (max-width: 768px) {
-    #container {
-        grid-template-areas:
-            "topbar"
-            "search"
-            "leftnav"
-            "content";
-    }
-}
-
-#search {
-    display: flex;
-    grid-area: search;
-    position: sticky;
-    top: 0px;
-    max-height: 54px;
-    border-bottom: 1px solid #ccc;
-    padding-left: 270px;
-    padding-top: .5rem;
-    padding-bottom: .5rem;
-    background-color: rgba(255,255,255,0.95);
-    box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.05),
-                inset 0 -1px 0 rgba(0,0,0,0.15);
-}
-#search > form {
-    max-width: 245px;
-    margin: 0px;
-    margin-right: auto;
-    position: relative;
-}
-#search input {
-    margin: 0px;
-    line-height: 1.5;
-}
-
-@media screen and (min-width: 768px) {
-    #search form::after {
-        position: absolute;
-        top: .4rem;
-        right: .4rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 1.5rem;
-        padding-right: .25rem;
-        padding-left: .25rem;
-        font-size: .75rem;
-        color: #6c757d;
-        content: "Ctrl + k";
-        border: 1px solid #dee2e6;
-        border-radius: .125rem;
-        box-sizing: border-box;
-    }
-}
-
-.algolia-autocomplete {
-    width: 100%;
-}
-
-#docsearch {
-    padding-left: .5rem;
-    padding-top: .5rem;
-    padding-bottom: .5rem;
-    padding-right: 3.75rem;
-
-    border: 1px solid #ccc;
-    border-radius: .25rem;
-
-    width: 100%;
-}
-
-@media screen and (min-width: 768px) {
-    .leftnav-tube {
-        top: 54px;
-        height: calc(100vh - 54px);
-    }
-    /* This makes sure than when we click an anchor we skip
-       the #search topbar. See https://www.bryanbraun.com/anchorjs/#advanced-usage */
-    :root {
-        scroll-padding-top: 60px;
-    }
-}
 @media screen and (max-width: 768px) {
     #search {
-        padding-left: 0px;
-    }
-    #search form {
-        width: 100%;
-        max-width: 100%;
-        margin: 0px;
-        padding-right: 1rem;
-        padding-left: 1rem;
-    }
-    .overflow-hidden {
-        overflow: hidden;
-    }
-
-    /* Styling of the navbar when shown/hidden */
-    #search:not(.show) {
-        max-height: 0px;
-        border: 0px;
-        padding-top: 0px;
-        padding-bottom: 0px;
-        transition: max-height 0.35s ease;
-        transition: padding 0.35s ease;
-
-    }
-    #search.show {
-        max-height: 50px;
-        transition: max-height 0.35s ease;
-        transition: padding 0.35s ease;
-    }
-    #leftnav {
-        overflow: hidden;
+        display: none;
     }
 }
 
-/* See https://github.com/erlang/otp/pull/2571 for why we cannot do this.
-#container {
-    // Reset the overflow in order for #topnav to scroll with content
-    overflow-x: unset;
-} */
 END
 }
 
