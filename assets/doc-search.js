@@ -3,8 +3,6 @@ import docsearch from '@docsearch/js';
 (function() {
     var a = document.getElementById('docsearch'),
         b;
-    if (!window.docsearch || !a)
-        return;
     document.addEventListener('keydown', function(b) {
         b.ctrlKey && b.key === 'k' &&
             (b.preventDefault(), a.focus())
