@@ -1,5 +1,5 @@
 name: Build and Deploy
-on: [push]
+on: [push, workflow_dispatch]
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -9,6 +9,7 @@ jobs:
       - uses: actions/setup-node@v2
       - name: Cache Node.js modules
         uses: actions/cache@v2
+        if: github.event_name != 'workflow_dispatch'
         with:
           # npm cache files are stored in `~/.npm` on Linux/macOS
           path: ~/.npm
@@ -16,14 +17,15 @@ jobs:
       - name: Fetch otp_versions.table
         run: make otp_versions.table
       - name: Cache Erlang docs modules
-        id: docs-cache
         uses: actions/cache@v2
+        if: github.event_name != 'workflow_dispatch'
         with:
           path: |
             doc
             docs
           key: ${{ runner.os }}-${{ hashFiles('_scripts/otp_flatten_docs', '_scripts/download-docs.sh', '_scripts/otp_doc_sitemap') }}
       - uses: ruby/setup-ruby@v1
+        if: github.event_name != 'workflow_dispatch'
         with:
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
 

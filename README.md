@@ -203,3 +203,4 @@ You can of course also create your own styles, but we try to stay with the boots
 * Use [BackstopJS](https://css-tricks.com/automating-css-regression-testing/) for regression testing 
 * Rework /community to not just be a bunch of links. Maybe the rust page can give some inspiration? https://www.rust-lang.org/community
 * Add markdownlint? https://www.npmjs.com/package/markdownlint
+* Add paginated docsearch results. See https://discourse.algolia.com/t/dedicated-search-page/583 and https://jsfiddle.net/maxiloc/oemnhuv4/
