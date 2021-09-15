@@ -39,6 +39,8 @@ markdown files found in _news, _posts and _releases respectively. There is a
 README file in each of those folders that describe the mandatory front matter
 for each item.
 
+The markdown dialect used is [github flavored markdown](https://github.github.com/gfm/).
+
 There are also two yaml data files that contain the [documentation] and [community] links.
 
 [News]: /_news/README.md
@@ -85,6 +87,8 @@ This is placed under `docs` and `doc`.
 
 The latest documentation for each release since OTP-17 is downloaded+flattened and put into the `docs` folder.
 The documentation is not built from scratch but rather fetched from github releases or erlang.org.
+
+The documentation in `doc` is modified to have the algolia search functionality inserted into it.
 
 ## Prerequisites
 

@@ -15,3 +15,5 @@ Some markdown
 
 Some more markdown
 ```
+
+The markdown dialect used is [github flavored markdown](https://github.github.com/gfm/).

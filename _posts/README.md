@@ -23,3 +23,5 @@ syntax so that jekyll will do a check that it links to something that exists.
 
 Also remember that if markdown does not support doing something, <sup>you can always use html</sup>.
 ```
+
+The markdown dialect used is [github flavored markdown](https://github.github.com/gfm/).
