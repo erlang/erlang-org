@@ -65,7 +65,7 @@ setup: vendor/bundle setup_npm _data/releases.json documentation _eeps faq
 serve: setup
 	bundle exec jekyll serve --incremental --trace --livereload
 
-check: setup
+test: setup
 	yamllint -f standard .
 	npm run shellcheck
 	_scripts/check.sh

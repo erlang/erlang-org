@@ -23,6 +23,8 @@ The makefile supports three targets
   * start jekyll to serve the erlang.org site at http://localhost:4000
 * setup
   * Download and generate all [Auto-generated Content](#Auto-generated-content).
+* test - depends on setup
+  * Runs linting and all testcases
 
 ## Adding content
 
