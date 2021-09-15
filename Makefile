@@ -63,7 +63,7 @@ update:
 setup: vendor/bundle setup_npm _data/releases.json documentation _eeps faq
 
 serve: setup
-	bundle exec jekyll serve --incremental --trace --livereload
+	bundle exec jekyll serve --incremental --trace --livereload --host 0.0.0.0
 
 test: setup
 	yamllint -f standard .
