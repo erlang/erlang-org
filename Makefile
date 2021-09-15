@@ -66,11 +66,9 @@ serve: setup
 	bundle exec jekyll serve --incremental --trace --livereload
 
 check: setup
-	_scripts/check.sh
-
-lint:
 	yamllint -f standard .
 	npm run shellcheck
+	_scripts/check.sh
 
 algolia:
 	_scripts/run_algolia_scraper.sh
