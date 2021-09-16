@@ -2,7 +2,7 @@
 
 rvm install `cat .ruby-version` && rvm use `cat .ruby-version`
 
-. /usr/local/share/nvm/nvm.sh && nvm install
+nvm install
 
 # Install the version of Bundler.
 if [ -f Gemfile.lock ] && grep "BUNDLED WITH" Gemfile.lock > /dev/null; then
@@ -14,5 +14,7 @@ fi
 if [ -f Gemfile ]; then
     bundle install
 fi
+
+. ~/erlang/activate
 
 make setup
