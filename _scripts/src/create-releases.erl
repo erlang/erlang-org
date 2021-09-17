@@ -188,7 +188,7 @@ ghget(Url) ->
     ghget(Url,[]).
 ghget(Url, GetHdrs) ->
     Auth = case os:getenv("GITHUB_TOKEN") of
-               undefined -> [];
+               false -> [];
                Token ->
                    [{"Authorization","token " ++ Token}]
            end,
