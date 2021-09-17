@@ -1,11 +1,13 @@
-.PHONY: patches documentation setup build update serve check algolia
+.PHONY: patches documentation setup build update serve check algolia setup_gems setup_npm
 
 build: setup
 	bundler exec jekyll build
 	npx purgecss --css _site/assets/css/*.css --content `find _site -name "*.html" -o -name "*.js" | grep -v _site/doc/ | grep -v _site/docs/`  -o _site/assets/css/
 
 vendor/bundle:
-	bundler install
+	bundler install --path vendor/bundle
+
+setup_gems: vendor/bundle
 
 node_modules: package-lock.json
 	npm install
@@ -60,7 +62,7 @@ _data/releases.json: _scripts/_build/default/bin/erlang-org otp_versions.table _
 update:
 	npm update
 
-setup: vendor/bundle setup_npm _data/releases.json documentation _eeps faq
+setup: setup_gems setup_npm _data/releases.json documentation _eeps faq
 
 serve: setup
 	bundle exec jekyll serve --incremental --trace --livereload --host 0.0.0.0

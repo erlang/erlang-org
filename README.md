@@ -6,7 +6,7 @@ We use [ruby] /w [jekyll], [nodejs] /w [bootstrap 5] and Erlang to build this we
 
 To launch a local copy, install the correct [prerequisites](#Prerequisites) and do `make serve` and navigate to http://localhost:4000.
 
-You can view the latest prototype here: https://garazdawi.github.io/jekyll-test
+You can view the latest prototype here: https://beta.erlang.org
 
 [ruby]: https://ruby.org
 [jekyll]: https://jekyllrb.com/
@@ -25,6 +25,14 @@ The makefile supports three targets
   * Download and generate all [Auto-generated Content](#Auto-generated-content).
 * test - depends on setup
   * Runs linting and all testcases
+
+### Devcontainer / gitpod.io
+
+This project can be run as a vscode devcontainer and/or in gitpod.io.
+
+To work with this project in gitpod go to: https://gitpod.io/#https://github.com/erlang/erlang-org/tree/beta
+
+For instructions on how to run with vscode devcontainers see: https://code.visualstudio.com/docs/remote/containers
 
 ## Adding content
 
@@ -102,7 +110,8 @@ You need to have the following tools installed to build the erlang.org site:
 
 Most likely earlier versions of these tools will work, but they have not been tested.
 
-TODO: Create docker image to make sure we have the correct versions
+If you want to be sure that you use the correct version of the dependencies you can either
+use the [devcontainer](#devcontainer_gitpod.io) or [asdf](https://asdf-vm.com/).
 
 ## Development
 

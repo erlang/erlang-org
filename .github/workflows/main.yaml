@@ -6,17 +6,40 @@ jobs:
     steps:
       - name: Checkout 🛎️
         uses: actions/checkout@v2.3.1
-      - name: Install NodeJS
-        shell: bash --login {0}
-        run: nvm install
+
+      - name: asdf cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.ASDF_DIR }}
+          key: ${{ runner.os }}-${{ hashFiles('**/.tool-versions') }}
+          restore-keys: |
+            ${{ runner.os }}-asdf-
+      - name: asdf install
+        uses: asdf-vm/actions/install@v1
+
       - name: Cache Node.js modules
         uses: actions/cache@v2
-        if: github.event_name != 'workflow_dispatch'
         with:
-          # npm cache files are stored in `~/.npm` on Linux/macOS
+          # npm caches files in `~/.npm`
           path: ~/.npm
-          key: ${{ runner.OS }}-node-${{ hashFiles('package-lock.json') }}
-      - run: sudo npm i -g npm
+          key: ${{ runner.OS }}-${{ hashFiles('package-lock.json') }}
+      - name: Setup NPM
+        run: sudo npm i -g npm && make setup_npm
+
+      - name: Cache Ruby gems
+        uses: actions/cache@v2
+        with:
+          # bundler caches files in `vendor`
+          path: vendor
+          key: ${{ runner.OS }}-${{ hashFiles('Gemfile.lock') }}
+      - name: Setup ruby gems
+        run: |
+          cat Gemfile.lock | tail -n 2 | grep -C2 "BUNDLED WITH" | tail -n 1 | xargs gem install bundler -v
+          bundler install --deployment
+
+      - name: Install rebar3
+        run: sudo bash -c "curl https://s3.amazonaws.com/rebar3-nightly/rebar3 > /usr/local/bin/rebar3 && chmod +x /usr/local/bin/rebar3"
+
       - name: Fetch otp_versions.table
         run: make otp_versions.table
       - name: Cache Erlang docs modules
@@ -27,15 +50,6 @@ jobs:
             doc
             docs
           key: ${{ runner.os }}-${{ hashFiles('_scripts/otp_flatten_docs', '_scripts/download-docs.sh', '_scripts/otp_doc_sitemap', 'assets/doc-search.tsx') }}
-      - uses: ruby/setup-ruby@v1
-        if: github.event_name != 'workflow_dispatch'
-        with:
-          bundler-cache: true # runs 'bundle install' and caches installed gems automatically
-
-      - uses: erlef/setup-beam@v1
-        with:
-          otp-version: '>23'
-          rebar3-version: '3'
 
       - name: Install ubuntu packages
         run: |
