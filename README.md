@@ -98,6 +98,40 @@ The documentation is not built from scratch but rather fetched from github relea
 
 The documentation in `doc` is modified to have the algolia search functionality inserted into it.
 
+### Algolia
+
+We have an agreement with algolia that they run a scraper that goes through our documentation and
+provides search results from that. There is a [commented configuration](/docsearch.json) that is used
+to crawl [erlang.org/doc](https://erlang.org/doc). The actual configuration run is located on [Algolia's github].
+
+Check Algolia's [docsearch documentation] for details on what configuration
+options are available.
+
+For the search widget we use [docsearch v3], which is currently in alpha.
+
+When trying to improve the search results the best way is to create an
+account of your own on algolia and then run the scraper with the improved
+settings. You can run the scraper against https://beta.erlang.org using:
+
+```sh
+APPLICATION_ID=MY_APPID API_KEY=MY_ADMIN_API_KEY make algolia
+```
+
+In order to understand how the scraper actually works it might be usefull
+to have a look at its [source code](https://github.com/algolia/docsearch-scraper).
+I've especially found the [algolia_settings](https://github.com/algolia/docsearch-scraper/blob/master/scraper/src/strategies/algolia_settings.py)
+file to be helpfull in knowing what custom parameters to set.
+
+Getting perfect results from the search is hard, so maybe we should
+implement a way to make sure that `lists:map` is recognized as a module
+and function. However, our react skills are not there yet so this will
+have to do for now.
+
+[Algolia's github]: https://github.com/algolia/docsearch-configs/blob/master/configs/erlang.json
+[docsearch documentation]: https://docsearch.algolia.com/docs/what-is-docsearch/
+[docsearch v3]: https://autocomplete-experimental.netlify.app/docs/getting-started/
+
+
 ## Prerequisites
 
 You need to have the following tools installed to build the erlang.org site:
