@@ -10,7 +10,8 @@ main([OTPVersionTable, ReleasesJson, PatchesDir]) ->
     Versions = parse_otp_versions_table(OTPVersionTable),
     Downloads = parse_erlang_org_downloads(),
     Tags = parse_github_tags(),
-    Releases = maps:map(fun(Key,Val) -> process_patches(Key,Val,Downloads,Tags) end, Versions),
+    {ok, GHReleases} = ghget("/repos/erlang/otp/releases"),
+    Releases = maps:map(fun(Key,Val) -> process_patches(Key,Val,Downloads,Tags,GHReleases) end, Versions),
     ok = file:write_file(ReleasesJson, create_release_json(Releases)),
     create_patches(PatchesDir, Releases),
     ok.
@@ -33,6 +34,7 @@ parse_erlang_org_downloads() ->
                                <<"<a href=\"([^\"/]+)\"">>,
                                [global,{capture,all_but_first,binary}]),
     Matches = #{ readme => "^(?:otp_src_|OTP-)(.*)\\.(?:readme|README)$",
+                 erlang_download_readme => "^(?:otp_src_|OTP-)(.*)\\.(?:readme|README)$",
                  html => "^otp_(?:doc_)?html_(.*)\\.tar\\.gz$",
                  man => "^otp_(?:doc_)?man_(.*)\\.tar\\.gz$",
                  win32 => "^otp_win32_(.*)\\.exe$",
@@ -80,8 +82,7 @@ parse_github_tags() ->
            end
        end || Tag <- Json]).
 
-process_patches(Major, Patches, Downloads, Tags) ->
-    {ok, Releases} = ghget("/repos/erlang/otp/releases"),
+process_patches(Major, Patches, Downloads, Tags, Releases) ->
     NewPatches = pmap(fun(Patch) ->  process_patch(Patch, Releases, Downloads, Tags) end, Patches),
     #{ patches => NewPatches,
        latest => hd(NewPatches),
@@ -151,19 +152,13 @@ create_patches(Dir, Releases) ->
     maps:map(
       fun(Release, #{ patches := Patches }) ->
               pmap(
-                fun(#{ readme := #{ id := AssetId } } = Patch) ->
-                        {ok, Readme } =
-                            ghget(
-                              "/repos/erlang/otp/releases/assets/" ++ integer_to_list(AssetId),
-                              [{"Accept","application/octet-stream"}]),
-                        create_patch(Dir, strip_ids(Patch#{ release => Release }), Readme);
-                   (#{ readme := Url } = Patch) ->
+                fun(#{ erlang_download_readme := Url } = Patch) ->
                         Name = lists:last(string:split(Url, "/", all)),
                         {ok, Readme } = file:read_file(filename:join(TmpDir, Name)),
                         create_patch(Dir, strip_ids(Patch#{ release => Release }), Readme);
                    (_) ->
                         %% Happens when the new patch has just been created and
-                        %% readme is not been updated yet
+                        %% readme has not been updated yet
                         ok
                 end, Patches)
       end, Releases),
@@ -187,6 +182,8 @@ create_patch(Dir, Patch, ReadmeStr) ->
 ghget(Url) ->
     ghget(Url,[]).
 ghget(Url, GetHdrs) ->
+    put(cnt, case get(cnt) of undefined -> 0; Cnt -> Cnt end + 1),
+    io:format("ghget: ~s ~p~n",[Url, get(cnt)]),
     Auth = case os:getenv("GITHUB_TOKEN") of
                false -> [];
                Token ->
@@ -195,7 +192,7 @@ ghget(Url, GetHdrs) ->
     FullUrl =
         case string:prefix(Url, "https://") of
             nomatch ->
-                "https://api.github.com" ++ Url;
+                "https://api.github.com" ++ Url ++ "?per_page=100";
             _match ->
                 Url
         end,
