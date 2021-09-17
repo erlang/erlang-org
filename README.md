@@ -111,7 +111,7 @@ You need to have the following tools installed to build the erlang.org site:
 Most likely earlier versions of these tools will work, but they have not been tested.
 
 If you want to be sure that you use the correct version of the dependencies you can either
-use the [devcontainer](#devcontainer_gitpod.io) or [asdf](https://asdf-vm.com/).
+use the [devcontainer](#devcontainer--gitpodio) or [asdf](https://asdf-vm.com/).
 
 ## Development
 
