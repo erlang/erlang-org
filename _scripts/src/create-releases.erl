@@ -48,14 +48,15 @@ parse_erlang_org_downloads() ->
                                  nomatch ->
                                      Acc;
                                  {match,[Vsn]} ->
-                                     {Vsn, Key}
+                                     [{Vsn, Key}|Acc]
                              end
-                     end, undefined, Matches) of
-                  undefined ->
-                      Vsns;
-                  {Vsn, Key} ->
-                      Info = maps:get(Vsn, Vsns, #{}),
-                      Vsns#{ Vsn => Info#{ Key => iolist_to_binary(["https://erlang.org/download/",Download]) } }
+                     end, [], Matches) of
+                  Ms ->
+                    lists:foldl(
+                        fun({Vsn, Key}, Map) ->
+                            Info = maps:get(Vsn, Map, #{}),
+                            Map#{ Vsn => Info#{ Key => iolist_to_binary(["https://erlang.org/download/",Download]) } }
+                        end, Vsns, Ms)
               end
       end, #{}, Downloads).
 
