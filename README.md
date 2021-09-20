@@ -240,6 +240,7 @@ You can of course also create your own styles, but we try to stay with the boots
   * Chrome (os x, android, linux, windows)
   * Firefox (os x, android, linux, windows)
   * Edge (windows)
+* Create redirect links for /bugs/ERL-ID to github.com/erlang/otp/issues/GH-ID
 ## Things that have been removed
 
 * The course
