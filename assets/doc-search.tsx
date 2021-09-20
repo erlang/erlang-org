@@ -32,6 +32,12 @@ const docsearch = <DocSearch
   }}
 />;
 
-ReactDOM.render(docsearch, getHTMLElement('#docsearch'));
-if (getHTMLElement('#docsearch-mobile'))
-  ReactDOM.render(docsearch, getHTMLElement('#docsearch-mobile'));
+const button = getHTMLElement('#docsearch')
+ReactDOM.render(docsearch, button);
+
+const mobile = getHTMLElement('#docsearch-mobile');
+if (mobile) {
+  mobile.addEventListener('click',() => {
+    button.getElementsByTagName('button')[0].click();
+  })
+}
