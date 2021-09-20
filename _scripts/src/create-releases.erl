@@ -4,7 +4,7 @@
 -export([main/1]).
 
 main([OTPVersionTable, ReleasesJson, PatchesDir]) ->
-    [?LOG_WARNING("Running without github authentication, consider setting GITHUB_TOKEN in order for the API to not throttle you.") || os:getenv("GITHUB_TOKEN") =:= undefined],
+    [?LOG_WARNING("Running without github authentication, consider setting GITHUB_TOKEN in order for the API to not throttle you.") || os:getenv("GITHUB_TOKEN") =:= false],
     application:ensure_all_started(inets),
     application:ensure_all_started(ssl),
     Versions = parse_otp_versions_table(OTPVersionTable),
