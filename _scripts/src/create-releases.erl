@@ -183,8 +183,6 @@ create_patch(Dir, Patch, ReadmeStr) ->
 ghget(Url) ->
     ghget(Url,[]).
 ghget(Url, GetHdrs) ->
-    put(cnt, case get(cnt) of undefined -> 0; Cnt -> Cnt end + 1),
-    io:format("ghget: ~s ~p~n",[Url, get(cnt)]),
     Auth = case os:getenv("GITHUB_TOKEN") of
                false -> [];
                Token ->
