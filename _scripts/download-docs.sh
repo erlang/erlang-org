@@ -21,6 +21,10 @@ _get_latest_vsn() {
 
 MAJOR_VSNs=$(_get_vsns "OTP-[0-9]\+\.0 " | sed 's/^\([0-9]\+\).*/\1/g')
 
+if [ "${DEPLOY}" != "true" ]; then
+    MAJOR_VSNs=$(echo "$MAJOR_VSNs" | tr ' ' '\n' | sort -n | tail -1)
+fi
+
 RINCLUDE=()
 
 for VSN in ${MAJOR_VSNs}; do

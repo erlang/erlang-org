@@ -67,7 +67,8 @@ setup: setup_gems setup_npm _data/releases.json documentation _eeps faq
 serve: setup
 	bundle exec jekyll serve --incremental --trace --livereload --host 0.0.0.0
 
-test: setup
+test:
+	DEPLOY=true $(MAKE) setup
 	yamllint -f standard .
 	npm run shellcheck
 	_scripts/check.sh
