@@ -34,13 +34,16 @@ jobs:
         uses: actions/cache@v2
         with:
           # bundler caches files in `vendor`
-          path: vendor
+          path: vendor/bundle
           key: ${{ runner.OS }}-${{ hashFiles('Gemfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-gems-
+
       - name: Setup ruby gems
         run: |
           cat Gemfile.lock | tail -n 2 | grep -C2 "BUNDLED WITH" | tail -n 1 | sudo xargs gem install bundler -v
           bundler config set --local deployment 'true'
-          bundler install
+          bundler install --jobs 4 --retry 3
 
       - name: Install rebar3
         run: sudo bash -c "curl https://s3.amazonaws.com/rebar3-nightly/rebar3 > /usr/local/bin/rebar3 && chmod +x /usr/local/bin/rebar3"
