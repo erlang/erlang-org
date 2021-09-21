@@ -26,19 +26,22 @@ RINCLUDE=()
 for VSN in ${MAJOR_VSNs}; do
     LATEST_VSN=$(_get_latest_vsn "^OTP-${VSN}")
     ARCHIVE="docs/otp_doc_html_${LATEST_VSN}.tar.gz"
-    if [ "${VSN}" = "24" ]; then
-        echo "Checking for ${LATEST_VSN} on garazdawi github"
-        curl --silent --location --fail --show-error "${HDR[@]}" "https://github.com/garazdawi/otp/releases/download/OTP-24.0.6-doc/otp_doc_html_24.0.6.tar.gz" > "${ARCHIVE}";
-    elif [ ! -f "${ARCHIVE}" ] && [ ! -f "docs/${VSN}/${LATEST_VSN}" ]; then
-        echo "Checking for ${LATEST_VSN} on github"
-        if ! curl --silent --location --fail --show-error "${HDR[@]}" "https://github.com/erlang/otp/releases/download/OTP-${LATEST_VSN}/otp_doc_html_${LATEST_VSN}.tar.gz" > "${ARCHIVE}"; then
-            rm -f "${ARCHIVE}"
-            LATEST_VSN=$(_get_latest_vsn "^OTP-${VSN}\.[0-9] ")
-            if [ ! -f "docs/${VSN}/${LATEST_VSN}" ]; then
-                echo "Checking for ${LATEST_VSN} on erlang.org::erlang-download"
-                RINCLUDE=("--include=otp_doc_html_${LATEST_VSN}.tar.gz" "${RINCLUDE[@]}")
-            else
-                echo "${LATEST_VSN} already exists"
+
+    if [ ! -f "${ARCHIVE}" ] && [ ! -f "docs/${VSN}/${LATEST_VSN}" ]; then
+        if [ "${VSN}" = "24" ]; then
+            echo "Checking for ${LATEST_VSN} on garazdawi github"
+            curl --silent --location --fail --show-error "${HDR[@]}" "https://github.com/garazdawi/otp/releases/download/OTP-24.0.6-doc/otp_doc_html_24.0.6.tar.gz" > "${ARCHIVE}";
+        else
+            echo "Checking for ${LATEST_VSN} on github"
+            if ! curl --silent --location --fail --show-error "${HDR[@]}" "https://github.com/erlang/otp/releases/download/OTP-${LATEST_VSN}/otp_doc_html_${LATEST_VSN}.tar.gz" > "${ARCHIVE}"; then
+                rm -f "${ARCHIVE}"
+                LATEST_VSN=$(_get_latest_vsn "^OTP-${VSN}\.[0-9] ")
+                if [ ! -f "docs/${VSN}/${LATEST_VSN}" ]; then
+                    echo "Checking for ${LATEST_VSN} on erlang.org::erlang-download"
+                    RINCLUDE=("--include=otp_doc_html_${LATEST_VSN}.tar.gz" "${RINCLUDE[@]}")
+                else
+                    echo "${LATEST_VSN} already exists"
+                fi
             fi
         fi
     else
