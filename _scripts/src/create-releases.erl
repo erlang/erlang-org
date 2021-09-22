@@ -85,8 +85,11 @@ parse_github_tags() ->
 
 process_patches(Major, Patches, Downloads, Tags, Releases) ->
     NewPatches = pmap(fun(Patch) ->  process_patch(Patch, Releases, Downloads, Tags) end, Patches),
-    #{ patches => NewPatches,
-       latest => hd(NewPatches),
+    %% Filter out if we did not get a readme. We are in the middle of doing a patch
+    %% and thus we do not want to show the patch for now.
+    CompletePatches = lists:filter(fun(Patch) -> maps:is_key(readme, Patch) end, NewPatches),
+    #{ patches => CompletePatches,
+       latest => hd(CompletePatches),
        release => Major }.
 
 process_patch(PatchVsn, Releases, Downloads, Tags) ->
@@ -156,11 +159,7 @@ create_patches(Dir, Releases) ->
                 fun(#{ erlang_download_readme := Url } = Patch) ->
                         Name = lists:last(string:split(Url, "/", all)),
                         {ok, Readme } = file:read_file(filename:join(TmpDir, Name)),
-                        create_patch(Dir, strip_ids(Patch#{ release => Release }), Readme);
-                   (_) ->
-                        %% Happens when the new patch has just been created and
-                        %% readme has not been updated yet
-                        ok
+                        create_patch(Dir, strip_ids(Patch#{ release => Release }), Readme)
                 end, Patches)
       end, Releases),
     file:del_dir_r(TmpDir).
