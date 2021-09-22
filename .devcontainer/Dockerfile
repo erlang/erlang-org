@@ -7,7 +7,7 @@ ARG USER=gitpod
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN sudo apt-get update && sudo -E apt-get -y upgrade && \
-    sudo -E apt-get install -y build-essential m4 autoconf zlib1g-dev libncurses5-dev libssl-dev libreadline-dev rsync xsltproc
+    sudo -E apt-get install -y build-essential m4 autoconf zlib1g-dev libncurses5-dev libssl-dev libreadline-dev rsync xsltproc yamllint netcat
 
 ADD .tool-versions .tool-versions
 
