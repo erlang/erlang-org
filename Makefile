@@ -30,7 +30,7 @@ otp_versions.table:
 documentation: otp_versions.table docs
 	_scripts/download-docs.sh $<
 
-_scripts/_build/default/bin/erlang-org:
+_scripts/_build/default/bin/erlang-org: $(wildcard _scripts/src/*.erl) _scripts/rebar.config
 	$(MAKE) -C _scripts
 
 _clones/eep: | _clones
@@ -50,6 +50,7 @@ eeps: _clones/eep
 
 _eeps: _scripts/_build/default/bin/erlang-org eeps
 	$< format-eeps $@ _clones/eep/eeps/eep-0000.html eeps/*.md
+	@touch $@
 
 _patches assets/js assets/webfonts _clones docs:
 	mkdir -p $@
