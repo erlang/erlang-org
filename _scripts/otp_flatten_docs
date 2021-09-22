@@ -93,11 +93,16 @@ sub flatten_doc {
     mkdir $module_dir;
 
     foreach (@modules) {
-	my $base = basename($_);
-
+	my ($base,$path,$suffix) = fileparse($_);
+        my $app = $path;
+        if ($app =~ /.*lib\/([^-]+).*/) {
+            $app = $1;
+        } elsif ($app =~ /.*erts-[0-9.]+\/doc/) {
+            $app = "erts";
+        }
+        
 	# application.html is ambigous; partial workaround.
-	next if $base eq 'application.html';
-	$module{$base} = 1;
+	$module{basename($base)} = $app;
     }
 
     foreach (@modules) {
@@ -145,21 +150,12 @@ sub flatten_doc {
     $app_dir = "$dest/apps";
     mkdir $app_dir;
 
-   
     foreach (<$src/lib/*>) {
         if (/erts/) { next; };
 	copy_application($_);
     }
     my($erts) = <$src/erts-*>;
     copy_application($erts);
-
-    #
-    # Copy the man_index to man/index.html.
-    #
-    # Kludge: We know that application.html is a module in this context.
-    #
-    $module{'application.html'} = 1;
-    copy_html("$src/doc/man_index.html", "$dest/man/index.html");
 
     #
     # Copy some stuff again to get references to application.html correct.
@@ -203,7 +199,7 @@ sub copy_application {
 	my $rel = substr($File::Find::name, $src_len+1);
 	if (-d $_) {
 	    mkdir "$dir/$rel";
-	} elsif (!$module{$_}) {
+	} elsif (!$module{$_} || $module{$_} ne $app) {
 	    copy_html($File::Find::name, "$dir/$rel");
 	}
     }, $src);
@@ -219,7 +215,7 @@ sub copy_application {
 	    my $rel = substr($File::Find::name, $src_len+1);
 	    if (-d $_) {
 		mkdir "$dir/$rel";
-	    } elsif (!$module{$_}) {
+	    } elsif (!$module{$_} || $module{$_} ne $app) {
 		copy_doc($File::Find::name, "$dir/$rel");
 	    }
 	}, $src);
@@ -235,7 +231,7 @@ sub copy_application {
 
 sub copy_html {
     my($src,$dest) = @_;
-    
+
     if (-e $dest) {
 	print STDERR "Warning! Replacing $dest with $src \n";
     } 
@@ -244,6 +240,14 @@ sub copy_html {
 	return copy_doc($src, $dest);
     }
     my $rel = substr($dest, $dest_len+1);
+
+    my ($base,$src_app,$suffix) = fileparse($src);
+    if ($src_app =~ /.*lib\/([^-]+).*/) {
+        $src_app = $1;
+    } elsif ($src_app =~ /.*erts-[0-9.]+\/doc/) {
+        $src_app = "erts";
+    }
+
     my $analytics = get_analytics();
     my $docsearch = get_docsearch_js();
     my $docsearch_html = get_docsearch_html();
@@ -305,7 +309,9 @@ sub copy_html {
 			$href = path_to($1, $rel);
 		    } elsif ($href =~ m@/([A-Za-z][^\-/]*)-[\d.]+/doc/html/index\.html@) {
 			$href = path_to("apps/$1", $rel) . "/index.html";
-		    } elsif ($module{$base}) {
+		    } elsif ($module{$base} && $module{$base} eq $src_app) {
+			$href = path_to("man/$base$anchor", $rel);
+                    } elsif ($module{$base} && basename($dest) eq "man_index.html") {
 			$href = path_to("man/$base$anchor", $rel);
 		    } else {
 			my $app = find_app($src);
