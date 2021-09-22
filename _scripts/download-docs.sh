@@ -20,10 +20,7 @@ _get_latest_vsn() {
 }
 
 MAJOR_VSNs=$(_get_vsns "OTP-[0-9]\+\.0 " | sed 's/^\([0-9]\+\).*/\1/g')
-
-if [ "${DEPLOY}" != "true" ]; then
-    MAJOR_VSNs=$(echo "$MAJOR_VSNs" | tr ' ' '\n' | sort -n | tail -1)
-fi
+LATEST_MAJOR_VSN=$(echo "$MAJOR_VSNs" | tr ' ' '\n' | sort -n | tail -1)
 
 RINCLUDE=()
 
@@ -32,10 +29,10 @@ for VSN in ${MAJOR_VSNs}; do
     ARCHIVE="docs/otp_doc_html_${LATEST_VSN}.tar.gz"
 
     if [ ! -f "${ARCHIVE}" ] && [ ! -f "docs/${VSN}/${LATEST_VSN}" ]; then
-        if [ "${VSN}" = "24" ]; then
+        if [ "${VSN}" = "${LATEST_MAJOR_VSN}" ]; then
             echo "Checking for ${LATEST_VSN} on garazdawi github"
             curl --silent --location --fail --show-error "${HDR[@]}" "https://github.com/garazdawi/otp/releases/download/OTP-24.0.6-doc/otp_doc_html_24.0.6.tar.gz" > "${ARCHIVE}";
-        else
+        elif [ "${DEPLOY}" = "true" ]; then
             echo "Checking for ${LATEST_VSN} on github"
             if ! curl --silent --location --fail --show-error "${HDR[@]}" "https://github.com/erlang/otp/releases/download/OTP-${LATEST_VSN}/otp_doc_html_${LATEST_VSN}.tar.gz" > "${ARCHIVE}"; then
                 rm -f "${ARCHIVE}"
@@ -61,8 +58,6 @@ if [ ! "${RINCLUDE[0]}" = "" ]; then
     set +x
 fi
 
-CURRENT_VSN=$(echo "${MAJOR_VSNs}" | head -1)
-
 for ARCHIVE in docs/*.tar.gz; do
     [ -f "${ARCHIVE}" ] || continue
     mkdir "docs/tmp"
@@ -72,7 +67,7 @@ for ARCHIVE in docs/*.tar.gz; do
     VSN=$(echo "${ARCHIVE}" | sed 's/.*otp_doc_html_\(.\+\)\.tar.gz/\1/')
     MAJOR_VSN=$(echo "${VSN}" | awk -F. '{ print $1}')
     mv "docs/tmp" "docs/doc-${ERTS_VSN}"
-    if [ "${MAJOR_VSN}" = "${CURRENT_VSN}" ]; then
+    if [ "${MAJOR_VSN}" = "${LATEST_MAJOR_VSN}" ]; then
         (cd docs && ../_scripts/otp_flatten_docs "doc-${ERTS_VSN}" true)
         rm -rf "doc" || true
         mv docs/doc-1 doc
@@ -87,3 +82,13 @@ for ARCHIVE in docs/*.tar.gz; do
     rm -rf "docs/doc-${ERTS_VSN}"
     rm -f "${ARCHIVE}"
 done
+
+# If we are not deploying, we copy the latest docs into the other docs
+# in order to speed up the build.
+if [ "${DEPLOY}" != "true" ]; then
+    for VSN in ${MAJOR_VSNs}; do
+        if [ ! -d "docs/${VSN}" ]; then
+            cp -r "docs/${LATEST_MAJOR_VSN}" "docs/${VSN}"
+        fi
+    done
+fi
