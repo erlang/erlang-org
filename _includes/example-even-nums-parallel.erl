@@ -5,4 +5,4 @@ even(Numbers) ->
 mapreduce(Numbers, Function) ->
   Parent = self(),
   [spawn(fun() -> Parent ! {Number, Function(Number)} end) || Number <- Numbers],
-  [receive {Number, Even} -> Even || Number <- Numbers].
+  [receive {Number, Even} -> {Number, Even} end || Number <- Numbers].
