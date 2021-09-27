@@ -9,5 +9,6 @@ even(Numbers) ->
 mapreduce(Numbers, Function) ->
   Parent = self(),
   [spawn(fun() -> Parent ! {Number, Function(Number)} end) || Number <- Numbers],
-  [receive {Number, Even} -> Number end || Number <- Numbers, Even == true].
+  lists:flatten(
+    [receive {Number, true} -> Number; _ -> [] end || Number <- Numbers]).
 ```
