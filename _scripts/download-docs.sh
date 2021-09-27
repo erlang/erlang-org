@@ -28,8 +28,8 @@ for VSN in ${MAJOR_VSNs}; do
     LATEST_VSN=$(_get_latest_vsn "^OTP-${VSN}")
     ARCHIVE="docs/otp_doc_html_${LATEST_VSN}.tar.gz"
 
-    if ([ ! -f "${ARCHIVE}" ] && [ ! -f "docs/${VSN}/${LATEST_VSN}" ]) ||
-       ([ "$DEPLOY" = "true" ] && [ "${VSN}" = "${LATEST_MAJOR_VSN}" ]); then
+    if { [ ! -f "${ARCHIVE}" ] && [ ! -f "docs/${VSN}/${LATEST_VSN}" ]; } ||
+       { [ "$DEPLOY" = "true" ] && [ "${VSN}" = "${LATEST_MAJOR_VSN}" ]; }; then
         if [ "${VSN}" = "${LATEST_MAJOR_VSN}" ]; then
             echo "Checking for ${LATEST_VSN} on garazdawi github"
             curl --silent --location --fail --show-error "${HDR[@]}" "https://github.com/garazdawi/otp/releases/download/OTP-24.0.6-doc/otp_doc_html_24.0.6.tar.gz" > "${ARCHIVE}";
