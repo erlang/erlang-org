@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -x
+
 LATEST=$(head -1 otp_versions.table | awk '{print $1}' | sed 's/^OTP-//')
 REPO="garazdawi"
 BRANCH="lukas/erl_docgen/make-docs-more-responsive"
