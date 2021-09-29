@@ -8,7 +8,7 @@ To launch a local copy, install the correct [prerequisites](#Prerequisites) and 
 
 You can view the latest prototype here: https://beta.erlang.org
 
-[ruby]: https://ruby.org
+[ruby]: https://www.ruby-lang.org/en/
 [jekyll]: https://jekyllrb.com/
 [nodejs]: https://nodejs.org
 [bootstrap 5]: https://getbootstrap.com/docs/5.0/
@@ -141,6 +141,7 @@ You need to have the following tools installed to build the erlang.org site:
 * bundler 1.16 or later
 * nodejs 14 or later
 * erlang 24 or later
+* xsltproc
 
 Most likely earlier versions of these tools will work, but they have not been tested.
 
