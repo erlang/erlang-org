@@ -31,7 +31,7 @@ for VSN in ${MAJOR_VSNs}; do
     if [ ! -f "${ARCHIVE}" ] && [ ! -f "docs/${VSN}/${LATEST_VSN}" ]; then
         if [ "${VSN}" = "${LATEST_MAJOR_VSN}" ]; then
             echo "Checking for ${LATEST_VSN} on garazdawi github"
-            curl --silent --location --fail --show-error "${HDR[@]}" "https://github.com/garazdawi/otp/releases/download/OTP-24.0.6-doc/otp_doc_html_24.0.6.tar.gz" > "${ARCHIVE}";
+            _scripts/download-latest-doc.sh;
         elif [ "${DEPLOY}" = "true" ]; then
             echo "Checking for ${LATEST_VSN} on github"
             if ! curl --silent --location --fail --show-error "${HDR[@]}" "https://github.com/erlang/otp/releases/download/OTP-${LATEST_VSN}/otp_doc_html_${LATEST_VSN}.tar.gz" > "${ARCHIVE}"; then
