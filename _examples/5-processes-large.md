@@ -1,5 +1,5 @@
 ---
-description: Light-weigth processes
+description: Lightweight processes
 display: large
 ---
 <!-- This file has to be 15 lines long -->
