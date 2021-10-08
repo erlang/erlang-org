@@ -221,37 +221,41 @@ A full list of all the variables can be found in `node_modules/bootstrap/scss/_v
 
 You can of course also create your own styles, but we try to stay with the bootstrap styles as much as possible.
 
-[bootstrap docs]: https://getbootstrap.com/docs/5.0/
+[bootstrap docs]: https://getbootstrap.com/docs/5.1/
 
 ## Architecture
 
-## TODO
+## Things to do when switching
 
-* Fix github ratelimiting issue.
-  * Download all READMEs from rsync erlang.org
-  * Update the github sync script to work better?
-    * https://github.com/erlang/otp/blob/master/.github/workflows/sync-github-releases.yaml
+- [ ] Change www.erlang.org to point to new cdn.
+
+### Redirection fixes
+- [ ] Redirect blog.erlang.org/* to www.erlang.org/blog
+- [ ] Redirect bugs.erlang.org/browse/* to www.erlang.org/bugs/
+- [ ] Redirect bugs.erlang.org to github.com/erlang/otp/issues
+- [ ] Redirect erlang.org/faq/* to www.erlang.org/faq
+- [ ] Redirect erlang.org/eep/* to www.erlang.org/eep
+- [ ] Redirect erlang.org/eeps/* to www.erlang.org/eeps
+- [ ] Redirect erlang.org/doc/* to www.erlang.org/doc
+- [ ] Redirect www.erlang.org/download to erlang.org/download
+- [ ] Redirect www.erlang.org/docs/versions to erlang.org/documentation
+
+## Things that have been removed
+
+* The course (this is actually on erlang.org)
+* The events (redirect to EEF?)
+* Documentation version index page (redirect to erlang.org/documentation)
+
+## Ideas
+
+* Add plausable.io tracking
+* Add https://search.google.com/search-console/ support?
+* Use [BackstopJS](https://css-tricks.com/automating-css-regression-testing/) for regression testing 
+* Rework /community to not just be a bunch of links. Maybe the rust page can give some inspiration? https://www.rust-lang.org/community
+* Add markdownlint? https://www.npmjs.com/package/markdownlint
+* Add paginated docsearch results. See https://discourse.algolia.com/t/dedicated-search-page/583 and https://jsfiddle.net/maxiloc/oemnhuv4/
 * `/docs`
   * Other sections? Learning/Developing/References
 * `/community`
   * Beam Languages
   * Other projects
-* Check all unicode icons on all browsers
-  * Safari (os x, ios)
-  * Chrome (os x, android, linux, windows)
-  * Firefox (os x, android, linux, windows)
-  * Edge (windows)
-* Create redirect links for /bugs/ERL-ID to github.com/erlang/otp/issues/GH-ID
-## Things that have been removed
-
-* The course
-* The events
-* Documentation version index page
-
-## Ideas
-
-* Add plausable.io tracking
-* Use [BackstopJS](https://css-tricks.com/automating-css-regression-testing/) for regression testing 
-* Rework /community to not just be a bunch of links. Maybe the rust page can give some inspiration? https://www.rust-lang.org/community
-* Add markdownlint? https://www.npmjs.com/package/markdownlint
-* Add paginated docsearch results. See https://discourse.algolia.com/t/dedicated-search-page/583 and https://jsfiddle.net/maxiloc/oemnhuv4/
