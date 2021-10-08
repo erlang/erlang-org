@@ -1,7 +1,6 @@
 ---
 layout: markdown
 title: Erlang Enhancement Process
-redirect_from: /erlang-enhancement-proposals
 ---
 # Erlang Enhancement Process
 
