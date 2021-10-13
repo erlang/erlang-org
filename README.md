@@ -237,8 +237,14 @@ You can of course also create your own styles, but we try to stay with the boots
 - [ ] Redirect erlang.org/eep/* to www.erlang.org/eep
 - [ ] Redirect erlang.org/eeps/* to www.erlang.org/eeps
 - [ ] Redirect erlang.org/doc/* to www.erlang.org/doc
-- [ ] Redirect www.erlang.org/download to erlang.org/download
-- [ ] Redirect www.erlang.org/docs/versions to erlang.org/documentation
+- [ ] Redirect erlang.org/workshop/* to www.erlang.org/workshop
+- [ ] Redirect www.erlang.org/download/* to erlang.org/download
+- [ ] Redirect www.erlang.org/~* to erlang.org/~*
+- [ ] Redirect www.erlang.org/course/* to erlang.org/course
+- [ ] Redirect www.erlang.org/documentation/* to erlang.org/documentation
+- [ ] Redirect www.erlang.org/mailman/* to erlang.org/mailman
+- [ ] Redirect www.erlang.org/mailman-icons/* to erlang.org/mailman-icons
+- [ ] Redirect www.erlang.org/pipermail/* to erlang.org/pipermail
 
 ## Things that have been removed
 
