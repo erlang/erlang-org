@@ -12,7 +12,7 @@ changes that I am the most familiar with.
 
 You can download the readme describing the changes here: [OTP 21-RC1 Readme](http://erlang.org/download/otp_src_21.0-rc1.readme).
 Or, as always, look at the release notes of the application you are interested in.
-For instance here: [OTP 21-RC1 Erts Release Notes](http://erlang.org/doc/apps/erts/notes.html).
+For instance here: [OTP 21-RC1 Erts Release Notes](/doc/apps/erts/notes.html).
 
 # Compiler / Interpreter #
 

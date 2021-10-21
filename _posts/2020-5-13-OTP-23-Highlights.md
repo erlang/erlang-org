@@ -16,7 +16,7 @@ This blog post will describe some highlights of what is new in OTP 23.
 You can download the readme describing the changes here:
 [OTP 23 Readme](http://erlang.org/download/otp_src_23.0.readme).
 Or, as always, look at the release notes of the application you are interested in.
-For instance here: [OTP 23 Erts Release Notes](http://erlang.org/doc/apps/erts/notes.html).
+For instance here: [OTP 23 Erts Release Notes](/doc/apps/erts/notes.html).
 
 # Language
 
@@ -90,7 +90,7 @@ New features are also added, such as a distributed `spawn_monitor()` BIF. This f
 
 The `spawn_opt()` BIF will also support the monitor option for setting up a monitor atomically while creating a process on another node.
 
-We have also added new [`spawn_request()`](http://erlang.org/doc/man/erlang.html#spawn_request-1) BIFs for asynchronous spawning of processes.
+We have also added new [`spawn_request()`](/doc/man/erlang.html#spawn_request-1) BIFs for asynchronous spawning of processes.
 `spawn_request()` supports all options that `spawn_opt()` already supports.
 
 
@@ -118,7 +118,7 @@ The new solution does not use `rex` at all and let the spawned process decode th
 
 # gen_tcp and the new socket module
 
-In OTP 22 we introduced the new experimental [socket](http://erlang.org/doc/man/socket.html) API.
+In OTP 22 we introduced the new experimental [socket](/doc/man/socket.html) API.
 The idea behind this API is to have a stable intermediary API that can be used
 to create features that are not part of the higher-level `gen_*` APIs. 
 

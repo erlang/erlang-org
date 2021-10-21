@@ -79,7 +79,7 @@ same optimizations as before so already well-optimized code is unlikely to see
 any benefit, but it manages to apply them in far more cases.
 
 For those who aren't familiar, all bit-syntax matching operates on a
-["match context"](http://erlang.org/doc/efficiency_guide/binaryhandling.html#matching-binaries)
+["match context"](/doc/efficiency_guide/binaryhandling.html#matching-binaries)
 internally, which is a mutable object that keeps track of the current
 match position. This helps a lot when matching complicated patterns as it can
 zip back and forth as required, saving us from having to match components more

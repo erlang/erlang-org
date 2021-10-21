@@ -51,7 +51,7 @@ OTP 21 introduces two new configuration parameters: +IOt and +IOp.
 is 1 and it should be enough for most applications. However on very busy
 systems with many concurrent connection it could be beneficial to increase this.
 One way to get an indication of whether your system could benefit from it is
-by using [msacc](http://erlang.org/doc/man/msacc.html). If you turn it on briefly
+by using [msacc](/doc/man/msacc.html). If you turn it on briefly
 and when examining the `msacc:print()` output notice that sleep time
 of the the thread type `poll` is low, the system may benefit from increasing the
 number of polling threads.

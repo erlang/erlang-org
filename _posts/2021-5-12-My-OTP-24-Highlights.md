@@ -47,7 +47,7 @@ A lot has already been said about it:
 * [A first look at the JIT](https://blog.erlang.org/a-first-look-at-the-jit/)
 * [Further adventures in the JIT](https://blog.erlang.org/jit-part-2/)
 * [The Road to the JIT](https://blog.erlang.org/the-road-to-the-jit/)
-* [BeamAsm, the Erlang JIT](http://erlang.org/doc/apps/erts/BeamAsm.html)
+* [BeamAsm, the Erlang JIT](/doc/apps/erts/BeamAsm.html)
 
 and even before released the WhatsApp team has [shown what it is capable of].
 

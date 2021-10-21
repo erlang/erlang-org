@@ -17,7 +17,7 @@ and in OTP 21 maintenance patches.
 You can download the readme describing the changes here:
 [OTP 22 Readme](http://erlang.org/download/otp_src_22.0.readme).
 Or, as always, look at the release notes of the application you are interested in.
-For instance here: [OTP 22 Erts Release Notes](http://erlang.org/doc/apps/erts/notes.html).
+For instance here: [OTP 22 Erts Release Notes](/doc/apps/erts/notes.html).
 
 # Compiler
 
@@ -42,7 +42,7 @@ With this change the compile pipeline now looks like this:
 
 Together with the SSA rewrite a number of new optimizations have been introduced. One such
 is [strengthening](https://github.com/erlang/otp/pull/1958) of the
-[bit syntax](http://erlang.org/doc/reference_manual/expressions.html#bit-syntax-expressions).
+[bit syntax](/doc/reference_manual/expressions.html#bit-syntax-expressions).
 Before the change, you had to be very careful with how you wrote your binary matching in
 order for the binary match context optimization to work properly. There were also scenarios
 where it was impossible to get the optimization to trigger at all. One place in Erlang/OTP
@@ -98,7 +98,7 @@ better optimizations for OTP 23, building on top of the SSA rewrite.
 
 # Socket
 
-OTP 22 comes with a new experimental [socket](http://erlang.org/doc/man/socket.html) API.
+OTP 22 comes with a new experimental [socket](/doc/man/socket.html) API.
 The idea behind this API is to have a stable intermediary API that users can use
 to create features that are not part of the higher-level gen APIs. We will also be using
 this API to re-implement the higher-level gen APIs in OTP 23.
@@ -137,8 +137,8 @@ other improvements by Kjell Winblad and Sverker Eriksson
 [PR2190](https://github.com/erlang/otp/pull/2190)) has greatly
 increased the scalability of such ets tables that are the base for
 many applications, for instance,
-[pg2](http://erlang.org/doc/man/pg2.html) and the default [ssl session
-cache](http://erlang.org/doc/man/ssl_session_cache_api.html).
+[pg2](/doc/man/pg2.html) and the default [ssl session
+cache](/doc/man/ssl_session_cache_api.html).
 
 ![Ordered Set Write Concurrency OTP 22 benchmark](../images/ordered_set_write_conc.png)
 
@@ -211,7 +211,7 @@ duplicate what I've done you can follow
 [these instructions](https://gist.github.com/garazdawi/062627973b2887e50e9c9bbc86740b63).
 
 Not all features of `TLSv1.3` have been implemented, you can see which parts of the RFCs
-that are missing in the `ssl` application's [Standard Complience documentation](http://erlang.org/doc/apps/ssl/standards_compliance.html#tls-1.3).
+that are missing in the `ssl` application's [Standard Complience documentation](/doc/apps/ssl/standards_compliance.html#tls-1.3).
 
 # Fragmented distribution messages
 
@@ -248,9 +248,9 @@ test site the max latency is decreased by roughly 99%, which is a nice improveme
 # Counter/Atomics and persistent_terms
 
 Three new modules,
-[`counters`](http://erlang.org/doc/man/counters.html),
-[`atomics`](http://erlang.org/doc/man/atomics.html), and
-[`persistent_term`](http://erlang.org/doc/man/persistent_term.html),
+[`counters`](/doc/man/counters.html),
+[`atomics`](/doc/man/atomics.html), and
+[`persistent_term`](/doc/man/persistent_term.html),
 were added in OTP 21.2.
 These modules make it possible for the user to access low-level primitives of the
 runtime to make some spectacular performance improvements.
@@ -293,8 +293,8 @@ to see when some functionality was introduced. Knowing when an option to functio
 added is still problematic, but we are trying to be better there as well.
 
 In OTP 22 a new documentation top section called `Internal Documentation` has been added to
-the [erts](http://erlang.org/doc/apps/erts/internal_docs.html) and
-[compiler](http://erlang.org/doc/apps/compiler/internal_docs.html) applications.
+the [erts](/doc/apps/erts/internal_docs.html) and
+[compiler](/doc/apps/compiler/internal_docs.html) applications.
 The sections contain the internal documentation that previously only has been
 available on github so that it easier to access.
 
