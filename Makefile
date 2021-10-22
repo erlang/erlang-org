@@ -1,4 +1,4 @@
-.PHONY: patches setup faq build update serve check algolia setup_gems setup_npm
+.PHONY: setup build update serve test algolia setup_gems setup_npm format-eeps patches
 
 ## For netlify the BUNDLE_PATH is different so we need to check it
 BUNDLE_PATH?=vendor/bundle
