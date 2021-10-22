@@ -55,9 +55,18 @@ eeps: _clones/eep
 	-mkdir $@
 	cp -r $(wildcard _clones/eep/eeps/*.md) $(wildcard _clones/eep/eeps/*.png) $(wildcard _clones/eep/eeps/*.diff) $@/
 
-_eeps: _scripts/_build/default/bin/erlang-org eeps
-	$< format-eeps $@ _clones/eep/eeps/eep-0000.html eeps/*.md
-	@touch $@
+EEPS_DEPS=_scripts/src/format-eeps.erl _scripts/src/gh.erl
+EEPS_HASH=$(shell cat $(EEPS_DEPS) | sha256sum - | awk '{print $$1}')
+_eeps: _clones/eep $(EEPS_DEPS)
+	if [ ! -d $@ ]; then git clone --single-branch -b $@ https://github.com/erlang/erlang-org $@; fi
+	if [ ! -f $@/$(shell cd $< && git rev-parse --short HEAD)-$(EEPS_HASH) ]; then \
+	  $(MAKE) format-eeps; \
+	fi
+
+format-eeps: _scripts/_build/default/bin/erlang-org _clones/eep
+	rm -rf _eeps/*
+	$< format-eeps _eeps _clones/eep/eeps/eep-0000.html _clones/eep/eeps/*.md
+	touch _eeps/$(shell cd _clones/eep && git rev-parse --short HEAD)-$(EEPS_HASH)
 
 docs: otp_versions.table _scripts/otp_flatten_docs _scripts/otp_doc_sitemap.sh assets/doc-search.tsx
 	if [ ! -d $@ ]; then git clone --single-branch -b $@ https://github.com/erlang/erlang-org $@; fi
@@ -80,7 +89,7 @@ patches: _scripts/_build/default/bin/erlang-org otp_versions.table
 update:
 	npm update
 
-setup: setup_gems setup_npm _patches docs _eeps faq
+setup: setup_gems setup_npm _patches docs _eeps eeps faq
 
 serve: setup
 	bundle exec jekyll serve --incremental --trace --livereload --host 0.0.0.0
