@@ -8,7 +8,7 @@ build: setup
 	npx purgecss --css _site/assets/css/*.css --content `find _site -name "*.html" -o -name "*.js" | grep -v _site/doc/ | grep -v _site/docs/`  -o _site/assets/css/
 
 netlify:
-	_scripts/setup-netlify
+	$(MAKE) -j $(shell nproc) BUNDLE_PATH=/opt/build/cache/bundle
 
 $(BUNDLE_PATH):
 	bundler install --jobs 4 --retry 3 --path $(BUNDLE_PATH)
