@@ -1,4 +1,4 @@
-.PHONY: patches setup build update serve check algolia setup_gems setup_npm
+.PHONY: patches setup faq build update serve check algolia setup_gems setup_npm
 
 ## For netlify the BUNDLE_PATH is different so we need to check it
 BUNDLE_PATH?=vendor/bundle
@@ -41,11 +41,15 @@ _clones/eep: | _clones
 	cd $@ && ./build.pl
 
 _clones/faq: | _clones
-	-git clone https://github.com/matthiasl/Erlang-FAQ $@
-	cd $@ && LC_ALL="en_US-UTF8" make
+	git clone https://github.com/matthiasl/Erlang-FAQ $@
 
 faq: _clones/faq
-	cd $< && make install FAQ_ROOT=../../$@
+	if [ ! -d $@ ]; then git clone --single-branch -b $@ https://github.com/erlang/erlang-org $@; fi
+	if [ ! -f $@/$(shell cd $< && git rev-parse --short HEAD) ]; then \
+	  rm -rf $@/* && \
+	  (cd $< && LC_ALL="en_US-UTF8" make && make install FAQ_ROOT=../../$@) && \
+	  touch $@/$(shell cd $< && git rev-parse --short HEAD); \
+	fi
 
 eeps: _clones/eep
 	-mkdir $@
