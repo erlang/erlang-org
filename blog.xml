@@ -1,0 +1,2826 @@
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.2.0">Jekyll</generator><link href="https://beta.erlang.org/blog.xml" rel="self" type="application/atom+xml" /><link href="https://beta.erlang.org/" rel="alternate" type="text/html" /><updated>2021-10-22T15:09:41+00:00</updated><id>https://beta.erlang.org/blog.xml</id><title type="html">Erlang/OTP</title><subtitle>The official home of the Erlang Programming Language</subtitle><entry><title type="html">Decentralized ETS Counters for Better Scalability</title><link href="https://beta.erlang.org/blog/scalable-ets-counters/" rel="alternate" type="text/html" title="Decentralized ETS Counters for Better Scalability" /><published>2021-08-03T00:00:00+00:00</published><updated>2021-08-03T00:00:00+00:00</updated><id>https://beta.erlang.org/blog/scalable-ets-counters</id><content type="html" xml:base="https://beta.erlang.org/blog/scalable-ets-counters/">&lt;p&gt;A shared &lt;a href=&quot;https://erlang.org/doc/man/ets.html&quot;&gt;Erlang Term Storage
+(ETS)&lt;/a&gt; table is often an
+excellent place to store data that is updated and read from
+multiple Erlang processes frequently. ETS provides key-value stores to
+Erlang processes. When the
+&lt;a href=&quot;https://erlang.org/doc/man/ets.html#new-2&quot;&gt;write_concurrency&lt;/a&gt; option
+is activated, ETS tables use fine-grained locking
+internally. Therefore, a scenario where multiple processes insert and
+remove different items in an ETS table should scale well with the
+number of utilized cores. However, in practice the scalability
+for such scenarios is not yet perfect. This blog post will explore
+how the &lt;code&gt;decentralized_counters&lt;/code&gt; option brings us one step closer to
+perfect scalability.&lt;/p&gt;
+
+&lt;p&gt;The ETS table option
+&lt;a href=&quot;https://erlang.org/doc/man/ets.html#new-2&quot;&gt;&lt;code&gt;decentralized_counters&lt;/code&gt;&lt;/a&gt;
+(introduced in Erlang/OTP 22 for &lt;code&gt;ordered_set&lt;/code&gt; tables and in
+Erlang/OTP 23 for the other table types) has made the scalability much
+better. A table with &lt;code&gt;decentralized_counters&lt;/code&gt; activated uses
+decentralized counters instead of centralized counters to track the
+number of items in the table and the memory
+consumption. Unfortunately, tables with &lt;code&gt;decentralized_counters&lt;/code&gt;
+activated will have slow operations to get the table size and
+memory usage (&lt;a href=&quot;https://erlang.org/doc/man/ets.html#info-2&quot;&gt;&lt;code&gt;ets:info(Table,
+size)&lt;/code&gt;&lt;/a&gt; and
+&lt;a href=&quot;https://erlang.org/doc/man/ets.html#info-2&quot;&gt;&lt;code&gt;ets:info(Table,
+memory)&lt;/code&gt;&lt;/a&gt;), so whether it
+is beneficial to turn &lt;code&gt;decentralized_counters&lt;/code&gt; on or off depends on
+your use case. This blog post will give you a better understanding of
+when one should activate the &lt;code&gt;decentralized_counters&lt;/code&gt; option and how
+the decentralized counters work.&lt;/p&gt;
+
+&lt;h2 id=&quot;scalability-with-decentralized-ets-counters&quot;&gt;Scalability with Decentralized ETS Counters&lt;/h2&gt;
+
+&lt;p&gt;The following figure shows the throughput (operations/second) achieved
+when processes are doing inserts (&lt;code&gt;ets:insert/2&lt;/code&gt;) and deletes
+(&lt;code&gt;ets:delete/2&lt;/code&gt;) to an ETS table of the &lt;code&gt;set&lt;/code&gt; type on a machine with
+64 hardware threads both when &lt;code&gt;decentralized_counters&lt;/code&gt; option is
+activated and when it is deactivated. The table types &lt;code&gt;bag&lt;/code&gt; and
+&lt;code&gt;duplicate_bag&lt;/code&gt; have similar scalability behavior as their
+implementation is based on the same hash table.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/blog/images/ets_scalable_counters/bench_set_50_ins_50_del_nospread.png&quot; alt=&quot;alt text&quot; title=&quot;Throughput of inserts and deletes on a table of type set with and without the decentralized_counters activated&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;The following figure shows the results for the same benchmark but with
+a table of type &lt;code&gt;ordered_set&lt;/code&gt;:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/blog/images/ets_scalable_counters/bench_ordset_50_ins_50_del_nospread.png&quot; alt=&quot;alt text&quot; title=&quot;Throughput of inserts and deletes on a table of type ordered_set with and without the decentralized_counters activated&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;The interested reader can find more information about the benchmark at
+the &lt;a href=&quot;http://winsh.me/ets_catree_benchmark/decent_ctrs_hash.html&quot;&gt;benchmark website for
+&lt;code&gt;decentralized_counters&lt;/code&gt;&lt;/a&gt;. The
+benchmark results above show that both &lt;code&gt;set&lt;/code&gt; and &lt;code&gt;ordered_set&lt;/code&gt; tables
+get a significant scalability boost when the &lt;code&gt;decentralized_counter&lt;/code&gt;
+option is activated. The &lt;code&gt;ordered_set&lt;/code&gt; type receives a more
+substantial scalability improvement than the &lt;code&gt;set&lt;/code&gt; type. Tables of the
+set type have a fixed number of locks for the hash table buckets. The
+&lt;code&gt;ordered_set&lt;/code&gt; table type is implemented with a &lt;a href=&quot;https://doi.org/10.1016/j.jpdc.2017.11.007&quot;&gt;contention adapting
+search tree&lt;/a&gt; that
+dynamically changes the locking granularity based on how much
+contention is detected. This implementation difference explains the
+difference in scalability between &lt;code&gt;set&lt;/code&gt; and &lt;code&gt;ordered_set&lt;/code&gt;. The
+interested reader can find details about the &lt;code&gt;ordered_set&lt;/code&gt;
+implementation in an &lt;a href=&quot;/blog/the-new-scalable-ets-ordered_set/&quot;&gt;earlier blog
+post&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;Worth noting is also that the Erlang VM that ran the benchmarks has
+been compiled with the configure option “&lt;code&gt;./configure
+--with-ets-write-concurrency-locks=256&lt;/code&gt;”. The configure option
+&lt;code&gt;--with-ets-write-concurrency-locks=256&lt;/code&gt; changes the number of locks
+for hash-based ETS tables from the current default of 64 to 256 (256
+is currently the max value one can set this configuration option
+to). Changing the implementation of the hash-based tables so that one
+can set the number of locks per table instance or so that the lock
+granularity is adjusted automatically seems like an excellent future
+improvement, but this is not what this blog post is about.&lt;/p&gt;
+
+&lt;p&gt;A centralized counter consists of a single memory word that is
+incremented and decremented with atomic instructions. The problem with
+a centralized counter is that modifications of the counter
+by multiple cores are serialized. This problem is amplified because
+frequent modifications of a single memory word by multiple cores cause
+a lot of expensive traffic in the &lt;a href=&quot;https://en.wikipedia.org/wiki/Cache_coherence&quot;&gt;cache
+coherence&lt;/a&gt;
+system. However, reading from a centralized counter is quite efficient
+as the reader only has to read a single memory word.&lt;/p&gt;
+
+&lt;p&gt;When designing the decentralized counters for ETS, we have tried to
+optimize for update performance and scalability as most applications
+need to get the size of an ETS table relatively rarely. However, since
+there may be applications out in the wild that frequently call
+&lt;a href=&quot;https://erlang.org/doc/man/ets.html#info-2&quot;&gt;&lt;code&gt;ets:info(Table, size)&lt;/code&gt;&lt;/a&gt;
+and &lt;a href=&quot;https://erlang.org/doc/man/ets.html#info-2&quot;&gt;&lt;code&gt;ets:info(Table,
+memory)&lt;/code&gt;&lt;/a&gt;, we have chosen
+to make decentralized counters optional.&lt;/p&gt;
+
+&lt;p&gt;Another thing that might be worth keeping in mind is that the
+hash-based tables that use decentralized counters tend to use slightly
+more hash table buckets than the corresponding tables without
+decentralized counters. The reason for this is that, with
+decentralized counters activated, the resizing decision is based on an
+estimate of the number of items in the table rather than an exact
+count, and the resizing heuristics trigger an increase of the number
+of buckets more eagerly than a decrease.&lt;/p&gt;
+
+&lt;h2 id=&quot;implementation&quot;&gt;Implementation&lt;/h2&gt;
+
+&lt;p&gt;You will now learn how the decentralized counters in ETS works. The
+&lt;a href=&quot;https://github.com/erlang/otp/blob/ce7dbe8742e66f4632b5d39a9b4d7aa461e4f164/erts/emulator/beam/erl_flxctr.h&quot;&gt;decentralized counter implementation exports an
+API&lt;/a&gt;
+that makes it easy to swap between a decentralized counter and a
+centralized one. ETS uses this to support the usage of both
+centralized and decentralized counters. The data structure for the
+decentralized counter is illustrated in the following picture. When
+&lt;code&gt;is_decentralized = false&lt;/code&gt;, the counter field represents the current
+count instead of a pointer to an array of cache line padded counters.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/blog/images/ets_scalable_counters/structure.png&quot; alt=&quot;alt text&quot; title=&quot;An image
+showing the structure of a decentralized counter&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;When &lt;code&gt;is_decentralized = true&lt;/code&gt;, processes that update (increment or
+decrement) the counter follow the pointer to the array of counters and
+increments the counter at the slot in the array that the current
+scheduler maps to (one takes the scheduler identifier modulo the
+number of slots in the array to get the appropriate slot). Updates do
+not need to do anything else, so they are very efficient and can scale
+perfectly with the number of cores as long as there are as many slots
+as schedulers. One can configure the maximum number of slots in the
+array of counters with the
+&lt;a href=&quot;https://erlang.org/doc/man/erl.html&quot;&gt;&lt;code&gt;+dcg&lt;/code&gt;&lt;/a&gt; option.&lt;/p&gt;
+
+&lt;p&gt;To implement the &lt;code&gt;ets:info(Table, size)&lt;/code&gt; and &lt;code&gt;ets:info(Table, memory)&lt;/code&gt;
+operations, one also needs to read the current counter value. Reading
+the current counter value can be implemented by taking the sum of the
+values in the counter array. However, if this summation is done
+concurrently with updates to the array of counters, we could get
+strange results. For example, we could end up in a situation where
+&lt;code&gt;ets:info(Table, size)&lt;/code&gt; returns a negative number, which is not
+exactly what we want. On the other hand, we want to make counter
+updates as fast as possible so having locks to protect the counters in
+the counter array is not a good solution. We opted for a solution that
+lets readers swap out the entire counter array and wait (using the
+&lt;a href=&quot;https://github.com/erlang/otp/blob/7c06ca6231b812965305522284dd9f2653ced98d/erts/emulator/internal_doc/ThreadProgress.md&quot;&gt;Erlang VM’s thread progress
+system&lt;/a&gt;)
+until no updates can occur in the swapped-out array before the sum is
+calculated. The following example illustrates this approach:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;[Step 1]&lt;/strong&gt;&lt;/p&gt;
+
+    &lt;p&gt;A thread is going to read the counter value.&lt;/p&gt;
+
+    &lt;p&gt;&lt;img src=&quot;/blog/images/ets_scalable_counters/snap_ani_1.png&quot; alt=&quot;alt text&quot; title=&quot;Step 1&quot; /&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;[Step 2]&lt;/strong&gt;&lt;/p&gt;
+
+    &lt;p&gt;The reader starts by creating a new counter array.&lt;/p&gt;
+
+    &lt;p&gt;&lt;img src=&quot;/blog/images/ets_scalable_counters/snap_ani_1_b.png&quot; alt=&quot;alt text&quot; title=&quot;Step 2&quot; /&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;[Step 3]&lt;/strong&gt;&lt;/p&gt;
+
+    &lt;p&gt;The pointer to the old counter array is changed to point to the new
+ one with the &lt;code&gt;snapshot_ongoing&lt;/code&gt; field set to &lt;code&gt;true&lt;/code&gt;. This
+ change can only be done when the &lt;code&gt;snapshot_onging&lt;/code&gt; field is set to
+ &lt;code&gt;false&lt;/code&gt; in the old counter array.&lt;/p&gt;
+
+    &lt;p&gt;&lt;img src=&quot;/blog/images/ets_scalable_counters/snap_ani_2.png&quot; alt=&quot;alt text&quot; title=&quot;Step 3&quot; /&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;[Step 4]&lt;/strong&gt;&lt;/p&gt;
+
+    &lt;p&gt;Now, the reader has to wait until all other threads that will
+ update a counter in the old array have completed their updates. As
+ mentioned, this can be done using the &lt;a href=&quot;https://github.com/erlang/otp/blob/7c06ca6231b812965305522284dd9f2653ced98d/erts/emulator/internal_doc/ThreadProgress.md&quot;&gt;Erlang VM’s thread progress
+ system&lt;/a&gt;. After
+ that, the reader can safely calculate the sum of counters in the
+ old counter array (the sum is 1406). The calculated sum is also
+ given to the process that requested the count so that it can
+ continue execution.&lt;/p&gt;
+
+    &lt;p&gt;&lt;img src=&quot;/blog/images/ets_scalable_counters/snap_ani_3.png&quot; alt=&quot;alt text&quot; title=&quot;Step 4&quot; /&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;[Step 5]&lt;/strong&gt;&lt;/p&gt;
+
+    &lt;p&gt;The read operation is not done, even though we have successfully
+ calculated a count. One must add the calculated sum from the old
+ array to the new array to avoid losing something.&lt;/p&gt;
+
+    &lt;p&gt;&lt;img src=&quot;/blog/images/ets_scalable_counters/snap_ani_4.png&quot; alt=&quot;alt text&quot; title=&quot;Step 5&quot; /&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;[Step 6]&lt;/strong&gt;&lt;/p&gt;
+
+    &lt;p&gt;Finally, the &lt;code&gt;snapshot_ongoing&lt;/code&gt; field in the new counter array is
+ set to &lt;code&gt;false&lt;/code&gt; so that other read operations can swap out the new
+ counter array.&lt;/p&gt;
+
+    &lt;p&gt;&lt;img src=&quot;/blog/images/ets_scalable_counters/snap_ani_5.png&quot; alt=&quot;alt text&quot; title=&quot;Step 6&quot; /&gt;&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Now, you should have got a basic understanding of how ETS’
+decentralized counters work. You are also welcome to look at the
+source code in
+&lt;a href=&quot;https://github.com/erlang/otp/blob/ce7dbe8742e66f4632b5d39a9b4d7aa461e4f164/erts/emulator/beam/erl_flxctr.c&quot;&gt;erl_flxctr.c&lt;/a&gt;
+and
+&lt;a href=&quot;https://github.com/erlang/otp/blob/ce7dbe8742e66f4632b5d39a9b4d7aa461e4f164/erts/emulator/beam/erl_flxctr.h&quot;&gt;erl_flxctr.h&lt;/a&gt;
+if you are interested in details of the implementation.&lt;/p&gt;
+
+&lt;p&gt;As you can imagine, reading the value of a decentralized counter with,
+for example, &lt;code&gt;ets:info(Table, size)&lt;/code&gt; is extremely slow compared to a
+centralized counter. Fortunately, most time that is spent reading the
+value of a decentralized counter is spent waiting for the thread
+progress system to report that it is safe to read the swapped-out array,
+and the read operation does not block any scheduler and does not
+consume any CPU time during this time. On the other hand, the
+decentralized counter can be updated in a very efficient and scalable
+way, so using decentralized counters is most likely to prefer, if you
+seldom need to get the size and the memory consumed by your shared
+ETS table.&lt;/p&gt;
+
+&lt;h2 id=&quot;concluding-remarks&quot;&gt;Concluding Remarks&lt;/h2&gt;
+
+&lt;p&gt;This blog post has described the implementation of the decentralized
+counter option for ETS tables. ETS tables with decentralized counters
+scale much better with the number of cores than ETS tables with
+centralized counters. However, as decentralized counters make
+&lt;code&gt;ets:info(Table, size)&lt;/code&gt; and &lt;code&gt;ets:info(Table, memory)&lt;/code&gt; very slow, one
+should not use them if any of these two operations need to be
+performed frequently.&lt;/p&gt;</content><author><name>Kjell Winblad</name></author><category term="ETS," /><category term="erlang" /><category term="term" /><category term="storage," /><category term="scalability," /><category term="multicore" /><summary type="html">A shared Erlang Term Storage (ETS) table is often an excellent place to store data that is updated and read from multiple Erlang processes frequently. ETS provides key-value stores to Erlang processes. When the write_concurrency option is activated, ETS tables use fine-grained locking internally. Therefore, a scenario where multiple processes insert and remove different items in an ETS table should scale well with the number of utilized cores. However, in practice the scalability for such scenarios is not yet perfect. This blog post will explore how the decentralized_counters option brings us one step closer to perfect scalability.</summary></entry><entry><title type="html">Erlang/OTP 24 Highlights</title><link href="https://beta.erlang.org/blog/My-OTP-24-Highlights/" rel="alternate" type="text/html" title="Erlang/OTP 24 Highlights" /><published>2021-05-12T00:00:00+00:00</published><updated>2021-05-12T00:00:00+00:00</updated><id>https://beta.erlang.org/blog/My-OTP-24-Highlights</id><content type="html" xml:base="https://beta.erlang.org/blog/My-OTP-24-Highlights/">&lt;p&gt;Finally Erlang/OTP 24 is here! A release that for me has been &lt;a href=&quot;https://vimeo.com/44231138&quot;&gt;about 10 years&lt;/a&gt;
+in the making. &lt;a href=&quot;https://blog.erlang.org/My-OTP-21-Highlights/&quot;&gt;As&lt;/a&gt; is &lt;a href=&quot;https://blog.erlang.org/OTP-22-Highlights/&quot;&gt;tradition&lt;/a&gt; by &lt;a href=&quot;https://blog.erlang.org/OTP-23-Highlights/&quot;&gt;now&lt;/a&gt;, this blog post will go through the
+additions to Erlang/OTP that I am most excited about!&lt;/p&gt;
+
+&lt;p&gt;Erlang/OTP 24 includes contributions from 60+ external contributors totalling
+1400+ commits, 300+ PRs and changing 0.5 million(!) lines of code. Though I’m not
+sure the line number should count as we vendored all of &lt;a href=&quot;https://asmjit.com/&quot;&gt;AsmJit&lt;/a&gt; and
+re-generated the wxWidgets support. If we ignore AsmJit and wx, there are still
+260k lines of code added and 320k lines removed, which is about 100k more than
+what our releases normally contain.&lt;/p&gt;
+
+&lt;p&gt;You can download the readme describing the changes here: &lt;a href=&quot;http://erlang.org/download/otp_src_24.0.readme&quot;&gt;Erlang/OTP 24 Readme&lt;/a&gt;.
+Or, as always, look at the release notes of the application you are interested in.
+For instance here: &lt;a href=&quot;http://erlang.org/doc/apps/erts/notes.html#erts-12.0&quot;&gt;Erlang/OTP 24 - Erts Release Notes - Version 12.0&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;This years highlights are:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;&lt;a href=&quot;#beamasm---the-jit-compiler-for-erlang&quot;&gt;BeamAsm - the JIT compiler for Erlang&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#improved-error-messages&quot;&gt;Improved error messages&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#improved-receive-optimizations&quot;&gt;Improved receive optimizations&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#eep-53-process-aliases&quot;&gt;EEP-53: Process aliases&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#eep-48-documentation-chunks-for-edoc&quot;&gt;EEP-48: Documentation chunks for edoc&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#socket-support-in-gen_tcp&quot;&gt;socket support in gen_tcp&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#EEP-56-supervisor-automatic-shutdown&quot;&gt;EEP-56: Supervisor automatic shutdown&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;#edwards-curve-digital-signature-algorithm&quot;&gt;Edwards-curve Digital Signature Algorithm&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h1 id=&quot;beamasm---the-jit-compiler-for-erlang&quot;&gt;BeamAsm - the JIT compiler for Erlang&lt;/h1&gt;
+
+&lt;p&gt;The most anticipated feature of Erlang/OTP 24 has to be the JIT compiler.
+A lot has already been said about it:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;a href=&quot;https://github.com/erlang/otp/pull/2745&quot;&gt;Initial PR&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://blog.erlang.org/a-first-look-at-the-jit/&quot;&gt;A first look at the JIT&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://blog.erlang.org/jit-part-2/&quot;&gt;Further adventures in the JIT&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://blog.erlang.org/the-road-to-the-jit/&quot;&gt;The Road to the JIT&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;/doc/apps/erts/BeamAsm.html&quot;&gt;BeamAsm, the Erlang JIT&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;and even before released the WhatsApp team has &lt;a href=&quot;https://twitter.com/garazdawi/status/1385263924803735556&quot;&gt;shown what it is capable of&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;However, besides the performance gains that the JIT brings, what I am the most
+excited about is the benefits that come with running native code
+instead of interpreting. What I’m talking about is the native code tooling that
+now becomes available to all Erlang programmers, such as integration with &lt;a href=&quot;https://perf.wiki.kernel.org/index.php/Main_Page&quot;&gt;perf&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;As an example, when building a dialyzer plt of a small core of Erlang, the
+previous way to profile would be via something like &lt;a href=&quot;https://erlang.org/doc/man/eprof.html&quot;&gt;eprof&lt;/a&gt;.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-erlang&quot;&gt;&amp;gt; eprof:profile(fun() -&amp;gt;
+    dialyzer:run([{analysis_type,'plt_build'},{apps,[erts]}])
+  end).
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;This increases the time to build the PLT from about 1.2 seconds to 15 seconds on
+my system. In the end, you get something like the below that will guide you to
+what you need to optimize. Maybe take a look at &lt;code&gt;erl_types:t_has_var*/1&lt;/code&gt;
+and check if you really need to call it 13-15 million times!&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;gt; eprof:analyze(total).
+FUNCTION                      CALLS        %     TIME [uS / CALLS]
+--------                      -----  -------     ---- [----------]
+erl_types:t_sup1/2          2744805     1.68   752795 [      0.27]
+erl_types:t_subst/2         2803211     1.92   858180 [      0.31]
+erl_types:t_limit_k/2       3783173     2.04   913217 [      0.24]
+maps:find/2                 4798032     2.14   957223 [      0.20]
+erl_types:t_has_var/1      15943238     5.89  2634428 [      0.17]
+erl_types:t_has_var_list/1 13736485     7.51  3360309 [      0.24]
+------------------------  ---------  ------- -------- [----------]
+Total:                    174708211  100.00% 44719837 [      0.26]
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;In Erlang/OTP 24 we can get the same result without having to pay the pretty
+steep cost of profiling with eprof. When running the same analysis as above
+using &lt;a href=&quot;https://perf.wiki.kernel.org/index.php/Main_Page&quot;&gt;perf&lt;/a&gt; it takes roughly 1.3 seconds to run.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-sh&quot;&gt;$ ERL_FLAGS=&quot;+JPperf true&quot; perf record dialyzer --build_plt \
+    --apps erts
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Then we can use tools such as &lt;a href=&quot;https://man7.org/linux/man-pages/man1/perf-report.1.html&quot;&gt;perf report&lt;/a&gt;, &lt;a href=&quot;https://github.com/KDAB/hotspot&quot;&gt;hotspot&lt;/a&gt; or &lt;a href=&quot;https://twitter.com/michalslaski/status/1391381431335669765&quot;&gt;speedscope&lt;/a&gt; to
+analyze the results.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-sh&quot;&gt;$ hotspot perf.data
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;img src=&quot;/blog/images/hotspot-dialyzer.png&quot; alt=&quot;alt text&quot; title=&quot;Hotspot dialyzer&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;In the above, we can see that we get roughly the same result as when using
+&lt;code&gt;eprof&lt;/code&gt;, though interestingly not exactly the same. I’ll leave the whys of
+this up to the reader to find out :)&lt;/p&gt;
+
+&lt;p&gt;With this little overhead when profiling, we can run scenarios that previously
+would take too long to run when profiling. For those brave enough it might even
+be possible to run always-on profiling in production!&lt;/p&gt;
+
+&lt;p&gt;The journey with what can be done with &lt;a href=&quot;https://perf.wiki.kernel.org/index.php/Main_Page&quot;&gt;perf&lt;/a&gt; has only started. In &lt;a href=&quot;https://github.com/erlang/otp/pull/4676&quot;&gt;PR-4676&lt;/a&gt; we
+will be adding frame pointer support which will give a much more accurate call
+frames when profiling and, in the end, the goal is to have mappings to Erlang
+source code lines instead of only functions when using &lt;a href=&quot;https://man7.org/linux/man-pages/man1/perf-report.1.html&quot;&gt;perf report&lt;/a&gt; and
+&lt;a href=&quot;https://github.com/KDAB/hotspot&quot;&gt;hotspot&lt;/a&gt; to analyze a perf recording.&lt;/p&gt;
+
+&lt;h1 id=&quot;improved-error-messages&quot;&gt;Improved error messages&lt;/h1&gt;
+
+&lt;p&gt;Erlang’s error messages tend to get a lot of (valid) critisism for being hard to
+understand. Two great new features have been added to help the user understand
+why something has failed.&lt;/p&gt;
+
+&lt;h2 id=&quot;column-number-in-warnings-and-errors&quot;&gt;Column number in warnings and errors&lt;/h2&gt;
+
+&lt;p&gt;Thanks to the work of &lt;a href=&quot;https://github.com/richcarl&quot;&gt;Richard Carlsson&lt;/a&gt; and &lt;a href=&quot;https://github.com/uabboli&quot;&gt;Hans Bolinder&lt;/a&gt;, when you compile
+Erlang code you now get the line and column of errors and warnings printed in
+the shell together with a &lt;code&gt;^&lt;/code&gt;-sign showing exactly where the error
+actually was. For example, if you compile the below:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-erlang&quot;&gt;foo(A, B) -&amp;gt;
+  #{ a =&amp;gt; A, b := B }.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;you would in Erlang/OTP 23 and earlier get:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ erlc t.erl
+t.erl:6: only association operators '=&amp;gt;' are allowed in map construction
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;but in Erlang/OTP 24 you now also get the following printout:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ erlc test.erl
+t.erl:6:16: only association operators '=&amp;gt;' are allowed in map construction
+%    6|   #{ a =&amp;gt; A, b := B }.
+%     |                ^
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;This behavior also extends into most of the Erlang code editors so that
+when you use VSCode or Emacs through &lt;a href=&quot;https://erlang-ls.github.io/&quot;&gt;Erlang LS&lt;/a&gt; or &lt;a href=&quot;https://www.flycheck.org/&quot;&gt;flycheck&lt;/a&gt; you also
+get a narrower warning/error indicator, for example in Emacs using &lt;a href=&quot;https://erlang-ls.github.io/&quot;&gt;Erlang LS&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/blog/images/column-numbers-highlight.png&quot; alt=&quot;alt text&quot; title=&quot;Emacs columns numbers with Erlang-LS&quot; /&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;eep-54-improved-bif-error-information&quot;&gt;EEP-54: Improved BIF error information&lt;/h2&gt;
+
+&lt;p&gt;One of the other big changes when it comes to error information is the
+introduction of &lt;a href=&quot;https://www.erlang.org/erlang-enhancement-proposals/eep-0054.html&quot;&gt;EEP-54&lt;/a&gt;. In the past many of the &lt;a href=&quot;https://erlang.org/doc/reference_manual/functions.html#built-in-functions--bifs-&quot;&gt;BIFs&lt;/a&gt; (built-in functions)
+would give very cryptic error messages:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-erlang&quot;&gt;1&amp;gt; element({a,b,c}, 1).
+** exception error: bad argument
+     in function  element/2
+        called as element({a,b,c},1)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;In the example above, the only thing we know is that one or more of the
+arguments are invalid, but without checking
+&lt;a href=&quot;https://erlang.org/doc/man/erlang.html#element-2&quot;&gt;the documentation&lt;/a&gt;
+there is no way of knowing which one and why. This is especially a problem for
+BIFs where the arguments may fail for different reasons depending on factors not
+visible in the arguments. For example in the &lt;code&gt;ets:update_counter&lt;/code&gt; call below:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-erlang&quot;&gt;&amp;gt; ets:update_counter(table, k, 1).
+** exception error: bad argument
+     in function  ets:update_counter/3
+        called as ets:update_counter(table,k,1)
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;We don’t know if the call failed because the table did not exist at all
+or if the key &lt;code&gt;k&lt;/code&gt; that we wanted to update did not exist in the table.&lt;/p&gt;
+
+&lt;p&gt;In Erlang/OTP 24 both of the examples above will have a much clearer error
+messages.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-erlang&quot;&gt;1&amp;gt; element({a,b,c}, 1).
+** exception error: bad argument
+     in function  element/2
+        called as element({a,b,c},1)
+        *** argument 1: not an integer
+        *** argument 2: not a tuple
+2&amp;gt; ets:new(table,[named_table]).
+table
+3&amp;gt; ets:update_counter(table, k, 1).
+** exception error: bad argument
+     in function  ets:update_counter/3
+        called as ets:update_counter(table,k,1)
+        *** argument 2: not a key that exists in the table
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;That looks much better and now we can see what the problem was!
+The standard logging formatters also include the additional information
+so that if this type of error happens in a production environment you will
+get the extra error information:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;1&amp;gt; proc_lib:spawn(fun() -&amp;gt; ets:update_counter(table, k, 1) end).
+&amp;lt;0.94.0&amp;gt;
+=CRASH REPORT==== 10-May-2021::11:20:35.367023 ===
+  crasher:
+    initial call: erl_eval:'-expr/5-fun-3-'/0
+    pid: &amp;lt;0.94.0&amp;gt;
+    registered_name: []
+    exception error: bad argument
+      in function  ets:update_counter/3
+         called as ets:update_counter(table,k,1)
+         *** argument 1: the table identifier does
+                         not refer to an existing ETS table
+    ancestors: [&amp;lt;0.92.0&amp;gt;]
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://www.erlang.org/erlang-enhancement-proposals/eep-0054.html&quot;&gt;EEP-54&lt;/a&gt; is not only useful for error messages coming from BIFs but can be used
+by any application that wants to provide extra information about their exceptions.
+For example, we have been working on providing better error information around
+&lt;code&gt;io:format&lt;/code&gt; in &lt;a href=&quot;https://github.com/erlang/otp/pull/4757&quot;&gt;PR-4757&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h1 id=&quot;improved-receive-optimizations&quot;&gt;Improved receive optimizations&lt;/h1&gt;
+
+&lt;p&gt;Since Erlang/OTP R14 (released in 2010), the Erlang compiler and run-time system
+have co-operated to optimize for the pattern of code used by
+&lt;code&gt;gen_server:call&lt;/code&gt; like functionality to avoid scanning a potentially
+huge mailbox. The basic pattern looks like this:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-erlang&quot;&gt;call(To, Msg) -&amp;gt;
+  Ref = make_ref(),
+  To ! {call, Ref, self(), Msg},
+  receive
+    {reply, Ref, Reply} -&amp;gt; Reply
+  end.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;The compiler can from this figure out that when &lt;code&gt;Ref&lt;/code&gt; is created, there can be
+no messages in the mailbox of the process that contains &lt;code&gt;Ref&lt;/code&gt; and therefore it
+can skip all of those when receiving the &lt;code&gt;Reply&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;This has always worked great in simple scenarios like this, but as soon as you
+had to make the scenarios a little more complex it tended to break the
+compiler’s analysis and you would end up scanning the entire mailbox. For example,
+in the code below Erlang/OTP 23 will not optimize the receive.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-erlang&quot;&gt;call(To, Msg, Async) -&amp;gt;
+  Ref = make_ref(),
+  To ! {call, Ref, self(), Msg},
+  if
+    Async -&amp;gt;
+      {ok, Ref};
+    not Async -&amp;gt;
+      receive
+        {reply, Ref, Reply} -&amp;gt; Reply
+      end
+  end.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;That all changes with Erlang/OTP 24! Many more complex scenarios are now
+covered by the optimization and a new compiler flag has been added to tell the
+user if an optimization is done.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-sh&quot;&gt;$ erlc +recv_opt_info test.erl
+test.erl:6: Warning: OPTIMIZED: reference used to mark
+                                a message queue position
+%    6|   Ref = make_ref(),
+test.erl:12: Warning: OPTIMIZED: all clauses match reference
+                                 created by make_ref/0
+                                 at test.erl:6
+%   12|       receive
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Even patterns such as multi_call are now optimized to not scan the mailbox of
+the process.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-erlang&quot;&gt;multi_call(ToList, Msg) -&amp;gt;
+  %% OPTIMIZED: reference used to mark a message queue position
+  Ref = make_ref(),
+  %% INFO: passing reference created by make_ref/0 at test.erl:18
+  [To ! {call, Ref, self(), Msg} || To &amp;lt;- ToList],
+  %% INFO: passing reference created by make_ref/0 at test.erl:18
+  %% OPTIMIZED: all clauses match reference
+  %%            in function parameter 2
+  [receive {reply, Ref, Reply} -&amp;gt; Reply end || _ &amp;lt;- ToList].
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;There are still a lot of places where this optimization does not trigger. For
+instance as soon as any of the make_ref/send/receive are in different modules it
+will not work. However, the new improvements in Erlang/OTP 24 make the number of
+scenarios a lot fewer and now we also have the tools to check and see if the
+optimization is triggered!&lt;/p&gt;
+
+&lt;p&gt;You can read more about this optimization and others in the &lt;a href=&quot;https://erlang.org/doc/efficiency_guide/processes.html#process-messages&quot;&gt;Efficiency Guide&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h1 id=&quot;eep-53-process-aliases&quot;&gt;EEP-53: Process aliases&lt;/h1&gt;
+
+&lt;p&gt;When doing a call to another Erlang process, the pattern used by
+&lt;code&gt;gen_server:call&lt;/code&gt;, &lt;code&gt;gen_statem:call&lt;/code&gt; and others normally looks something
+like this:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-erlang&quot;&gt;call(To, Msg, Tmo) -&amp;gt;
+  MonRef = erlang:monitor(process, To),
+  To ! {call, MonRef, self(), Msg},
+  receive
+    {'DOWN',MonRef,_,_,Reason} -&amp;gt;
+      {error, Reason};
+    {reply, MonRef, Reply}
+      erlang:demonitor(MonRef,[flush]),
+      {ok, Reply}
+    after Tmo -&amp;gt;
+      erlang:demonitor(MonRef,[flush]),
+      {error, timeout}
+  end.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;This normally works well except for when a timeout happens. When a timeout
+happens the process on the other end has no way to know that the reply is no
+longer needed and so will send it anyway when it is done with it. This causes
+all kinds of problems as the user of a third-party library would never know what
+messages to expect to be present in the mailbox.&lt;/p&gt;
+
+&lt;p&gt;There have been numerous attempts to solve this problem using the primitives
+that Erlang gives you, but in the end, most ended up just adding a &lt;code&gt;handle_info&lt;/code&gt;
+in their &lt;code&gt;gen_server&lt;/code&gt;s that ignored any unknown messages.&lt;/p&gt;
+
+&lt;p&gt;In Erlang/OTP 24, &lt;a href=&quot;https://www.erlang.org/erlang-enhancement-proposals/eep-0053.html&quot;&gt;EEP-53&lt;/a&gt; has introduced the &lt;code&gt;alias&lt;/code&gt; functionality to solve this problem.
+An &lt;code&gt;alias&lt;/code&gt; is a temporary reference to a process that can be used
+to send messages to. In most respects, it works just as a PID except that
+the lifetime of an alias is not tied with the lifetime of the process it
+represents. So when you try to send a late reply to an alias that has been
+deactivated the message will just be dropped.&lt;/p&gt;
+
+&lt;p&gt;The code changes needed to make this happen are very small and are already used
+behind the scenes in all the standard behaviors of Erlang/OTP. The only thing
+needed to be changed in the example code above is that a new option must be
+given to &lt;code&gt;erlang:monitor&lt;/code&gt; and the reply reference should now be the alias
+instead of the calling PID. That is, like this:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-erlang&quot;&gt;call(To, Msg, Tmo) -&amp;gt;
+  MonAlias = erlang:monitor(process, To, [{alias, demonitor}]),
+  To ! {call, MonAlias, MonAlias, Msg},
+  receive
+    {'DOWN', MonAlias, _ , _, Reason} -&amp;gt;
+      {error, Reason};
+    {reply, MonAlias, Reply}
+      erlang:demonitor(MonAlias,[flush]),
+      {ok, Reply}
+    after Tmo -&amp;gt;
+      erlang:demonitor(MonAlias,[flush]),
+      {error, timeout}
+  end.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;You can read more about this functionality in the &lt;a href=&quot;https://erlang.org/doc/reference_manual/processes.html#process-aliases&quot;&gt;alias documentation&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h1 id=&quot;eep-48-documentation-chunks-for-edoc&quot;&gt;EEP-48: Documentation chunks for edoc&lt;/h1&gt;
+
+&lt;p&gt;In Erlang/OTP 23 &lt;a href=&quot;http://erlang.org/doc/man/erl_docgen_app.html&quot;&gt;erl_docgen&lt;/a&gt; was extended to be able to emit &lt;a href=&quot;https://www.erlang.org/erlang-enhancement-proposals/eep-0048.html&quot;&gt;EEP-48&lt;/a&gt; style
+documentation. This allowed the documentation to be used by &lt;code&gt;h(lists)&lt;/code&gt; in
+the Erlang shell and external tools such as &lt;a href=&quot;https://erlang-ls.github.io/&quot;&gt;Erlang LS&lt;/a&gt;. However, there
+are very few applications outside Erlang/OTP that use &lt;code&gt;erl_docgen&lt;/code&gt; to
+create documentation, so &lt;a href=&quot;https://www.erlang.org/erlang-enhancement-proposals/eep-0048.html&quot;&gt;EEP-48&lt;/a&gt; style documentation was unavailable to
+those applications. Until now!&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://github.com/erszcz&quot;&gt;Radek Szymczyszyn&lt;/a&gt; has &lt;a href=&quot;https://github.com/erlang/otp/pull/2803&quot;&gt;added&lt;/a&gt; support for &lt;a href=&quot;https://www.erlang.org/erlang-enhancement-proposals/eep-0048.html&quot;&gt;EEP-48&lt;/a&gt; into &lt;a href=&quot;https://erlang.org/doc/man/edoc.html&quot;&gt;edoc&lt;/a&gt; which means
+that from Erlang/OTP 24 you can view both the documentation of &lt;code&gt;lists:foldl/3&lt;/code&gt;
+and &lt;code&gt;recon:info/1&lt;/code&gt;.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;$ rebar3 as docs shell
+Erlang/OTP 24 [erts-12.0] [source] [jit]
+
+Eshell V11.2.1  (abort with ^G)
+1&amp;gt; h(recon,info,1).
+ -spec info(PidTerm) -&amp;gt;
+   [{info_type(), [{info_key(), Value}]}, ...]
+     when PidTerm :: pid_term().
+
+  Allows to be similar to erlang:process_info/1, but excludes
+  fields such as the mailbox, which tend to grow
+  and be unsafe when called in production systems. Also includes
+  a few more fields than what is usually given (monitors,
+  monitored_by, etc.), and separates the fields in a more
+  readable format based on the type of information contained.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;For more information about how to enable this in your project see
+the &lt;a href=&quot;https://erlang.org/doc/apps/edoc/chapter.html#doc-chunks&quot;&gt;Doc chunks section in the Edoc User’s Guide&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h1 id=&quot;socket-support-in-gen_tcp&quot;&gt;&lt;code&gt;socket&lt;/code&gt; support in &lt;code&gt;gen_tcp&lt;/code&gt;&lt;/h1&gt;
+
+&lt;p&gt;The &lt;a href=&quot;https://erlang.org/doc/man/gen_tcp.html&quot;&gt;gen_tcp&lt;/a&gt; module has gotten support for optionally using the new &lt;a href=&quot;https://erlang.org/doc/man/socket.html&quot;&gt;socket&lt;/a&gt;
+nif API instead of the previous inet driver. The new interface can be configured
+to be used either on a system level through setting the application
+configuration parameter like this: &lt;code&gt;-kernel inet_backend socket&lt;/code&gt;, or on a per
+connection bases like this: &lt;code&gt;gen_tcp:connect(localhost,8080,[{inet_backend,socket}])&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;If you do this you will notice that the &lt;code&gt;Socket&lt;/code&gt; returned by &lt;code&gt;gen_tcp&lt;/code&gt; no longer
+is a port but instead of a tuple containing (among other things) a PID and a
+reference.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-erlang&quot;&gt;1&amp;gt; gen_tcp:connect(localhost,8080,[{inet_backend,socket}]).
+{ok,{'$inet',gen_tcp_socket,
+             {&amp;lt;0.88.0&amp;gt;,{'$socket',#Ref&amp;lt;0.2959644163.2576220161.68602&amp;gt;}}}}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;This data structure is and always has been &lt;a href=&quot;http://erlang.org/doc/reference_manual/typespec.html#type-declarations-of-user-defined-types&quot;&gt;opaque&lt;/a&gt;, and therefore should not be inspected
+directly but instead only used as an argument to other &lt;a href=&quot;https://erlang.org/doc/man/gen_tcp.html&quot;&gt;gen_tcp&lt;/a&gt; and &lt;a href=&quot;https://erlang.org/doc/man/inet.html&quot;&gt;inet&lt;/a&gt;
+functions.&lt;/p&gt;
+
+&lt;p&gt;You can then use &lt;a href=&quot;https://erlang.org/doc/man/inet.html#i-0&quot;&gt;inet:i/0&lt;/a&gt; to get a listing of all open sockets in the system:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-erlang&quot;&gt;2&amp;gt; inet:i().
+Port      Module         Recv Sent Owner    Local Address   Foreign Address    State Type   
+esock[19] gen_tcp_socket 0    0    &amp;lt;0.98.0&amp;gt; localhost:44082 localhost:http-alt CD:SD STREAM 
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;The &lt;a href=&quot;https://erlang.org/doc/man/gen_tcp.html&quot;&gt;gen_tcp&lt;/a&gt; API should be completely backward compatible with the old
+implementation, so if you can, please test it and report any bugs that you find
+back to us.&lt;/p&gt;
+
+&lt;p&gt;Why should you want to test this? Because in some of our benchmarks, we get up
+to 4 times the throughput vs the old implementation. In others,
+there is no difference or even a loss of throughput. So, as always, you need to
+measure and check for yourself!&lt;/p&gt;
+
+&lt;h1 id=&quot;eep-56-supervisor-automatic-shutdown&quot;&gt;EEP-56: Supervisor automatic shutdown&lt;/h1&gt;
+
+&lt;p&gt;When creating supervisor hierarchies for applications that manage connections
+such as &lt;a href=&quot;https://erlang.org/doc/man/ssl.html&quot;&gt;ssl&lt;/a&gt; or &lt;a href=&quot;https://erlang.org/doc/man/ssh.html&quot;&gt;ssh&lt;/a&gt;, there are times when there is a need for terminating
+that supervisor hierarchy from within. Some event happens on the socket that
+should trigger a graceful shutdown of the processes associated with the
+connection.&lt;/p&gt;
+
+&lt;p&gt;Normally this would be done by using &lt;a href=&quot;https://erlang.org/doc/man/supervisor.html#terminate_child-2&quot;&gt;supervisor:terminate_child/2&lt;/a&gt;. However,
+this has two problems.&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;It requires the child to know the ID of the child that needs to be terminated
+and the PID of the supervisor to talk to. This is simple when there is just
+one process in the supervisor, but when there are supervisors under
+supervisors, this becomes harder and harder to figure out.&lt;/li&gt;
+  &lt;li&gt;Calling &lt;a href=&quot;https://erlang.org/doc/man/supervisor.html#terminate_child-2&quot;&gt;supervisor:terminate_child/2&lt;/a&gt; is a synchronous operation. This means
+that if you do the call in the child, you may end up in a deadlock as the top
+supervisor wants to terminate the child while the child is blocking in the call
+to terminate itself.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;To solve this problem &lt;a href=&quot;https://www.erlang.org/erlang-enhancement-proposals/eep-0056.html&quot;&gt;EEP-56&lt;/a&gt; has added a mechanism in which a child can be
+marked as significant and if such a child terminates, it can trigger an automatic
+shutdown of the supervisor that it is part of.&lt;/p&gt;
+
+&lt;p&gt;This way a child process can trigger the shutdown of a supervisor hierarchy from
+within, without the child having to know anything about the supervisor hierarchy
+nor risking dead-locking itself during termination.&lt;/p&gt;
+
+&lt;p&gt;You can read more about automatic shutdown in the &lt;a href=&quot;https://erlang.org/doc/man/supervisor.html#auto_shutdown&quot;&gt;supervisor documentation&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h1 id=&quot;edwards-curve-digital-signature-algorithm&quot;&gt;Edwards-curve Digital Signature Algorithm&lt;/h1&gt;
+
+&lt;p&gt;With Erlang/OTP 24 comes support for &lt;a href=&quot;https://datatracker.ietf.org/doc/html/rfc8032&quot;&gt;Edwards-curve Digital Signature Algorithm&lt;/a&gt;
+(&lt;code&gt;EdDSA&lt;/code&gt;). &lt;code&gt;EdDSA&lt;/code&gt; can be used when connecting to or acting as a TLS 1.3
+client/server.&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;EdDSA&lt;/code&gt; is a type of &lt;a href=&quot;https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm&quot;&gt;elliptic curve signature algorithm&lt;/a&gt; (&lt;code&gt;ECDSA&lt;/code&gt;)
+that can be used for secure communication. The security of &lt;code&gt;ECDSA&lt;/code&gt; relies on a
+&lt;a href=&quot;http://erlang.org/doc/man/crypto.html#strong_rand_bytes-1&quot;&gt;strong cryptographically secure random number&lt;/a&gt; which can cause issues when
+the random number is by mistake not secure enough, as has been the case in several
+uses of ECDSA (none of them in Erlang as far as we know :).&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;EdDSA&lt;/code&gt; does not rely on a strong random number to be secure. This means that
+when you are using &lt;code&gt;EdDSA&lt;/code&gt;, the communication is secure even if your random
+number generator is not.&lt;/p&gt;
+
+&lt;p&gt;Despite the added security, &lt;code&gt;EdDSA&lt;/code&gt; is claimed to be faster than other eliptic
+curve signature algorithms. If you have &lt;a href=&quot;https://www.openssl.org/&quot;&gt;OpenSSL&lt;/a&gt; 1.1.1 or later, then as of
+Erlang/OTP 24 you will have access to this algorithm!&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-erlang&quot;&gt;&amp;gt; crypto:supports(curves).
+[...
+  c2tnb359v1, c2tnb431r1, ed25519, ed448, ipsec3, ipsec4
+ ...]                     ^        ^
+&lt;/code&gt;&lt;/pre&gt;</content><author><name>Lukas Larsson</name></author><category term="erlang" /><category term="otp" /><category term="24" /><category term="release" /><summary type="html">Finally Erlang/OTP 24 is here! A release that for me has been about 10 years in the making. As is tradition by now, this blog post will go through the additions to Erlang/OTP that I am most excited about!</summary></entry><entry><title type="html">A few notes on message passing</title><link href="https://beta.erlang.org/blog/message-passing/" rel="alternate" type="text/html" title="A few notes on message passing" /><published>2021-03-19T00:00:00+00:00</published><updated>2021-03-19T00:00:00+00:00</updated><id>https://beta.erlang.org/blog/message-passing</id><content type="html" xml:base="https://beta.erlang.org/blog/message-passing/">&lt;p&gt;Message passing has always been central to Erlang, and while reasonably
+well-documented we’ve avoided going into too much detail to give us more
+freedom when implementing it. There’s nothing preventing us from describing it
+in a blog post though, so let’s have a closer look!&lt;/p&gt;
+
+&lt;p&gt;Erlang processes communicate with each other by sending each other &lt;em&gt;signals&lt;/em&gt;
+(not to be confused with Unix signals). There are many different kinds and
+&lt;em&gt;messages&lt;/em&gt; are just the most common. Practically everything involving more than
+one process uses signals internally: for example, the &lt;code&gt;link/1&lt;/code&gt; function is
+implemented by having the involved processes talk back and forth until they’ve
+agreed on a link.&lt;/p&gt;
+
+&lt;p&gt;This helps us avoid a great deal of locks and would make an interesting blog
+post on its own, but for now we only need to keep two things in mind: all
+signals (including messages) are continuously received and handled behind the
+scenes, and they have a &lt;a href=&quot;https://erlang.org/doc/apps/erts/communication.html#passing-of-signals&quot;&gt;defined order&lt;/a&gt;:&lt;/p&gt;
+
+&lt;p&gt;Signals between two processes are guaranteed to arrive in the order they were
+sent. In other words, if process &lt;code&gt;A&lt;/code&gt; sends signal &lt;code&gt;1&lt;/code&gt; and then &lt;code&gt;2&lt;/code&gt; to process
+&lt;code&gt;B&lt;/code&gt;, signal &lt;code&gt;1&lt;/code&gt; is guaranteed to arrive before signal &lt;code&gt;2&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;Why is this important? Consider the request-response idiom:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-erlang&quot;&gt;%% Send a monitor signal to `Pid`, requesting a 'DOWN' message
+%% when `Pid` dies.
+Mref = monitor(process, Pid),
+%% Send a message signal to `Pid` with our `Request`
+Pid ! {self(), Mref, Request},
+receive
+    {Mref, Response} -&amp;gt;
+        %% Send a demonitor signal to `Pid`, and remove the
+        %% corresponding 'DOWN' message that might have
+        %% arrived in the meantime.
+        erlang:demonitor(Mref, [flush]),
+        {ok, Response};
+    {'DOWN', Mref, _, _, Reason} -&amp;gt;
+        {error, Reason}
+end
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Since dead processes cannot send messages we know that the response must come
+before any eventual &lt;code&gt;'DOWN'&lt;/code&gt; message, but without a guaranteed order the
+&lt;code&gt;'DOWN'&lt;/code&gt; message could arrive before the response and we’d have no idea whether
+a response was coming or not, which would be very annoying to deal with.&lt;/p&gt;
+
+&lt;p&gt;Having a defined order saves us quite a bit of hassle and doesn’t come at much
+of a cost, but the guarantees stop there. If more than one process sends
+signals to a common process, they can arrive in any order even when you “know”
+that one of the signals was sent first. For example, this sequence of events
+is legal and entirely possible:&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;&lt;code&gt;A&lt;/code&gt; sends signal &lt;code&gt;1&lt;/code&gt; to &lt;code&gt;B&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;code&gt;A&lt;/code&gt; sends signal &lt;code&gt;2&lt;/code&gt; to &lt;code&gt;C&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;code&gt;C&lt;/code&gt;, in response to signal &lt;code&gt;2&lt;/code&gt;, sends signal &lt;code&gt;3&lt;/code&gt; to &lt;code&gt;B&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;code&gt;B&lt;/code&gt; receives signal &lt;code&gt;3&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;code&gt;B&lt;/code&gt; receives signal &lt;code&gt;1&lt;/code&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;Luckily, global orders are rarely needed and are easy to impose yourself
+(outside distributed cases): just let all involved parties synchronize with a
+common process.&lt;/p&gt;
+
+&lt;h3 id=&quot;sending-messages&quot;&gt;Sending messages&lt;/h3&gt;
+
+&lt;p&gt;Sending a message is straightforward: we try to find the process associated
+with the process identifier, and if one exists we insert the message into its
+signal queue.&lt;/p&gt;
+
+&lt;p&gt;Messages are always copied before being inserted into the queue. As wasteful as
+this may sound it greatly reduces garbage collection (GC) latency as the GC
+never has to look beyond a single process. Non-copying implementations have
+been tried in the past, but they turned out to be a bad fit as low latency is
+more important than sheer throughput for the kind of soft-realtime systems that
+Erlang is designed to build.&lt;/p&gt;
+
+&lt;p&gt;By default, messages are copied directly into the receiving process’ heap but
+when this isn’t possible (or desired – see the &lt;a href=&quot;https://erlang.org/doc/man/erlang.html#process_flag_message_queue_data&quot;&gt;message_queue_data&lt;/a&gt; flag) we
+allocate the message outside of the heap instead.&lt;/p&gt;
+
+&lt;p&gt;Memory allocation makes such “off-heap” messages slightly more expensive but
+they’re very neat for processes that receive a ton of messages. We don’t need
+to interact with the receiver when copying the message – only when adding it
+to the queue – and since the only way a process can see a message is by
+matching them in a &lt;code&gt;receive&lt;/code&gt; expression, the GC doesn’t need to consider
+unmatched messages which further reduces latency.&lt;/p&gt;
+
+&lt;p&gt;Sending messages to processes on other Erlang nodes works in the same way,
+albeit there’s now a risk of messages being lost in transit. Messages are
+guaranteed to be delivered as long as the distribution link between the nodes
+is active, but it gets tricky when the link goes down.&lt;/p&gt;
+
+&lt;p&gt;Using &lt;code&gt;monitor/2&lt;/code&gt; on the remote process (or node) will tell you when this
+happens, acting as if the process died (with reason &lt;code&gt;noconnection&lt;/code&gt;), but that
+doesn’t always help: the link could have died &lt;em&gt;after&lt;/em&gt; the message was received
+and handled on the other end, all we know is that the link went down &lt;em&gt;before&lt;/em&gt;
+we got any eventual response.&lt;/p&gt;
+
+&lt;p&gt;As with everything else there’s no free lunch, and you need to decide how your
+applications should handle &lt;a href=&quot;https://en.wikipedia.org/wiki/Network_partition&quot;&gt;these scenarios&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h3 id=&quot;receiving-messages&quot;&gt;Receiving messages&lt;/h3&gt;
+
+&lt;p&gt;One might guess that processes receive messages through &lt;code&gt;receive&lt;/code&gt; expressions,
+but &lt;code&gt;receive&lt;/code&gt; is a bit of a misnomer. As with all other signals the process
+continuously handles them in the background, moving received messages from the
+&lt;em&gt;signal&lt;/em&gt; queue to the &lt;em&gt;message&lt;/em&gt; queue.&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;receive&lt;/code&gt; searches for matching messages in the message queue (in the order
+they arrived), or waits for new messages if none were found. Searching through
+the message queue rather than the signal queue means it doesn’t have to worry
+about processes that send messages, which greatly increases performance.&lt;/p&gt;
+
+&lt;p&gt;This ability to “selectively receive” specific messages is very convenient:
+we’re not always in a context where we can decide what to do with a message and
+having to manually lug around all unhandled messages is certainly annoying.&lt;/p&gt;
+
+&lt;p&gt;Unfortunately, sweeping the search under the rug doesn’t make it go away:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-erlang&quot;&gt;receive
+    {reply, Result} -&amp;gt;
+        {ok, Result}
+end
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;The above expression finishes instantly if the next message in the queue
+matches &lt;code&gt;{reply, Result}&lt;/code&gt;, but if there’s no matching message it has to walk
+through them all before giving up. This is expensive when there are a lot of
+messages queued up which is common for server-like processes, and since
+&lt;code&gt;receive&lt;/code&gt; expressions can match on just about anything there’s little that can
+be done to optimize the search itself.&lt;/p&gt;
+
+&lt;p&gt;The only optimization we do at the moment is to mark a starting point for the
+search when we know that a message couldn’t exist prior to a certain point.
+Let’s revisit the request-response idiom:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-erlang&quot;&gt;Mref = monitor(process, Pid),
+Pid ! {self(), Mref, Request},
+receive
+    {Mref, Response} -&amp;gt;
+        erlang:demonitor(Mref, [flush]),
+        {ok, Response};
+    {'DOWN', Mref, _, _, Reason} -&amp;gt;
+        {error, Reason}
+end
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Since the reference created by &lt;code&gt;monitor/2&lt;/code&gt; is globally unique and cannot exist
+before said call, and the &lt;code&gt;receive&lt;/code&gt; only matches messages that contain said
+reference, we don’t need to look at any of the messages received before then.&lt;/p&gt;
+
+&lt;p&gt;This makes the idiom efficient even on processes that have absurdly long
+message queues, but unfortunately it isn’t something we can do in the general
+case. While you as a programmer can be sure that a certain response must come
+after its request even without a reference, for example by using your own
+sequence numbers, the compiler can’t read your intent and has to assume that
+you want &lt;em&gt;any&lt;/em&gt; message that matches.&lt;/p&gt;
+
+&lt;p&gt;Figuring out whether the above optimization has kicked in is rather annoying at
+the moment. It requires inspecting BEAM assembly and even then you’re not
+guaranteed that it will work due to some annoying limitations:&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;We only support one message position at a time: a function that creates a
+reference, calls another function that uses this optimization, and then
+returns to &lt;code&gt;receive&lt;/code&gt; with the first reference, will end up searching through
+the entire message queue.&lt;/li&gt;
+  &lt;li&gt;It only works within a single function clause: both reference creation and
+&lt;code&gt;receive&lt;/code&gt; need to be next to each other and you can’t have multiple
+functions calling a common &lt;code&gt;receive&lt;/code&gt; helper.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;We’ve addressed these shortcomings in the upcoming OTP 24 release, and have
+added a compiler option to help you spot where it’s applied:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-sh&quot;&gt;$ erlc +recv_opt_info example.erl
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;.&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-erlang&quot;&gt;-module(example).
+-export([t/2]).
+
+t(Pid, Request) -&amp;gt;
+    %% example.erl:5: OPTIMIZED: reference used to mark a 
+    %%                           message queue position
+    Mref = monitor(process, Pid),
+    Pid ! {self(), Mref, Request},
+    %% example.erl:7: INFO: passing reference created by
+    %%                      monitor/2 at example.erl:5
+    await_result(Mref).
+
+await_result(Mref) -&amp;gt;
+    %% example.erl:10: OPTIMIZED: all clauses match reference
+    %%                            in function parameter 1
+    receive
+        {Mref, Response} -&amp;gt;
+            erlang:demonitor(Mref, [flush]),
+            {ok, Response};
+        {'DOWN', Mref, _, _, Reason} -&amp;gt;
+            {error, Reason}
+    end.
+&lt;/code&gt;&lt;/pre&gt;</content><author><name>John Högberg</name></author><category term="erts" /><category term="messages" /><category term="signals" /><summary type="html">Message passing has always been central to Erlang, and while reasonably well-documented we’ve avoided going into too much detail to give us more freedom when implementing it. There’s nothing preventing us from describing it in a blog post though, so let’s have a closer look!</summary></entry><entry><title type="html">The Road to the JIT</title><link href="https://beta.erlang.org/blog/the-road-to-the-jit/" rel="alternate" type="text/html" title="The Road to the JIT" /><published>2020-12-01T00:00:00+00:00</published><updated>2020-12-01T00:00:00+00:00</updated><id>https://beta.erlang.org/blog/the-road-to-the-jit</id><content type="html" xml:base="https://beta.erlang.org/blog/the-road-to-the-jit/">&lt;p&gt;As long as Erlang has existed, there has always been the need and the
+ambition to make it faster. This blog post is a history lesson that
+outlines the major Erlang implementations and attempts to improve
+the performance of Erlang.&lt;/p&gt;
+
+&lt;h3 id=&quot;the-prolog-interpreter&quot;&gt;The Prolog interpreter&lt;/h3&gt;
+
+&lt;p&gt;The first version of Erlang was implemented in Prolog in 1986. That
+version of Erlang was too slow for creating real applications, but it
+was useful for finding out which features of the language were useful
+and which were not. New language features could be added or deleted
+in a matter of hours or days.&lt;/p&gt;
+
+&lt;p&gt;It soon became clear that Erlang needed to be at least 40 times faster
+to be useful in real projects.&lt;/p&gt;
+
+&lt;h3 id=&quot;jam-joes-abstract-machine&quot;&gt;JAM (Joe’s Abstract Machine)&lt;/h3&gt;
+
+&lt;p&gt;In 1989 JAM (Joe’s Abstract Machine) was first
+implemented. &lt;a href=&quot;http://www.erlang-factory.com/conference/ErlangUserConference2013/speakers/MikeWilliams&quot;&gt;Mike Williams&lt;/a&gt; wrote the runtime system
+in C, &lt;a href=&quot;https://github.com/joearms&quot;&gt;Joe Armstrong&lt;/a&gt; wrote the compiler, and
+&lt;a href=&quot;https://github.com/rvirding&quot;&gt;Robert Virding&lt;/a&gt; wrote the libraries.&lt;/p&gt;
+
+&lt;p&gt;JAM was 70 times faster than the Prolog interpreter, but it turned out
+that this still wasn’t fast enough.&lt;/p&gt;
+
+&lt;h3 id=&quot;team-turbo-erlang-abstract-machine&quot;&gt;TEAM (Turbo Erlang Abstract Machine)&lt;/h3&gt;
+
+&lt;p&gt;Bogumil (“Bogdan”) Hausman created TEAM (Turbo Erlang Abstract
+Machine). It compiled the Erlang code to C code, which was then
+compiled to native code using GCC.&lt;/p&gt;
+
+&lt;p&gt;It was significantly faster than JAM for small projects.
+Unfortunately, compilation was very slow, and the code size of the
+compiled code was too big to make it useful for large projects.&lt;/p&gt;
+
+&lt;h3 id=&quot;beam-bogdans-erlang-abstract-machine&quot;&gt;BEAM (Bogdan’s Erlang Abstract Machine)&lt;/h3&gt;
+
+&lt;p&gt;Bogumil Hausman’s next machine was called BEAM (Bogdan’s Erlang Abstract
+Machine). It was a hybrid machine that could execute both native code
+(translated via C) and &lt;a href=&quot;https://en.wikipedia.org/wiki/Threaded_code&quot;&gt;threaded code&lt;/a&gt; with an &lt;a href=&quot;https://en.wikipedia.org/wiki/Interpreter_(computing)&quot;&gt;interpreter&lt;/a&gt;. That
+allowed customers to compile their time-critical modules to native code
+and all other modules to threaded BEAM code. The threaded BEAM in
+itself was faster than JAM code.&lt;/p&gt;
+
+&lt;h3 id=&quot;lessons-learned-from-beamc&quot;&gt;Lessons Learned from BEAM/C&lt;/h3&gt;
+
+&lt;p&gt;The modern BEAM only has the interpreter. The ability of BEAM to generate
+C code was dropped in OTP R4. Why?&lt;/p&gt;
+
+&lt;p&gt;C is not a suitable target language for an Erlang compiler. The main
+reason is that an Erlang function can’t simply be translated to a C
+function because of Erlang’s process model. Each Erlang process must
+have its own stack and that stack cannot be automatically managed by
+the C compiler.&lt;/p&gt;
+
+&lt;p&gt;BEAM/C generated a single C function for each Erlang module. Local
+calls within the module were made by explicitly pushing the return
+address to the Erlang stack followed by a &lt;code&gt;goto&lt;/code&gt; to the label of the
+called function.  (Strictly speaking, the calling function stores the
+return address to BEAM register and the called function pushes that
+register to the stack.)&lt;/p&gt;
+
+&lt;p&gt;Calls to other modules were done similarly by using the GCC extension
+that makes it possible to &lt;a href=&quot;https://gcc.gnu.org/onlinedocs/gcc/Labels-as-Values.html&quot;&gt;take the address of a label&lt;/a&gt;
+and later jumping to it.  Thus an external call was made by pushing
+the return address to the stack followed by a &lt;code&gt;goto&lt;/code&gt; to the address of
+a label in another C function.&lt;/p&gt;
+
+&lt;p&gt;Isn’t that undefined behavior?&lt;/p&gt;
+
+&lt;p&gt;Yes, it is undefined behavior even in GCC. It happened to work with
+GCC on Sparc, but not on GCC for X86. A further complication was the
+embedded systems having ANSI-C compilers without any GCC extensions.&lt;/p&gt;
+
+&lt;p&gt;Because of that, we had to maintain three distinct flavors of BEAM/C
+to handle different C compilers and platforms. I don’t remember any
+benchmarks from that time, but it is unlikely that BEAM/C was faster
+than interpreted BEAM on any other platform than Solaris on Sparc.&lt;/p&gt;
+
+&lt;p&gt;In the end, we removed BEAM/C and optimized the interpreted BEAM so that
+it could beat BEAM/C in speed.&lt;/p&gt;
+
+&lt;h3 id=&quot;hipe&quot;&gt;HiPE&lt;/h3&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://www.it.uu.se/research/group/hipe/&quot;&gt;HiPE&lt;/a&gt; (The High-Performance Erlang Project) was a research
+project at Uppsala University running for many years starting
+around 1996. It was “aimed at efficiently implementing concurrent programming
+systems using message-passing in general and the concurrent functional
+language Erlang in particular”.&lt;/p&gt;
+
+&lt;p&gt;One of the many outcomes of the project was the HiPE native code
+compiler for Erlang. HiPE became a part of the OTP distribution in OTP
+R8 in 2001.  The HiPE native compiler is written in Erlang and
+translates the BEAM code to native code without the help of a C
+compiler, therefore avoiding many of the problems that BEAM/C ran into.&lt;/p&gt;
+
+&lt;p&gt;The HiPE native compiler can often speed up sequential code by a
+factor of two or three compared to interpreted BEAM code.  We hoped
+that would speed up real-world huge application systems.
+Unfortunately, projects within Ericsson that tried HiPE found that it
+did not improve performance.&lt;/p&gt;
+
+&lt;p&gt;Why is that?&lt;/p&gt;
+
+&lt;p&gt;The main reason is probably that most huge Erlang applications
+don’t contain enough sequential code that HiPE could optimize.  The
+runtime of those systems is typically dominated by some combination of
+message passing, calls to the &lt;a href=&quot;http://erlang.org/doc/man/ets.html&quot;&gt;ETS BIFs&lt;/a&gt;, and garbage collection, none
+of which HiPE can optimize.&lt;/p&gt;
+
+&lt;p&gt;Another reason could be that big systems typically have many small
+modules.  The HiPE native compiler (in common with the Erlang
+compiler) cannot optimize code across module boundaries, thus being
+unable to do much type-based optimizations.&lt;/p&gt;
+
+&lt;p&gt;Also, for most big systems, compiling all Erlang modules to native
+code would lead to impractically long build times and the resulting
+code would consume too much memory.  There is a small overhead of
+switching from native code to interpreted BEAM and vice versa.  It is
+a non-trivial task to figure out which modules that would gain from
+being compiled to native code, and at the same time avoiding an
+excessive amount of context switches between native and interpreted
+code.&lt;/p&gt;
+
+&lt;p&gt;Because none of the Ericsson Erlang projects used the HiPE native
+compiler, the OTP team could only afford to spend a limited amount of
+time maintaining HiPE. Therefore, the documentation for HiPE includes
+this note:&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;HiPE and execution of HiPE compiled code only have limited support
+  by the OTP team at Ericsson. The OTP team only does limited
+  maintenance of HiPE and does not actively develop HiPE. HiPE is
+  mainly supported by the HiPE team at Uppsala University.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h3 id=&quot;other-outcomes-from-the-hipe-project&quot;&gt;Other Outcomes from the HiPE Project&lt;/h3&gt;
+
+&lt;p&gt;I think it is fair to say that Erlang/OTP would look very different
+today if it hasn’t been for the HiPE project.  Here are the major
+contributions from the HiPE project to OTP:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;A new &lt;a href=&quot;http://www.it.uu.se/research/publications/reports/2000-029/2000-029-nc.pdf&quot;&gt;staged tag scheme&lt;/a&gt; in OTP R7.  The new tag scheme
+allowed the Erlang system to address the full 4GB address space (the
+previous tag scheme only supported addressing the lower 1 GB).
+Surprisingly, the new tag scheme also improved performance.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;The &lt;a href=&quot;https://www.it.uu.se/research/group/hipe/cerl/doc/core_erlang-1.0.3.pdf&quot;&gt;Core Erlang&lt;/a&gt; intermediate representation is used in the
+Erlang compiler to this day.  For more information, see
+&lt;a href=&quot;http://www.erlang.se/workshop/carlsson.ps&quot;&gt;An introduction to Core Erlang&lt;/a&gt; and
+&lt;a href=&quot;http://blog.erlang.org/core-erlang-by-example&quot;&gt;Core Erlang by Example&lt;/a&gt;.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;http://erlang.org/doc/apps/dialyzer/index.html&quot;&gt;Dialyzer&lt;/a&gt; (DIscrepancy AnaLYZer for ERlang programs),
+started out as a type analysis pass for the HiPE native compiler,
+but soon become a tool for Erlang programmers to help find bugs and
+unreachable code in their applications.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;http://user.it.uu.se/%7Epergu/papers/erlang05.pdf&quot;&gt;Bit strings and binary comprehensions&lt;/a&gt;.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Introducing &lt;a href=&quot;https://erlang.org/workshop/2004/exception.pdf&quot;&gt;&lt;code&gt;try&lt;/code&gt;…&lt;code&gt;catch&lt;/code&gt;&lt;/a&gt; in OTP R10.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Implementing per function counters and the &lt;a href=&quot;http://erlang.org/doc/man/cprof.html&quot;&gt;cprof&lt;/a&gt;
+module. The counters were originally meant to be used for finding hot
+functions and generating native code only for these.  But the overhead
+in the context switch between interpreted and native code made this
+usage less useful.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Repeatedly suggesting that Erlang needed a &lt;a href=&quot;https://en.wikipedia.org/wiki/Literal_pool&quot;&gt;literal pool&lt;/a&gt; for premade
+literal terms (instead of constructing them each time they are
+used).  At one of our meetings between the HiPE team and the OTP
+team, I remember &lt;a href=&quot;https://github.com/richcarl&quot;&gt;Richard Carlsson&lt;/a&gt; pointing out to me that it would
+be nice for &lt;a href=&quot;http://www.wings3d.com&quot;&gt;Wings3D&lt;/a&gt; to have floating-point literals.  The
+OTP team implemented literal pools in OTP R12.&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;the-tracing-jit-projects-beamjit&quot;&gt;The Tracing JIT projects (BEAMJIT)&lt;/h3&gt;
+
+&lt;p&gt;There have been three separate research projects that tried to develop
+a tracing JIT for Erlang.  All of them have been led by Frej Drejhammar
+of &lt;a href=&quot;https://en.wikipedia.org/wiki/Swedish_Institute_of_Computer_Science&quot;&gt;RISE (formerly SICS)&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;A tracing JIT (&lt;a href=&quot;https://en.wikipedia.org/wiki/Just-in-time_compilation&quot;&gt;Just In Time compiler&lt;/a&gt;) is a JIT that runs in two phases:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;First it traces execution to find sequences of hot (frequently executed)
+code.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;It then rewrites the found traces to native code.&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;The goals for the three JIT projects were:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;The JIT should work automatically with no need for the user to identify
+which modules to compile to native code beforehand.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;There should be total feature compatibility with the non-JIT
+BEAM. In particular, tracing, scheduling behavior, save calls, and
+hot code reloading should continue to work, and stack traces should
+be identical to the ones in the non-JIT BEAM.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;The system should at least on average never be slower than the non-JIT
+BEAM.&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;There were some promising results when running some benchmarks, but ultimately
+it turned out to be impossible to fulfill the goal to never be slower than the
+non-JIT system.  Here are the main reasons for the slowdowns:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;To do the tracing (finding hot code), the BEAM interpreter needed
+tweaking.  It was difficult to be able to do tracing without lowering the
+base speed of the BEAM interpreter.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;It was also difficult to design the mechanism for context
+switching between the interpreted code and native code in a way that
+didn’t lower the base speed of the BEAM interpreter.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;When a hot sequence of code has been found, the code needed to be compiled
+to native code.  The compilation, that used LLVM, was slow.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;When a hot sequence had finally been converted to native code, it could turn
+out that it would not be executed again.  That was particularly a problem for
+the Erlang compiler that runs many passes.  Typically, when some of the code
+for one pass had been converted to native code, the compiler was already running
+the next pass.&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;The later projects mitigated some of the issues in the previous projects.  For example,
+the compilation time was reduced by doing more optimizations before invoking LLVM.
+Ultimately, though, it was decided to terminate the third and final tracing JIT project
+at the end of 2019.&lt;/p&gt;
+
+&lt;p&gt;For more information about BEAMJIT, see:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;https://dl.acm.org/doi/abs/10.1145/2633448.2633450?casa_token=tp5GAPlARNcAAAAA%3AEQbE8U2rzCpMKrkzE2eQbbS_fgKuKs7sAuvHFPWO3RjkU1p-3XsMi-Pkbc8A1DFurvvsa6t7qRuI&quot;&gt;BEAMJIT: a just-in-time compiling runtime for Erlang&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;https://www.youtube.com/watch?v=sNLeeakZppU&quot;&gt;Just-in-time in No Time? “Use the Source!”&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;https://www.youtube.com/watch?v=JUjXbWqe5F0&quot;&gt;JIT, a Maze of Twisty Little Traces&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;https://vimeo.com/99714181&quot;&gt;A Status Update of BEAMJIT, the Just-in-Time Compiling Abstract Machine&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;https://www.youtube.com/watch?v=M3_m0SI_-KM&quot;&gt;Just-in-time compiler for the Erlang VM&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;a href=&quot;https://www.youtube.com/watch?v=PtgD5WRzcy4&quot;&gt;Tracing JIT Compiler&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;the-new-jit-also-known-as-beamasm&quot;&gt;The new JIT (also known as BeamAsm)&lt;/h3&gt;
+
+&lt;p&gt;After the end of the third tracing JIT project, &lt;a href=&quot;https://github.com/garazdawi&quot;&gt;Lukas
+Larsson&lt;/a&gt;, having been involved in the last two tracing JIT
+projects, could not stop thinking about different approaches that
+might lead to a useful JIT.  The things that slowed down the previous
+approaches were the tracing to find hot code and the generation of
+optimized native code using LLVM.  Would it be possible to have a
+simpler JIT that didn’t do tracing and did no or little optimization?&lt;/p&gt;
+
+&lt;p&gt;In January 2020, salvaging some code from the third tracing JIT
+project, Lukas quickly built a prototype BEAM system that translated
+each BEAM instruction at load time to native code.  The resulting code
+was less optimized than LLVM-generated code because it would still use
+BEAM’s stack and X registers (stored in memory), but the overhead for
+&lt;a href=&quot;http://blog.erlang.org/a-closer-look-at-the-interpreter/&quot;&gt;instruction unpacking and instruction dispatch&lt;/a&gt; was
+eliminated.&lt;/p&gt;
+
+&lt;p&gt;The initial benchmarks results were promising: about twice as fast
+compared to interpreted BEAM code, so Lukas extended the prototype
+so that it could handle more kinds of BEAM instructions.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://github.com/jhogberg&quot;&gt;John Högberg&lt;/a&gt; quickly became interested in the project and
+started to act as a sounding board.  Some time later, probably in
+March, John suggested that the new JIT should translate &lt;strong&gt;all&lt;/strong&gt; loaded
+code to native code.  That way, there would be no need to support
+context switching between the BEAM interpreter and native code, which
+would make the design simpler and eliminate the cost for context
+switches.&lt;/p&gt;
+
+&lt;p&gt;That was a gamble, of course. After all, it could turn out that the
+native code could be too large to be practically useful or decrease
+performance because it fitted badly in the code cache.  They decided
+that it was worth taking the risk and that it would probably be
+possible to optimize the size of the code later.  (&lt;em&gt;Spoiler&lt;/em&gt;: At the time
+of writing, the native code generated by the JIT is about 10 percent
+larger than interpreted BEAM code.)&lt;/p&gt;
+
+&lt;p&gt;Another change to the design was the tooling for generating the native
+code. In Lukas’s prototype, the native code template for each
+instruction was contained in text files similar to the other files
+used by the loader.  That was inflexible, so it was decided to use
+some library that could generate native code.  While some pure C
+libraries could have been used, the C++ library &lt;a href=&quot;https://asmjit.com&quot;&gt;AsmJIT&lt;/a&gt; was
+more convenient in practical use than any of the C libraries.  Also,
+some C libraries were excluded because they used a GNU license,
+which we can’t use in OTP. Therefore the part of the loader that
+translates BEAM instructions to native code needed to be written in
+C++, but the rest of the runtime system is still pure C code and will
+remain so.&lt;/p&gt;
+
+&lt;p&gt;John joined the practical work on the rejigged JIT project at the end
+of March.&lt;/p&gt;
+
+&lt;p&gt;On April 7, 2020, John reached the “prompt beer” milestone.&lt;/p&gt;
+
+&lt;h3 id=&quot;prompt-beer&quot;&gt;Prompt Beer&lt;/h3&gt;
+
+&lt;p&gt;When the Erlang system is started, a surprisingly large amount of code is
+executed before the prompt appears. On the one hand, that means that
+the translation of many instructions needs to be implemented
+before it would be possible to even start the Erlang system, let alone run
+any test suites or benchmarks.&lt;/p&gt;
+
+&lt;p&gt;On the other hand, when the prompt finally appears, it is a major
+milestone worth celebrating with some prompt beer or other appropriate
+beverage or by taking the rest of the evening off.&lt;/p&gt;
+
+&lt;h3 id=&quot;maturing-the-new-jit&quot;&gt;Maturing the new JIT&lt;/h3&gt;
+
+&lt;p&gt;On April 14 John got Dialyzer running with the JIT, and on April 17,
+after some improvements to the code generation, Dialyzer was only
+about 10 percent slower with the JIT than with HiPE. None of the
+tracing JITs had had any success in speeding up Dialyzer. (At the time of
+writing, Dialyzer runs roughly as fast with the JIT as it did with
+HiPE, although it has become increasingly difficult to do a fair
+comparison since HiPE doesn’t work beyond OTP 23.)&lt;/p&gt;
+
+&lt;p&gt;It was probably at that point we realized that we had a JIT that could
+finally be included in an OTP release.&lt;/p&gt;
+
+&lt;p&gt;The next major milestone was reached on May 6 when line numbers in
+stack traces were implemented. That meant that many more test cases now
+succeeded.&lt;/p&gt;
+
+&lt;p&gt;Soon after that, all test suites could be run successfully.  During the
+summer and early fall &lt;a href=&quot;http://github.com/dgud&quot;&gt;Dan&lt;/a&gt; and 
+&lt;a href=&quot;http://github.com/bjorng&quot;&gt;I&lt;/a&gt; joined the project part-time and the
+following was done:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;A major refactoring of the BEAM loader so that as much code as possible
+could be shared between the JIT and the BEAM interpreter. (The BEAM interpreter
+is only used on platforms that don’t support the JIT.)&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Implementation and polishing of important but less used features
+such as tracing, and &lt;a href=&quot;https://en.wikipedia.org/wiki/Perf_(Linux)&quot;&gt;perf&lt;/a&gt; support, and save calls (see the
+flag &lt;code&gt;save_calls&lt;/code&gt; for &lt;a href=&quot;http://erlang.org/doc/man/erlang.html#process_flag-2&quot;&gt;process_flag/2&lt;/a&gt;).&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Shrinking of the code size of the generated native code.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Porting the JIT to Windows, which turned out to be relatively easy.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Making it possible to use the native stack pointer register and
+stack manipulation instructions. That improved perf support and
+slightly reduced the size of the native code.&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;The work culminated in a public &lt;a href=&quot;https://github.com/erlang/otp/pull/2745&quot;&gt;pull request&lt;/a&gt; that Lukas
+created during his &lt;a href=&quot;https://www.youtube.com/watch?v=lM7UV95Rpyo&quot;&gt;presentation&lt;/a&gt; of the new JIT on
+September 11.&lt;/p&gt;
+
+&lt;p&gt;The pull request was merged on September 22.&lt;/p&gt;
+
+&lt;h3 id=&quot;the-future&quot;&gt;The Future&lt;/h3&gt;
+
+&lt;p&gt;Here are a few of the improvements that we have been thinking of
+for future releases:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;Supporting ARM-64 (used by Raspberry Pi and Apple’s new Macs with
+Apple Silicon).&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Implementing type-guided generation of native code. The new
+&lt;a href=&quot;https://blog.erlang.org/ssa-history/&quot;&gt;SSA-based compiler passes&lt;/a&gt; introduced in OTP 22 does a
+sophisticated type analysis.  Frustratingly, not all of the type
+information can be leveraged to generate better code for the
+interpreted BEAM.  We plan to modify the compiler so that some of
+the type information will be included in the BEAM files and then
+used by the JIT during code generation.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Introducing new instructions for binary matching and/or construction
+to help the JIT generate better code.&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;</content><author><name>Björn Gustavsson</name></author><category term="BEAM" /><category term="JIT" /><category term="HiPE" /><summary type="html">As long as Erlang has existed, there has always been the need and the ambition to make it faster. This blog post is a history lesson that outlines the major Erlang implementations and attempts to improve the performance of Erlang.</summary></entry><entry><title type="html">Further adventures in the JIT</title><link href="https://beta.erlang.org/blog/jit-part-2/" rel="alternate" type="text/html" title="Further adventures in the JIT" /><published>2020-11-10T00:00:00+00:00</published><updated>2020-11-10T00:00:00+00:00</updated><id>https://beta.erlang.org/blog/jit-part-2</id><content type="html" xml:base="https://beta.erlang.org/blog/jit-part-2/">&lt;p&gt;This post continues our &lt;a href=&quot;http://blog.erlang.org/a-first-look-at-the-jit/&quot;&gt;adventures in the JIT&lt;/a&gt;, digging a bit deeper into the
+implementation details.&lt;/p&gt;
+
+&lt;p&gt;While writing things in machine code (assembler) gives you great freedom it
+comes at the cost of having to invent almost everything yourself, and there’s
+no clever compiler to help you catch mistakes. For example, if you call a
+function in a certain manner and said function doesn’t expect that, you’ll
+crash your OS process at best or spend hours chasing a &lt;a href=&quot;https://en.wikipedia.org/wiki/Heisenbug&quot;&gt;heisenbug&lt;/a&gt; at worst.&lt;/p&gt;
+
+&lt;p&gt;Hence, &lt;em&gt;conventions&lt;/em&gt; are always front and center when writing assembler, so we
+need to visit some of the ones we’ve chosen before moving on.&lt;/p&gt;
+
+&lt;p&gt;The most important one concerns registers, and we base it on the system calling
+convention to make it easier to call C code. I’ve included tables for the
+SystemV convention used on Linux below. The registers differ on other systems
+like Windows, but the principle is the same on all of them.&lt;/p&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th style=&quot;text-align: left&quot;&gt;Register&lt;/th&gt;
+      &lt;th style=&quot;text-align: center&quot;&gt;Name&lt;/th&gt;
+      &lt;th style=&quot;text-align: center&quot;&gt;Callee save&lt;/th&gt;
+      &lt;th style=&quot;text-align: right&quot;&gt;Purpose&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td style=&quot;text-align: left&quot;&gt;&lt;code&gt;RDI&lt;/code&gt;&lt;/td&gt;
+      &lt;td style=&quot;text-align: center&quot;&gt;&lt;code&gt;ARG1&lt;/code&gt;&lt;/td&gt;
+      &lt;td style=&quot;text-align: center&quot;&gt;no&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;First argument&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td style=&quot;text-align: left&quot;&gt;&lt;code&gt;RSI&lt;/code&gt;&lt;/td&gt;
+      &lt;td style=&quot;text-align: center&quot;&gt;&lt;code&gt;ARG2&lt;/code&gt;&lt;/td&gt;
+      &lt;td style=&quot;text-align: center&quot;&gt;no&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt; &lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td style=&quot;text-align: left&quot;&gt;&lt;code&gt;RDX&lt;/code&gt;&lt;/td&gt;
+      &lt;td style=&quot;text-align: center&quot;&gt;&lt;code&gt;ARG3&lt;/code&gt;&lt;/td&gt;
+      &lt;td style=&quot;text-align: center&quot;&gt;no&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt; &lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td style=&quot;text-align: left&quot;&gt;&lt;code&gt;RCX&lt;/code&gt;&lt;/td&gt;
+      &lt;td style=&quot;text-align: center&quot;&gt;&lt;code&gt;ARG4&lt;/code&gt;&lt;/td&gt;
+      &lt;td style=&quot;text-align: center&quot;&gt;no&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt; &lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td style=&quot;text-align: left&quot;&gt;&lt;code&gt;R8&lt;/code&gt;&lt;/td&gt;
+      &lt;td style=&quot;text-align: center&quot;&gt;&lt;code&gt;ARG5&lt;/code&gt;&lt;/td&gt;
+      &lt;td style=&quot;text-align: center&quot;&gt;no&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt; &lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td style=&quot;text-align: left&quot;&gt;&lt;code&gt;R9&lt;/code&gt;&lt;/td&gt;
+      &lt;td style=&quot;text-align: center&quot;&gt;&lt;code&gt;ARG6&lt;/code&gt;&lt;/td&gt;
+      &lt;td style=&quot;text-align: center&quot;&gt;no&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;Sixth argument&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td style=&quot;text-align: left&quot;&gt;&lt;code&gt;RAX&lt;/code&gt;&lt;/td&gt;
+      &lt;td style=&quot;text-align: center&quot;&gt;&lt;code&gt;RET&lt;/code&gt;&lt;/td&gt;
+      &lt;td style=&quot;text-align: center&quot;&gt;no&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;Function return value&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;p&gt;Thus, if we want to call a C function with two arguments, we move the first
+into &lt;code&gt;ARG1&lt;/code&gt; and the second into &lt;code&gt;ARG2&lt;/code&gt; before calling it, and we’ll have the
+result in &lt;code&gt;RET&lt;/code&gt; when it returns.&lt;/p&gt;
+
+&lt;p&gt;Beyond saying which registers are used to pass arguments, calling conventions
+also say which registers retain their value over function calls. These are
+called “callee save” registers, since the called function needs to save and
+restore them if they’re modified.&lt;/p&gt;
+
+&lt;p&gt;In these registers, we keep commonly-used data that rarely (if ever) changes in
+C code, helping us avoid saving and restoring them whenever we call C code:&lt;/p&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th style=&quot;text-align: left&quot;&gt;Register&lt;/th&gt;
+      &lt;th style=&quot;text-align: center&quot;&gt;Name&lt;/th&gt;
+      &lt;th style=&quot;text-align: center&quot;&gt;Callee save&lt;/th&gt;
+      &lt;th style=&quot;text-align: right&quot;&gt;Purpose&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td style=&quot;text-align: left&quot;&gt;&lt;code&gt;RBP&lt;/code&gt;&lt;/td&gt;
+      &lt;td style=&quot;text-align: center&quot;&gt;&lt;code&gt;active_code_ix&lt;/code&gt;&lt;/td&gt;
+      &lt;td style=&quot;text-align: center&quot;&gt;yes&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;Active code index&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td style=&quot;text-align: left&quot;&gt;&lt;code&gt;R13&lt;/code&gt;&lt;/td&gt;
+      &lt;td style=&quot;text-align: center&quot;&gt;&lt;code&gt;c_p&lt;/code&gt;&lt;/td&gt;
+      &lt;td style=&quot;text-align: center&quot;&gt;yes&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;Current process&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td style=&quot;text-align: left&quot;&gt;&lt;code&gt;R15&lt;/code&gt;&lt;/td&gt;
+      &lt;td style=&quot;text-align: center&quot;&gt;&lt;code&gt;HTOP&lt;/code&gt;&lt;/td&gt;
+      &lt;td style=&quot;text-align: center&quot;&gt;yes&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;Top of the current process’ heap&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td style=&quot;text-align: left&quot;&gt;&lt;code&gt;R14&lt;/code&gt;&lt;/td&gt;
+      &lt;td style=&quot;text-align: center&quot;&gt;&lt;code&gt;FCALLS&lt;/code&gt;&lt;/td&gt;
+      &lt;td style=&quot;text-align: center&quot;&gt;yes&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;Reduction counter&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td style=&quot;text-align: left&quot;&gt;&lt;code&gt;RBX&lt;/code&gt;&lt;/td&gt;
+      &lt;td style=&quot;text-align: center&quot;&gt;&lt;code&gt;registers&lt;/code&gt;&lt;/td&gt;
+      &lt;td style=&quot;text-align: center&quot;&gt;yes&lt;/td&gt;
+      &lt;td style=&quot;text-align: right&quot;&gt;BEAM register structure&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;p&gt;We also keep the current process’ stack in &lt;code&gt;RSP&lt;/code&gt;, the &lt;em&gt;machine stack pointer&lt;/em&gt;,
+to allow &lt;code&gt;call&lt;/code&gt; and &lt;code&gt;ret&lt;/code&gt; instructions in Erlang code.&lt;/p&gt;
+
+&lt;p&gt;The downside of this is that we can no longer call arbitrary C code as it may
+assume a much larger stack, requiring us to swap back and forth between a “C
+stack” and the “Erlang stack”.&lt;/p&gt;
+
+&lt;p&gt;In my previous post we called a C function (&lt;a href=&quot;https://github.com/erlang/otp/blob/030472803bc6646c47c3d5847125a4bb8f9af4d1/erts/emulator/beam/jit/instr_msg.cpp#L460-L469&quot;&gt;&lt;code&gt;timeout&lt;/code&gt;&lt;/a&gt;) without doing any of
+this, which was a bit of a white lie. It used to be done that way before we
+changed how the stack works, but it’s still pretty simple as you can see below:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-c++&quot;&gt;void BeamModuleAssembler::emit_timeout() {
+    /* Swap to the C stack. */
+    emit_enter_runtime();
+
+    /* Call the `timeout` C function.
+     *
+     * runtime_call compiles down to a single `call`
+     * instruction in optimized builds, and has a few
+     * assertions in debug builds to prevent mistakes
+     * like forgetting to switch stacks. */
+    a.mov(ARG1, c_p);
+    runtime_call&amp;lt;1&amp;gt;(timeout);
+
+    /* Swap back to the Erlang stack. */
+    emit_leave_runtime();
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Swapping the stack is very cheap because of a trick we use when setting up
+&lt;code&gt;registers&lt;/code&gt;: by allocating the structure on the &lt;em&gt;C stack&lt;/em&gt; we can compute the
+address of said stack from &lt;code&gt;registers&lt;/code&gt;, which avoids having to reserve a
+precious callee save register and is much faster than having it saved in memory
+somewhere.&lt;/p&gt;
+
+&lt;p&gt;With the conventions out of the way we can start looking at code again. Let’s
+pick a larger instruction this time, &lt;a href=&quot;https://github.com/erlang/otp/blob/OTP-23.1/erts/emulator/beam/macros.tab#L77-L88&quot;&gt;&lt;code&gt;test_heap&lt;/code&gt;&lt;/a&gt;, which allocates heap
+memory:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-c++&quot;&gt;void BeamModuleAssembler::emit_test_heap(const ArgVal &amp;amp;Needed,
+                                         const ArgVal &amp;amp;Live) {
+    const int words_needed = (Needed.getValue() + S_RESERVED);
+    Label after_gc_check = a.newLabel();
+
+    /* Do we have enough free space already? */
+    a.lea(ARG2, x86::qword_ptr(HTOP, words_needed * sizeof(Eterm)));
+    a.cmp(ARG2, E);
+    a.jbe(after_gc_check);
+
+    /* No, we need to GC.
+     *
+     * Switch to the C stack, and update the process
+     * structure with our current stack (E) and heap
+     * (HTOP) pointers so the C code can use them. */
+    emit_enter_runtime&amp;lt;Update::eStack | Update::eHeap&amp;gt;();
+
+    /* Call the GC, passing how many words we need and
+     * how many X registers we use. */
+    a.mov(ARG2, imm(words_needed));
+    a.mov(ARG4, imm(Live.getValue()));
+
+    a.mov(ARG1, c_p);
+    load_x_reg_array(ARG3);
+    a.mov(ARG5, FCALLS);
+    runtime_call&amp;lt;5&amp;gt;(erts_garbage_collect_nobump);
+    a.sub(FCALLS, RET);
+
+    /* Swap back to the Erlang stack, reading the new
+     * values for E and HTOP from the process structure. */
+    emit_leave_runtime&amp;lt;Update::eStack | Update::eHeap&amp;gt;();
+
+    a.bind(after_gc_check);
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;While this isn’t too complicated it’s still a rather large amount of code:
+since all instructions are emitted directly into their modules, small
+inefficiencies like this tend to bloat the modules rather quickly. Beyond using
+more RAM, this wastes precious instruction cache so we’ve spent a lot of time
+and effort on reducing code size.&lt;/p&gt;
+
+&lt;p&gt;Our most common method of reducing code size is to break out as much of the
+instruction as possible into a globally shared part. Let’s see how we can apply
+this technique:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-c++&quot;&gt;void BeamModuleAssembler::emit_test_heap(const ArgVal &amp;amp;Needed,
+                                         const ArgVal &amp;amp;Live) {
+    const int words_needed = (Needed.getValue() + S_RESERVED);
+    Label after_gc_check = a.newLabel();
+
+    a.lea(ARG2, x86::qword_ptr(HTOP, words_needed * sizeof(Eterm)));
+    a.cmp(ARG2, E);
+    a.jbe(after_gc_check);
+
+    a.mov(ARG4, imm(Live.getValue()));
+
+    /* Call the global &quot;garbage collect&quot; fragment. */
+    fragment_call(ga-&amp;gt;get_garbage_collect());
+
+    a.bind(after_gc_check);
+}
+
+/* This is the global part of the instruction. Since we
+ * know it will only be called from the module code above,
+ * we're free to assume that ARG4 is the number of live
+ * registers and that ARG2 is (HTOP + bytes needed). */
+void BeamGlobalAssembler::emit_garbage_collect() {
+    /* Convert ARG2 to &quot;words needed&quot; by subtracting
+     * HTOP and dividing it by 8.
+     *
+     * This saves us from having to explicitly pass
+     * &quot;words needed&quot; in the module code above. */
+    a.sub(ARG2, HTOP);
+    a.shr(ARG2, imm(3));
+
+    emit_enter_runtime&amp;lt;Update::eStack | Update::eHeap&amp;gt;();
+
+    /* ARG2 and ARG4 have already been set earlier. */
+    a.mov(ARG1, c_p);
+    load_x_reg_array(ARG3);
+    a.mov(ARG5, FCALLS);
+    runtime_call&amp;lt;5&amp;gt;(erts_garbage_collect_nobump);
+    a.sub(FCALLS, RET);
+
+    emit_leave_runtime&amp;lt;Update::eStack | Update::eHeap&amp;gt;();
+
+    a.ret();
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;While we had to write about as much code, the part that is copied into the
+module is significantly smaller.&lt;/p&gt;
+
+&lt;p&gt;In our next post we’ll take a break from implementation details and look at the
+history behind this JIT.&lt;/p&gt;</content><author><name>John Högberg</name></author><category term="BEAM" /><category term="erts" /><category term="jit" /><summary type="html">This post continues our adventures in the JIT, digging a bit deeper into the implementation details.</summary></entry><entry><title type="html">A first look at the JIT</title><link href="https://beta.erlang.org/blog/a-first-look-at-the-jit/" rel="alternate" type="text/html" title="A first look at the JIT" /><published>2020-11-03T00:00:00+00:00</published><updated>2020-11-03T00:00:00+00:00</updated><id>https://beta.erlang.org/blog/a-first-look-at-the-jit</id><content type="html" xml:base="https://beta.erlang.org/blog/a-first-look-at-the-jit/">&lt;p&gt;Now that we’ve had a look at &lt;a href=&quot;http://blog.erlang.org/a-brief-BEAM-primer/&quot;&gt;BEAM&lt;/a&gt; and the &lt;a href=&quot;http://blog.erlang.org/a-closer-look-at-the-interpreter/&quot;&gt;interpreter&lt;/a&gt; we’re going to
+explore one of the most exciting additions in OTP 24: the just-in-time
+compiler, or “JIT” for short.&lt;/p&gt;
+
+&lt;p&gt;If you’re like me the word “JIT” probably makes you think of Hotspot (Java) or
+V8 (Javascript). These are very impressive pieces of engineering but they seem
+to have hijacked the term; not all JITs are that sophisticated, nor do they
+have to be in order to be fast.&lt;/p&gt;
+
+&lt;p&gt;We’ve made many attempts at a JIT over the years that aimed for the stars only
+to fall down. Our latest and by far most successful attempt went for simplicity
+instead, trading slight inefficiencies in the generated code for ease of
+implementation. If we exclude the run-time assembler library we use, &lt;a href=&quot;https://asmjit.com/&quot;&gt;asmjit&lt;/a&gt;,
+the entire thing is roughly as big as the interpreter.&lt;/p&gt;
+
+&lt;p&gt;I believe much of our success can be attributed to four ideas we had early in
+the project:&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;All modules are always compiled to machine code.&lt;/strong&gt;&lt;/p&gt;
+
+    &lt;p&gt;Previous attempts (and HiPE too) had a difficult time switching between the
+interpreter and machine code: it was either too slow, too difficult to
+maintain, or both.&lt;/p&gt;
+
+    &lt;p&gt;Always running machine code means we never have to switch.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;Data may only be kept (passed) in BEAM registers between instructions.&lt;/strong&gt;&lt;/p&gt;
+
+    &lt;p&gt;This may seem silly, aren’t machine registers faster?&lt;/p&gt;
+
+    &lt;p&gt;Yes, but in practice not by much and it would make things more complicated.
+By always passing data in BEAM registers we can use the register allocation
+given to us by the Erlang compiler, saving us from having to do this very
+expensive step at runtime.&lt;/p&gt;
+
+    &lt;p&gt;More importantly, this minimizes the difference between the interpreter and
+the JIT from the runtime system’s point of view.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;Modules are compiled one instruction at a time.&lt;/strong&gt;&lt;/p&gt;
+
+    &lt;p&gt;One of the most difficult problems in our prior attempts was to strike a
+good balance between the time it took to compile something and the eagerness
+to do so. If we’re too eager, we’ll spend too much time compiling, and if
+we’re too lax we won’t see any improvements.&lt;/p&gt;
+
+    &lt;p&gt;This problem was largely self-inflicted and caused by the compiler being too
+slow (we often used LLVM), which was made worse by us giving it large pieces
+of code to allow more optimizations.&lt;/p&gt;
+
+    &lt;p&gt;By limiting ourselves to compiling one instruction at a time, we leave some
+performance on the table but greatly improve compilation speed.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;strong&gt;Every instruction has a handwritten machine code template.&lt;/strong&gt;&lt;/p&gt;
+
+    &lt;p&gt;This makes compilation &lt;em&gt;extremely&lt;/em&gt; fast as we basically just copy-paste
+the template every time the instruction is used, only performing some minor
+tweaks depending on its arguments.&lt;/p&gt;
+
+    &lt;p&gt;This may seem daunting at first but it’s actually not that bad once you get
+used to it. While it certainly takes a lot of code to achieve even the
+smallest of things, it’s inherently simple and easy to follow as long as
+the code is kept short.&lt;/p&gt;
+
+    &lt;p&gt;The downside is that every instruction needs to be implemented for each
+architecture, but luckily there’s not a lot of popular ones and we hope to
+support the two most common ones by the time we release OTP 24: &lt;code&gt;x86_64&lt;/code&gt;
+and &lt;code&gt;AArch64&lt;/code&gt;. The others will continue to use the interpreter.&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;When compiling a module the JIT goes through the instructions one by one,
+invoking machine code templates as it goes. This has two very large benefits
+over the interpreter: there’s no need to jump between them because they’re
+emitted back-to-back and the end of each is the start of the next one, and the
+arguments don’t need to be resolved at runtime because they’re already “burnt
+in.”&lt;/p&gt;
+
+&lt;p&gt;Now that we have some background, let’s look at the machine code template for
+our example in the previous post, &lt;code&gt;is_nonempty_list&lt;/code&gt;:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-c++&quot;&gt;/* Arguments are passed as `ArgVal` objects which hold a
+ * type and a value, for example saying &quot;X register 4&quot;,
+ * &quot;the atom 'hello'&quot;, &quot;label 57&quot; and so on. */
+void BeamModuleAssembler::emit_is_nonempty_list(const ArgVal &amp;amp;Fail,
+                                                const ArgVal &amp;amp;Src) {
+    /* Figure out which memory address `Src` lives in. */
+    x86:Mem list_ptr = getArgRef(Src);
+
+    /* Emit a `test` instruction, which does a non-
+     * destructive AND on the memory pointed at by
+     * list_ptr, clearing the zero flag if the list is
+     * empty. */
+    a.test(list_ptr, imm(_TAG_PRIMARY_MASK - TAG_PRIMARY_LIST));
+
+    /* Emit a `jnz` instruction, jumping to the fail label
+     * if the zero flag is clear (the list is empty). */
+    a.jnz(labels[Fail.getValue()]);
+
+    /* Unlike the interpreter there's no need to jump to
+     * the next instruction on success as it immediately
+     * follows this one. */
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;This template will generate code that looks almost identical to the template
+itself. Let’s say our source is “&lt;code&gt;X&lt;/code&gt; register 1” and our fail label is 57:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;test qword ptr [rbx+8], _TAG_PRIMARY_MASK - TAG_PRIMARY_LIST
+jnz label_57
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;This is much faster than the interpreter, and even a bit more compact than the
+threaded code, but this is a trivial instruction. What about more complex
+ones? Let’s have a look at the &lt;code&gt;timeout&lt;/code&gt; instruction in the interpreter:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-c++&quot;&gt;timeout() {
+    if (IS_TRACED_FL(c_p, F_TRACE_RECEIVE)) {
+        trace_receive(c_p, am_clock_service, am_timeout, NULL);
+    }
+    if (ERTS_PROC_GET_SAVED_CALLS_BUF(c_p)) {
+        save_calls(c_p, &amp;amp;exp_timeout);
+    }
+    c_p-&amp;gt;flags &amp;amp;= ~F_TIMO;
+    JOIN_MESSAGE(c_p);
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;That’s bound to be a lot of code, and those macros will be really annoying to
+convert by hand. How on earth are we going to do this without losing our minds?&lt;/p&gt;
+
+&lt;p&gt;By cheating, that’s how :D&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-c++&quot;&gt;static void timeout(Process *c_p) {
+    if (IS_TRACED_FL(c_p, F_TRACE_RECEIVE)) {
+        trace_receive(c_p, am_clock_service, am_timeout, NULL);
+    }
+    if (ERTS_PROC_GET_SAVED_CALLS_BUF(c_p)) {
+        save_calls(c_p, &amp;amp;exp_timeout);
+    }
+    c_p-&amp;gt;flags &amp;amp;= ~F_TIMO;
+    JOIN_MESSAGE(c_p);
+}
+
+void BeamModuleAssembler::emit_timeout() {
+    /* Set the first C argument to our currently executing
+     * process, c_p, and then call the above C function. */
+    a.mov(ARG1, c_p);
+    a.call(imm(timeout));
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;This little escape hatch saved us from having to write everything in assembler
+from the start, and many instructions remain like this because there hasn’t
+been any point to changing them.&lt;/p&gt;
+
+&lt;p&gt;That’s all for today. In the next post we’ll walk through our conventions and
+some of the techniques we’ve used to reduce the code size.&lt;/p&gt;</content><author><name>John Högberg</name></author><category term="BEAM" /><category term="erts" /><category term="jit" /><summary type="html">Now that we’ve had a look at BEAM and the interpreter we’re going to explore one of the most exciting additions in OTP 24: the just-in-time compiler, or “JIT” for short.</summary></entry><entry><title type="html">A closer look at the interpreter</title><link href="https://beta.erlang.org/blog/a-closer-look-at-the-interpreter/" rel="alternate" type="text/html" title="A closer look at the interpreter" /><published>2020-10-27T00:00:00+00:00</published><updated>2020-10-27T00:00:00+00:00</updated><id>https://beta.erlang.org/blog/a-closer-look-at-the-interpreter</id><content type="html" xml:base="https://beta.erlang.org/blog/a-closer-look-at-the-interpreter/">&lt;p&gt;In my &lt;a href=&quot;http://blog.erlang.org/a-brief-BEAM-primer/&quot;&gt;previous post&lt;/a&gt; we had a look at BEAM, and now that we’re more familiar
+with it it’s time for us to look at the reference implementation: the
+interpreter.&lt;/p&gt;
+
+&lt;p&gt;The interpreter can be thought of as an endless loop that looks at the current
+instruction, executes it, and then moves on to the next one.&lt;/p&gt;
+
+&lt;p&gt;In normal builds our code is laid out as &lt;a href=&quot;https://en.wikipedia.org/wiki/Threaded_code&quot;&gt;directly threaded code&lt;/a&gt;, where each
+instruction consists of the &lt;em&gt;machine code address&lt;/em&gt; of its handler, followed by
+its arguments, which are in turn followed by the next instruction:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;Instruction address
+    First argument
+    Second argument
+    ... and so on.
+Instruction address
+    First argument
+    Second argument
+    ... and so on.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;When an instruction finishes it reads the next instruction address and jumps
+to it, forever following the “thread” of instructions.&lt;/p&gt;
+
+&lt;p&gt;With very few exceptions, the instructions are “pure” in the sense that they
+always do the same thing with the same input and that they only affect BEAM,
+either through changing the control flow or writing a result to a register.
+This makes the instructions very easy to read and reason about in isolation, so
+for the sake of brevity we’ll only have a look at one of them:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-c++&quot;&gt;is_nonempty_list(Label, Src) {
+
+    /* Check if our $Src is not a list. */
+    if (is_not_list($Src)) {
+
+        /* Invoke the $FAIL macro, jumping to our
+         * $Label. */
+        $FAIL($Label);
+    }
+
+    /* Execute the next instruction. */
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;The above is written in a domain-specific language (DSL) that is a superset of
+C, where &lt;code&gt;$&lt;/code&gt;-prefixed macros are expanded and the rest is kept as is.&lt;/p&gt;
+
+&lt;p&gt;The &lt;a href=&quot;https://github.com/erlang/otp/blob/OTP-23.1/erts/emulator/utils/beam_makeops&quot;&gt;&lt;code&gt;beam_makeops&lt;/code&gt;&lt;/a&gt; script takes this definition and generates code for
+the parts that are cumbersome to write by hand, such as jumping to the next
+instruction. It also hides argument handling which allows us to reduce the code
+size by packing small arguments together behind the scenes, which we’ve
+explored in an &lt;a href=&quot;http://blog.erlang.org/Interpreter-Optimizations/&quot;&gt;earlier post&lt;/a&gt; on the subject.&lt;/p&gt;
+
+&lt;p&gt;For performance reasons it also generates different variants based on the
+argument types outlined in &lt;a href=&quot;https://github.com/erlang/otp/blob/OTP-23.1/erts/emulator/beam/ops.tab&quot;&gt;&lt;code&gt;ops.tab&lt;/code&gt;&lt;/a&gt; to reduce the amount of work we need to
+do at runtime.&lt;/p&gt;
+
+&lt;p&gt;Let’s have a look at the generated code for this instruction, specifically the
+variant for &lt;code&gt;X&lt;/code&gt; registers:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-c++&quot;&gt;/* (This has been modified slightly for readability) */
+case is_nonempty_list_fx:
+{
+    Eterm arg_word, term;
+
+    /* Read the argument word from the instruction
+     * stream. */
+    arg_word = I[1];
+
+    /* Unpack the offset of our source register (upper
+     * 32 bits) and then read its contents.
+     *
+     * Note that we address the X registers directly;
+     * had this instruction not been specialized, we
+     * would first need to determine whether the
+     * argument was an X or a Y register. */
+    term = x_registers[arg_word &amp;gt;&amp;gt; 32];
+
+    /* is_not_list(term) */
+    if (term &amp;amp; (_TAG_PRIMARY_MASK - TAG_PRIMARY_LIST)) {
+
+        /* Unpack our fail label (lower 32 bits) and add
+         * it to our current instruction pointer. This
+         * is an offset and may be negative for backward
+         * jumps. */
+        I += (Sint32)arg_word;
+
+        /* Jump to the instruction at the fail label using
+         * the &quot;labels as values&quot; GCC extension. */
+        goto *I;
+    }
+
+    /* Skip the current label address and argument word,
+     * then jump to the next instruction. This was
+     * automatically generated by beam_makeops. */
+    I += 2;
+    goto *I;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;There’s a bit more to it, and those who would like to know more can read the
+&lt;a href=&quot;http://erlang.org/doc/apps/erts/beam_makeops.html&quot;&gt;documentation for the &lt;code&gt;beam_makeops&lt;/code&gt; script&lt;/a&gt;, but the above covers the gist of
+it.&lt;/p&gt;
+
+&lt;p&gt;While the above is quite efficient, there’s significant overhead from dispatch
+and argument handling. Here’s a slightly altered assembly listing of the
+above:&lt;/p&gt;
+
+&lt;pre class=&quot;highlight&quot;&gt;
+    &lt;em&gt;; Read the argument word from the instruction
+    ; stream.&lt;/em&gt;
+    mov    rdx, [rbx + 8]
+
+    &lt;em&gt;; Unpack the offset of our source register (upper 32
+    ; 32 bits).&lt;/em&gt;
+    mov    rcx, rdx
+    shr    rcx, 32
+
+    &lt;em&gt;; X registers live in machine register r15, and we
+    ; placed our offset in rcx, so we can find our term at
+    ; [r15 + rcx].
+    ;
+    ; Perform a non-destructive bitwise AND on the term
+    ; using the `test` instruction, and jump to the fail
+    ; label if the result is non-zero.&lt;/em&gt;
+    &lt;b&gt;test   byte [r15 + rcx], (_TAG_PRIMARY_MASK - TAG_PRIMARY_LIST)
+    jne    jump_to_fail_label&lt;/b&gt;
+
+    &lt;em&gt;; Skip the current label address and argument word,
+    ; then jump to the next instruction.&lt;/em&gt;
+    add    rbx, 16
+    jmp    [rbx]
+
+jump_to_fail_label:
+    &lt;em&gt;; Unpack our fail label (lower 32 bits) and add
+    ; it to our current instruction pointer.&lt;/em&gt;
+    movsxd rdx, edx
+    lea    rbx, [rbx + rdx * 8]
+
+    &lt;em&gt;; Jump to the instruction at the fail label.&lt;/em&gt;
+    jmp    [rbx]
+&lt;/pre&gt;
+
+&lt;p&gt;The bold section is the meat of the instruction and the rest is argument
+unpacking and instruction dispatch. While this is not much of a problem for
+large instructions, its effect on short ones like this is very large, and when
+looking through a profiler (e.g. &lt;a href=&quot;https://en.wikipedia.org/wiki/Perf_%28Linux%29&quot;&gt;&lt;code&gt;perf&lt;/code&gt;&lt;/a&gt;) it’s not unusual for the final &lt;code&gt;jmp&lt;/code&gt;
+to dominate the rest.&lt;/p&gt;
+
+&lt;p&gt;To lessen this effect, the loader combines commonly used instruction sequences
+into a single instruction. For example, two independent moves may fuse into
+&lt;a href=&quot;https://github.com/erlang/otp/blob/OTP-23.1/erts/emulator/beam/instrs.tab#L577&quot;&gt;&lt;code&gt;move2_par&lt;/code&gt;&lt;/a&gt;, and &lt;code&gt;is_nonempty_list&lt;/code&gt; followed by &lt;code&gt;get_list&lt;/code&gt; might be fused to
+&lt;a href=&quot;https://github.com/erlang/otp/blob/OTP-23.1/erts/emulator/beam/instrs.tab#L795&quot;&gt;&lt;code&gt;is_nonempty_list_get_list&lt;/code&gt;&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;This reduces the cost of short instructions, but only works to the extent we’re
+able to identify common patterns and comes at a significant maintenance cost
+as each combination must be implemented manually. Even so, the effect tends to
+be moderate and the dispatch overhead remains significant.&lt;/p&gt;
+
+&lt;p&gt;Another, albeit lesser, downside with the interpreter is that modern processors
+are very optimized for patterns commonly found in “ordinary” native code. For
+example, nearly all of them have a special branch predictor just for calls and
+returns. Assuming that every call has a corresponding return lets it predict
+returns &lt;em&gt;perfectly&lt;/em&gt; unless an exception is thrown, but since the interpreter
+does not use native calls and returns, it cannot make use of this optimization.&lt;/p&gt;
+
+&lt;p&gt;Unfortunately there’s not a whole lot that can be done about this, and after
+over two decades of refinement it’s becoming increasingly difficult to optimize
+it in meaningful ways.&lt;/p&gt;
+
+&lt;p&gt;Because of that our quest to improve performance has instead focused on two
+areas: improving the compiler and implementing a JIT. We’ve made great strides
+with both as of late, and are very proud to have finally merged the latter.&lt;/p&gt;
+
+&lt;p&gt;Stay tuned for our next post, where we’ll have a look at the JIT and see how it
+avoids these issues.&lt;/p&gt;</content><author><name>John Högberg</name></author><category term="BEAM" /><category term="erts" /><category term="jit" /><summary type="html">In my previous post we had a look at BEAM, and now that we’re more familiar with it it’s time for us to look at the reference implementation: the interpreter.</summary></entry><entry><title type="html">A brief introduction to BEAM</title><link href="https://beta.erlang.org/blog/a-brief-BEAM-primer/" rel="alternate" type="text/html" title="A brief introduction to BEAM" /><published>2020-10-20T00:00:00+00:00</published><updated>2020-10-20T00:00:00+00:00</updated><id>https://beta.erlang.org/blog/a-brief-BEAM-primer</id><content type="html" xml:base="https://beta.erlang.org/blog/a-brief-BEAM-primer/">&lt;p&gt;This post is a brief primer on BEAM, the virtual machine that executes user
+code in the Erlang Runtime System (ERTS). It’s intended to help those new to
+BEAM follow an upcoming series of posts about the JIT in OTP 24, leaving
+implementation details for later.&lt;/p&gt;
+
+&lt;p&gt;BEAM is often confused with ERTS and it’s important to distinguish between the
+two; BEAM is just the virtual machine and it has no notion of processes, ports,
+ETS tables, and so on. It merely executes instructions and while ERTS has
+influenced their design, it doesn’t affect what they do when the code is
+running, so you don’t need to understand ERTS to understand BEAM.&lt;/p&gt;
+
+&lt;p&gt;BEAM is a register machine, where all instructions operate on named registers.
+Each register can contain any Erlang term such as an integer or a tuple, and it
+helps to think of them as simple variables. The two most important kinds of
+registers are:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;code&gt;X&lt;/code&gt;: these are used for temporary data and passing data between functions.
+They don’t require a stack frame and can be freely used in any function, but
+there are certain limitations which we’ll expand on later.&lt;/li&gt;
+  &lt;li&gt;&lt;code&gt;Y&lt;/code&gt;: these are local to each stack frame and have no special
+limitations beyond needing a stack frame.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Control flow is handled by instructions that test a certain condition and
+either move on to the next instruction or branch to its &lt;em&gt;fail label&lt;/em&gt;, noted by
+&lt;code&gt;{f,Index}&lt;/code&gt;. For example &lt;code&gt;{test,is_integer,{f,7},[{x,0}]}.&lt;/code&gt; checks if &lt;code&gt;{x,0}&lt;/code&gt;
+contains an integer and jumps to label 7 if it doesn’t.&lt;/p&gt;
+
+&lt;p&gt;Function arguments are passed from left to right in &lt;code&gt;X&lt;/code&gt; registers, starting at
+&lt;code&gt;{x,0}&lt;/code&gt;, and the result is returned in &lt;code&gt;{x,0}&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;It’s easier to explain how this fits together through example, so let’s walk
+through a few:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-erlang&quot;&gt;sum_tail(List) -&amp;gt;
+    sum_tail(List, 0).
+
+sum_tail([Head | Tail], Acc) -&amp;gt;
+    sum_tail(Tail, Head + Acc);
+sum_tail([], Acc) -&amp;gt;
+    Acc.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Let’s use &lt;code&gt;erlc -S&lt;/code&gt; to look at the instructions one by one:&lt;/p&gt;
+
+&lt;pre class=&quot;highlight&quot;&gt;
+&lt;em&gt;%% sum_tail/1, entry label is 2&lt;/em&gt;
+{function, sum_tail, 1, 2}.
+
+  &lt;em&gt;%% Marks a jump target with the label 1.&lt;/em&gt;
+  {label,1}.
+
+    &lt;em&gt;%% Special instruction that raises a function_clause
+    %% exception. Unused in this function.&lt;/em&gt;
+    {func_info,{atom,primer},{atom,sum_tail},1}.
+
+  {label,2}.
+    &lt;em&gt;%% The meat of the function starts here.
+    %%
+    %% Our only argument - &lt;b&gt;List&lt;/b&gt; - is in &lt;b&gt;{x,0}&lt;/b&gt; and
+    %% since sum_tail/2 expects it to be the first
+    %% argument we can leave it be. We'll pass the
+    %% integer 0 as the second argument in &lt;b&gt;{x,1}&lt;/b&gt;.&lt;/em&gt;
+    {move,{integer,0},{x,1}}.
+
+    &lt;em&gt;%% Tail call sum_tail/2, whose entry label is 4.&lt;/em&gt;
+    {call_only,2,{f,4}}.
+
+&lt;em&gt;%% sum_tail/2, entry label is 4&lt;/em&gt;
+{function, sum_tail, 2, 4}.
+  {label,3}.
+    {func_info,{atom,primer},{atom,sum_tail},2}.
+  {label,4}.
+
+    &lt;em&gt;%% Test whether we have a non-empty list, and jump to
+    %% the base case at label 5 if we don't.&lt;/em&gt;
+    {test,is_nonempty_list,{f,5},[{x,0}]}.
+
+    &lt;em&gt;%% Unpack the list in the first argument, placing the
+    %% head in &lt;b&gt;{x,2}&lt;/b&gt; and the tail in &lt;b&gt;{x,0}&lt;/b&gt;.&lt;/em&gt;
+    {get_list,{x,0},{x,2},{x,0}}.
+
+    &lt;em&gt;%% Add the head and our accumulator (remember that the
+    %% second function argument is in &lt;b&gt;{x,1}&lt;/b&gt;), and place
+    %% the result in &lt;b&gt;{x,1}&lt;/b&gt;.
+    %%
+    %% A fail label of 0 means that we want the
+    %% instruction to throw an exception on error, rather
+    %% than jump to a given label.&lt;/em&gt;
+    {gc_bif,'+',{f,0},3,[{x,2},{x,1}],{x,1}}.
+
+    &lt;em&gt;%% Tail-call ourselves to handle the rest of the list,
+    %% the arguments are already in the right registers.&lt;/em&gt;
+    {call_only,2,{f,4}}.
+
+  {label,5}.
+    &lt;em&gt;%% Test whether our argument was the empty list. If
+    %% not, we jump to label 3 to raise a function_clause
+    %% exception.&lt;/em&gt;
+    {test,is_nil,{f,3},[{x,0}]}.
+
+    &lt;em&gt;%% Return our accumulator.&lt;/em&gt;
+    {move,{x,1},{x,0}}.
+    return.
+&lt;/pre&gt;
+
+&lt;p&gt;Simple enough, isn’t it?&lt;/p&gt;
+
+&lt;p&gt;I glossed over one little detail though; the mysterious number &lt;code&gt;3&lt;/code&gt; in the
+addition instruction. This number tells us how many &lt;code&gt;X&lt;/code&gt; registers hold live
+data in case we need more memory, so they can be preserved while the rest are
+discarded as garbage. As a consequence, it’s unsafe to refer to higher &lt;code&gt;X&lt;/code&gt;
+registers after this instruction as their contents may be invalid (in this case
+&lt;code&gt;{x,3}&lt;/code&gt; and above).&lt;/p&gt;
+
+&lt;p&gt;Function calls are similar; we may schedule ourselves out whenever we call or
+return from a function, and we’ll only preserve the function arguments/return
+value when we do so. This means that all &lt;code&gt;X&lt;/code&gt; registers except for &lt;code&gt;{x,0}&lt;/code&gt; are
+invalid after a call even if you knew for certain that the called function
+didn’t touch a certain register.&lt;/p&gt;
+
+&lt;p&gt;This is where &lt;code&gt;Y&lt;/code&gt; registers enter the picture. Let’s take the previous example
+and make it body-recursive instead:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-erlang&quot;&gt;sum_body([Head | Tail]) -&amp;gt;
+    Head + sum_body(Tail);
+sum_body([]) -&amp;gt;
+    0.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre class=&quot;highlight&quot;&gt;
+{function, sum_body, 1, 7}.
+  {label,6}.
+    {func_info,{atom,primer},{atom,sum_body},1}.
+  {label,7}.
+    {test,is_nonempty_list,{f,8},[{x,0}]}.
+
+    &lt;em&gt;%% Allocate a stack frame with a single Y register.
+    %% Since this instruction may need more memory, we
+    %% tell the garbage collector that we currently have
+    %% one live X register (our list argument in &lt;b&gt;{x,0}&lt;/b&gt;).&lt;/em&gt;
+    {allocate,1,1}.
+
+    &lt;em&gt;%% Unpack the list, placing the head in &lt;b&gt;{y,0}&lt;/b&gt; and
+    %% the tail in &lt;b&gt;{x,0}&lt;/b&gt;.&lt;/em&gt;
+    {get_list,{x,0},{y,0},{x,0}}.
+
+    &lt;em&gt;%% Body-call ourselves. Note that while this kills all
+    %% X registers, it leaves Y registers alone so our
+    %% head is still valid.&lt;/em&gt;
+    {call,1,{f,7}}.
+
+    &lt;em&gt;%% Add the head to our return value and store the
+    %% result in &lt;b&gt;{x,0}&lt;/b&gt;.&lt;/em&gt;
+    {gc_bif,'+',{f,0},1,[{y,0},{x,0}],{x,0}}.
+
+    &lt;em&gt;%% Deallocate our stack frame and return.&lt;/em&gt;
+    {deallocate,1}.
+    return.
+
+  {label,8}.
+    {test,is_nil,{f,6},[{x,0}]}.
+
+    &lt;em&gt;%% Return the integer 0.&lt;/em&gt;
+    {move,{integer,0},{x,0}}.
+    return.
+&lt;/pre&gt;
+
+&lt;p&gt;Notice how the call instruction changed now that we’re in a stack frame? There
+are three different call instructions:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;code&gt;call&lt;/code&gt;: ordinary call as in the example. Control flow will resume at
+the next instruction when the called function returns.&lt;/li&gt;
+  &lt;li&gt;&lt;code&gt;call_last&lt;/code&gt;: tail call when there is a stack frame. The current frame will
+be deallocated before the call.&lt;/li&gt;
+  &lt;li&gt;&lt;code&gt;call_only&lt;/code&gt;: tail call when there is no stack frame.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Each of these have a variant for calling functions in other modules (e.g.
+&lt;code&gt;call_ext&lt;/code&gt;), but they’re otherwise identical.&lt;/p&gt;
+
+&lt;p&gt;So far we’ve only looked at using terms, but what about creating them? Let’s
+have a look:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-erlang&quot;&gt;create_tuple(Term) -&amp;gt;
+    {hello, Term}.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre class=&quot;highlight&quot;&gt;
+{function, create_tuple, 1, 10}.
+  {label,9}.
+    {func_info,{atom,primer},{atom,create_tuple},1}.
+  {label,10}.
+    &lt;em&gt;%% Allocate the three words needed for a 2-tuple, with
+    %% a liveness annotation of 1 indicating that &lt;b&gt;{x,0}&lt;/b&gt;
+    %% is alive in case we need to GC.&lt;/em&gt;
+    {test_heap,3,1}.
+
+    &lt;em&gt;%% Create the tuple and place the result in &lt;b&gt;{x,0}&lt;/b&gt;&lt;/em&gt;
+    {put_tuple2,{x,0},{list,[{atom,hello},{x,0}]}}.
+  
+    return.
+&lt;/pre&gt;
+
+&lt;p&gt;This is a bit magical in the sense that there’s an unseen register for memory
+allocations, but allocation is rarely far apart from use and it’s usually
+pretty easy to follow. The same principle applies for lists (&lt;a href=&quot;https://en.wikipedia.org/wiki/Cons&quot;&gt;consing&lt;/a&gt;),
+floats, and funs as well following &lt;a href=&quot;https://github.com/erlang/otp/pull/2765&quot;&gt;PR 2765&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;More complicated types like maps, big integers, references, and so on are
+created by special instructions that may GC on their own (or allocate outside
+the heap in a “heap fragment”) as their size can’t be statically determined in
+advance.&lt;/p&gt;
+
+&lt;p&gt;Now let’s look at something more uncommon: exceptions.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-erlang&quot;&gt;exception() -&amp;gt;
+    try
+        external:call()
+    catch
+        throw:example -&amp;gt; hello
+    end.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre class=&quot;highlight&quot;&gt;
+{function, exception, 0, 12}.
+  {label,11}.
+    {func_info,{atom,primer},{atom,exception},0}.
+  {label,12}.
+    {allocate,1,0}.
+  
+    &lt;em&gt;%% Place a catch tag in &lt;b&gt;{y,0}&lt;/b&gt;. If an exception is
+    %% raised while this tag is the most current one,
+    %% the control flow will resume at &lt;b&gt;{f,13}&lt;/b&gt; in this
+    %% stack frame.&lt;/em&gt;
+    {'try',{y,0},{f,13}}.
+
+    {call_ext,0,{extfunc,external,call,0}}.
+
+    &lt;em&gt;%% Deactivate the catch tag before returning with the
+    %% result from the call.&lt;/em&gt;
+    {try_end,{y,0}}.
+
+    {deallocate,1}.
+    return.
+
+  {label,13}.
+    &lt;em&gt;%% Uh oh, we've got an exception. Kill the catch tag
+    %% and place the exception class in &lt;b&gt;{x,0}&lt;/b&gt;, the error
+    %% reason/thrown value in &lt;b&gt;{x,1}&lt;/b&gt;, and the stack trace
+    %% in &lt;b&gt;{x,2}&lt;/b&gt;.&lt;/em&gt;
+    {try_case,{y,0}}.
+
+    &lt;em&gt;%% Return 'hello' if the user threw 'example'&lt;/em&gt;
+    {test,is_eq_exact,{f,14},[{x,0},{atom,throw}]}.
+    {test,is_eq_exact,{f,14},[{x,1},{atom,example}]}.
+    {move,{atom,hello},{x,0}}.
+    {deallocate,1}.
+    return.
+
+  {label,14}.
+    &lt;em&gt;%% Otherwise, rethrow the exception since no catch
+    %% clause matched.&lt;/em&gt;
+    {bif,raise,{f,0},[{x,2},{x,1}],{x,0}}.
+&lt;/pre&gt;
+
+&lt;p&gt;By now you’ve probably noticed how the control flow only moves forward; just
+like Erlang itself the only way to loop is through recursion. The one exception
+to this is the receive construct, which may loop until a matching message has
+been received:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-erlang&quot;&gt;selective_receive(Ref) -&amp;gt;
+    receive
+        {Ref, Result} -&amp;gt; Result
+    end.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre class=&quot;highlight&quot;&gt;
+{function, selective_receive, 1, 16}.
+  {label,15}.
+    {func_info,{atom,primer},{atom,selective_receive},1}.
+  {label,16}.
+    {allocate,1,1}.
+
+    &lt;em&gt;%% We may be scheduled out while waiting for a
+    %% message, so we'll preserve our &lt;b&gt;Ref&lt;/b&gt; in &lt;b&gt;{y,0}&lt;/b&gt;.&lt;/em&gt;
+    {move,{x,0},{y,0}}.
+
+  {label,17}.
+    &lt;em&gt;%% Pick the next message from the process' message box
+    %% and place it in &lt;b&gt;{x,0}&lt;/b&gt;, jumping to label 19 if the
+    %% message box is empty.&lt;/em&gt;
+    {loop_rec,{f,19},{x,0}}.
+  
+    &lt;em&gt;%% Does it match our pattern? If not, jump to label 18
+    %% and try the next message.&lt;/em&gt;
+    {test,is_tuple,{f,18},[{x,0}]}.
+    {test,test_arity,{f,18},[{x,0},2]}.
+    {get_tuple_element,{x,0},0,{x,1}}.
+    {test,is_eq_exact,{f,18},[{x,1},{y,0}]}.
+
+    &lt;em&gt;%% We've got a match, extract the result and remove
+    %% the message from the mailbox.&lt;/em&gt;
+    {get_tuple_element,{x,0},1,{x,0}}.
+    remove_message.
+    {deallocate,1}.
+    return.
+
+  {label,18}.
+    &lt;em&gt;%% The message didn't match, loop back to handle our
+    %% next message. Note that the current message remains
+    %% in the inbox since a different receive may be
+    %% interested in it.&lt;/em&gt;
+    {loop_rec_end,{f,17}}.
+
+  {label,19}.
+    &lt;em&gt;%% Wait until the next message arrives, returning to
+    %% the start of the loop when it does. If there's a
+    %% timeout involved, it will be handled here.&lt;/em&gt;
+    {wait,{f,17}}.
+&lt;/pre&gt;
+
+&lt;p&gt;There’s not much more to it, and if you feel comfortable following the examples
+above you should have no problems with the JIT series.&lt;/p&gt;
+
+&lt;p&gt;If you’re curious about which instructions there are, you can find a brief
+description of every instruction in &lt;a href=&quot;https://github.com/erlang/otp/blob/master/lib/compiler/src/genop.tab&quot;&gt;genop.tab&lt;/a&gt;.&lt;/p&gt;</content><author><name>John Högberg</name></author><category term="BEAM" /><category term="compiler" /><category term="erts" /><summary type="html">This post is a brief primer on BEAM, the virtual machine that executes user code in the Erlang Runtime System (ERTS). It’s intended to help those new to BEAM follow an upcoming series of posts about the JIT in OTP 24, leaving implementation details for later.</summary></entry><entry><title type="html">The New Scalable ETS ordered_set</title><link href="https://beta.erlang.org/blog/the-new-scalable-ets-ordered_set/" rel="alternate" type="text/html" title="The New Scalable ETS ordered_set" /><published>2020-08-19T00:00:00+00:00</published><updated>2020-08-19T00:00:00+00:00</updated><id>https://beta.erlang.org/blog/the-new-scalable-ets-ordered_set</id><content type="html" xml:base="https://beta.erlang.org/blog/the-new-scalable-ets-ordered_set/">&lt;p&gt;The scalability of ETS tables of type &lt;code&gt;ordered_set&lt;/code&gt; with the
+&lt;code&gt;write_concurrency&lt;/code&gt; option is substantially better in Erlang/OTP 22
+than earlier releases. In some extreme cases, you can expect
+more than 100 times better throughput in Erlang/OTP 22 compared to
+Erlang/OTP 21. The cause of this improvement is a new data structure
+called &lt;a href=&quot;https://doi.org/10.1016/j.jpdc.2017.11.007&quot;&gt;the contention adapting search tree&lt;/a&gt; (CA tree
+for short). This blog post will give you insights into how the CA tree
+works and show you benchmark results comparing the performance of ETS
+&lt;code&gt;ordered_set&lt;/code&gt; tables in OTP 21 and OTP 22.&lt;/p&gt;
+
+&lt;h2 id=&quot;try-it-out&quot;&gt;Try it Out!&lt;/h2&gt;
+
+&lt;p&gt;[This escript]/blog/code/insert_disjoint_ranges.erl) makes it convenient for you
+to try the new &lt;code&gt;ordered_set&lt;/code&gt; implementation on your own machine with
+Erlang/OTP 22+ installed.&lt;/p&gt;
+
+&lt;p&gt;The escript measures the time it takes for &lt;code&gt;P&lt;/code&gt; Erlang processes to
+insert &lt;code&gt;N&lt;/code&gt; integers into an &lt;code&gt;ordered_set&lt;/code&gt; ETS table, where &lt;code&gt;P&lt;/code&gt; and &lt;code&gt;N&lt;/code&gt;
+are parameters to the escript. The CA tree is only utilized when the
+ETS table options &lt;code&gt;ordered_set&lt;/code&gt; and &lt;code&gt;{write_concurrency, true}&lt;/code&gt; are
+active. One can, therefore, easily compare the new data structure’s
+performance with the old one (an &lt;a href=&quot;https://en.wikipedia.org/wiki/AVL_tree&quot;&gt;AVL tree&lt;/a&gt; protected by a
+single readers-writer lock). The &lt;code&gt;write_concurrency&lt;/code&gt; option had no
+effect on &lt;code&gt;ordered_set&lt;/code&gt; tables before the release of Erlang/OTP 22.&lt;/p&gt;
+
+&lt;p&gt;We get the following results when running the escript on a developer laptop with
+two cores (Intel(R) Core(TM) i7-7500U CPU @ 2.70GHz):&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-bash&quot;&gt;$ escript insert_disjoint_ranges.erl old 1 10000000
+Time: 3.352332 seconds
+$ escript insert_disjoint_ranges.erl old 2 10000000
+Time: 3.961732 seconds
+$ escript insert_disjoint_ranges.erl old 4 10000000
+Time: 6.382199 seconds
+$ escript insert_disjoint_ranges.erl new 1 10000000
+Time: 3.832119 seconds
+$ escript insert_disjoint_ranges.erl new 2 10000000
+Time: 2.109476 seconds
+$ escript insert_disjoint_ranges.erl new 4 10000000
+Time: 1.66509 seconds
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;We see that in this particular benchmark, the CA tree has superior
+scalability to the old data structure. The benchmark ran about twice
+as fast with the new data structure and four processes as with the old
+data structure and one process (the machine only has two
+cores). We will look at the performance and scalability of the new CA
+tree-based implementation in greater detail later after describing how
+the CA tree works.&lt;/p&gt;
+
+&lt;h2 id=&quot;the-contention-adapting-search-tree-in-a-nutshell&quot;&gt;The Contention Adapting Search Tree in a Nutshell&lt;/h2&gt;
+
+&lt;p&gt;The key feature that distinguishes the CA tree from other concurrent
+data structures is that the CA tree dynamically changes its
+synchronization granularity based on how much contention is detected
+inside the data structure. This way, the CA tree can avoid the
+performance and memory overheads that come from using many unnecessary
+locks without sacrificing performance when many operations happen in
+parallel. For example, let us imagine a scenario where the CA tree is
+initially populated from many threads in parallel, and then it is only
+used from a single thread. In this scenario, the CA tree will adapt to
+use fine-grained synchronization in the population phase (when
+fine-grained synchronization reduces contention). The CA tree will then change
+to use coarse-grained synchronization in the single-threaded phase
+(when coarse-grained synchronization reduces the locking and memory
+overheads).&lt;/p&gt;
+
+&lt;p&gt;The structure of a CA tree is illustrated in the following
+picture:&lt;/p&gt;
+
+&lt;p&gt;![alt text]/blog/images/ca_tree/ca_tree_9.png “Contention Adapting Search Tree Structure”)&lt;/p&gt;
+
+&lt;p&gt;The actual items stored in the CA tree are located in
+sequential data structures in the bottom layer. These
+sequential data structures are protected by the locks in the base
+nodes in the middle layer. The base node locks have counters
+associated with them. The counter of a base node lock is increased when
+contention is detected in the base node lock and decreased when no
+such contention is detected. The value of this base node lock counter
+decides if a split or a join should happen after an operation has been
+performed in a base node. The routing nodes at the top of the picture
+above form a binary search tree that directs the search for a
+particular item. A routing node also contains a lock and a flag. These
+are used when joining base nodes. The details of how splitting and
+joining work will not be described in this article, but
+the interested reader can find a detailed description in this &lt;a href=&quot;https://doi.org/10.1016/j.jpdc.2017.11.007&quot;&gt;CA tree
+paper&lt;/a&gt; (&lt;a href=&quot;http://winsh.me/papers/catree_jpdc_paper.pdf&quot;&gt;preprint PDF&lt;/a&gt;). We will now
+illustrate how the CA tree changes its synchronization granularity by
+going through an example:&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;
+    &lt;p&gt;Initially, a CA tree only consists of a single base node with a
+sequential data structure as is depicted in the picture below:&lt;/p&gt;
+
+    &lt;p&gt;![alt text]/blog/images/ca_tree/ca_tree_1.png “Initial Contention Adapting Search Tree”)&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;If parallel threads access the CA tree, the value of a base node’s
+counter may eventually reach the threshold that indicates that the
+base node should be split. A base node split divides the items in a
+base node between two new base nodes and replaces the original base
+node with a routing node where the two new base nodes are
+rooted. The following picture shows the CA tree after the base node
+pointed to by the tree’s root has been split:&lt;/p&gt;
+
+    &lt;p&gt;![alt text]/blog/images/ca_tree/ca_tree_2.png “First Split Contention Adapting Search Tree”)&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;The process of base node splitting will continue as long as there
+is enough contention in base node locks or until the max depth of the
+routing layer is reached. The following picture shows how the CA
+tree looks like after another split:&lt;/p&gt;
+
+    &lt;p&gt;![alt text]/blog/images/ca_tree/ca_tree_3.png “Second Split Contention Adapting Search Tree”)&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;The synchronization granularity may differ in different parts of a
+CA tree if, for example, a particular part of a CA tree is accessed
+more frequently in parallel than the rest. The following picture
+shows the CA tree after yet another split:&lt;/p&gt;
+
+    &lt;p&gt;![alt text]/blog/images/ca_tree/ca_tree_4.png “Third Split Contention Adapting Search Tree”)&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;The following picture shows the CA tree after the fourth split:&lt;/p&gt;
+
+    &lt;p&gt;![alt text]/blog/images/ca_tree/ca_tree_5.png “Fourth Split Contention Adapting Search Tree”)&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;The following picture shows the CA tree after the fifth split:&lt;/p&gt;
+
+    &lt;p&gt;![alt text]/blog/images/ca_tree/ca_tree_6.png “Fifth Split Contention Adapting Search Tree”)&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Two base nodes holding adjacent ranges of items can be joined. Such
+a join will be triggered after an operation sees that a base
+node counter’s value is below a certain threshold. Remember that a
+base node’s counter is decreased if a thread does not experience
+contention when acquiring the base node’s lock.
+&lt;!--The conters The likelihood that
+a join will be triggered in a certain base node gets higher when
+the probablity of contention that does not detect contention in the
+base node lock is high. The likelihood that two base nodes are
+joined is also increased if operations that require both base nodes
+happens often enough (to reduce the overhead of acquiring locks).--&gt;&lt;/p&gt;
+
+    &lt;p&gt;![alt text]/blog/images/ca_tree/ca_tree_7.png “Join of two base nodes in a  Contention Adapting Search Tree”)&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;As you might have noticed from the illustrations above, splitting
+and joining results in that old base nodes and
+routing nodes gets spliced-out from the tree. The memory that these
+nodes occupy needs to be reclaimed, but this can not happen directly
+after they have got spliced-out as some threads might still be
+reading them. The Erlang run-time system has a mechanism called
+&lt;a href=&quot;https://github.com/erlang/otp/blob/d6285b0a347b9489ce939511ee9a979acd868f71/erts/emulator/internal_doc/ThreadProgress.md&quot;&gt;thread progress&lt;/a&gt;,
+which the ETS CA tree implementation uses to reclaim these nodes
+safely.&lt;/p&gt;
+
+    &lt;p&gt;![alt text]/blog/images/ca_tree/ca_tree_8.png “Spliced-out base nodes and routing nodes have been reclaimed.”)&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;[Click here]/blog/images/ca_tree/ca_tree_ani.gif) to see an animation of the example.&lt;/p&gt;
+
+&lt;h2 id=&quot;benchmark&quot;&gt;Benchmark&lt;/h2&gt;
+
+&lt;p&gt;The performance of the new CA tree-based ETS &lt;code&gt;ordered_set&lt;/code&gt;
+implementation has been evaluated in a benchmark that measures the
+throughput (operations per second) in many scenarios. The
+benchmark lets a configurable number of Erlang processes perform a
+configurable distribution of operations on a single ETS table. The
+curious reader can find the source code of the benchmark in the &lt;a href=&quot;https://github.com/erlang/otp/blob/ba2c374d3d6fcba479bb542eb6ecd5d8216ce84b/lib/stdlib/test/ets_SUITE.erl#L7623&quot;&gt;test
+suite for
+ETS&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;The following figures show results from this benchmark on a machine
+with two Intel(R) Xeon(R) CPU E5-2673 v4 @ 2.30GHz (32 cores in total
+with hyper-threading). The average set size in all scenarios was
+about 500K. More details about the benchmark machine and configuration
+can be found on &lt;a href=&quot;/blog/images/ets_ord_set_21_vs_22/21_vs_22.html&quot;&gt;this
+page&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/blog/images/ets_ord_set_21_vs_22/plot_1.png&quot; alt=&quot;alt text&quot; title=&quot;benchmark results&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/blog/images/ets_ord_set_21_vs_22/plot_2.png&quot; alt=&quot;alt text&quot; title=&quot;benchmark results&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/blog/images/ets_ord_set_21_vs_22/plot_3.png&quot; alt=&quot;alt text&quot; title=&quot;benchmark results&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/blog/images/ets_ord_set_21_vs_22/plot_7.png&quot; alt=&quot;alt text&quot; title=&quot;benchmark results&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/blog/images/ets_ord_set_21_vs_22/plot_8.png&quot; alt=&quot;alt text&quot; title=&quot;benchmark results&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/blog/images/ets_ord_set_21_vs_22/plot_5.png&quot; alt=&quot;alt text&quot; title=&quot;benchmark results&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/blog/images/ets_ord_set_21_vs_22/plot_6.png&quot; alt=&quot;alt text&quot; title=&quot;benchmark results&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/blog/images/ets_ord_set_21_vs_22/plot_4.png&quot; alt=&quot;alt text&quot; title=&quot;benchmark results&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;We see that the throughput of the CA tree-based &lt;code&gt;ordered_set&lt;/code&gt; (OTP-22)
+improves when we add cores all the way up to 64 cores, while the old
+implementation’s (OTP-21) throughput often gets worse when more
+processes are added. The old implementation’s write operations are
+serialized as the data structure is protected by a single
+readers-writer lock. The slowdown of the old version when adding more
+cores is mainly caused by increased communication overhead when more
+cores try to acquire the same lock and by the fact that the competing
+cores frequently invalidate each other’s cache lines.&lt;/p&gt;
+
+&lt;p&gt;The graph for the 100% lookups scenario (the last graph in the list of
+graphs above) looks a bit strange at first sight. Why does the CA tree
+scale so much better than the old implementation in this scenario? The
+answer is almost impossible to guess without knowing the
+implementation details of the &lt;code&gt;ordered_set&lt;/code&gt; table type. First of all,
+the CA tree uses the same readers-writer lock implementation
+for its base node locks as the old implementation uses to protect the whole
+table. The difference is thus not due to any lock differences. The
+default &lt;code&gt;ordered_set&lt;/code&gt; implementation (the one that is active when
+&lt;code&gt;write_concurrency&lt;/code&gt; is off) has an optimization that mainly improves
+usage scenarios where a single process iterates over items of the
+table, for example, with a sequence of calls to the &lt;code&gt;ets:next/2&lt;/code&gt;
+function. This optimization keeps a static stack per table. Some
+operations use this stack to reduce the number of tree nodes that need
+to be traversed. For example, the &lt;code&gt;ets:next/2&lt;/code&gt; operation does not need
+to recreate the stack, if the top of the stack contains the same key
+as the one passed to the operation (see
+&lt;a href=&quot;https://github.com/erlang/otp/blob/master/erts/emulator/beam/erl_db_tree.c#L3084&quot;&gt;here&lt;/a&gt;). As there is only one static stack per
+table and potentially many readers (due to the readers-writer lock),
+the static stack has to be reserved by the thread that is currently
+using it. Unfortunately, the static stack handling is a scalability
+bottleneck in scenarios like the one with 100% lookups above. The CA
+tree implementation does not have this type of optimization, so it
+does not suffer from this scalability bottleneck. However, this also
+means that the old implementation may perform better than the new one
+when the table is mainly sequentially accessed. One example of when
+the old implementation (that still can be used by setting the
+&lt;code&gt;write_concurrency&lt;/code&gt; option to false) performs better is the single
+process case of the 10% &lt;code&gt;insert&lt;/code&gt;, 10% &lt;code&gt;delete&lt;/code&gt;, 40% &lt;code&gt;lookup&lt;/code&gt; and 40%
+&lt;code&gt;nextseq1000&lt;/code&gt; (a sequence of 1000 &lt;code&gt;ets:next/2&lt;/code&gt; calls) scenario (the
+second last graph in the list of graphs above).&lt;/p&gt;
+
+&lt;p&gt;Therefore, we can conclude that that turning on &lt;code&gt;write_concurrency&lt;/code&gt;
+for an &lt;code&gt;ordered_set&lt;/code&gt; table is probably a good idea if the table is
+accessed from multiple processes in parallel. Still, turning off
+&lt;code&gt;write_concurrency&lt;/code&gt; might be better if you mainly access the table
+sequentially.&lt;/p&gt;
+
+&lt;h2 id=&quot;a-note-on-decentralized-counters&quot;&gt;A Note on Decentralized Counters&lt;/h2&gt;
+
+&lt;p&gt;The CA tree implementation was not the only optimization introduced in
+Erlang/OTP 22, affecting the scalability of &lt;code&gt;ordered_set&lt;/code&gt; with
+&lt;code&gt;write_concurrency&lt;/code&gt;. An optimization that decentralized counters in
+&lt;code&gt;ordered_set&lt;/code&gt; tables with &lt;code&gt;write_concurrency&lt;/code&gt; turned on was also
+introduced in Erlang/OTP 22 (see &lt;a href=&quot;https://github.com/erlang/otp/pull/2190&quot;&gt;here&lt;/a&gt;).  An
+option to enable the same optimization in all table types was
+introduced in Erlang/OTP 23 (see &lt;a href=&quot;https://github.com/erlang/otp/pull/2229&quot;&gt;here&lt;/a&gt;). You can
+find benchmark results comparing the scalability of the tables with
+and without decentralized counters &lt;a href=&quot;http://winsh.me/ets_catree_benchmark/azure_D64s_decent_ctrs/hash_decentralized_ctrs.html&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h2 id=&quot;further-reading&quot;&gt;Further Reading&lt;/h2&gt;
+
+&lt;p&gt;The following paper describes the CA tree and some optimizations (of which some have not been applied to the ETS CA tree yet) in much more detail than this blog post. The paper also includes an experimental comparison with related data structures.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;em&gt;&lt;a href=&quot;https://doi.org/10.1016/j.jpdc.2017.11.007&quot;&gt;A Contention Adapting Approach to Concurrent Ordered Sets&lt;/a&gt; (&lt;a href=&quot;http://winsh.me/papers/catree_jpdc_paper.pdf&quot;&gt;preprint&lt;/a&gt;). Journal of Parallel and Distributed Computing, 2018. Konstantinos Sagonas and Kjell Winblad&lt;/em&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;There is also a lock-free variant of the CA tree that is described in the following paper. The lock-free CA tree uses immutable data structures in its base nodes to substantially reduce the amount of time range queries, and similar operations can conflict with other operations.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;em&gt;&lt;a href=&quot;https://doi.org/10.1145/3210377.3210413&quot;&gt;Lock-free Contention Adapting Search Trees&lt;/a&gt; (&lt;a href=&quot;http://winsh.me/papers/spaa2018lfcatree.pdf&quot;&gt;preprint&lt;/a&gt;). In the proceedings of the 30th Symposium on Parallelism in Algorithms and Architectures (SPAA 2018). Kjell Winblad, Konstantinos Sagonas, and Bengt Jonsson.&lt;/em&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;The following paper, which discusses and evaluates a prototypical CA tree implementation for ETS, was the first CA tree-related paper.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;em&gt;&lt;a href=&quot;http://dl.acm.org/citation.cfm?id=2633455&quot;&gt;More Scalable Ordered Set for ETS Using Adaptation&lt;/a&gt; (&lt;a href=&quot;http://winsh.me/papers/erlang_workshop_2014.pdf&quot;&gt;preprint&lt;/a&gt;). In Thirteenth ACM SIGPLAN workshop on Erlang (2014). Konstantinos Sagonas and Kjell Winblad&lt;/em&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;You can look directly at the &lt;a href=&quot;https://github.com/erlang/otp/blob/4ca912b859f779d6d9b235ea0cf6fb7662edcc59/erts/emulator/beam/erl_db_catree.c&quot;&gt;ETS CA tree source
+code&lt;/a&gt; if you are interested in specific
+implementation details. Finally, it might also be interesting to look
+at the &lt;a href=&quot;http://uu.diva-portal.org/smash/record.jsf?pid=diva2%3A1220366&amp;amp;dswid=6575&quot;&gt;author’s Ph.D. thesis&lt;/a&gt; if you want to get
+more links to related work or want to know more about the motivation
+for concurrent data structures that adapt to contention.&lt;/p&gt;
+
+&lt;h2 id=&quot;conclusion&quot;&gt;Conclusion&lt;/h2&gt;
+
+&lt;p&gt;The Erlang/OTP 22 release introduced a new ETS &lt;code&gt;ordered_set&lt;/code&gt;
+implementation that is active when the &lt;code&gt;write_concurrency&lt;/code&gt; option is
+turned on. This data structure (a contention adapting search tree) has
+superior scalability to the old data structure in many different
+scenarios and a design that gives it excellent performance in a variety
+of scenarios that benefit from different synchronization
+granularities.&lt;/p&gt;</content><author><name>Kjell Winblad</name></author><category term="ETS" /><category term="ordered_set" /><category term="scalability" /><category term="CA" /><category term="tree" /><summary type="html">The scalability of ETS tables of type ordered_set with the write_concurrency option is substantially better in Erlang/OTP 22 than earlier releases. In some extreme cases, you can expect more than 100 times better throughput in Erlang/OTP 22 compared to Erlang/OTP 21. The cause of this improvement is a new data structure called the contention adapting search tree (CA tree for short). This blog post will give you insights into how the CA tree works and show you benchmark results comparing the performance of ETS ordered_set tables in OTP 21 and OTP 22.</summary></entry><entry><title type="html">OTP 23 Highlights</title><link href="https://beta.erlang.org/blog/OTP-23-Highlights/" rel="alternate" type="text/html" title="OTP 23 Highlights" /><published>2020-05-13T00:00:00+00:00</published><updated>2020-05-13T00:00:00+00:00</updated><id>https://beta.erlang.org/blog/OTP-23-Highlights</id><content type="html" xml:base="https://beta.erlang.org/blog/OTP-23-Highlights/">&lt;p&gt;OTP 23 has just been released (May 13:th 2020).
+It has been a long process with three release
+candidates in February, March and April before the final release.
+We are very thankful for the feedback we have got regarding the release candidates,
+which has revealed some bugs and flaws that our internal testing did not find.&lt;/p&gt;
+
+&lt;p&gt;This blog post will describe some highlights of what is new in OTP 23.&lt;/p&gt;
+
+&lt;p&gt;You can download the readme describing the changes here:
+&lt;a href=&quot;http://erlang.org/download/otp_src_23.0.readme&quot;&gt;OTP 23 Readme&lt;/a&gt;.
+Or, as always, look at the release notes of the application you are interested in.
+For instance here: &lt;a href=&quot;/doc/apps/erts/notes.html&quot;&gt;OTP 23 Erts Release Notes&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h1 id=&quot;language&quot;&gt;Language&lt;/h1&gt;
+
+&lt;p&gt;In OTP 23 we have added some new features to the language and compiler, one has been in the backlog since the bit syntax was introduced and the other is a suggestion from the community.&lt;/p&gt;
+
+&lt;h2 id=&quot;matching-syntax-improvements&quot;&gt;Matching syntax improvements​&lt;/h2&gt;
+
+&lt;h3 id=&quot;binary-matching&quot;&gt;Binary matching&lt;/h3&gt;
+&lt;p&gt;In binary matching, the size of the segment to be matched is now allowed to be a guard expression. In the example below the variable &lt;code&gt;Size&lt;/code&gt; is bound to the first 8 bits and then it is used in an expression &lt;code&gt;(Size-1)*8&lt;/code&gt; for the size of the following binary.&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-erlang&quot;&gt;example1(&amp;lt;&amp;lt;Size:8,Payload:((Size-1)*8)/binary,Rest/binary&amp;gt;&amp;gt;) -&amp;gt;​
+    {Payload,Rest}.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h3 id=&quot;matching-on-maps&quot;&gt;Matching on maps&lt;/h3&gt;
+&lt;p&gt;In the current map matching syntax, the key in a map pattern must be a single value or a literal. This leads to unnatural code if the keys in a map are complex terms.​&lt;/p&gt;
+
+&lt;p&gt;With OTP 23 the keys in map matching can be guard expressions as you see in new_example2.​&lt;/p&gt;
+
+&lt;p&gt;The only limitation is that all variables used in a key expression must be previously bound.&lt;/p&gt;
+
+&lt;p&gt;Previously you had to do like this:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-erlang&quot;&gt;example2(M, X) -&amp;gt;
+    Key = {tag,X},
+    #{Key := Value} = M,
+    Value.
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;And now you can do like this:&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-erlang&quot;&gt;new_example2(M, X) -&amp;gt;​
+    #{ {tag,X} := Value} = M,​
+    Value.​
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Below there is an illegal example showing that it is still not supported to use an unbound variable as part of the expression for the key-pattern. In this case Key is not bound and the requirement is that all variables used in a key expression must be previously bound.&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-erlang&quot;&gt;illegal_example(Key, #{Key := Value}) -&amp;gt; Value.
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&quot;numeric-literals-with-underscore&quot;&gt;Numeric literals with underscore&lt;/h2&gt;
+&lt;p&gt;It is now allowed to write numeric literals with underscore between the digits for the purpose of readability. But the placement of the underscores is not totally free there are some rules. See example of allowed use below:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;305441741123_456
+1_2_3_4_5
+123_456.789_123
+1.0e1_23
+16#DEAD_BEEF
+2#1100_1010_0011
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;And in the following example we have some examples of disallowed placement of the underscore:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;_123  % variable name
+123_
+123__456  % only single ‘_’
+123_.456
+123._456
+16#_1234
+16#1234_
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h1 id=&quot;distributed-spawn-and-the-new-erpc-module&quot;&gt;Distributed spawn and the new &lt;code&gt;erpc&lt;/code&gt; module&lt;/h1&gt;
+&lt;h2 id=&quot;improved-spawn&quot;&gt;Improved spawn&lt;/h2&gt;
+
+&lt;p&gt;The spawn operation is improved regarding scalability and performance for the distributed case. That is when spawning a process on another node.&lt;/p&gt;
+
+&lt;p&gt;New features are also added, such as a distributed &lt;code&gt;spawn_monitor()&lt;/code&gt; BIF. This function creates a new process and sets up a monitor atomically.&lt;/p&gt;
+
+&lt;p&gt;The &lt;code&gt;spawn_opt()&lt;/code&gt; BIF will also support the monitor option for setting up a monitor atomically while creating a process on another node.&lt;/p&gt;
+
+&lt;p&gt;We have also added new &lt;a href=&quot;/doc/man/erlang.html#spawn_request-1&quot;&gt;&lt;code&gt;spawn_request()&lt;/code&gt;&lt;/a&gt; BIFs for asynchronous spawning of processes.
+&lt;code&gt;spawn_request()&lt;/code&gt; supports all options that &lt;code&gt;spawn_opt()&lt;/code&gt; already supports.&lt;/p&gt;
+
+&lt;p&gt;The spawn improvements described above can also be used to optimize and improve many of the functions in the &lt;code&gt;rpc&lt;/code&gt; module but since the new functions will not be 100% compatible we decided to introduce a new module named &lt;code&gt;erpc&lt;/code&gt; and will keep the old &lt;code&gt;rpc&lt;/code&gt; module as well.&lt;/p&gt;
+
+&lt;p&gt;The &lt;code&gt;erpc&lt;/code&gt; module implements an enhanced subset of the operations provided by the &lt;code&gt;rpc&lt;/code&gt; module.&lt;/p&gt;
+
+&lt;p&gt;Enhanced in the sense that it makes it possible to distinguish between returned value, raised exceptions, and other errors.​&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;erpc&lt;/code&gt; also has better performance and scalability than the original &lt;code&gt;rpc&lt;/code&gt; implementation. This by utilizing the newly introduced &lt;code&gt;spawn_request()&lt;/code&gt; BIF.&lt;/p&gt;
+
+&lt;p&gt;The &lt;code&gt;rpc&lt;/code&gt;module now share the same implementation as &lt;code&gt;erpc&lt;/code&gt; and by that users of &lt;code&gt;rpc&lt;/code&gt; will automatically benefit from the performance and scalability improvements made in &lt;code&gt;erpc&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;The pictures below illustrate the old and the new implementation of rpc:call() and shows why the new one is more efficient and scalable.&lt;/p&gt;
+
+&lt;p&gt;“old” rpc:call implementation:
+&lt;img src=&quot;../images/rpc1.png&quot; alt=&quot;old rpc illustration&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;new rcp:call implementation with support in the distribution protocol (spawn request)
+&lt;img src=&quot;../images/rpc2.png&quot; alt=&quot;new rpc illustration&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;As you can see in the “old” implementation above the &lt;code&gt;rpc:call&lt;/code&gt; relies on the &lt;code&gt;rex&lt;/code&gt; process on the receiving node to spawn a temporary process to execute the called function. This will make &lt;code&gt;rex&lt;/code&gt; to a bottleneck if there are many simultaneous &lt;code&gt;rpc:calls&lt;/code&gt; towards the node.&lt;/p&gt;
+
+&lt;p&gt;The new solution does not use &lt;code&gt;rex&lt;/code&gt; at all and let the spawned process decode the arguments of the call thus avoiding some unnecessary copying of data that occurs in the “old” implementation.&lt;/p&gt;
+
+&lt;h1 id=&quot;gen_tcp-and-the-new-socket-module&quot;&gt;gen_tcp and the new socket module&lt;/h1&gt;
+
+&lt;p&gt;In OTP 22 we introduced the new experimental &lt;a href=&quot;/doc/man/socket.html&quot;&gt;socket&lt;/a&gt; API.
+The idea behind this API is to have a stable intermediary API that can be used
+to create features that are not part of the higher-level &lt;code&gt;gen_*&lt;/code&gt; APIs.&lt;/p&gt;
+
+&lt;p&gt;We have now come one step further in our plan to replace the inet driver by making it possible to use the &lt;code&gt;gen_tcp&lt;/code&gt; API with &lt;code&gt;socket&lt;/code&gt; as an optional back-end.&lt;/p&gt;
+
+&lt;p&gt;To make it easy to test with existing code using &lt;code&gt;gen_tcp&lt;/code&gt; a new option &lt;code&gt;{inet_backend, socket | inet}&lt;/code&gt; can be used to select the &lt;code&gt;socket&lt;/code&gt; implementation instead of the default &lt;code&gt;inet&lt;/code&gt; implementation. This option must be put first in the option list to the functions: &lt;code&gt;gen_tcp:listen&lt;/code&gt;, &lt;code&gt;gen_tcp:connect&lt;/code&gt; and &lt;code&gt;gen_tcp:fdopen&lt;/code&gt;, which are all functions that create a socket. For example like this:&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-erlang&quot;&gt;{ok,Socket} = gen_tcp:connect(Addr,Port,[{inet_backend,socket}|OtherOpts])
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;The returned &lt;code&gt;Socket&lt;/code&gt; is a &lt;code&gt;'$inet'&lt;/code&gt; tagged 3-tuple instead of a port, so all other API functions will use the right implementation for the socket.&lt;/p&gt;
+
+&lt;p&gt;A more general override is to use the Kernel configuration variable &lt;code&gt;inet_backend&lt;/code&gt; and set it to &lt;code&gt;socket&lt;/code&gt; or &lt;code&gt;inet&lt;/code&gt;.  For example on the &lt;code&gt;erl&lt;/code&gt; command-line as&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;erl -kernel inet_backend socket
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;or set it with&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;ERL_FLAGS=&quot;-kernel inet_backend socket&quot;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h1 id=&quot;help-in-the-shell&quot;&gt;Help in the shell&lt;/h1&gt;
+&lt;p&gt;We have implemented &lt;a href=&quot;http://erlang.org/eeps/eep-0048.html&quot;&gt;EEP 48&lt;/a&gt; which specifies a storage format for API documentation to be used by BEAM languages. By standardizing how API documentation is stored, it will be possible to write tools that work across languages.&lt;/p&gt;
+
+&lt;p&gt;The ordinary doc build is extended with the generation of &lt;code&gt;.chunk&lt;/code&gt; files for all OTP modules. You can run &lt;code&gt;make docs DOC_TARGETS=chunks&lt;/code&gt; to build only the EEP 48 chunks. Running just &lt;code&gt;make docs&lt;/code&gt; without setting the DOC_TARGETS variable will build all formats (html, man, pdf, chunks).&lt;/p&gt;
+
+&lt;p&gt;Built on these new features we’ve added On-line help in the shell with the functions:&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-erlang&quot;&gt;h(Module) 
+h(Module,Function), 
+h(Module,Function,Arity)
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;There are also corresponding functions &lt;code&gt;ht/1,2,3&lt;/code&gt; and &lt;code&gt;hcb/1,2,3&lt;/code&gt; to get help about types and callback functions&lt;/p&gt;
+
+&lt;p&gt;We have added a new module &lt;code&gt;shell_docs&lt;/code&gt; in &lt;code&gt;stdlib&lt;/code&gt; with functions for rendering documentation for a shell. This can be used for instance by Development Environments such as those based on the Language Server Protocol (LSP).&lt;/p&gt;
+
+&lt;p&gt;The &lt;code&gt;code&lt;/code&gt; module also got a new function, &lt;code&gt;get_doc&lt;/code&gt; which returns the doc chunk without loading the module.&lt;/p&gt;
+
+&lt;p&gt;See example below for getting documentation for &lt;code&gt;lists:sort/2&lt;/code&gt;&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;4&amp;gt; h(lists,sort,2).
+
+  -spec sort(Fun, List1) -&amp;gt; List2
+                when
+                    Fun :: fun((A :: T, B :: T) -&amp;gt; boolean()),
+                    List1 :: [T],
+                    List2 :: [T],
+                    T :: term().
+
+  Returns a list containing the sorted elements of List1,
+  according to the ordering function Fun. Fun(A, B) is to
+  return true if A compares less than or equal to B in the
+  ordering, otherwise false.
+ok
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h2 id=&quot;improved-tab-completion&quot;&gt;Improved tab-completion&lt;/h2&gt;
+&lt;p&gt;The tab-completion in the shell is also improved. Previously the tab-completion for modules did only work for already loaded modules now this is extended to work for all modules available in the code path. The completion is also extended to work inside the “help” functions h, ht and hcb. You can for example press tab like the example below and get all modules beginning with &lt;code&gt;l&lt;/code&gt;:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;5&amp;gt; h(l
+lcnt                      leex                      lists                     
+local_tcp                 local_udp                 log_mf_h                  
+logger                    logger_backend            logger_config             
+logger_disk_log_h         logger_filters            logger_formatter          
+logger_h_common           logger_handler_watcher    logger_olp                
+logger_proxy              logger_server             logger_simple_h           
+logger_std_h              
+logger_sup
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Or complete all functions beginning with &lt;code&gt;s&lt;/code&gt; in the &lt;code&gt;lists&lt;/code&gt; module like this:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;5&amp;gt; h(lists,s
+search/2     seq/2        seq/3        sort/1       sort/2       split/2      
+splitwith/2  sublist/2    sublist/3    subtract/2   suffix/2     sum/1        
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h1 id=&quot;container-friendly-features&quot;&gt;“Container friendly” features&lt;/h1&gt;
+
+&lt;h2 id=&quot;take-cpu-quotas-into-account&quot;&gt;Take CPU quotas into account&lt;/h2&gt;
+&lt;p&gt;CPU quotas are now taken into account when deciding the default number of online schedulers.&lt;/p&gt;
+
+&lt;p&gt;Thus, automatically making Erlang a good citizen in container environments where quotas are applied, such as docker with the &lt;code&gt;--cpus&lt;/code&gt; flag.&lt;/p&gt;
+
+&lt;h2 id=&quot;epmd-independence&quot;&gt;EPMD independence&lt;/h2&gt;
+
+&lt;p&gt;In a cloud and container based environment it might be interesting to run distributed Erlang nodes without use of &lt;code&gt;epmd&lt;/code&gt; and use a hard coded port or an alternative service discovery. Because of this we introduce ways to make it easier to start and configure systems without &lt;code&gt;epmd&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h3 id=&quot;handshake&quot;&gt;Handshake&lt;/h3&gt;
+&lt;p&gt;We have improved the handshake during connection setup in the Erlang distribution protocol.
+It is now possible to agree on protocol version without depending on &lt;code&gt;epmd&lt;/code&gt; or other prior knowledge of peer node version.&lt;/p&gt;
+
+&lt;h3 id=&quot;dynamic-node-name&quot;&gt;Dynamic node name&lt;/h3&gt;
+
+&lt;p&gt;Another feature introduced together with the new handshake is the dynamic node name. A dynamic node name is chosen by using the options &lt;code&gt;-name Name&lt;/code&gt; or &lt;code&gt;-sname Name&lt;/code&gt; and setting &lt;code&gt;Name&lt;/code&gt; to &lt;code&gt;undefined&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;These options
+makes the Erlang runtime system into a distributed node. These flags invokes all network servers necessary for a node to become distributed; see &lt;code&gt;net_kernel&lt;/code&gt;. It is also ensured that &lt;code&gt;epmd&lt;/code&gt; runs on the current host before Erlang is started; see epmd and the &lt;code&gt;-start_epmd&lt;/code&gt; option.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;The new feature in OTP 23&lt;/strong&gt; is that 
+&lt;code&gt;Name&lt;/code&gt; can be set to &lt;code&gt;undefined&lt;/code&gt; and then the node will be started in a special mode optimized to be the &lt;strong&gt;temporary client&lt;/strong&gt; of another node. When enabled the node will request a dynamic node name from the first node it connects to. In addition these distribution settings will be implied:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;erl -dist_listen false -hidden -dist_auto_connect never
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;Because &lt;code&gt;-dist_auto_connect&lt;/code&gt; is set to &lt;code&gt;never&lt;/code&gt;, the system will have to manually call &lt;code&gt;net_kernel:connect_node/1&lt;/code&gt; in order to start the distribution. If the distribution channel is closed, when a node uses a dynamic node name, the node will stop the distribution and a new call to &lt;code&gt;net_kernel:connect_node/1&lt;/code&gt; has to be made. Note that the node name may change if the distribution is dropped and then set up again.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Note!&lt;/strong&gt;
+The dynamic node name feature is supported from OTP 23. Both the temporary client node and the first connected peer node (supplying the dynamic node name) must be at least OTP 23 for it to work.&lt;/p&gt;
+
+&lt;h3 id=&quot;new-options-to-control-the-use-of-epmd&quot;&gt;New options to control the use of &lt;code&gt;epmd&lt;/code&gt;&lt;/h3&gt;
+
+&lt;p&gt;To give the user more control over the use of &lt;code&gt;epmd&lt;/code&gt; some new options to the inet distribution has been added.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;code&gt;-dist_listen false&lt;/code&gt; Setup the distribution channel, but do not listen for incoming connection. This is useful when you want to use the current node to interact with another node on the same machine without it joining the entire cluster.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;&lt;code&gt;-erl_epmd_port Port&lt;/code&gt; Configure a default port that the built-in EPMD client should return. This allows the local node to know the port to connect to for any other node in the cluster.&lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;&lt;code&gt;-remsh Node&lt;/code&gt; Starts Erlang with a remote shell connected to &lt;code&gt;Node&lt;/code&gt;.
+  If no &lt;code&gt;-name&lt;/code&gt; or &lt;code&gt;-sname&lt;/code&gt; is given the node will be started using &lt;code&gt;-sname undefined&lt;/code&gt;. 
+  If Node is using long names then you should give &lt;code&gt;-name undefined&lt;/code&gt;.
+  If &lt;code&gt;Node&lt;/code&gt; does not contain a hostname, one is automatically taken from the &lt;code&gt;-name&lt;/code&gt; or &lt;code&gt;-sname&lt;/code&gt; option.&lt;/p&gt;
+
+    &lt;p&gt;&lt;strong&gt;Note&lt;/strong&gt;
+  Before OTP-23 the user needed to supply a valid &lt;code&gt;-sname&lt;/code&gt; or &lt;code&gt;-name&lt;/code&gt; for &lt;code&gt;-remsh&lt;/code&gt; to work. 
+  This is still the case if the target node is not running OTP-23 or later.&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-bash&quot;&gt;# starting the E-node test
+erl -sname test@localhost 
+
+# starting a temporary E-node (with dynamic name) as a remote shell to
+# the node test
+erl -remsh test@localhost 
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;The &lt;code&gt;erl_epmd&lt;/code&gt; callback API has also been extended to allow returning -1 as the creation which means that a random creation will be created by the node.&lt;/p&gt;
+
+&lt;p&gt;In addition a new callback function called
+&lt;code&gt;listen_port_please&lt;/code&gt; has been added that allows the callback to return which listen port the distribution should use. This can be used instead of &lt;code&gt;inet_dist_listen_min/max&lt;/code&gt; if the listen port is to be fetched from an external service.&lt;/p&gt;
+
+&lt;h2 id=&quot;new-option-for-erl_call&quot;&gt;New option for &lt;code&gt;erl_call&lt;/code&gt;&lt;/h2&gt;
+
+&lt;p&gt;&lt;code&gt;erl_call&lt;/code&gt; is a C program originally bundled as an example inside the &lt;code&gt;erl_interface&lt;/code&gt; application.
+&lt;code&gt;erl_interface&lt;/code&gt; contains C-libraries for communicating with Erlang nodes and letting C programs behave as if they are Erlang nodes. They are then called C nodes. &lt;code&gt;erl_call&lt;/code&gt; has become popular and is used in products mainly for administration of an Erlang node on the same host. In OTP 23 &lt;code&gt;erl_call&lt;/code&gt; is installed under the same path as &lt;code&gt;erl&lt;/code&gt; making available in the path without bothering about the &lt;code&gt;erl_interface&lt;/code&gt; version. 
+Another new thing in &lt;code&gt;erl_call&lt;/code&gt; is the &lt;code&gt;address&lt;/code&gt; option, that can be used to connect directly to a node  without being dependent on &lt;code&gt;epmd&lt;/code&gt; to resolve the node name.&lt;/p&gt;
+
+&lt;p&gt;AFAIK &lt;code&gt;erl_call&lt;/code&gt; is being used in the upcoming version of relx (used by rebar3) for the node_tool function.&lt;/p&gt;
+
+&lt;h1 id=&quot;tls-enhancements-and-changes&quot;&gt;TLS enhancements and changes&lt;/h1&gt;
+&lt;p&gt;TLS-1.3 is now supported (in OTP 22 we classed it as experimental) but not yet feature complete. 
+Key features supported are:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;session tickets&lt;/li&gt;
+  &lt;li&gt;refreshing of session keys&lt;/li&gt;
+  &lt;li&gt;RSASSA-PSS signatures&lt;/li&gt;
+  &lt;li&gt;Middlebox compatibility.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;The “early data” feature is not yet supported. Early data is an optimization introduced in TLS 1.3 which allows a client to send data to a server in the first round trip of a connection, without waiting for the TLS handshake to complete if the client has spoken to the same server recently.&lt;/p&gt;
+
+&lt;p&gt;In OTP 23 TLS 1.3 is per default announced as the preferred protocol version by both client and server. Users who are not explicitly configuring the TLS versions should be aware of this since it can have impact on interoperability.&lt;/p&gt;
+
+&lt;p&gt;A new option &lt;code&gt;exclusive&lt;/code&gt; is provided for &lt;code&gt;ssl:cipher_suites/2,3&lt;/code&gt; and &lt;code&gt;ssl:versions&lt;/code&gt; is extended to better reflect what versions of TLS that are available for the current  setup of Erlang/OTP.&lt;/p&gt;
+
+&lt;p&gt;Also note that we have removed support for the legacy TLS version SSL-3.0.&lt;/p&gt;
+
+&lt;h1 id=&quot;ssh&quot;&gt;SSH&lt;/h1&gt;
+&lt;p&gt;Two notable SSH features were provided as Pull Requests from open source users, namely support for fetching keys from ssh-agents and TCP/IP port forwarding.  Port forwarding is sometimes called tunneling or tcp-forward/direct-tcp. In the OpenSSH client, port forwarding corresponds to the options -L and -R.&lt;/p&gt;
+
+&lt;p&gt;Ssh agent stored keys improves the security while port forwarding is often used to get an encrypted tunnel between two hosts. In the area of key handling, the default key plugin &lt;code&gt;ssh_file.erl&lt;/code&gt; is rewritten and extended with OpenSSH file format “openssh-key-v1”.  A limitation so far is that keys in the new format cannot be encrypted The default plugin now also uses port numbers which increases the security.&lt;/p&gt;
+
+&lt;p&gt;The SSH application can now be configured in an Erlang config-file. This gives the possibility to for example change the supported algorithm set without code change.&lt;/p&gt;
+
+&lt;h1 id=&quot;crypto&quot;&gt;Crypto&lt;/h1&gt;
+&lt;p&gt;A new crypto API was introduced in OTP-22.0.  The main reason for a new API was to use the OpenSSL libcrypto EVP API that enables HW acceleration, if the machine supports it.  The naming of crypto algorithms is also systemized and now follows the schema in OpenSSL.&lt;/p&gt;
+
+&lt;p&gt;There are parts of the Crypto app that are using very old APIs while other parts are using the latest one.
+It turned out that using the old API in the new way, and still keeping it backwards compatible, was not possible.&lt;/p&gt;
+
+&lt;p&gt;Therefore the old API is kept for now but it is implemented with new primitives.
+The Old API is deprecated in OTP-23.0 and will be removed in OTP-24.0.&lt;/p&gt;</content><author><name>Kenneth Lundin</name></author><category term="otp" /><category term="23" /><category term="release" /><summary type="html">OTP 23 has just been released (May 13:th 2020). It has been a long process with three release candidates in February, March and April before the final release. We are very thankful for the feedback we have got regarding the release candidates, which has revealed some bugs and flaws that our internal testing did not find.</summary></entry></feed>

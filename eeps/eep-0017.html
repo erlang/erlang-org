@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+
+
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <!-- Allow pinning of website on windows -->
+    <meta name="application-name" content="Erlang.org">
+    <meta name="msapplication-tooltip" content="The official home of the Erlang Programming Language">
+    <meta name="msapplication-starturl" content="/" >
+
+    <!-- Make the site look nicer on facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Erlang.org">
+    <meta property="og:title" content="Welcome to Erlang.org">
+    <meta property="og:description" content="The official home of the Erlang Programming Language">
+    <meta property="og:image" content="https://beta.erlang.org/assets/img/erlang-228x200.png">
+    <meta property="og:image:secure_url" content="https://beta.erlang.org/assets/img/erlang-228x200.png">
+    <meta property="og:url" content="https://beta.erlang.org/">
+
+    <!-- Twitter metadata -->
+    <meta name="twitter:card" content="summary" />
+    <meta property="twitter:title" content="Index" />
+    <meta name="twitter:site" content="@erlang_org" />
+
+    <!-- Rich data for google search -->
+    <script type="application/ld+json">
+{"@type":"WebSite","url":"https://erlang.org/","headline":"Eep 0017 - Erlang/OTP","name":"Erlang.org","sameAs":["https://twitter.com/erlang_org","https://github.com/erlang/otp"],"@context":"https://schema.org"}</script>
+
+    <title>Eep 0017 - Erlang/OTP</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- tells iOS browsers to not show telephone numbers as links -->
+    <meta name="format-detection" content="telephone=no">
+
+    <meta name="application-name" content="Erlang.org">
+    <meta name="description" content="The official home of the Erlang Programming Language">
+    <meta name="keywords" content="Erlang programming language functional parallel distributed documentation download community">
+    <!-- https://www.rssboard.org/rss-autodiscovery -->
+    <link rel="alternate" type="application/atom+xml" title="News Atom Feed" href="https://beta.erlang.org/news.xml" />
+    <link rel="alternate" type="application/atom+xml" title="Blog Atom Feed" href="https://beta.erlang.org/blog.xml" />
+    
+    <link rel="stylesheet" href="/assets/css/main.css">
+</head>
+
+<body>
+    <header class="navbar navbar-expand-lg navbar-light bg-body">
+        <nav class="container">
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
+                aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <a class="navbar-brand" href="/"><img
+                    src="/assets/img/erlang.png" class="img-fluid" width="60" alt="Erlang.org main page"/></a>
+            <div class="collapse navbar-collapse fw-bold" id="navbarSupportedContent">
+                <ul class="navbar-nav text-uppercase me-auto mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link" href="/downloads">Download</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/docs">Documentation</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/community">Community</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/news">News</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/blog">Blog</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/eep">EEP</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/about">About</a></li>
+                </ul>
+                <form class="d-flex" role="search" method="get" action="https://duckduckgo.com/">
+                    <input type="hidden" name="sites" value="erlang.org">
+                    <input class="form-control me-2" id="searchfield" name="q" type="search" placeholder="Search erlang.org"
+                        aria-label="Search">
+                    <button class="btn btn-outline-primary" type="submit">Search</button>
+                </form>
+            </div>
+        </nav>
+    </header>
+    <div class="container border-top pt-4">
+    <div class="row-lg">
+        <div class="col-lg-10 offset-lg-1">
+            <div class="card">
+                <div class="card-body">
+                    <dl class="mb-0 dl-single">
+                        <dt>Author:</dt>
+                        <dd>
+                            Richard A. O&#39;Keefe &lt;ok(at)cs(dot)otago(dot)ac(dot)nz&gt;
+                            
+                            
+                        </dd>
+                        
+                        <dt>Status:</dt>
+                        <dd>Draft </dd>
+                        <dt>Type:</dt>
+                        <dd>Standards Track</dd>
+                        
+                        
+                        <dt>Created:</dt>
+                        <dd>23-Jul-2008</dd>
+                        
+                        <dt>Erlang-Version:</dt>
+                        <dd>R12B-4</dd>
+                        
+                        
+                        
+                        
+                    </dl>
+                </div>
+            </div>
+            <div class="border-top mt-4">
+                
+                <h2 id="eep-17-fix-andalso-and-orelse">
+        
+        
+          EEP 17: Fix andalso and orelse <a href="#eep-17-fix-andalso-and-orelse">#</a>
+        
+        
+      </h2>
+    
+      <h1 id="abstract">
+        
+        
+          Abstract <a href="#abstract">#</a>
+        
+        
+      </h1>
+    
+
+<p>Erlang 5.1 added the ability to use ‘andalso’, ‘orelse’,
+‘and’, and ‘or’ in guards.  However, the semantics for
+‘andalso’ and ‘orelse’ differs from that in other related
+languages, causing confusion and inefficiency.</p>
+
+<p>I propose making ‘andalso’ and ‘orelse’ work like Lisp
+AND and OR respectively.</p>
+      <h1 id="specification">
+        
+        
+          Specification <a href="#specification">#</a>
+        
+        
+      </h1>
+    
+
+<p>Currently, (E1 andalso E2) as an expression acts like</p>
+
+<pre><code class="language-erlang">case E1
+ of false -&gt; false
+  ; true  -&gt; case E2
+               of false -&gt; false
+                ; true  -&gt; true
+             end
+end
+</code></pre>
+
+<p>except that in my tests the former raises <code>{badarg,NonBool}</code>
+exceptions and the latter raises <code>{case_clause,NonBool}</code> ones.</p>
+
+<p>This should be changed to</p>
+
+<pre><code class="language-erlang">case E1
+  of false -&gt; false
+   ; true   -&gt; E2
+end.
+</code></pre>
+
+<p>Currently, (E1 orelse E2) as an expression acts like</p>
+
+<pre><code class="language-erlang">case E1
+  of true  -&gt; true
+   ; false -&gt; case E2
+                of true  -&gt; true
+                 ; false -&gt; false
+              end
+end
+</code></pre>
+
+<p>except that in my tests the former raises <code>{badarg,NonBool}</code>
+exceptions and the latter raises <code>{case_clause,NonBool}</code> ones.</p>
+
+<p>This should be changed to</p>
+
+<pre><code class="language-erlang">case E1
+  of true  -&gt; true
+   ; false -&gt; E2
+end
+</code></pre>
+
+<p>There is apparently a folklore belief that using ‘andalso’ (or
+‘orelse’) in a guard will somehow give you better code than using
+‘,’ (or ‘;’).  On the contrary, you will get rather worse code.
+See “Motivation” for an example.  This should change.</p>
+
+<pre><code class="language-erlang">guard ::= gconj {';' gconj}*
+gconj ::= gtest {',' gtest}*
+gtest ::= '(' guard ')' | ...
+</code></pre>
+
+<p>First, we allow ‘,’ and ‘;’ to nest, using parentheses.
+Second, we rule that as outer operators in a guard, the
+only difference between ‘,’ and ‘andalso’ is precedence,
+and the only difference between ‘;’ and ‘orelse’ is also
+precedence.  In a guard test like</p>
+
+<pre><code class="language-erlang">is_atom(X andalso Y)
+</code></pre>
+
+<p>the ‘andalso’ cannot be replaced by ‘,’, but whenever one
+COULD be replaced by the other, they should have the same effect.</p>
+      <h1 id="motivation">
+        
+        
+          Motivation <a href="#motivation">#</a>
+        
+        
+      </h1>
+    
+      <h2 id="cultural-consistency">
+        
+        
+          Cultural consistency <a href="#cultural-consistency">#</a>
+        
+        
+      </h2>
+    
+
+<ul>
+  <li>
+    <p>Common Lisp</p>
+
+    <pre><code>  (defun member-p (X Xs)
+    (and (consp Xs)
+         (or (equal X (first Xs))
+             (member-p X (rest Xs)))))
+</code></pre>
+  </li>
+  <li>
+    <p>Scheme</p>
+
+    <pre><code>  (define (member? X Xs)
+    (and (pair? Xs)
+         (or (equal? X (car Xs))
+             (member? X (cdr Xs)))))
+</code></pre>
+  </li>
+  <li>
+    <p>Standard ML</p>
+
+    <pre><code>  fun is_member(x, xs) =
+      not (null xs) andalso (
+      x = hd xs orelse is_member(x, tl xs))
+</code></pre>
+  </li>
+  <li>
+    <p>Haskell</p>
+
+    <pre><code>  x `is_member_of` xs =
+     not (null xs) &amp;&amp; (x == head xs || x `is_member_of` tail xs)
+</code></pre>
+  </li>
+  <li>
+    <p>Dylan</p>
+
+    <p>I don’t know Dylan syntax well enough to finish this
+  example, but I do know that ‘&amp;’ and ‘|’ in Dylan are exactly
+  like AND and OR in Common Lisp except for syntax.  (They are
+  documented as allowing the right operand to return anything,
+  including multiple values.)</p>
+  </li>
+  <li>
+    <p>Python</p>
+
+    <pre><code>  def is_member(x, xs):
+      n = len(xs)
+      return n &gt; 0 and (x == xs[0] or is_member(x, xs[1:n]))
+</code></pre>
+
+    <p>I’m not perfectly sure about this, but the reference manual
+  is very explicit that the second operand of ‘and’ or ‘or’ can
+  be anything.</p>
+  </li>
+  <li>
+    <p>Smalltalk</p>
+
+    <p>Doing this example this way in Smalltalk requires considerable
+  pain in going against the grain of Smalltalk, however the
+  ‘and:’ and ‘or:’ selectors in Smalltalk DO check that their
+  first argument is Boolean and DON’T check anything about (the
+  result of) their second argument.</p>
+  </li>
+</ul>
+
+<p>In all of these, the “and” and “or” operations work exactly the
+same way, and in the languages whose implementations support tail
+recursion (Common Lisp, Scheme, Standard ML, Haskell), the
+function shown above is tail recursive.  (I could have added more
+languages to the list.)</p>
+
+<p>Erlang stands out.  The behaviour of ‘andalso’ is surprising, and
+the fact that ‘andalso’ and ‘orelse’ block tail recursion is quite
+astonishing.  I am all in favour of giving programmers shocks that
+teach them something useful about programming, but this one is not
+a useful lesson.  Testing both arguments of ‘and’ and ‘or’ makes
+sense, because the code executed for those operators always GETS
+the values of both operands.  But ‘andalso’ and ‘orelse’ only test
+their second operand SOME of the time.</p>
+
+<pre><code class="language-erlang">X = 1, X &gt;= 0 andalso X    % checked error
+X = 1, X &lt; 0 andalso X     % unchecked error
+</code></pre>
+
+<p>There doesn’t seem to be much point in checking SOME of the time,
+especially when it does something as dramatic as blocking tail
+recursion.</p>
+      <h2 id="guards-code">
+        
+        
+          Guards code <a href="#guards-code">#</a>
+        
+        
+      </h2>
+    
+
+<p>As for guards, here is a small example</p>
+
+<pre><code class="language-erlang">f(X) when X &gt;= 0, X &lt; 1 -&gt; math:sqrt(X).
+</code></pre>
+
+<p>This compiles to the following rather obvious code:</p>
+
+<pre><code class="language-erlang">function, f, 1, 2}.
+  {label,1}.
+    {func_info,{atom,bar},{atom,f},1}.
+  {label,2}.
+    {test,is_ge,{f,1},[{x,0},{integer,0}]}.
+    {test,is_lt,{f,1},[{x,0},{integer,1}]}.
+    {call_ext_only,1,{extfunc,math,sqrt,1}}.
+</code></pre>
+
+<p>Some people expect ‘andalso’ to do as well or better.
+I expected it to do the same, and this EEP requires it to.
+Here’s the source code:</p>
+
+<pre><code class="language-erlang">g(X) when X &gt;= 0 andalso X &lt; 1 -&gt; math:sqrt(X).
+</code></pre>
+
+<p>and here are the BEAM instructions:</p>
+
+<pre><code class="language-erlang">{function, g, 1, 4}.
+  {label,3}.
+    {func_info,{atom,bar},{atom,g},1}.
+  {label,4}.
+    {allocate,1,1}.
+    {move,{x,0},{y,0}}.
+    {test,is_ge,{f,5},[{x,0},{integer,0}]}.
+    {bif,'&lt;',{f,7},[{x,0},{integer,1}],{x,0}}.
+    {jump,{f,6}}.
+  {label,5}.
+    {move,{atom,false},{x,0}}.
+  {label,6}.
+    {test,is_eq_exact,{f,7},[{x,0},{atom,true}]}.
+    {move,{y,0},{x,0}}.
+    {call_ext_last,1,{extfunc,math,sqrt,1},1}.
+  {label,7}.
+    {move,{y,0},{x,0}}.
+    {deallocate,1}.
+    {jump,{f,3}}.
+</code></pre>
+
+<p>It not only does a lot more work, it even allocates a stack
+frame that the traditional code does not.</p>
+      <h1 id="rationale">
+        
+        
+          Rationale <a href="#rationale">#</a>
+        
+        
+      </h1>
+    
+
+<p>There are several ways to deal with the surprising behaviour
+of ‘andalso’ and ‘orelse’.</p>
+
+<ol>
+  <li>
+    <p>Leave things the way they are.</p>
+
+    <p>The manual should have lots of warnings added,
+saying not to use these operators, because they block
+tail recursion and are inefficient in guards.</p>
+
+    <p>It is reasonable to address other issues first, but it just
+will not do long term.  You don’t have to rush around
+bandaging everyone you meet, but you shouldn’t build pit
+traps in front of them either.</p>
+  </li>
+  <li>
+    <p>Remove them from the language.</p>
+
+    <p>I would prefer this.  And that goes double for ‘and’ and ‘or’,
+which seem to be completely pointless, as well as confusing.
+I do not think this would be practical politics.</p>
+  </li>
+  <li>
+    <p>Add new operators with sensible semantics.</p>
+
+    <p>But what would we call them?  ‘and’ and ‘or’ are taken,
+and both ‘|’ and ‘||’ are used for something else.  Above
+all, ‘andalso’ and ‘orelse’ would still be there, and still
+be surprising (in a bad way).  We have too many ways to
+spell “or” as it is.</p>
+  </li>
+  <li>
+    <p>Fix them.</p>
+  </li>
+</ol>
+
+<p>As for the recommendation that ‘,’ and ‘;’ should nest,
+I want Erlang to be simple to think.  If ‘andalso’ and ‘orelse’
+are to act like ‘,’ and ‘;’ in guards – which I’ve argued
+above – then clearly ‘,’ and ‘;’ should act like ‘andalso’
+and ‘orelse’ in guards.</p>
+      <h1 id="backwards-compatibility">
+        
+        
+          Backwards Compatibility <a href="#backwards-compatibility">#</a>
+        
+        
+      </h1>
+    
+
+<p>Any code that ran without raising exceptions will continue
+to produce the same results, except for running faster.</p>
+
+<p>Code that did raise exceptions may raise different exceptions
+elsewhere later, or may quietly complete in unexpected ways.
+I believe it to be unlikely that anyone deliberately relied
+on (E1 andelse 0) raising an exception.</p>
+
+<p>Code that was previously broken because these operators have
+such surprising behaviour will now work in more cases.</p>
+      <h1 id="reference-implementation">
+        
+        
+          Reference Implementation <a href="#reference-implementation">#</a>
+        
+        
+      </h1>
+    
+
+<p>None.</p>
+      <h1 id="copyright">
+        
+        
+          Copyright <a href="#copyright">#</a>
+        
+        
+      </h1>
+    
+
+<p>This document has been placed in the public domain.</p>
+
+            </div>
+        </div>
+    </div>
+</div>
+<script src="/assets/js/prismjs/prism.js"></script>
+<script src="/assets/js/prismjs/components/prism-erlang.js"></script>
+    <footer class="container-fluid footer text-center border-top border-bottom">
+        <div>
+            <a href="/downloads.html" title="DOWNLOAD"><img src="/assets/img/download.png" alt="Download Erlang/OTP"></a>
+        </div>
+        <div>
+            <a href="http://www.github.com/erlang/otp"><img
+                    src="/assets/img/GitHub-Mark-32px.png" alt="Erlang/OTP on Github"></a>
+        </div>
+        
+        <div>
+            <a href="http://www.twitter.com/erlang_org"><img src="/assets/img/twitter.png"
+                    width="32" alt="Erlang/OTP twitter"></a>
+        </div>
+    </footer>
+    <script src="/assets/js/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

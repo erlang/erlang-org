@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+
+
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <!-- Allow pinning of website on windows -->
+    <meta name="application-name" content="Erlang.org">
+    <meta name="msapplication-tooltip" content="The official home of the Erlang Programming Language">
+    <meta name="msapplication-starturl" content="/" >
+
+    <!-- Make the site look nicer on facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Erlang.org">
+    <meta property="og:title" content="Welcome to Erlang.org">
+    <meta property="og:description" content="The official home of the Erlang Programming Language">
+    <meta property="og:image" content="https://beta.erlang.org/assets/img/erlang-228x200.png">
+    <meta property="og:image:secure_url" content="https://beta.erlang.org/assets/img/erlang-228x200.png">
+    <meta property="og:url" content="https://beta.erlang.org/">
+
+    <!-- Twitter metadata -->
+    <meta name="twitter:card" content="summary" />
+    <meta property="twitter:title" content="Index" />
+    <meta name="twitter:site" content="@erlang_org" />
+
+    <!-- Rich data for google search -->
+    <script type="application/ld+json">
+{"@type":"WebSite","url":"https://erlang.org/","headline":"A closer look at the interpreter - Erlang/OTP","name":"Erlang.org","sameAs":["https://twitter.com/erlang_org","https://github.com/erlang/otp"],"@context":"https://schema.org"}</script>
+
+    <title>A closer look at the interpreter - Erlang/OTP</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- tells iOS browsers to not show telephone numbers as links -->
+    <meta name="format-detection" content="telephone=no">
+
+    <meta name="application-name" content="Erlang.org">
+    <meta name="description" content="The official home of the Erlang Programming Language">
+    <meta name="keywords" content="Erlang programming language functional parallel distributed documentation download community">
+    <!-- https://www.rssboard.org/rss-autodiscovery -->
+    <link rel="alternate" type="application/atom+xml" title="News Atom Feed" href="https://beta.erlang.org/news.xml" />
+    <link rel="alternate" type="application/atom+xml" title="Blog Atom Feed" href="https://beta.erlang.org/blog.xml" />
+    
+    <link rel="stylesheet" href="/assets/css/main.css">
+</head>
+
+<body>
+    <header class="navbar navbar-expand-lg navbar-light bg-body">
+        <nav class="container">
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
+                aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <a class="navbar-brand" href="/"><img
+                    src="/assets/img/erlang.png" class="img-fluid" width="60" alt="Erlang.org main page"/></a>
+            <div class="collapse navbar-collapse fw-bold" id="navbarSupportedContent">
+                <ul class="navbar-nav text-uppercase me-auto mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link" href="/downloads">Download</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/docs">Documentation</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/community">Community</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/news">News</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/blog">Blog</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/eep">EEP</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/about">About</a></li>
+                </ul>
+                <form class="d-flex" role="search" method="get" action="https://duckduckgo.com/">
+                    <input type="hidden" name="sites" value="erlang.org">
+                    <input class="form-control me-2" id="searchfield" name="q" type="search" placeholder="Search erlang.org"
+                        aria-label="Search">
+                    <button class="btn btn-outline-primary" type="submit">Search</button>
+                </form>
+            </div>
+        </nav>
+    </header>
+    <div class="container border-top pt-4">
+    <div class="row-lg">
+        <div class="col-lg-8 offset-lg-2">
+            <article class="card mb-4">
+    <div class="card-header">
+        <h3><a href="/blog/a-closer-look-at-the-interpreter/">A closer look at the interpreter</a></h3>
+        <div class="date">October 27, 2020
+             · by John Högberg
+        </div>
+    </div>
+
+    <div class="card-body">
+        
+        
+        
+        <p>In my <a href="http://blog.erlang.org/a-brief-BEAM-primer/">previous post</a> we had a look at BEAM, and now that we’re more familiar
+with it it’s time for us to look at the reference implementation: the
+interpreter.</p>
+
+<p>The interpreter can be thought of as an endless loop that looks at the current
+instruction, executes it, and then moves on to the next one.</p>
+
+<p>In normal builds our code is laid out as <a href="https://en.wikipedia.org/wiki/Threaded_code">directly threaded code</a>, where each
+instruction consists of the <em>machine code address</em> of its handler, followed by
+its arguments, which are in turn followed by the next instruction:</p>
+
+<pre><code>Instruction address
+    First argument
+    Second argument
+    ... and so on.
+Instruction address
+    First argument
+    Second argument
+    ... and so on.
+</code></pre>
+
+<p>When an instruction finishes it reads the next instruction address and jumps
+to it, forever following the “thread” of instructions.</p>
+
+<p>With very few exceptions, the instructions are “pure” in the sense that they
+always do the same thing with the same input and that they only affect BEAM,
+either through changing the control flow or writing a result to a register.
+This makes the instructions very easy to read and reason about in isolation, so
+for the sake of brevity we’ll only have a look at one of them:</p>
+
+<pre><code class="language-c++">is_nonempty_list(Label, Src) {
+
+    /* Check if our $Src is not a list. */
+    if (is_not_list($Src)) {
+
+        /* Invoke the $FAIL macro, jumping to our
+         * $Label. */
+        $FAIL($Label);
+    }
+
+    /* Execute the next instruction. */
+}
+</code></pre>
+
+<p>The above is written in a domain-specific language (DSL) that is a superset of
+C, where <code>$</code>-prefixed macros are expanded and the rest is kept as is.</p>
+
+<p>The <a href="https://github.com/erlang/otp/blob/OTP-23.1/erts/emulator/utils/beam_makeops"><code>beam_makeops</code></a> script takes this definition and generates code for
+the parts that are cumbersome to write by hand, such as jumping to the next
+instruction. It also hides argument handling which allows us to reduce the code
+size by packing small arguments together behind the scenes, which we’ve
+explored in an <a href="http://blog.erlang.org/Interpreter-Optimizations/">earlier post</a> on the subject.</p>
+
+<p>For performance reasons it also generates different variants based on the
+argument types outlined in <a href="https://github.com/erlang/otp/blob/OTP-23.1/erts/emulator/beam/ops.tab"><code>ops.tab</code></a> to reduce the amount of work we need to
+do at runtime.</p>
+
+<p>Let’s have a look at the generated code for this instruction, specifically the
+variant for <code>X</code> registers:</p>
+
+<pre><code class="language-c++">/* (This has been modified slightly for readability) */
+case is_nonempty_list_fx:
+{
+    Eterm arg_word, term;
+
+    /* Read the argument word from the instruction
+     * stream. */
+    arg_word = I[1];
+
+    /* Unpack the offset of our source register (upper
+     * 32 bits) and then read its contents.
+     *
+     * Note that we address the X registers directly;
+     * had this instruction not been specialized, we
+     * would first need to determine whether the
+     * argument was an X or a Y register. */
+    term = x_registers[arg_word &gt;&gt; 32];
+
+    /* is_not_list(term) */
+    if (term &amp; (_TAG_PRIMARY_MASK - TAG_PRIMARY_LIST)) {
+
+        /* Unpack our fail label (lower 32 bits) and add
+         * it to our current instruction pointer. This
+         * is an offset and may be negative for backward
+         * jumps. */
+        I += (Sint32)arg_word;
+
+        /* Jump to the instruction at the fail label using
+         * the "labels as values" GCC extension. */
+        goto *I;
+    }
+
+    /* Skip the current label address and argument word,
+     * then jump to the next instruction. This was
+     * automatically generated by beam_makeops. */
+    I += 2;
+    goto *I;
+}
+</code></pre>
+
+<p>There’s a bit more to it, and those who would like to know more can read the
+<a href="http://erlang.org/doc/apps/erts/beam_makeops.html">documentation for the <code>beam_makeops</code> script</a>, but the above covers the gist of
+it.</p>
+
+<p>While the above is quite efficient, there’s significant overhead from dispatch
+and argument handling. Here’s a slightly altered assembly listing of the
+above:</p>
+
+<pre class="highlight">
+    <em>; Read the argument word from the instruction
+    ; stream.</em>
+    mov    rdx, [rbx + 8]
+
+    <em>; Unpack the offset of our source register (upper 32
+    ; 32 bits).</em>
+    mov    rcx, rdx
+    shr    rcx, 32
+
+    <em>; X registers live in machine register r15, and we
+    ; placed our offset in rcx, so we can find our term at
+    ; [r15 + rcx].
+    ;
+    ; Perform a non-destructive bitwise AND on the term
+    ; using the `test` instruction, and jump to the fail
+    ; label if the result is non-zero.</em>
+    <b>test   byte [r15 + rcx], (_TAG_PRIMARY_MASK - TAG_PRIMARY_LIST)
+    jne    jump_to_fail_label</b>
+
+    <em>; Skip the current label address and argument word,
+    ; then jump to the next instruction.</em>
+    add    rbx, 16
+    jmp    [rbx]
+
+jump_to_fail_label:
+    <em>; Unpack our fail label (lower 32 bits) and add
+    ; it to our current instruction pointer.</em>
+    movsxd rdx, edx
+    lea    rbx, [rbx + rdx * 8]
+
+    <em>; Jump to the instruction at the fail label.</em>
+    jmp    [rbx]
+</pre>
+
+<p>The bold section is the meat of the instruction and the rest is argument
+unpacking and instruction dispatch. While this is not much of a problem for
+large instructions, its effect on short ones like this is very large, and when
+looking through a profiler (e.g. <a href="https://en.wikipedia.org/wiki/Perf_%28Linux%29"><code>perf</code></a>) it’s not unusual for the final <code>jmp</code>
+to dominate the rest.</p>
+
+<p>To lessen this effect, the loader combines commonly used instruction sequences
+into a single instruction. For example, two independent moves may fuse into
+<a href="https://github.com/erlang/otp/blob/OTP-23.1/erts/emulator/beam/instrs.tab#L577"><code>move2_par</code></a>, and <code>is_nonempty_list</code> followed by <code>get_list</code> might be fused to
+<a href="https://github.com/erlang/otp/blob/OTP-23.1/erts/emulator/beam/instrs.tab#L795"><code>is_nonempty_list_get_list</code></a>.</p>
+
+<p>This reduces the cost of short instructions, but only works to the extent we’re
+able to identify common patterns and comes at a significant maintenance cost
+as each combination must be implemented manually. Even so, the effect tends to
+be moderate and the dispatch overhead remains significant.</p>
+
+<p>Another, albeit lesser, downside with the interpreter is that modern processors
+are very optimized for patterns commonly found in “ordinary” native code. For
+example, nearly all of them have a special branch predictor just for calls and
+returns. Assuming that every call has a corresponding return lets it predict
+returns <em>perfectly</em> unless an exception is thrown, but since the interpreter
+does not use native calls and returns, it cannot make use of this optimization.</p>
+
+<p>Unfortunately there’s not a whole lot that can be done about this, and after
+over two decades of refinement it’s becoming increasingly difficult to optimize
+it in meaningful ways.</p>
+
+<p>Because of that our quest to improve performance has instead focused on two
+areas: improving the compiler and implementing a JIT. We’ve made great strides
+with both as of late, and are very proud to have finally merged the latter.</p>
+
+<p>Stay tuned for our next post, where we’ll have a look at the JIT and see how it
+avoids these issues.</p>
+
+        
+    </div>
+</article>
+        </div>
+    </div>
+</div>
+<script src="/assets/js/prismjs/prism.js"></script>
+<script src="/assets/js/prismjs/components/prism-erlang.js"></script>
+<script src="/assets/js/prismjs/components/prism-c.js"></script>
+<script src="/assets/js/prismjs/components/prism-bash.js"></script>
+    <footer class="container-fluid footer text-center border-top border-bottom">
+        <div>
+            <a href="/downloads.html" title="DOWNLOAD"><img src="/assets/img/download.png" alt="Download Erlang/OTP"></a>
+        </div>
+        <div>
+            <a href="http://www.github.com/erlang/otp"><img
+                    src="/assets/img/GitHub-Mark-32px.png" alt="Erlang/OTP on Github"></a>
+        </div>
+        
+        <div>
+            <a href="http://www.twitter.com/erlang_org"><img src="/assets/img/twitter.png"
+                    width="32" alt="Erlang/OTP twitter"></a>
+        </div>
+    </footer>
+    <script src="/assets/js/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

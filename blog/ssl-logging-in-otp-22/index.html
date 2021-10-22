@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+
+
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <!-- Allow pinning of website on windows -->
+    <meta name="application-name" content="Erlang.org">
+    <meta name="msapplication-tooltip" content="The official home of the Erlang Programming Language">
+    <meta name="msapplication-starturl" content="/" >
+
+    <!-- Make the site look nicer on facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Erlang.org">
+    <meta property="og:title" content="Welcome to Erlang.org">
+    <meta property="og:description" content="The official home of the Erlang Programming Language">
+    <meta property="og:image" content="https://beta.erlang.org/assets/img/erlang-228x200.png">
+    <meta property="og:image:secure_url" content="https://beta.erlang.org/assets/img/erlang-228x200.png">
+    <meta property="og:url" content="https://beta.erlang.org/">
+
+    <!-- Twitter metadata -->
+    <meta name="twitter:card" content="summary" />
+    <meta property="twitter:title" content="Index" />
+    <meta name="twitter:site" content="@erlang_org" />
+
+    <!-- Rich data for google search -->
+    <script type="application/ld+json">
+{"@type":"WebSite","url":"https://erlang.org/","headline":"TLS logging improvements in OTP 22 - Erlang/OTP","name":"Erlang.org","sameAs":["https://twitter.com/erlang_org","https://github.com/erlang/otp"],"@context":"https://schema.org"}</script>
+
+    <title>TLS logging improvements in OTP 22 - Erlang/OTP</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- tells iOS browsers to not show telephone numbers as links -->
+    <meta name="format-detection" content="telephone=no">
+
+    <meta name="application-name" content="Erlang.org">
+    <meta name="description" content="The official home of the Erlang Programming Language">
+    <meta name="keywords" content="Erlang programming language functional parallel distributed documentation download community">
+    <!-- https://www.rssboard.org/rss-autodiscovery -->
+    <link rel="alternate" type="application/atom+xml" title="News Atom Feed" href="https://beta.erlang.org/news.xml" />
+    <link rel="alternate" type="application/atom+xml" title="Blog Atom Feed" href="https://beta.erlang.org/blog.xml" />
+    
+    <link rel="stylesheet" href="/assets/css/main.css">
+</head>
+
+<body>
+    <header class="navbar navbar-expand-lg navbar-light bg-body">
+        <nav class="container">
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
+                aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <a class="navbar-brand" href="/"><img
+                    src="/assets/img/erlang.png" class="img-fluid" width="60" alt="Erlang.org main page"/></a>
+            <div class="collapse navbar-collapse fw-bold" id="navbarSupportedContent">
+                <ul class="navbar-nav text-uppercase me-auto mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link" href="/downloads">Download</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/docs">Documentation</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/community">Community</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/news">News</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/blog">Blog</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/eep">EEP</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/about">About</a></li>
+                </ul>
+                <form class="d-flex" role="search" method="get" action="https://duckduckgo.com/">
+                    <input type="hidden" name="sites" value="erlang.org">
+                    <input class="form-control me-2" id="searchfield" name="q" type="search" placeholder="Search erlang.org"
+                        aria-label="Search">
+                    <button class="btn btn-outline-primary" type="submit">Search</button>
+                </form>
+            </div>
+        </nav>
+    </header>
+    <div class="container border-top pt-4">
+    <div class="row-lg">
+        <div class="col-lg-8 offset-lg-2">
+            <article class="card mb-4">
+    <div class="card-header">
+        <h3><a href="/blog/ssl-logging-in-otp-22/">TLS logging improvements in OTP 22</a></h3>
+        <div class="date">October 05, 2018
+             · by Péter Dimitrov
+        </div>
+    </div>
+
+    <div class="card-body">
+        
+        
+        
+        <p>Erlang/OTP 22 will be an important release for the <code>ssl</code> application. We are working on
+several new features and improvements such as support for TLS 1.3, some of those are already
+on the master branch. This blog post presents the new ssl debug logging built on the new
+logger API.</p>
+      <h2 id="usage">
+        
+        
+          Usage <a href="#usage">#</a>
+        
+        
+      </h2>
+    
+
+<p>As the <code>ssl</code> application undergoes a lot of changes the release of the new logger API
+presented the opportunity to level up its debug logging capabilities to be on par with
+OpenSSL.</p>
+
+<p>We have introduced a new option <code>log_level</code> that specifies the log level for the <code>ssl</code>
+application. It can take the following values (ordered by increasing verbosity level):
+<code>emergency</code>, <code>alert</code>, <code>critical</code>, <code>error</code>, <code>warning</code>, <code>notice</code>,
+<code>info</code> and <code>debug</code>. At verbosity level <code>notice</code> and above error reports are
+displayed in TLS. The level <code>debug</code> triggers verbose logging of TLS protocol messages
+in a similar style as in OpenSSL.</p>
+
+<p>The verbose debug logging can be turned on by two simple steps: the <code>log_level</code> shall
+be set to <code>debug</code> and the logger shall be configured to enable <code>debug</code> logging
+for the ssl application. The following code snippet is a sample module with a simple TLS server
+and client:</p>
+
+<pre><code class="language-erlang">-module(ssltest).
+
+-compile(export_all).
+
+-define(PORT, 11000).
+
+server() -&gt;
+    application:load(ssl),
+    logger:set_application_level(ssl, debug),
+    {ok, _} = application:ensure_all_started(ssl),
+    Port = ?PORT,
+    LOpts = [{certfile, "server.pem"},
+             {keyfile, "server.key"},
+             {versions, ['tlsv1.2']},
+             {log_level, debug}
+            ],
+    {ok, LSock} = ssl:listen(Port, LOpts),
+    {ok, CSock} = ssl:transport_accept(LSock),
+    {ok, _} = ssl:handshake(CSock).
+
+client() -&gt;
+    application:load(ssl),
+    logger:set_application_level(ssl, debug),
+    {ok, _} = application:ensure_all_started(ssl),
+    Port = ?PORT,
+    COpts = [{verify, verify_peer},
+             {cacertfile, "ca.pem"},
+             {versions, ['tlsv1.2']},
+             {log_level, debug}
+            ],
+    {ok, Sock} = ssl:connect("localhost", Port, COpts).
+
+</code></pre>
+
+<p>Starting the server and client in their respective erlang shells produces the following
+verbose logging of TLS protocol messages:</p>
+
+<pre><code>1&gt; ssltest:server().
+reading (238 bytes) TLS 1.2 Record Protocol, handshake
+0000 - 16 03 03 00 e9 01 00 00  e5 03 03 5b ab 42 7a ee    ...........[.Bz.
+0010 - 91 23 df 70 30 fb 41 b9  c5 14 79 d7 02 48 74 c9    .#.p0.A...y..Ht.
+0020 - b9 a9 8f e0 e9 04 1a f9  a8 21 49 00 00 4a 00 ff    .........!I..J..
+0030 - c0 2c c0 30 c0 24 c0 28  c0 2e c0 32 c0 26 c0 2a    .,.0.$.(...2.&amp;.*
+0040 - 00 9f 00 a3 00 6b 00 6a  c0 2b c0 2f c0 23 c0 27    .....k.j.+./.#.'
+0050 - c0 2d c0 31 c0 25 c0 29  00 9e 00 a2 00 67 00 40    .-.1.%.).....g.@
+0060 - c0 0a c0 14 00 39 00 38  c0 05 c0 0f c0 09 c0 13    .....9.8........
+0070 - 00 33 00 32 c0 04 c0 0e  01 00 00 72 00 00 00 0e    .3.2.......r....
+0080 - 00 0c 00 00 09 6c 6f 63  61 6c 68 6f 73 74 00 0a    .....localhost..
+0090 - 00 3a 00 38 00 0e 00 0d  00 19 00 1c 00 0b 00 0c    .:.8............
+00a0 - 00 1b 00 18 00 09 00 0a  00 1a 00 16 00 17 00 08    ................
+00b0 - 00 06 00 07 00 14 00 15  00 04 00 05 00 12 00 13    ................
+00c0 - 00 01 00 02 00 03 00 0f  00 10 00 11 00 0b 00 02    ................
+00d0 - 01 00 00 0d 00 18 00 16  06 03 06 01 05 03 05 01    ................
+00e0 - 04 03 04 01 03 03 03 01  02 03 02 01 02 02          ..............
+&lt;&lt;&lt; TLS 1.2 Handshake, ClientHello
+[{client_version,{3,3}},
+ {random,
+     &lt;&lt;91,171,66,122,238,145,35,223,112,48,251,65,185,197,20,121,215,2,72,116,
+       201,185,169,143,224,233,4,26,249,168,33,73&gt;&gt;},
+ {session_id,&lt;&lt;&gt;&gt;},
+ {cipher_suites,
+     [&lt;&lt;0,255&gt;&gt;,
+      &lt;&lt;"À,"&gt;&gt;,&lt;&lt;"À0"&gt;&gt;,&lt;&lt;"À$"&gt;&gt;,&lt;&lt;"À("&gt;&gt;,&lt;&lt;"À."&gt;&gt;,&lt;&lt;"À2"&gt;&gt;,&lt;&lt;"À&amp;"&gt;&gt;,&lt;&lt;"À*"&gt;&gt;,
+      &lt;&lt;0,159&gt;&gt;,
+      &lt;&lt;0,163&gt;&gt;,
+      &lt;&lt;0,107&gt;&gt;,
+      &lt;&lt;0,106&gt;&gt;,
+      &lt;&lt;"À+"&gt;&gt;,&lt;&lt;"À/"&gt;&gt;,&lt;&lt;"À#"&gt;&gt;,&lt;&lt;"À'"&gt;&gt;,&lt;&lt;"À-"&gt;&gt;,&lt;&lt;"À1"&gt;&gt;,&lt;&lt;"À%"&gt;&gt;,&lt;&lt;"À)"&gt;&gt;,
+      &lt;&lt;0,158&gt;&gt;,
+      &lt;&lt;0,162&gt;&gt;,
+      &lt;&lt;0,103&gt;&gt;,
+      &lt;&lt;0,64&gt;&gt;,
+      &lt;&lt;"À\n"&gt;&gt;,
+      &lt;&lt;192,20&gt;&gt;,
+      &lt;&lt;0,57&gt;&gt;,
+      &lt;&lt;0,56&gt;&gt;,
+      &lt;&lt;192,5&gt;&gt;,
+      &lt;&lt;192,15&gt;&gt;,
+      &lt;&lt;"À\t"&gt;&gt;,
+      &lt;&lt;192,19&gt;&gt;,
+      &lt;&lt;0,51&gt;&gt;,
+      &lt;&lt;0,50&gt;&gt;,
+      &lt;&lt;192,4&gt;&gt;,
+      &lt;&lt;192,14&gt;&gt;]},
+ {compression_methods,[0]},
+...
+[Truncated for brevity]
+</code></pre>
+
+<p>This is not the final format as there are many ways to further improve the representation
+of the handshake protocol messages such as converting the cipher suites to a human-readable
+erlang representation.</p>
+
+<p>As a comparison this is the debug output from an OpenSSL server when the same erlang client
+connects to it:</p>
+
+<pre><code>$ /usr/bin/openssl s_server -accept 11000 -tls1_2 -cert server.pem -key server.key -msg -debug
+Using default temp DH parameters
+ACCEPT
+read from 0x16f0040 [0x16f56b3] (5 bytes =&gt; 5 (0x5))
+0000 - 16 03 03 00 a1                                    .....
+&lt;&lt;&lt; ??? [length 0005]
+    16 03 03 00 a1
+read from 0x16f0040 [0x16f56b8] (161 bytes =&gt; 161 (0xA1))
+0000 - 01 00 00 9d 03 03 5b ac-a1 cc 20 4c 4d 52 d0 d4   ......[... LMR..
+0010 - c8 fc dd 95 b0 fa 65 97-57 9e 44 aa dd 0e 46 10   ......e.W.D...F.
+0020 - 6c 14 57 9c ce a0 00 00-04 00 ff c0 14 01 00 00   l.W.............
+0030 - 70 00 2b 00 06 00 04 03-04 03 03 00 00 00 0e 00   p.+.............
+0040 - 0c 00 00 09 6c 6f 63 61-6c 68 6f 73 74 00 0a 00   ....localhost...
+0050 - 3a 00 38 00 0e 00 0d 00-19 00 1c 00 0b 00 0c 00   :.8.............
+0060 - 1b 00 18 00 09 00 0a 00-1a 00 16 00 17 00 08 00   ................
+0070 - 06 00 07 00 14 00 15 00-04 00 05 00 12 00 13 00   ................
+0080 - 01 00 02 00 03 00 0f 00-10 00 11 00 0b 00 02 01   ................
+0090 - 00 00 32 00 04 00 02 02-03 00 0d 00 04 00 02 02   ..2.............
+00a0 - 01                                                .
+&lt;&lt;&lt; TLS 1.2 Handshake [length 00a1], ClientHello
+    01 00 00 9d 03 03 5b ac a1 cc 20 4c 4d 52 d0 d4
+    c8 fc dd 95 b0 fa 65 97 57 9e 44 aa dd 0e 46 10
+    6c 14 57 9c ce a0 00 00 04 00 ff c0 14 01 00 00
+    70 00 2b 00 06 00 04 03 04 03 03 00 00 00 0e 00
+    0c 00 00 09 6c 6f 63 61 6c 68 6f 73 74 00 0a 00
+    3a 00 38 00 0e 00 0d 00 19 00 1c 00 0b 00 0c 00
+    1b 00 18 00 09 00 0a 00 1a 00 16 00 17 00 08 00
+    06 00 07 00 14 00 15 00 04 00 05 00 12 00 13 00
+    01 00 02 00 03 00 0f 00 10 00 11 00 0b 00 02 01
+    00 00 32 00 04 00 02 02 03 00 0d 00 04 00 02 02
+    01
+...
+[Truncated for brevity]
+</code></pre>
+
+<p>The verbose debug logging proved to be especially useful during the development of new
+extensions as previously we had to use wireshark captures to validate TLS protocol
+messages.</p>
+      <h2 id="implementation">
+        
+        
+          Implementation <a href="#implementation">#</a>
+        
+        
+      </h2>
+    
+
+<p>In the <code>ssl</code> application, we needed a way to handle two types of protocol
+messages, tls_record and handshake, each with a custom formatter.</p>
+
+<p>The most straightforward solution was to add a new handler instance to the logger with a
+special formatter function that filters out all the “noise” coming from other
+modules of the system.</p>
+
+<p>The handler itself could reuse the standard handler for logger, <code>logger_std_h</code>, as it
+could print logs to <code>standard_io</code>. You can add multiple standard handler instances to
+logger if your application requires it.</p>
+
+<pre><code class="language-erlang">logger:add_handler(ssl_handler, logger_std_h, Config),
+</code></pre>
+
+<p>The new ssl_handler is configured with a formatter that is implemented by the <code>ssl_logger</code>
+module.</p>
+
+<pre><code class="language-erlang">Config = #{level =&gt; debug,
+           filter_default =&gt; stop,
+           formatter =&gt; {ssl_logger, #{}}},
+</code></pre>
+
+<p>Handler filter level is set to <code>debug</code> with <code>stop</code> as the default filter action. We also
+need a filter that lets the log events pass to the formatter if the source of the log event is the
+ssl application. In other words, we need a domain filter with the action <code>log</code> on all sub-domains
+matching <code>[otp,ssl]</code>.</p>
+
+<pre><code class="language-erlang">Filter = {fun logger_filters:domain/2,{log,sub,[otp,ssl]}},
+</code></pre>
+
+<p>Putting it all together we get the following function.</p>
+
+<pre><code class="language-erlang">start_logger() -&gt;
+    Config = #{level =&gt; debug,
+               filter_default =&gt; stop,
+               formatter =&gt; {ssl_logger, #{}}},
+    Filter = {fun logger_filters:domain/2,{log,sub,[otp,ssl]}},
+    logger:add_handler(ssl_handler, logger_std_h, Config),
+    logger:add_handler_filter(ssl_handler, filter_non_ssl, Filter).
+</code></pre>
+
+<p>The function <code>format</code> is called in ssl_logger when an event gets through all the filters:</p>
+
+<pre><code class="language-erlang">format(#{level:= _Level, msg:= {report, Msg}, meta:= _Meta},
+       _Config0) -&gt;
+     #{direction := Direction,
+       protocol := Protocol,
+       message := BinMsg0} = Msg,
+    case Protocol of
+        'tls_record' -&gt;
+            BinMsg = lists:flatten(BinMsg0),
+            format_tls_record(Direction, BinMsg);
+        'handshake' -&gt;
+            format_handshake(Direction, BinMsg0);
+        _Other -&gt;
+            []
+    end.
+</code></pre>
+
+<p>There are two more helper functions that wrap around the logging macros. They were added in order
+to be able to set logging level per TLS session.</p>
+
+<pre><code class="language-erlang">debug(Level, Report, Meta) -&gt;
+    case logger:compare_levels(Level, debug) of
+        lt -&gt;
+            ?LOG_DEBUG(Report, Meta);
+        eq -&gt;
+            ?LOG_DEBUG(Report, Meta);
+        _ -&gt;
+            ok
+    end.
+
+notice(Level, Report) -&gt;
+    case logger:compare_levels(Level, notice) of
+        lt -&gt;
+            ?LOG_NOTICE(Report);
+        eq -&gt;
+            ?LOG_NOTICE(Report);
+        _ -&gt;
+            ok
+    end.
+</code></pre>
+
+<p>To print a log event, the above functions are called with the configured ssl log level and
+the domain parameter.</p>
+
+<pre><code class="language-erlang">ssl_logger:debug(Opts#ssl_options.log_level,
+	         Report,
+		 #{domain =&gt; [otp,ssl,handshake]}),
+</code></pre>
+
+<p>Those who are interested in the current state of development can already play with the
+<code>'tlsv1.3'</code> atom in the <code>versions</code> option.</p>
+
+        
+    </div>
+</article>
+        </div>
+    </div>
+</div>
+<script src="/assets/js/prismjs/prism.js"></script>
+<script src="/assets/js/prismjs/components/prism-erlang.js"></script>
+<script src="/assets/js/prismjs/components/prism-c.js"></script>
+<script src="/assets/js/prismjs/components/prism-bash.js"></script>
+    <footer class="container-fluid footer text-center border-top border-bottom">
+        <div>
+            <a href="/downloads.html" title="DOWNLOAD"><img src="/assets/img/download.png" alt="Download Erlang/OTP"></a>
+        </div>
+        <div>
+            <a href="http://www.github.com/erlang/otp"><img
+                    src="/assets/img/GitHub-Mark-32px.png" alt="Erlang/OTP on Github"></a>
+        </div>
+        
+        <div>
+            <a href="http://www.twitter.com/erlang_org"><img src="/assets/img/twitter.png"
+                    width="32" alt="Erlang/OTP twitter"></a>
+        </div>
+    </footer>
+    <script src="/assets/js/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

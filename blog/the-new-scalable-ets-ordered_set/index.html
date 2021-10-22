@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+
+
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <!-- Allow pinning of website on windows -->
+    <meta name="application-name" content="Erlang.org">
+    <meta name="msapplication-tooltip" content="The official home of the Erlang Programming Language">
+    <meta name="msapplication-starturl" content="/" >
+
+    <!-- Make the site look nicer on facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Erlang.org">
+    <meta property="og:title" content="Welcome to Erlang.org">
+    <meta property="og:description" content="The official home of the Erlang Programming Language">
+    <meta property="og:image" content="https://beta.erlang.org/assets/img/erlang-228x200.png">
+    <meta property="og:image:secure_url" content="https://beta.erlang.org/assets/img/erlang-228x200.png">
+    <meta property="og:url" content="https://beta.erlang.org/">
+
+    <!-- Twitter metadata -->
+    <meta name="twitter:card" content="summary" />
+    <meta property="twitter:title" content="Index" />
+    <meta name="twitter:site" content="@erlang_org" />
+
+    <!-- Rich data for google search -->
+    <script type="application/ld+json">
+{"@type":"WebSite","url":"https://erlang.org/","headline":"The New Scalable ETS ordered_set - Erlang/OTP","name":"Erlang.org","sameAs":["https://twitter.com/erlang_org","https://github.com/erlang/otp"],"@context":"https://schema.org"}</script>
+
+    <title>The New Scalable ETS ordered_set - Erlang/OTP</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- tells iOS browsers to not show telephone numbers as links -->
+    <meta name="format-detection" content="telephone=no">
+
+    <meta name="application-name" content="Erlang.org">
+    <meta name="description" content="The official home of the Erlang Programming Language">
+    <meta name="keywords" content="Erlang programming language functional parallel distributed documentation download community">
+    <!-- https://www.rssboard.org/rss-autodiscovery -->
+    <link rel="alternate" type="application/atom+xml" title="News Atom Feed" href="https://beta.erlang.org/news.xml" />
+    <link rel="alternate" type="application/atom+xml" title="Blog Atom Feed" href="https://beta.erlang.org/blog.xml" />
+    
+    <link rel="stylesheet" href="/assets/css/main.css">
+</head>
+
+<body>
+    <header class="navbar navbar-expand-lg navbar-light bg-body">
+        <nav class="container">
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
+                aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <a class="navbar-brand" href="/"><img
+                    src="/assets/img/erlang.png" class="img-fluid" width="60" alt="Erlang.org main page"/></a>
+            <div class="collapse navbar-collapse fw-bold" id="navbarSupportedContent">
+                <ul class="navbar-nav text-uppercase me-auto mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link" href="/downloads">Download</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/docs">Documentation</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/community">Community</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/news">News</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/blog">Blog</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/eep">EEP</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/about">About</a></li>
+                </ul>
+                <form class="d-flex" role="search" method="get" action="https://duckduckgo.com/">
+                    <input type="hidden" name="sites" value="erlang.org">
+                    <input class="form-control me-2" id="searchfield" name="q" type="search" placeholder="Search erlang.org"
+                        aria-label="Search">
+                    <button class="btn btn-outline-primary" type="submit">Search</button>
+                </form>
+            </div>
+        </nav>
+    </header>
+    <div class="container border-top pt-4">
+    <div class="row-lg">
+        <div class="col-lg-8 offset-lg-2">
+            <article class="card mb-4">
+    <div class="card-header">
+        <h3><a href="/blog/the-new-scalable-ets-ordered_set/">The New Scalable ETS ordered_set</a></h3>
+        <div class="date">August 19, 2020
+             · by Kjell Winblad
+        </div>
+    </div>
+
+    <div class="card-body">
+        
+        
+        
+        <p>The scalability of ETS tables of type <code>ordered_set</code> with the
+<code>write_concurrency</code> option is substantially better in Erlang/OTP 22
+than earlier releases. In some extreme cases, you can expect
+more than 100 times better throughput in Erlang/OTP 22 compared to
+Erlang/OTP 21. The cause of this improvement is a new data structure
+called <a href="https://doi.org/10.1016/j.jpdc.2017.11.007">the contention adapting search tree</a> (CA tree
+for short). This blog post will give you insights into how the CA tree
+works and show you benchmark results comparing the performance of ETS
+<code>ordered_set</code> tables in OTP 21 and OTP 22.</p>
+      <h2 id="try-it-out">
+        
+        
+          Try it Out! <a href="#try-it-out">#</a>
+        
+        
+      </h2>
+    
+
+<p>[This escript]/blog/code/insert_disjoint_ranges.erl) makes it convenient for you
+to try the new <code>ordered_set</code> implementation on your own machine with
+Erlang/OTP 22+ installed.</p>
+
+<p>The escript measures the time it takes for <code>P</code> Erlang processes to
+insert <code>N</code> integers into an <code>ordered_set</code> ETS table, where <code>P</code> and <code>N</code>
+are parameters to the escript. The CA tree is only utilized when the
+ETS table options <code>ordered_set</code> and <code>{write_concurrency, true}</code> are
+active. One can, therefore, easily compare the new data structure’s
+performance with the old one (an <a href="https://en.wikipedia.org/wiki/AVL_tree">AVL tree</a> protected by a
+single readers-writer lock). The <code>write_concurrency</code> option had no
+effect on <code>ordered_set</code> tables before the release of Erlang/OTP 22.</p>
+
+<p>We get the following results when running the escript on a developer laptop with
+two cores (Intel(R) Core(TM) i7-7500U CPU @ 2.70GHz):</p>
+
+<pre><code class="language-bash">$ escript insert_disjoint_ranges.erl old 1 10000000
+Time: 3.352332 seconds
+$ escript insert_disjoint_ranges.erl old 2 10000000
+Time: 3.961732 seconds
+$ escript insert_disjoint_ranges.erl old 4 10000000
+Time: 6.382199 seconds
+$ escript insert_disjoint_ranges.erl new 1 10000000
+Time: 3.832119 seconds
+$ escript insert_disjoint_ranges.erl new 2 10000000
+Time: 2.109476 seconds
+$ escript insert_disjoint_ranges.erl new 4 10000000
+Time: 1.66509 seconds
+</code></pre>
+
+<p>We see that in this particular benchmark, the CA tree has superior
+scalability to the old data structure. The benchmark ran about twice
+as fast with the new data structure and four processes as with the old
+data structure and one process (the machine only has two
+cores). We will look at the performance and scalability of the new CA
+tree-based implementation in greater detail later after describing how
+the CA tree works.</p>
+      <h2 id="the-contention-adapting-search-tree-in-a-nutshell">
+        
+        
+          The Contention Adapting Search Tree in a Nutshell <a href="#the-contention-adapting-search-tree-in-a-nutshell">#</a>
+        
+        
+      </h2>
+    
+
+<p>The key feature that distinguishes the CA tree from other concurrent
+data structures is that the CA tree dynamically changes its
+synchronization granularity based on how much contention is detected
+inside the data structure. This way, the CA tree can avoid the
+performance and memory overheads that come from using many unnecessary
+locks without sacrificing performance when many operations happen in
+parallel. For example, let us imagine a scenario where the CA tree is
+initially populated from many threads in parallel, and then it is only
+used from a single thread. In this scenario, the CA tree will adapt to
+use fine-grained synchronization in the population phase (when
+fine-grained synchronization reduces contention). The CA tree will then change
+to use coarse-grained synchronization in the single-threaded phase
+(when coarse-grained synchronization reduces the locking and memory
+overheads).</p>
+
+<p>The structure of a CA tree is illustrated in the following
+picture:</p>
+
+<p>![alt text]/blog/images/ca_tree/ca_tree_9.png “Contention Adapting Search Tree Structure”)</p>
+
+<p>The actual items stored in the CA tree are located in
+sequential data structures in the bottom layer. These
+sequential data structures are protected by the locks in the base
+nodes in the middle layer. The base node locks have counters
+associated with them. The counter of a base node lock is increased when
+contention is detected in the base node lock and decreased when no
+such contention is detected. The value of this base node lock counter
+decides if a split or a join should happen after an operation has been
+performed in a base node. The routing nodes at the top of the picture
+above form a binary search tree that directs the search for a
+particular item. A routing node also contains a lock and a flag. These
+are used when joining base nodes. The details of how splitting and
+joining work will not be described in this article, but
+the interested reader can find a detailed description in this <a href="https://doi.org/10.1016/j.jpdc.2017.11.007">CA tree
+paper</a> (<a href="http://winsh.me/papers/catree_jpdc_paper.pdf">preprint PDF</a>). We will now
+illustrate how the CA tree changes its synchronization granularity by
+going through an example:</p>
+
+<ol>
+  <li>
+    <p>Initially, a CA tree only consists of a single base node with a
+sequential data structure as is depicted in the picture below:</p>
+
+    <p>![alt text]/blog/images/ca_tree/ca_tree_1.png “Initial Contention Adapting Search Tree”)</p>
+  </li>
+  <li>
+    <p>If parallel threads access the CA tree, the value of a base node’s
+counter may eventually reach the threshold that indicates that the
+base node should be split. A base node split divides the items in a
+base node between two new base nodes and replaces the original base
+node with a routing node where the two new base nodes are
+rooted. The following picture shows the CA tree after the base node
+pointed to by the tree’s root has been split:</p>
+
+    <p>![alt text]/blog/images/ca_tree/ca_tree_2.png “First Split Contention Adapting Search Tree”)</p>
+  </li>
+  <li>
+    <p>The process of base node splitting will continue as long as there
+is enough contention in base node locks or until the max depth of the
+routing layer is reached. The following picture shows how the CA
+tree looks like after another split:</p>
+
+    <p>![alt text]/blog/images/ca_tree/ca_tree_3.png “Second Split Contention Adapting Search Tree”)</p>
+  </li>
+  <li>
+    <p>The synchronization granularity may differ in different parts of a
+CA tree if, for example, a particular part of a CA tree is accessed
+more frequently in parallel than the rest. The following picture
+shows the CA tree after yet another split:</p>
+
+    <p>![alt text]/blog/images/ca_tree/ca_tree_4.png “Third Split Contention Adapting Search Tree”)</p>
+  </li>
+  <li>
+    <p>The following picture shows the CA tree after the fourth split:</p>
+
+    <p>![alt text]/blog/images/ca_tree/ca_tree_5.png “Fourth Split Contention Adapting Search Tree”)</p>
+  </li>
+  <li>
+    <p>The following picture shows the CA tree after the fifth split:</p>
+
+    <p>![alt text]/blog/images/ca_tree/ca_tree_6.png “Fifth Split Contention Adapting Search Tree”)</p>
+  </li>
+  <li>
+    <p>Two base nodes holding adjacent ranges of items can be joined. Such
+a join will be triggered after an operation sees that a base
+node counter’s value is below a certain threshold. Remember that a
+base node’s counter is decreased if a thread does not experience
+contention when acquiring the base node’s lock.
+<!--The conters The likelihood that
+a join will be triggered in a certain base node gets higher when
+the probablity of contention that does not detect contention in the
+base node lock is high. The likelihood that two base nodes are
+joined is also increased if operations that require both base nodes
+happens often enough (to reduce the overhead of acquiring locks).--></p>
+
+    <p>![alt text]/blog/images/ca_tree/ca_tree_7.png “Join of two base nodes in a  Contention Adapting Search Tree”)</p>
+  </li>
+  <li>
+    <p>As you might have noticed from the illustrations above, splitting
+and joining results in that old base nodes and
+routing nodes gets spliced-out from the tree. The memory that these
+nodes occupy needs to be reclaimed, but this can not happen directly
+after they have got spliced-out as some threads might still be
+reading them. The Erlang run-time system has a mechanism called
+<a href="https://github.com/erlang/otp/blob/d6285b0a347b9489ce939511ee9a979acd868f71/erts/emulator/internal_doc/ThreadProgress.md">thread progress</a>,
+which the ETS CA tree implementation uses to reclaim these nodes
+safely.</p>
+
+    <p>![alt text]/blog/images/ca_tree/ca_tree_8.png “Spliced-out base nodes and routing nodes have been reclaimed.”)</p>
+  </li>
+</ol>
+
+<p>[Click here]/blog/images/ca_tree/ca_tree_ani.gif) to see an animation of the example.</p>
+      <h2 id="benchmark">
+        
+        
+          Benchmark <a href="#benchmark">#</a>
+        
+        
+      </h2>
+    
+
+<p>The performance of the new CA tree-based ETS <code>ordered_set</code>
+implementation has been evaluated in a benchmark that measures the
+throughput (operations per second) in many scenarios. The
+benchmark lets a configurable number of Erlang processes perform a
+configurable distribution of operations on a single ETS table. The
+curious reader can find the source code of the benchmark in the <a href="https://github.com/erlang/otp/blob/ba2c374d3d6fcba479bb542eb6ecd5d8216ce84b/lib/stdlib/test/ets_SUITE.erl#L7623">test
+suite for
+ETS</a>.</p>
+
+<p>The following figures show results from this benchmark on a machine
+with two Intel(R) Xeon(R) CPU E5-2673 v4 @ 2.30GHz (32 cores in total
+with hyper-threading). The average set size in all scenarios was
+about 500K. More details about the benchmark machine and configuration
+can be found on <a href="/blog/images/ets_ord_set_21_vs_22/21_vs_22.html">this
+page</a>.</p>
+
+<p><img class="img-fluid"src="/blog/images/ets_ord_set_21_vs_22/plot_1.png" alt="alt text" title="benchmark results" /></p>
+
+<p><img class="img-fluid"src="/blog/images/ets_ord_set_21_vs_22/plot_2.png" alt="alt text" title="benchmark results" /></p>
+
+<p><img class="img-fluid"src="/blog/images/ets_ord_set_21_vs_22/plot_3.png" alt="alt text" title="benchmark results" /></p>
+
+<p><img class="img-fluid"src="/blog/images/ets_ord_set_21_vs_22/plot_7.png" alt="alt text" title="benchmark results" /></p>
+
+<p><img class="img-fluid"src="/blog/images/ets_ord_set_21_vs_22/plot_8.png" alt="alt text" title="benchmark results" /></p>
+
+<p><img class="img-fluid"src="/blog/images/ets_ord_set_21_vs_22/plot_5.png" alt="alt text" title="benchmark results" /></p>
+
+<p><img class="img-fluid"src="/blog/images/ets_ord_set_21_vs_22/plot_6.png" alt="alt text" title="benchmark results" /></p>
+
+<p><img class="img-fluid"src="/blog/images/ets_ord_set_21_vs_22/plot_4.png" alt="alt text" title="benchmark results" /></p>
+
+<p>We see that the throughput of the CA tree-based <code>ordered_set</code> (OTP-22)
+improves when we add cores all the way up to 64 cores, while the old
+implementation’s (OTP-21) throughput often gets worse when more
+processes are added. The old implementation’s write operations are
+serialized as the data structure is protected by a single
+readers-writer lock. The slowdown of the old version when adding more
+cores is mainly caused by increased communication overhead when more
+cores try to acquire the same lock and by the fact that the competing
+cores frequently invalidate each other’s cache lines.</p>
+
+<p>The graph for the 100% lookups scenario (the last graph in the list of
+graphs above) looks a bit strange at first sight. Why does the CA tree
+scale so much better than the old implementation in this scenario? The
+answer is almost impossible to guess without knowing the
+implementation details of the <code>ordered_set</code> table type. First of all,
+the CA tree uses the same readers-writer lock implementation
+for its base node locks as the old implementation uses to protect the whole
+table. The difference is thus not due to any lock differences. The
+default <code>ordered_set</code> implementation (the one that is active when
+<code>write_concurrency</code> is off) has an optimization that mainly improves
+usage scenarios where a single process iterates over items of the
+table, for example, with a sequence of calls to the <code>ets:next/2</code>
+function. This optimization keeps a static stack per table. Some
+operations use this stack to reduce the number of tree nodes that need
+to be traversed. For example, the <code>ets:next/2</code> operation does not need
+to recreate the stack, if the top of the stack contains the same key
+as the one passed to the operation (see
+<a href="https://github.com/erlang/otp/blob/master/erts/emulator/beam/erl_db_tree.c#L3084">here</a>). As there is only one static stack per
+table and potentially many readers (due to the readers-writer lock),
+the static stack has to be reserved by the thread that is currently
+using it. Unfortunately, the static stack handling is a scalability
+bottleneck in scenarios like the one with 100% lookups above. The CA
+tree implementation does not have this type of optimization, so it
+does not suffer from this scalability bottleneck. However, this also
+means that the old implementation may perform better than the new one
+when the table is mainly sequentially accessed. One example of when
+the old implementation (that still can be used by setting the
+<code>write_concurrency</code> option to false) performs better is the single
+process case of the 10% <code>insert</code>, 10% <code>delete</code>, 40% <code>lookup</code> and 40%
+<code>nextseq1000</code> (a sequence of 1000 <code>ets:next/2</code> calls) scenario (the
+second last graph in the list of graphs above).</p>
+
+<p>Therefore, we can conclude that that turning on <code>write_concurrency</code>
+for an <code>ordered_set</code> table is probably a good idea if the table is
+accessed from multiple processes in parallel. Still, turning off
+<code>write_concurrency</code> might be better if you mainly access the table
+sequentially.</p>
+      <h2 id="a-note-on-decentralized-counters">
+        
+        
+          A Note on Decentralized Counters <a href="#a-note-on-decentralized-counters">#</a>
+        
+        
+      </h2>
+    
+
+<p>The CA tree implementation was not the only optimization introduced in
+Erlang/OTP 22, affecting the scalability of <code>ordered_set</code> with
+<code>write_concurrency</code>. An optimization that decentralized counters in
+<code>ordered_set</code> tables with <code>write_concurrency</code> turned on was also
+introduced in Erlang/OTP 22 (see <a href="https://github.com/erlang/otp/pull/2190">here</a>).  An
+option to enable the same optimization in all table types was
+introduced in Erlang/OTP 23 (see <a href="https://github.com/erlang/otp/pull/2229">here</a>). You can
+find benchmark results comparing the scalability of the tables with
+and without decentralized counters <a href="http://winsh.me/ets_catree_benchmark/azure_D64s_decent_ctrs/hash_decentralized_ctrs.html">here</a>.</p>
+      <h2 id="further-reading">
+        
+        
+          Further Reading <a href="#further-reading">#</a>
+        
+        
+      </h2>
+    
+
+<p>The following paper describes the CA tree and some optimizations (of which some have not been applied to the ETS CA tree yet) in much more detail than this blog post. The paper also includes an experimental comparison with related data structures.</p>
+
+<ul>
+  <li><em><a href="https://doi.org/10.1016/j.jpdc.2017.11.007">A Contention Adapting Approach to Concurrent Ordered Sets</a> (<a href="http://winsh.me/papers/catree_jpdc_paper.pdf">preprint</a>). Journal of Parallel and Distributed Computing, 2018. Konstantinos Sagonas and Kjell Winblad</em></li>
+</ul>
+
+<p>There is also a lock-free variant of the CA tree that is described in the following paper. The lock-free CA tree uses immutable data structures in its base nodes to substantially reduce the amount of time range queries, and similar operations can conflict with other operations.</p>
+
+<ul>
+  <li><em><a href="https://doi.org/10.1145/3210377.3210413">Lock-free Contention Adapting Search Trees</a> (<a href="http://winsh.me/papers/spaa2018lfcatree.pdf">preprint</a>). In the proceedings of the 30th Symposium on Parallelism in Algorithms and Architectures (SPAA 2018). Kjell Winblad, Konstantinos Sagonas, and Bengt Jonsson.</em></li>
+</ul>
+
+<p>The following paper, which discusses and evaluates a prototypical CA tree implementation for ETS, was the first CA tree-related paper.</p>
+
+<ul>
+  <li><em><a href="http://dl.acm.org/citation.cfm?id=2633455">More Scalable Ordered Set for ETS Using Adaptation</a> (<a href="http://winsh.me/papers/erlang_workshop_2014.pdf">preprint</a>). In Thirteenth ACM SIGPLAN workshop on Erlang (2014). Konstantinos Sagonas and Kjell Winblad</em></li>
+</ul>
+
+<p>You can look directly at the <a href="https://github.com/erlang/otp/blob/4ca912b859f779d6d9b235ea0cf6fb7662edcc59/erts/emulator/beam/erl_db_catree.c">ETS CA tree source
+code</a> if you are interested in specific
+implementation details. Finally, it might also be interesting to look
+at the <a href="http://uu.diva-portal.org/smash/record.jsf?pid=diva2%3A1220366&amp;dswid=6575">author’s Ph.D. thesis</a> if you want to get
+more links to related work or want to know more about the motivation
+for concurrent data structures that adapt to contention.</p>
+      <h2 id="conclusion">
+        
+        
+          Conclusion <a href="#conclusion">#</a>
+        
+        
+      </h2>
+    
+
+<p>The Erlang/OTP 22 release introduced a new ETS <code>ordered_set</code>
+implementation that is active when the <code>write_concurrency</code> option is
+turned on. This data structure (a contention adapting search tree) has
+superior scalability to the old data structure in many different
+scenarios and a design that gives it excellent performance in a variety
+of scenarios that benefit from different synchronization
+granularities.</p>
+
+        
+    </div>
+</article>
+        </div>
+    </div>
+</div>
+<script src="/assets/js/prismjs/prism.js"></script>
+<script src="/assets/js/prismjs/components/prism-erlang.js"></script>
+<script src="/assets/js/prismjs/components/prism-c.js"></script>
+<script src="/assets/js/prismjs/components/prism-bash.js"></script>
+    <footer class="container-fluid footer text-center border-top border-bottom">
+        <div>
+            <a href="/downloads.html" title="DOWNLOAD"><img src="/assets/img/download.png" alt="Download Erlang/OTP"></a>
+        </div>
+        <div>
+            <a href="http://www.github.com/erlang/otp"><img
+                    src="/assets/img/GitHub-Mark-32px.png" alt="Erlang/OTP on Github"></a>
+        </div>
+        
+        <div>
+            <a href="http://www.twitter.com/erlang_org"><img src="/assets/img/twitter.png"
+                    width="32" alt="Erlang/OTP twitter"></a>
+        </div>
+    </footer>
+    <script src="/assets/js/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

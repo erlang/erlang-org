@@ -1,0 +1,1351 @@
+<!DOCTYPE html>
+<html lang="en">
+
+
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <!-- Allow pinning of website on windows -->
+    <meta name="application-name" content="Erlang.org">
+    <meta name="msapplication-tooltip" content="The official home of the Erlang Programming Language">
+    <meta name="msapplication-starturl" content="/" >
+
+    <!-- Make the site look nicer on facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Erlang.org">
+    <meta property="og:title" content="Welcome to Erlang.org">
+    <meta property="og:description" content="The official home of the Erlang Programming Language">
+    <meta property="og:image" content="https://beta.erlang.org/assets/img/erlang-228x200.png">
+    <meta property="og:image:secure_url" content="https://beta.erlang.org/assets/img/erlang-228x200.png">
+    <meta property="og:url" content="https://beta.erlang.org/">
+
+    <!-- Twitter metadata -->
+    <meta name="twitter:card" content="summary" />
+    <meta property="twitter:title" content="Index" />
+    <meta name="twitter:site" content="@erlang_org" />
+
+    <!-- Rich data for google search -->
+    <script type="application/ld+json">
+{"@type":"WebSite","url":"https://erlang.org/","headline":"Eep 0007 - Erlang/OTP","name":"Erlang.org","sameAs":["https://twitter.com/erlang_org","https://github.com/erlang/otp"],"@context":"https://schema.org"}</script>
+
+    <title>Eep 0007 - Erlang/OTP</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- tells iOS browsers to not show telephone numbers as links -->
+    <meta name="format-detection" content="telephone=no">
+
+    <meta name="application-name" content="Erlang.org">
+    <meta name="description" content="The official home of the Erlang Programming Language">
+    <meta name="keywords" content="Erlang programming language functional parallel distributed documentation download community">
+    <!-- https://www.rssboard.org/rss-autodiscovery -->
+    <link rel="alternate" type="application/atom+xml" title="News Atom Feed" href="https://beta.erlang.org/news.xml" />
+    <link rel="alternate" type="application/atom+xml" title="Blog Atom Feed" href="https://beta.erlang.org/blog.xml" />
+    
+    <link rel="stylesheet" href="/assets/css/main.css">
+</head>
+
+<body>
+    <header class="navbar navbar-expand-lg navbar-light bg-body">
+        <nav class="container">
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
+                aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <a class="navbar-brand" href="/"><img
+                    src="/assets/img/erlang.png" class="img-fluid" width="60" alt="Erlang.org main page"/></a>
+            <div class="collapse navbar-collapse fw-bold" id="navbarSupportedContent">
+                <ul class="navbar-nav text-uppercase me-auto mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link" href="/downloads">Download</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/docs">Documentation</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/community">Community</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/news">News</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/blog">Blog</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/eep">EEP</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/about">About</a></li>
+                </ul>
+                <form class="d-flex" role="search" method="get" action="https://duckduckgo.com/">
+                    <input type="hidden" name="sites" value="erlang.org">
+                    <input class="form-control me-2" id="searchfield" name="q" type="search" placeholder="Search erlang.org"
+                        aria-label="Search">
+                    <button class="btn btn-outline-primary" type="submit">Search</button>
+                </form>
+            </div>
+        </nav>
+    </header>
+    <div class="container border-top pt-4">
+    <div class="row-lg">
+        <div class="col-lg-10 offset-lg-1">
+            <div class="card">
+                <div class="card-body">
+                    <dl class="mb-0 dl-single">
+                        <dt>Author:</dt>
+                        <dd>
+                            Alceste Scalas &lt;alceste(at)crs4(dot)it&gt;
+                            
+                            
+                        </dd>
+                        
+                        <dt>Status:</dt>
+                        <dd>Draft </dd>
+                        <dt>Type:</dt>
+                        <dd>Standards Track</dd>
+                        
+                        
+                        <dt>Created:</dt>
+                        <dd>3-Sep-2007</dd>
+                        
+                        <dt>Erlang-Version:</dt>
+                        <dd>R12B</dd>
+                        
+                        
+                        
+                        
+                    </dl>
+                </div>
+            </div>
+            <div class="border-top mt-4">
+                
+                <h2 id="eep-7-foreign-function-interface-ffi">
+        
+        
+          EEP 7: Foreign Function Interface (FFI) <a href="#eep-7-foreign-function-interface-ffi">#</a>
+        
+        
+      </h2>
+    
+      <h1 id="abstract">
+        
+        
+          Abstract <a href="#abstract">#</a>
+        
+        
+      </h1>
+    
+
+<p>This EEP describes a Foreign Function Interface (FFI) for Erlang/OTP,
+that allows to easily perform direct calls of external C functions.
+It introduces three new BIFs (<code>ffi:raw_call/3</code>,
+<code>erl_ddll:load_library/3</code> and <code>ffi:raw_call/2</code>) that accomplish the main
+FFI tasks: loading generic C libraries, making external function calls
+and performing automatic Erlang-to-C and C-to-Erlang type conversions.</p>
+
+<p>It also introduces two auxiliary BIFs for converting C buffers/strings
+into binaries (<code>ffi:raw_buffer_to_binary/2</code> and
+<code>ffi:raw_cstring_to_binary/1</code>), a new <code>ffi</code> Erlang module that
+provides a higher-level API with stricter type checking, and some
+utility macros.  Finally, it extends <code>erl_ddll:info/2</code> with FFI
+information.</p>
+      <h1 id="motivation">
+        
+        
+          Motivation <a href="#motivation">#</a>
+        
+        
+      </h1>
+    
+
+<p>The current Erlang extension mechanisms can be divided in two main
+categories:</p>
+
+<ol>
+  <li>
+    <p>absolute stability at the price of speed (C nodes, pipe drivers);</p>
+  </li>
+  <li>
+    <p>more speed at the (potential) price of stability (linked-in
+drivers).</p>
+  </li>
+</ol>
+
+<p>Linked-in drivers have thus become the standard way for creating
+library bindings when efficiency is an issue.  In both cases, however,
+the Erlang driver interface implies the development of relevant
+amounts of glue code, mostly because the communication between Erlang
+and C always requires data parsing and (de)serialization.  Several
+tools have been created in order to autogenerate (at least part of)
+that glue: from the (now unmaintained) <a href="http://www1.erlang.org/documentation/doc-4.8.2/lib/ig-1.8/doc/index.html" title="IG: the Erlang Interface Generator, Törnquist and Lundell">IG driver generation tool</a>
+to the newer <a href="http://www.erlang.se/workshop/2002/Fritchie.pdf" title="The Evolution of Erlang Drivers and the Erlang Driver Toolkit, Fritchie">Erlang Driver Toolkit (EDTK)</a> and <a href="http://dryverl.objectweb.org/" title="The Dryverl Erlang/C binding compiler">Dryverl</a>.</p>
+
+<p>But, even with the help of these tools, developing an Erlang driver is
+a difficult and time-consuming task (especially when interfacing
+external libraries with tens or hundreds of functions), and the glue
+code itself increases the possibility to introduce bugs — that, in
+the case of linked-in drivers, usually mean VM crashes.  For all these
+reasons, the lack of libraries and the difficulty of interfacing them
+from other languages is one of the negative aspects that are usually
+associated with Erlang.</p>
+
+<p>The same problems also arise when a developer needs to replace
+performance-critical portions of his/her Erlang code with optimized C
+functions.  In this case, also the data serialization/deserialization
+overhead may be a significant issue.</p>
+
+<p>An easier method for interfacing Erlang and C code could drastically
+extend the Erlang capabilities and open new usage scenarios.</p>
+      <h1 id="rationale">
+        
+        
+          Rationale <a href="#rationale">#</a>
+        
+        
+      </h1>
+    
+
+<p>This EEP proposes a Foreign Function Interface (FFI) extension that
+would allow to easily perform direct C function calls.  This concept
+is implemented in almost every language, with two main (non-exclusive)
+approaches:</p>
+
+<ol>
+  <li>
+    <p>automatic type conversions between the host and the foreign
+language (examples: <a href="http://python.net/crew/theller/ctypes/" title="The CPython package">Python</a>, <a href="http://www.cse.unsw.edu.au/~chak/haskell/ffi/" title="The Haskell 98 Foreign Function Interface">Haskell</a>);</p>
+  </li>
+  <li>
+    <p>documented C interface for handling host language types from the
+foreign language (examples: <a href="http://java.sun.com/j2se/1.5.0/docs/guide/jni/" title="The Java Native Interface">Java</a>, <a href="http://docs.python.org/ext/ext.html" title="Extending and Embedding the Python Interpreter">Python</a> <a href="http://docs.python.org/api/api.html" title="Python/C API Reference Manual">(API)</a>).</p>
+  </li>
+</ol>
+
+<p>This EEP follows the first approach, but (when possible) also reuses
+part of the existing C Driver API (and, thus, allows to manage
+<code>ErlDrvBinary</code> and <code>ErlIOVec</code> pointers in the external C
+functions).</p>
+
+<p>The FFI has been designed <em>not</em> to require language changes or
+introduce incompatibilities.</p>
+
+<p>The BIFs and functions proposed in this EEP don’t give any access to
+the Erlang VM internals — but the called C functions could leak
+memory and/or cause the Erlang VM to crash.  The FFI is, thus, not
+intended for “casual” Erlang developers: this is a tool designed for
+library bindings developers (that should take care of hiding FFI calls
+from final users), and advanced programmers looking for an easy (and
+efficient) way to call C code from Erlang.</p>
+      <h1 id="overview">
+        
+        
+          Overview <a href="#overview">#</a>
+        
+        
+      </h1>
+    
+
+<p>In order to call a C function, the FFI needs a port opened towards the
+required C code.  Thus, with the current driver loading mechanism, a
+developer would be required to:</p>
+
+<ol>
+  <li>
+    <p>create a C file with a void <code>ErlDrvEntry</code> structure and driver
+init function;</p>
+  </li>
+  <li>
+    <p>compile it and possibly link it against the required C libraries,
+thus obtaining a void Erlang driver;</p>
+  </li>
+  <li>
+    <p>load the driver in the Erlang VM, by using <code>erl_ddll:load/2</code>.</p>
+  </li>
+</ol>
+
+<p>In order to simplify this procedure, this EEP proposes the
+<code>erl_ddll:load_library/3</code> function, that allows to load a generic
+library in the Erlang VM — even if it lacks the structure of an
+Erlang linked-in driver.</p>
+
+<p><code>erl_ddll:load_library/3</code> also offers an option to preload a list of C
+function symbols and signatures, thus precompiling the internal
+structures needed for performing dynamic function calls.  Information
+about preloaded data can be retrieved with <code>erl_ddll:info/2</code>.</p>
+
+<p>Once a library or driver has been loaded, <code>erlang:open_port/2</code> or
+<code>erlang:open_port/1</code> could be used to get a port for the FFI
+functions, and perform calls either through the low-level or the
+high-level APIs.</p>
+      <h2 id="low-level-api">
+        
+        
+          Low-level API <a href="#low-level-api">#</a>
+        
+        
+      </h2>
+    
+
+<p>The low-level FFI methods are denoted by the <code>raw_</code> prefix.  The
+main function is the <code>ffi:raw_call/3</code> BIF, that performs a direct C
+function call through an open port.  It converts C types to/from
+Erlang types.</p>
+
+<p>When taken alone, <code>ffi:raw_call/3</code> has got a major drawback: it introduces
+great call overhead, due to the C symbol lookup and the dynamic
+construction of the function call.</p>
+
+<p>In order to exploit preloading option of <code>erl_ddll:load_library/3</code>, the
+<code>ffi:raw_call/2</code> BIF is introduced: it avoids symbol lookup and call
+structure compilation, thus guaranteeing a lower call overhead than
+<code>ffi:raw_call/3</code>.</p>
+
+<p>Furthermore, the low-level interface provides two BIFs for creating an
+Erlang binary from a C pointer (possibly returned by a FFI call).
+These BIFs are <code>ffi:raw_buffer_to_binary/2</code> and
+<code>ffi:raw_cstring_to_binary/1</code>.</p>
+      <h2 id="high-level-api">
+        
+        
+          High-level API <a href="#high-level-api">#</a>
+        
+        
+      </h2>
+    
+
+<p>The high-level interface is built upon the low-level one.  It
+introduces the concept of type-tagged values: any value passed to or
+returned from FFI calls has the form of a <code>{Type, Value}</code> tuple.  This
+allows to:</p>
+
+<ol>
+  <li>
+    <p>increase the readability of FFI calls;</p>
+  </li>
+  <li>
+    <p>make the C calls safer: the consistency of tagged values is checked
+before the values themselves are passed to the low-level API.
+Furthermore, the preload information given to
+<code>erl_ddll:load_library/3</code> is used (when available) to ensure that the
+tagged values actually match the function signature;</p>
+  </li>
+  <li>
+    <p>simulate the static typing of C code, thus requiring proper and
+explicit “casts” when a tagged value needs to be converted to
+another type.</p>
+  </li>
+</ol>
+
+<p>These checks are performed by <code>ffi:call/3</code>, <code>ffi:buffer_to_binary/2</code>
+and <code>ffi:cstring_to_binary/1</code> (the type-tagged equivalents of the
+low-level BIFs).  Type-tagged values can also be checked with
+<code>ffi:check/1</code>.  Furthermore, the allowed minimum and maximum value of
+each FFI type can be examined with <code>ffi:min/1</code> and <code>ffi:max/1</code>.</p>
+      <h2 id="utility-macros">
+        
+        
+          Utility macros <a href="#utility-macros">#</a>
+        
+        
+      </h2>
+    
+
+<p>The FFI defines a series of utility macros in the <code>ffi_hardcodes.hrl</code>
+header file, that could be used for binary matching of C buffers and
+structures.</p>
+      <h1 id="specifications">
+        
+        
+          Specifications <a href="#specifications">#</a>
+        
+        
+      </h1>
+    
+      <h2 id="types">
+        
+        
+          Types <a href="#types">#</a>
+        
+        
+      </h2>
+    
+      <h3 id="c_func_name">
+        
+        
+          <code>c_func_name()</code> <a href="#c_func_name">#</a>
+        
+        
+      </h3>
+    
+
+<pre><code class="language-erlang">c_func_name() = atom() | string()
+</code></pre>
+
+<p>Name of a C function.</p>
+      <h3 id="type_tag">
+        
+        
+          <code>type_tag()</code> <a href="#type_tag">#</a>
+        
+        
+      </h3>
+    
+
+<pre><code class="language-erlang">type_tag() = atom()
+</code></pre>
+
+<p>Valid FFI type atom.  For the list of allowed values, see the
+Appendix.</p>
+      <h3 id="tagged_value">
+        
+        
+          <code>tagged_value()</code> <a href="#tagged_value">#</a>
+        
+        
+      </h3>
+    
+
+<pre><code class="language-erlang">tagged_value() = tuple(type_tag(), term())
+</code></pre>
+
+<p>Type-tagged value used for FFI calls.</p>
+      <h3 id="tagged_func_name">
+        
+        
+          <code>tagged_func_name()</code> <a href="#tagged_func_name">#</a>
+        
+        
+      </h3>
+    
+
+<pre><code class="language-erlang">tagged_func_name() = tuple(type_tag(), c_func_name())
+</code></pre>
+
+<p>C function name with return type.</p>
+      <h3 id="func_index">
+        
+        
+          <code>func_index()</code> <a href="#func_index">#</a>
+        
+        
+      </h3>
+    
+
+<pre><code class="language-erlang">func_index() = integer()
+</code></pre>
+
+<p>Function position on the list of preloads given to
+<code>erl_ddll:load_library/3</code>.</p>
+      <h3 id="tagged_func_index">
+        
+        
+          <code>tagged_func_index()</code> <a href="#tagged_func_index">#</a>
+        
+        
+      </h3>
+    
+
+<pre><code class="language-erlang">tagged_func_index() = tuple(type_tag(), func_index())
+</code></pre>
+
+<p>C function index with return type.</p>
+      <h3 id="signature">
+        
+        
+          <code>signature()</code> <a href="#signature">#</a>
+        
+        
+      </h3>
+    
+
+<pre><code class="language-erlang">signature() = tuple(type_tag(), ...)
+</code></pre>
+
+<p>Signature of a C function: return type followed by arguments types (if
+any).</p>
+      <h2 id="erl_ddllload_library3">
+        
+        
+          <code>erl_ddll:load_library/3</code> <a href="#erl_ddllload_library3">#</a>
+        
+        
+      </h2>
+    
+
+<pre><code class="language-erlang">erl_ddll:load_library(Path, Name,
+                      OptionsList) -&gt; ok | {error, ErrorDesc}
+</code></pre>
+
+<p>Types:</p>
+
+<ul>
+  <li>
+    <p><code>Path = Name = string() | atom()</code></p>
+  </li>
+  <li>
+    <p><code>OptionList = [Option]</code></p>
+  </li>
+  <li>
+    <p><code>Option = tuple(preload, [Preload])</code></p>
+  </li>
+  <li>
+    <p><code>Preload = tuple(c_func_name(), signature())</code></p>
+  </li>
+</ul>
+
+<p>Load a generic shared library.</p>
+
+<p>If an <code>ErlDrvEntry</code> structure and a driver init function are found when
+loading the library, this BIF will behave like <code>erl_ddll:load/2</code>.  The
+function parameters are also the same of <code>erl_ddll:load/2</code>, with the
+following addition:</p>
+
+<p><strong>OptionList</strong> is a list of options for library/driver loading.
+The supported options are:</p>
+
+<ul>
+  <li>
+    <p><strong><code>{preload, PreloadList}</code></strong></p>
+
+    <p>Preload the given list of functions, and prepare their
+call structures.  Each PreloadList element is a tuple
+in the form:</p>
+
+    <pre><code>  tuple(c_func_name(), signature())
+</code></pre>
+
+    <p>i.e. the function name followed by its return and
+arguments types.</p>
+  </li>
+</ul>
+
+<p>The function return values are the same of <code>erl_ddll:load/2</code>.</p>
+
+<p>Once a library has been loaded, it is possible to use
+<code>erlang:open_port/2</code> to get a port.  That port could <em>always</em> be used
+with <code>ffi:call/3</code>, <code>ffi:raw_call/3</code> or <code>ffi:raw_call/2</code>.  However,
+if the loaded library does <em>not</em> contain a proper <code>ErlDrvEntry</code>
+structure and a driver init function, the port will <strong>not</strong> be usable
+with <code>erlang:port_command/2</code>, <code>erlang:port_control/3</code> etc.</p>
+
+<p>The following example loads the C standard library and preloads some
+functions:</p>
+
+<pre><code class="language-erlang">ok = erl_ddll:load_library("/lib", libc,
+                           [{preload,
+                             [{puts, {sint, nonnull}},
+                              {putchar, {sint, sint}},
+                              {malloc, {nonnull, size_t}},
+                              {free, {void, nonnull}}]}]).
+</code></pre>
+      <h2 id="erl_ddllload_library2">
+        
+        
+          <code>erl_ddll:load_library/2</code> <a href="#erl_ddllload_library2">#</a>
+        
+        
+      </h2>
+    
+
+<pre><code class="language-erlang">erl_ddll:load_library(Path, Name)
+</code></pre>
+
+<p>Utility function that calls <code>erl_ddll:load_library/3</code> with an empty
+OptionsList.</p>
+      <h2 id="erlangopen_port1">
+        
+        
+          <code>erlang:open_port/1</code> <a href="#erlangopen_port1">#</a>
+        
+        
+      </h2>
+    
+
+<pre><code class="language-erlang">erlang:open_port(Library)
+</code></pre>
+
+<p>Types:</p>
+
+<ul>
+  <li><code>Library = string() | atom()</code></li>
+</ul>
+
+<p>Open a port towards the specified shared library, possibly loaded with
+<code>erl_ddll:load_library/3</code>.  Calling this function is equivalent to:</p>
+
+<pre><code class="language-erlang">erlang:open_port({spawn, Library}, [binary])
+</code></pre>
+      <h2 id="erl_ddllinfo2">
+        
+        
+          <code>erl_ddll:info/2</code> <a href="#erl_ddllinfo2">#</a>
+        
+        
+      </h2>
+    
+
+<p>This EEP proposes a new parameter for the <code>erl_ddll:info/2</code> BIF: the
+‘preloads’ atom.  It allows to retrieve information about FFI preloads
+for the given library.</p>
+
+<p>The preload information is a list of proplists, one for each preloaded
+function.  Each proplist, in turn, has the following format:</p>
+
+<pre><code class="language-erlang">[ { index,     integer()   },     % Position in the preload list
+  { name,      string()    },     % Function name
+  { address,   integer()   },     % Function address
+  { signature, signature() } ]    % Function signature
+</code></pre>
+
+<p>This information would be made available also through <code>erl_ddll:info/0</code>
+and <code>erl_ddll:info/1</code>.</p>
+      <h2 id="ffiraw_call3">
+        
+        
+          <code>ffi:raw_call/3</code> <a href="#ffiraw_call3">#</a>
+        
+        
+      </h2>
+    
+
+<pre><code class="language-erlang">ffi:raw_call(Port, CallArgs, Signature) -&gt; term()
+</code></pre>
+
+<p>Types:</p>
+
+<ul>
+  <li>
+    <p><code>Port = port()</code></p>
+  </li>
+  <li>
+    <p><code>CallArgs = tuple(</code>c_func_name()<code>, Arg1, ...)</code></p>
+  </li>
+  <li>
+    <p><code>Arg1, ... = term()</code></p>
+  </li>
+  <li>
+    <p><code>Signature = signature()</code></p>
+  </li>
+</ul>
+
+<p>Call the specified C function.</p>
+
+<p>This BIF accepts the following parameters:</p>
+
+<ul>
+  <li>
+    <p><strong>Port</strong></p>
+
+    <p>A port opened towards the required driver/library.</p>
+  </li>
+  <li>
+    <p><strong>CallArgs</strong></p>
+
+    <p>A tuple with the function name (atom or string) followed by
+  its arguments (if any).</p>
+  </li>
+  <li>
+    <p><strong>Signature</strong></p>
+
+    <p>Function signature.</p>
+  </li>
+</ul>
+
+<p>This BIF returns the return value of the C function being called (or
+‘void’ if the return type is void).  It automatically converts Erlang
+terms to/from C values.  The supported C types and conversions are
+reported in the Appendix.</p>
+
+<p>The following example calls the <code>malloc()</code> and <code>free()</code> functions from the
+standard C library (it should work with any Erlang linked-in driver): ::</p>
+
+<pre><code class="language-erlang">Pointer = ffi:raw_call(Port, {malloc, 1024}, {pointer, size_t}),
+ok = ffi:raw_call(Port, {free, Pointer}, {void, pointer}).
+</code></pre>
+
+<p><strong>WARNING:</strong> bugs and/or misuses of the external C functions can
+affect the Erlang VM, possibly making it crash.  Use this BIF with
+extreme care.</p>
+      <h2 id="ffiraw_call2">
+        
+        
+          <code>ffi:raw_call/2</code> <a href="#ffiraw_call2">#</a>
+        
+        
+      </h2>
+    
+
+<pre><code class="language-erlang">ffi:raw_call(Port, OptimizedCall) -&gt; term()
+</code></pre>
+
+<p>Types:</p>
+
+<ul>
+  <li>
+    <p><code>Port = port()</code></p>
+  </li>
+  <li>
+    <p><code>OptimizedCall = {FuncIndex, Arg1, ...}</code></p>
+  </li>
+  <li>
+    <p><code>FuncIndex = func_index()</code></p>
+  </li>
+  <li>
+    <p><code>Arg1, ... = term()</code></p>
+  </li>
+</ul>
+
+<p>Call a function preloaded with the ‘preload’ option of
+<code>erl_ddll:load_library/3</code>.</p>
+
+<p>This BIF accepts the following parameters:</p>
+
+<ul>
+  <li>
+    <p><strong>Port</strong></p>
+
+    <p>A port opened towards the required driver/library (that
+<strong>must</strong> have been loaded with <code>erl_ddll:load_library/3</code>).</p>
+  </li>
+  <li>
+    <p><strong>OptimizedCall</strong></p>
+
+    <p>A tuple with the function index (i.e. its position in
+the preload list) followed by its arguments (if any).</p>
+  </li>
+</ul>
+
+<p>This BIF returns the return value of the C function being called (or
+‘void’ if the return type is void).  It automatically converts Erlang
+terms to/from C values.  The supported C types and conversions are
+reported in the Appendix.</p>
+
+<p>The following example calls <code>malloc()</code> and <code>free()</code>, after they have been
+preloaded with the code sample shown in <code>erl_ddll:load_library/3</code>:</p>
+
+<pre><code class="language-erlang">Port = open_port({spawn, "libc"}, [binary]),
+Pointer = ffi:raw_call(Port, {3, 1024}),
+ffi:raw_call(Port, {4, Pointer})
+</code></pre>
+
+<p><strong>WARNING:</strong> bugs and/or misuses of the external C functions can
+affect the Erlang VM, possibly making it crash.  Use this BIF with
+extreme care.</p>
+      <h2 id="ffiraw_buffer_to_binary2">
+        
+        
+          <code>ffi:raw_buffer_to_binary/2</code> <a href="#ffiraw_buffer_to_binary2">#</a>
+        
+        
+      </h2>
+    
+
+<pre><code class="language-erlang">ffi:raw_buffer_to_binary(Pointer, Size) -&gt; binary()
+</code></pre>
+
+<p>Types:</p>
+
+<ul>
+  <li>
+    <p><code>Pointer = integer()</code></p>
+  </li>
+  <li>
+    <p><code>Size = integer()</code></p>
+  </li>
+</ul>
+
+<p>Return a binary with a copy of Size bytes read from the given C
+pointer (represented by an integer, possibly returned by a FFI call).</p>
+
+<p><strong>WARNING:</strong> passing the wrong pointer to this BIF may cause the
+Erlang VM to crash.  Use with extreme care.</p>
+      <h2 id="ffiraw_cstring_to_binary1">
+        
+        
+          <code>ffi:raw_cstring_to_binary/1</code> <a href="#ffiraw_cstring_to_binary1">#</a>
+        
+        
+      </h2>
+    
+
+<pre><code class="language-erlang">ffi:raw_cstring_to_binary(CString) -&gt; binary()
+</code></pre>
+
+<p>Types:</p>
+
+<ul>
+  <li><code>CString = integer()</code></li>
+</ul>
+
+<p>Return a binary with a copy of the given NULL-terminated C string (an
+integer representing a pointer, possibly returned by a FFI call).  The
+binary will include the trailing 0.</p>
+
+<p><strong>WARNING:</strong> passing a wrong pointer to this BIF may cause the Erlang
+VM to crash.  Use with extreme care.</p>
+      <h2 id="fficall3">
+        
+        
+          <code>ffi:call/3</code> <a href="#fficall3">#</a>
+        
+        
+      </h2>
+    
+
+<pre><code class="language-erlang">call(Port, CFunc, Args) -&gt; RetVal
+</code></pre>
+
+<p>Types:</p>
+
+<ul>
+  <li>
+    <p><code>Port = port()</code></p>
+  </li>
+  <li>
+    <p><code>CFunc = c_func_name() | func_index() | tagged_func_name() | tagged_func_index()</code></p>
+  </li>
+  <li>
+    <p><code>Args = [tagged_value()]</code></p>
+  </li>
+  <li>
+    <p><code>RetVal = tagged_value()</code></p>
+  </li>
+</ul>
+
+<p>Call the C function <code>CFunc</code> with the given list of arguments, using
+the port <code>Port</code>.  If the function was preloaded with
+<code>ffi:load_library/3</code>, all the type tags will be matched against the
+preloaded signature before performing the call.</p>
+
+<p>Return the return value of the C function, with the proper type tag.</p>
+
+<p><strong>Note:</strong> if <code>CFunc</code> is not of type <code>tagged_func_name()</code>, the C
+function will be called if and only if it was preloaded with
+<code>erl_ddll:load_library/3</code> (it is required in order to determine its
+return type).</p>
+
+<p>As an example, the following <code>malloc()</code> calls are all valid and
+equivalent when executed after the code sample shown in
+<code>erl_ddll:load_library/3</code>:</p>
+
+<pre><code class="language-erlang">%% Use function name, but require preloads for return type
+{nonnull, Ptr1} = ffi:call(Port, "malloc", [{size_t, 1024}]),
+{nonnull, Ptr2} = ffi:call(Port, malloc, [{size_t, 1024}]),
+
+%% Use function index from preloads list
+{nonnull, Ptr3} = ffi:call(Port, 3, [{size_t, 1024}]),
+{nonnull, Ptr4} = ffi:call(Port, {nonnull, 3}, [{size_t, 1024}]),
+
+%% These calls do not require any preload information
+{nonnull, Ptr5} = ffi:call(Port, {nonnull, "malloc"}, [{size_t, 1024}]),
+{nonnull, Ptr6} = ffi:call(Port, {nonnull, malloc}, [{size_t, 1024}]),
+</code></pre>
+
+<p><strong>WARNING:</strong> bugs and/or misuses of the external C functions can
+affect the Erlang VM, possibly making it crash.  Use this BIF with
+extreme care.</p>
+      <h2 id="ffibuffer_to_binary2">
+        
+        
+          <code>ffi:buffer_to_binary/2</code> <a href="#ffibuffer_to_binary2">#</a>
+        
+        
+      </h2>
+    
+
+<pre><code class="language-erlang">ffi:buffer_to_binary(TaggedNonNull, Size) -&gt; binary()
+</code></pre>
+
+<p>Types:</p>
+
+<ul>
+  <li>
+    <p><code>TaggedNonNull = tuple(nonnull, integer())</code></p>
+  </li>
+  <li>
+    <p><code>Size: integer()</code></p>
+  </li>
+</ul>
+
+<p>Return a binary with a copy of <code>Size</code> bytes read from the given C
+pointer.</p>
+
+<p><strong>WARNING:</strong> passing a wrong pointer to this function may cause the
+Erlang VM to crash.  Use with extreme care.</p>
+      <h2 id="fficstring_to_binary1">
+        
+        
+          <code>ffi:cstring_to_binary/1</code> <a href="#fficstring_to_binary1">#</a>
+        
+        
+      </h2>
+    
+
+<pre><code class="language-erlang">ffi:cstring_to_binary(TaggedCString) -&gt; binary()
+</code></pre>
+
+<p>Types:</p>
+
+<ul>
+  <li><code>TaggedCString = tuple(cstring, integer())</code></li>
+</ul>
+
+<p>Return a binary with a copy of the given NULL-terminated C string.</p>
+
+<p><strong>WARNING:</strong> passing a wrong pointer to this function may cause the
+Erlang VM to crash.  Use with extreme care.</p>
+      <h2 id="ffisizeof1">
+        
+        
+          <code>ffi:sizeof/1</code> <a href="#ffisizeof1">#</a>
+        
+        
+      </h2>
+    
+
+<pre><code class="language-erlang">ffi:sizeof(TypeTag) -&gt; integer()
+</code></pre>
+
+<p>Types:</p>
+
+<ul>
+  <li><code>TypeTag: type_tag()</code></li>
+</ul>
+
+<p>Return the size (in bytes) of the given FFI type, on the current
+platform.</p>
+      <h2 id="fficheck1">
+        
+        
+          <code>ffi:check/1</code> <a href="#fficheck1">#</a>
+        
+        
+      </h2>
+    
+
+<pre><code class="language-erlang">ffi:check(TaggedValue) -&gt; true | false
+</code></pre>
+
+<p>Types:</p>
+
+<ul>
+  <li><code>TaggedValue = tagged_value()</code></li>
+</ul>
+
+<p>Returns ‘true’ if the given type-tagged value is well-formed and
+consistent (i.e. it falls in the allowed range for its type, on the
+current platform).  Otherwise, returns ‘false’.</p>
+      <h2 id="ffimin1">
+        
+        
+          <code>ffi:min/1</code> <a href="#ffimin1">#</a>
+        
+        
+      </h2>
+    
+
+<pre><code class="language-erlang">ffi:min(TypeTag) -&gt; integer()
+</code></pre>
+
+<p>Types:</p>
+
+<ul>
+  <li><code>TypeTag = type_tag()</code></li>
+</ul>
+
+<p>Return the minimum value allowed for the given FFI type, on the
+current platform.</p>
+      <h2 id="ffimax1">
+        
+        
+          <code>ffi:max/1</code> <a href="#ffimax1">#</a>
+        
+        
+      </h2>
+    
+
+<pre><code class="language-erlang">ffi:max(TypeTag) -&gt; integer()
+</code></pre>
+
+<p>Types:</p>
+
+<ul>
+  <li><code>TypeTag = type_tag()</code></li>
+</ul>
+
+<p>Return the maximum value allowed for the given FFI type, on the
+current platform.</p>
+      <h2 id="ffi_hardcodeshrl">
+        
+        
+          <code>ffi_hardcodes.hrl</code> <a href="#ffi_hardcodeshrl">#</a>
+        
+        
+      </h2>
+    
+
+<p>The <code>ffi_hardcodes.hrl</code> file is part of the Erlang ffi library.  It
+defines a set of macros for handling FFI types sizes, and for easy
+binary matching on C buffers and structures:</p>
+
+<ul>
+  <li>
+    <p><strong><code>FFI_HARDCODED_&lt;TYPE&gt;</code></strong></p>
+
+    <p>An Erlang bit-syntax snippet (Size/TypeSpecifier) that could
+be used to match the given FFI type inside a binary (possibly
+obtained from a C buffer).  For example, the following binary
+matching:</p>
+
+    <pre><code>  &lt;&lt;ULong:?FFI_HARDCODED_ULONG, _Rest/binary&gt;&gt; = Binary
+</code></pre>
+
+    <p>on x86-64 will expand to:</p>
+
+    <pre><code>  &lt;&lt;ULong:64/native-unsigned-integer, _Rest/binary&gt;&gt; = Binary
+</code></pre>
+  </li>
+  <li>
+    <p><strong><code>FFI_HARDCODED_SIZEOF_&lt;TYPE&gt;</code></strong></p>
+
+    <p>The type size in <em>bytes</em></p>
+  </li>
+  <li>
+    <p><strong><code>FFI_HARDCODED_&lt;TYPE&gt;_BITS</code></strong></p>
+
+    <p>The type size in <em>bits</em></p>
+  </li>
+</ul>
+
+<p>As implied by their name, the <code>ffi_hardcodes.hrl</code> contents are
+<em>specific to the build platform</em>, and when they are used, they will be
+hard-coded in the resulting <code>.beam</code> files.  Thus, these macros
+should be avoided if a developer expects his/her FFI-based code to be
+<em>portable without recompilation</em>.  The recommended method for getting
+FFI type sizes in a portable way is the <code>ffi:sizeof/1</code> function.</p>
+      <h1 id="further-notes">
+        
+        
+          Further notes <a href="#further-notes">#</a>
+        
+        
+      </h1>
+    
+      <h2 id="notes-on-ffi-preloading">
+        
+        
+          Notes on FFI preloading <a href="#notes-on-ffi-preloading">#</a>
+        
+        
+      </h2>
+    
+
+<p>When a library is loaded with <code>erl_ddll:load_library/3</code>, it may be
+reloaded or unloaded just like any Erlang linked-in driver.  If the
+‘preload’ option is used, then two additional behaviors arise:</p>
+
+<ul>
+  <li>
+    <p>if <code>erl_ddll:load_library/3</code> is called two or more times with the
+same library, then the associated preload list must be rebuilt
+according to the last call.  If no ‘preload’ option is used, then
+the last preloads (if any) must be kept intact;</p>
+  </li>
+  <li>
+    <p>if an <code>erl_ddll:reload/2</code> is issued, then the last preloads must be
+refreshed by performing a new symbol lookup in the loaded library.
+If one or more symbols could not be found anymore, then they must be
+disabled (and an error must raised when trying to use them with
+<code>ffi:raw_call/2</code>).</p>
+  </li>
+</ul>
+      <h2 id="notes-on-vararg-functions">
+        
+        
+          Notes on vararg functions <a href="#notes-on-vararg-functions">#</a>
+        
+        
+      </h2>
+    
+
+<p><code>ffi:call/3</code> and <code>ffi:raw_call/3</code> may be used to call vararg C
+functions, simply by providing the desired number of arguments.</p>
+
+<p>In order to exploit the preloading optimizations, however, it is
+necessary to use a different preload for each different function call
+signature.  For example, if a developer is going to call <code>printf()</code>
+with different arguments, he/she will need to use a preloading list
+like the following one:</p>
+
+<pre><code class="language-erlang">ok = erl_ddll:load_library("/lib", libc,
+                           [{preload,
+                             [{printf, {sint, cstring}},
+                              {printf, {sint, cstring, double}},
+                              {printf, {sint, cstring, uint, sint}},
+                              {printf, {sint, cstring, cstring}}]}]).
+</code></pre>
+      <h2 id="notes-on-c-pointers-and-erlang-binaries">
+        
+        
+          Notes on C pointers and Erlang binaries <a href="#notes-on-c-pointers-and-erlang-binaries">#</a>
+        
+        
+      </h2>
+    
+
+<p>As reported in the Appendix, an Erlang binary can be passed to a C
+function as a ‘pointer’ value.  In this case, the C function will
+receive a pointer to the first byte of binary data.</p>
+
+<p>That pointer will be valid <em>only</em> until the C function returns.  If
+the C side needs to access the pointer data later, then it should use
+the ‘binary’ FFI type (see next paragraph) or copy the data itself in
+a safe place.</p>
+      <h2 id="notes-on-erlang-binaries-and-reference-counting">
+        
+        
+          Notes on Erlang binaries and reference counting <a href="#notes-on-erlang-binaries-and-reference-counting">#</a>
+        
+        
+      </h2>
+    
+
+<p>As reported in the Appendix, when the ‘binary’ FFI type is used as
+argument, the C function will also receive a binary (in the form of an
+<code>ErlDrvBinary</code> pointer).  Correspondingly, a C function with ‘binary’
+FFI return type must return an <code>ErlDrvBinary</code> pointer.  Furthermore,
+an ‘erliovec’ argument type will cause the conversion of an Erlang
+<code>iolist()</code> into an <code>ErlIOVec</code> (and its pointer will be passed to
+the C function).</p>
+
+<p>There are three rules for properly handling the refcount of binaries
+passed to, or returned from, the C side through a FFI call.</p>
+
+<ol>
+  <li>
+    <p>when a binary is received as argument (either directly, or inside
+an <code>ErlIOVec</code>), and the C side needs to keep a reference, then
+the refcount must be increased;</p>
+  </li>
+  <li>
+    <p>when a binary is created with <code>driver_alloc_binary()</code>, it will
+have the refcount value of 1.  It is considered to be <em>still</em>
+referenced by the C side;</p>
+  </li>
+  <li>
+    <p>as a consequence of the previous point, if the C side wants to
+return a newly-crated binary <em>without</em> keeping references, it must
+call <code>driver_binary_dec_refc()</code> before returning.</p>
+  </li>
+</ol>
+      <h2 id="notes-on-type-tagged-values">
+        
+        
+          Notes on type-tagged values <a href="#notes-on-type-tagged-values">#</a>
+        
+        
+      </h2>
+    
+
+<p>As reported above, the high-level FFI API is based on type-tagged
+values.  Type tags, however, may introduce yet another way to
+annotate/represent the types of Erlang function parameters — and it
+may become an annoying redundancy, especially now that type <a href="http://user.it.uu.se/~kostis/Papers/contracts.pdf" title="A Language for Specifying Type Contracts in Erlang and its Interaction with Success Typings, Jiménez Lindahl and Sagonas (Presented at the 2007 SIGPLAN Erlang Workshop).">contracts</a>
+are (probably) going to be introduced in Erlang.</p>
+
+<p>Thus, the high-level FFI API should be considered highly experimental
+and subject to change, depending on how type contracts will allow to
+achieve the same tasks (see High-level API).  This issue will need
+to be explored if/when contracts will be available in the standard
+Erlang/OTP distribution.</p>
+      <h1 id="backwards-compatibility">
+        
+        
+          Backwards Compatibility <a href="#backwards-compatibility">#</a>
+        
+        
+      </h1>
+    
+
+<p>This EEP, and the proposed FFI patches (see below), do not introduce
+incompatibilities with the standard OTP release.  However, three
+(possibly) relevant internal changes are required:</p>
+
+<ol>
+  <li>
+    <p>the <code>driver_binary_dec_refc()</code> function must be allowed to
+reach the refcount of 0 without errors or warnings (even when
+debugging).  This is necessary in order to allow a C function to
+create a binary, drop its references and return it to the Erlang VM
+(see ‘Notes on Erlang binaries and reference counting’);</p>
+  </li>
+  <li>
+    <p>as a consequence of the previous point,
+<code>driver_binary_inc_refc()</code> must be allowed to reach a minimum
+refcount of 1 without errors or warnings (the current minimum value
+is 2);</p>
+  </li>
+  <li>
+    <p>the <code>iolist()</code> -&gt; <code>ErlIOVec</code> conversion code in <code>io.c</code> needs
+to be exposed as a stand-alone function, to be used by the FFI.</p>
+  </li>
+</ol>
+      <h1 id="reference-implementation">
+        
+        
+          Reference implementation <a href="#reference-implementation">#</a>
+        
+        
+      </h1>
+    
+
+<p>An implementation of this EEP is available on <a href="http://muvara.org/crs4/erlang/ffi" title="Foreign Function Interface (FFI) for Erlang/OTP">muvara.org</a>
+as a set of patches against OTP R11B-5.</p>
+
+<p>The code is based on the GCC FFI library <a href="http://gcc.gnu.org/viewcvs/trunk/libffi/" title="libffi: the GCC Foreign Function Interface Library">(libffi)</a>.  libffi is
+multi-platform, can be packaged and used separately from the GCC
+source code, and is released under a very permissive <a href="http://gcc.gnu.org/viewcvs/checkout/trunk/libffi/LICENSE" title="The libffi license">license</a>
+(compatible with the Erlang Public License).  It has been used to
+implement the FFI interface of several applications and languages,
+including <a href="http://python.net/crew/theller/ctypes/" title="The CPython package">Python</a>.</p>
+
+<p>The current EEP implementation looks for libffi on the build system,
+and links the Erlang emulator against it (preferring the libffi shared
+library, when available).  It may be a “good enough” approach, since
+libffi is usually pre-packaged and easily available on GNU/Linux, BSD
+and Solaris distributions.  However, this approach may create troubles
+for developers that compile everything from scratch, could not install
+a precompiled libffi package, or just want to force static linking
+between the Erlang emulator and libffi.  In order to address these
+issues, it is customary that a copy of libffi is distributed together
+with the host language, and possibly kept in sync with the upstream
+version.  This is what Python actually does, and Erlang/OTP could
+possibly adopt the same approach depending on the developers’
+feedback.</p>
+      <h1 id="appendix">
+        
+        
+          Appendix <a href="#appendix">#</a>
+        
+        
+      </h1>
+    
+      <h2 id="erlang-to-c-automatic-type-conversions">
+        
+        
+          Erlang-to-C automatic type conversions <a href="#erlang-to-c-automatic-type-conversions">#</a>
+        
+        
+      </h2>
+    
+
+<p>The following table reports the Erlang-to-C conversions, used for
+passing Erlang terms as C function call arguments.</p>
+
+<pre><code class="language-erlang">====================== ===============================
+ C argument type        Supported Erlang types
+====================== ===============================
+uchar                  integer()
+schar                  integer()
+ushort                 integer()
+sshort                 integer()
+uint                   integer()
+sint                   integer()
+ulong                  integer()
+slong                  integer()
+uint8                  integer()
+sint8                  integer()
+uint16                 integer()
+sint16                 integer()
+uint32                 integer()
+sint32                 integer()
+uint64                 integer()
+sint64                 integer()
+float                  float()
+double                 float()
+longdouble             float()
+pointer                binary() | integer()
+cstring                binary() | integer()
+nonnull                binary() | integer()
+size_t                 integer()
+ssize_t                integer()
+pid_t                  integer()
+off_t                  integer()
+binary                 binary()
+erliovec               iolist()
+====================== ===============================
+</code></pre>
+      <h2 id="c-to-erlang-automatic-type-conversions">
+        
+        
+          C-to-Erlang automatic type conversions <a href="#c-to-erlang-automatic-type-conversions">#</a>
+        
+        
+      </h2>
+    
+
+<p>The following table reports the C-to-Erlang conversions, used for
+converting C function return values into Erlang terms.</p>
+
+<pre><code class="language-erlang">====================== ===============================
+ C return type          Resulting Erlang type
+====================== ===============================
+uchar                  integer()
+schar                  integer()
+ushort                 integer()
+sshort                 integer()
+uint                   integer()
+sint                   integer()
+ulong                  integer()
+slong                  integer()
+uint8                  integer()
+sint8                  integer()
+uint16                 integer()
+sint16                 integer()
+uint32                 integer()
+sint32                 integer()
+uint64                 integer()
+sint64                 integer()
+float                  float()
+double                 float()
+longdouble             float()
+pointer                integer()
+cstring                integer()
+nonnull                integer()
+size_t                 integer()
+ssize_t                integer()
+off_t                  integer()
+pid_t                  integer()
+binary                 binary()
+====================== ===============================
+</code></pre>
+      <h1 id="copyright">
+        
+        
+          Copyright <a href="#copyright">#</a>
+        
+        
+      </h1>
+    
+
+<p>Copyright (C) 2007 by CRS4 (Center for Advanced Studies, Research and
+Development in Sardinia) - <a href="http://www.crs4.it/">http://www.crs4.it/</a></p>
+
+<p>Author: Alceste Scalas &lt;alceste (at) crs4 (dot) it&gt;</p>
+
+<p>This EEP is released under the terms of the Creative Commons
+Attribution 3.0 License. See <a href="http://creativecommons.org/licenses/by/3.0/">http://creativecommons.org/licenses/by/3.0/</a></p>
+
+            </div>
+        </div>
+    </div>
+</div>
+<script src="/assets/js/prismjs/prism.js"></script>
+<script src="/assets/js/prismjs/components/prism-erlang.js"></script>
+    <footer class="container-fluid footer text-center border-top border-bottom">
+        <div>
+            <a href="/downloads.html" title="DOWNLOAD"><img src="/assets/img/download.png" alt="Download Erlang/OTP"></a>
+        </div>
+        <div>
+            <a href="http://www.github.com/erlang/otp"><img
+                    src="/assets/img/GitHub-Mark-32px.png" alt="Erlang/OTP on Github"></a>
+        </div>
+        
+        <div>
+            <a href="http://www.twitter.com/erlang_org"><img src="/assets/img/twitter.png"
+                    width="32" alt="Erlang/OTP twitter"></a>
+        </div>
+    </footer>
+    <script src="/assets/js/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

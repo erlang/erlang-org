@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+
+
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <!-- Allow pinning of website on windows -->
+    <meta name="application-name" content="Erlang.org">
+    <meta name="msapplication-tooltip" content="The official home of the Erlang Programming Language">
+    <meta name="msapplication-starturl" content="/" >
+
+    <!-- Make the site look nicer on facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Erlang.org">
+    <meta property="og:title" content="Welcome to Erlang.org">
+    <meta property="og:description" content="The official home of the Erlang Programming Language">
+    <meta property="og:image" content="https://beta.erlang.org/assets/img/erlang-228x200.png">
+    <meta property="og:image:secure_url" content="https://beta.erlang.org/assets/img/erlang-228x200.png">
+    <meta property="og:url" content="https://beta.erlang.org/">
+
+    <!-- Twitter metadata -->
+    <meta name="twitter:card" content="summary" />
+    <meta property="twitter:title" content="Index" />
+    <meta name="twitter:site" content="@erlang_org" />
+
+    <!-- Rich data for google search -->
+    <script type="application/ld+json">
+{"@type":"WebSite","url":"https://erlang.org/","headline":"A few notes on message passing - Erlang/OTP","name":"Erlang.org","sameAs":["https://twitter.com/erlang_org","https://github.com/erlang/otp"],"@context":"https://schema.org"}</script>
+
+    <title>A few notes on message passing - Erlang/OTP</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- tells iOS browsers to not show telephone numbers as links -->
+    <meta name="format-detection" content="telephone=no">
+
+    <meta name="application-name" content="Erlang.org">
+    <meta name="description" content="The official home of the Erlang Programming Language">
+    <meta name="keywords" content="Erlang programming language functional parallel distributed documentation download community">
+    <!-- https://www.rssboard.org/rss-autodiscovery -->
+    <link rel="alternate" type="application/atom+xml" title="News Atom Feed" href="https://beta.erlang.org/news.xml" />
+    <link rel="alternate" type="application/atom+xml" title="Blog Atom Feed" href="https://beta.erlang.org/blog.xml" />
+    
+    <link rel="stylesheet" href="/assets/css/main.css">
+</head>
+
+<body>
+    <header class="navbar navbar-expand-lg navbar-light bg-body">
+        <nav class="container">
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
+                aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <a class="navbar-brand" href="/"><img
+                    src="/assets/img/erlang.png" class="img-fluid" width="60" alt="Erlang.org main page"/></a>
+            <div class="collapse navbar-collapse fw-bold" id="navbarSupportedContent">
+                <ul class="navbar-nav text-uppercase me-auto mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link" href="/downloads">Download</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/docs">Documentation</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/community">Community</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/news">News</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/blog">Blog</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/eep">EEP</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/about">About</a></li>
+                </ul>
+                <form class="d-flex" role="search" method="get" action="https://duckduckgo.com/">
+                    <input type="hidden" name="sites" value="erlang.org">
+                    <input class="form-control me-2" id="searchfield" name="q" type="search" placeholder="Search erlang.org"
+                        aria-label="Search">
+                    <button class="btn btn-outline-primary" type="submit">Search</button>
+                </form>
+            </div>
+        </nav>
+    </header>
+    <div class="container border-top pt-4">
+    <div class="row-lg">
+        <div class="col-lg-8 offset-lg-2">
+            <article class="card mb-4">
+    <div class="card-header">
+        <h3><a href="/blog/message-passing/">A few notes on message passing</a></h3>
+        <div class="date">March 19, 2021
+             · by John Högberg
+        </div>
+    </div>
+
+    <div class="card-body">
+        
+        
+        
+        <p>Message passing has always been central to Erlang, and while reasonably
+well-documented we’ve avoided going into too much detail to give us more
+freedom when implementing it. There’s nothing preventing us from describing it
+in a blog post though, so let’s have a closer look!</p>
+
+<p>Erlang processes communicate with each other by sending each other <em>signals</em>
+(not to be confused with Unix signals). There are many different kinds and
+<em>messages</em> are just the most common. Practically everything involving more than
+one process uses signals internally: for example, the <code>link/1</code> function is
+implemented by having the involved processes talk back and forth until they’ve
+agreed on a link.</p>
+
+<p>This helps us avoid a great deal of locks and would make an interesting blog
+post on its own, but for now we only need to keep two things in mind: all
+signals (including messages) are continuously received and handled behind the
+scenes, and they have a <a href="https://erlang.org/doc/apps/erts/communication.html#passing-of-signals">defined order</a>:</p>
+
+<p>Signals between two processes are guaranteed to arrive in the order they were
+sent. In other words, if process <code>A</code> sends signal <code>1</code> and then <code>2</code> to process
+<code>B</code>, signal <code>1</code> is guaranteed to arrive before signal <code>2</code>.</p>
+
+<p>Why is this important? Consider the request-response idiom:</p>
+
+<pre><code class="language-erlang">%% Send a monitor signal to `Pid`, requesting a 'DOWN' message
+%% when `Pid` dies.
+Mref = monitor(process, Pid),
+%% Send a message signal to `Pid` with our `Request`
+Pid ! {self(), Mref, Request},
+receive
+    {Mref, Response} -&gt;
+        %% Send a demonitor signal to `Pid`, and remove the
+        %% corresponding 'DOWN' message that might have
+        %% arrived in the meantime.
+        erlang:demonitor(Mref, [flush]),
+        {ok, Response};
+    {'DOWN', Mref, _, _, Reason} -&gt;
+        {error, Reason}
+end
+</code></pre>
+
+<p>Since dead processes cannot send messages we know that the response must come
+before any eventual <code>'DOWN'</code> message, but without a guaranteed order the
+<code>'DOWN'</code> message could arrive before the response and we’d have no idea whether
+a response was coming or not, which would be very annoying to deal with.</p>
+
+<p>Having a defined order saves us quite a bit of hassle and doesn’t come at much
+of a cost, but the guarantees stop there. If more than one process sends
+signals to a common process, they can arrive in any order even when you “know”
+that one of the signals was sent first. For example, this sequence of events
+is legal and entirely possible:</p>
+
+<ol>
+  <li><code>A</code> sends signal <code>1</code> to <code>B</code></li>
+  <li><code>A</code> sends signal <code>2</code> to <code>C</code></li>
+  <li><code>C</code>, in response to signal <code>2</code>, sends signal <code>3</code> to <code>B</code></li>
+  <li><code>B</code> receives signal <code>3</code></li>
+  <li><code>B</code> receives signal <code>1</code></li>
+</ol>
+
+<p>Luckily, global orders are rarely needed and are easy to impose yourself
+(outside distributed cases): just let all involved parties synchronize with a
+common process.</p>
+      <h3 id="sending-messages">
+        
+        
+          Sending messages <a href="#sending-messages">#</a>
+        
+        
+      </h3>
+    
+
+<p>Sending a message is straightforward: we try to find the process associated
+with the process identifier, and if one exists we insert the message into its
+signal queue.</p>
+
+<p>Messages are always copied before being inserted into the queue. As wasteful as
+this may sound it greatly reduces garbage collection (GC) latency as the GC
+never has to look beyond a single process. Non-copying implementations have
+been tried in the past, but they turned out to be a bad fit as low latency is
+more important than sheer throughput for the kind of soft-realtime systems that
+Erlang is designed to build.</p>
+
+<p>By default, messages are copied directly into the receiving process’ heap but
+when this isn’t possible (or desired – see the <a href="https://erlang.org/doc/man/erlang.html#process_flag_message_queue_data">message_queue_data</a> flag) we
+allocate the message outside of the heap instead.</p>
+
+<p>Memory allocation makes such “off-heap” messages slightly more expensive but
+they’re very neat for processes that receive a ton of messages. We don’t need
+to interact with the receiver when copying the message – only when adding it
+to the queue – and since the only way a process can see a message is by
+matching them in a <code>receive</code> expression, the GC doesn’t need to consider
+unmatched messages which further reduces latency.</p>
+
+<p>Sending messages to processes on other Erlang nodes works in the same way,
+albeit there’s now a risk of messages being lost in transit. Messages are
+guaranteed to be delivered as long as the distribution link between the nodes
+is active, but it gets tricky when the link goes down.</p>
+
+<p>Using <code>monitor/2</code> on the remote process (or node) will tell you when this
+happens, acting as if the process died (with reason <code>noconnection</code>), but that
+doesn’t always help: the link could have died <em>after</em> the message was received
+and handled on the other end, all we know is that the link went down <em>before</em>
+we got any eventual response.</p>
+
+<p>As with everything else there’s no free lunch, and you need to decide how your
+applications should handle <a href="https://en.wikipedia.org/wiki/Network_partition">these scenarios</a>.</p>
+      <h3 id="receiving-messages">
+        
+        
+          Receiving messages <a href="#receiving-messages">#</a>
+        
+        
+      </h3>
+    
+
+<p>One might guess that processes receive messages through <code>receive</code> expressions,
+but <code>receive</code> is a bit of a misnomer. As with all other signals the process
+continuously handles them in the background, moving received messages from the
+<em>signal</em> queue to the <em>message</em> queue.</p>
+
+<p><code>receive</code> searches for matching messages in the message queue (in the order
+they arrived), or waits for new messages if none were found. Searching through
+the message queue rather than the signal queue means it doesn’t have to worry
+about processes that send messages, which greatly increases performance.</p>
+
+<p>This ability to “selectively receive” specific messages is very convenient:
+we’re not always in a context where we can decide what to do with a message and
+having to manually lug around all unhandled messages is certainly annoying.</p>
+
+<p>Unfortunately, sweeping the search under the rug doesn’t make it go away:</p>
+
+<pre><code class="language-erlang">receive
+    {reply, Result} -&gt;
+        {ok, Result}
+end
+</code></pre>
+
+<p>The above expression finishes instantly if the next message in the queue
+matches <code>{reply, Result}</code>, but if there’s no matching message it has to walk
+through them all before giving up. This is expensive when there are a lot of
+messages queued up which is common for server-like processes, and since
+<code>receive</code> expressions can match on just about anything there’s little that can
+be done to optimize the search itself.</p>
+
+<p>The only optimization we do at the moment is to mark a starting point for the
+search when we know that a message couldn’t exist prior to a certain point.
+Let’s revisit the request-response idiom:</p>
+
+<pre><code class="language-erlang">Mref = monitor(process, Pid),
+Pid ! {self(), Mref, Request},
+receive
+    {Mref, Response} -&gt;
+        erlang:demonitor(Mref, [flush]),
+        {ok, Response};
+    {'DOWN', Mref, _, _, Reason} -&gt;
+        {error, Reason}
+end
+</code></pre>
+
+<p>Since the reference created by <code>monitor/2</code> is globally unique and cannot exist
+before said call, and the <code>receive</code> only matches messages that contain said
+reference, we don’t need to look at any of the messages received before then.</p>
+
+<p>This makes the idiom efficient even on processes that have absurdly long
+message queues, but unfortunately it isn’t something we can do in the general
+case. While you as a programmer can be sure that a certain response must come
+after its request even without a reference, for example by using your own
+sequence numbers, the compiler can’t read your intent and has to assume that
+you want <em>any</em> message that matches.</p>
+
+<p>Figuring out whether the above optimization has kicked in is rather annoying at
+the moment. It requires inspecting BEAM assembly and even then you’re not
+guaranteed that it will work due to some annoying limitations:</p>
+
+<ol>
+  <li>We only support one message position at a time: a function that creates a
+reference, calls another function that uses this optimization, and then
+returns to <code>receive</code> with the first reference, will end up searching through
+the entire message queue.</li>
+  <li>It only works within a single function clause: both reference creation and
+<code>receive</code> need to be next to each other and you can’t have multiple
+functions calling a common <code>receive</code> helper.</li>
+</ol>
+
+<p>We’ve addressed these shortcomings in the upcoming OTP 24 release, and have
+added a compiler option to help you spot where it’s applied:</p>
+
+<pre><code class="language-sh">$ erlc +recv_opt_info example.erl
+</code></pre>
+<p>.</p>
+<pre><code class="language-erlang">-module(example).
+-export([t/2]).
+
+t(Pid, Request) -&gt;
+    %% example.erl:5: OPTIMIZED: reference used to mark a 
+    %%                           message queue position
+    Mref = monitor(process, Pid),
+    Pid ! {self(), Mref, Request},
+    %% example.erl:7: INFO: passing reference created by
+    %%                      monitor/2 at example.erl:5
+    await_result(Mref).
+
+await_result(Mref) -&gt;
+    %% example.erl:10: OPTIMIZED: all clauses match reference
+    %%                            in function parameter 1
+    receive
+        {Mref, Response} -&gt;
+            erlang:demonitor(Mref, [flush]),
+            {ok, Response};
+        {'DOWN', Mref, _, _, Reason} -&gt;
+            {error, Reason}
+    end.
+</code></pre>
+
+        
+    </div>
+</article>
+        </div>
+    </div>
+</div>
+<script src="/assets/js/prismjs/prism.js"></script>
+<script src="/assets/js/prismjs/components/prism-erlang.js"></script>
+<script src="/assets/js/prismjs/components/prism-c.js"></script>
+<script src="/assets/js/prismjs/components/prism-bash.js"></script>
+    <footer class="container-fluid footer text-center border-top border-bottom">
+        <div>
+            <a href="/downloads.html" title="DOWNLOAD"><img src="/assets/img/download.png" alt="Download Erlang/OTP"></a>
+        </div>
+        <div>
+            <a href="http://www.github.com/erlang/otp"><img
+                    src="/assets/img/GitHub-Mark-32px.png" alt="Erlang/OTP on Github"></a>
+        </div>
+        
+        <div>
+            <a href="http://www.twitter.com/erlang_org"><img src="/assets/img/twitter.png"
+                    width="32" alt="Erlang/OTP twitter"></a>
+        </div>
+    </footer>
+    <script src="/assets/js/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+
+
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <!-- Allow pinning of website on windows -->
+    <meta name="application-name" content="Erlang.org">
+    <meta name="msapplication-tooltip" content="The official home of the Erlang Programming Language">
+    <meta name="msapplication-starturl" content="/" >
+
+    <!-- Make the site look nicer on facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Erlang.org">
+    <meta property="og:title" content="Welcome to Erlang.org">
+    <meta property="og:description" content="The official home of the Erlang Programming Language">
+    <meta property="og:image" content="https://beta.erlang.org/assets/img/erlang-228x200.png">
+    <meta property="og:image:secure_url" content="https://beta.erlang.org/assets/img/erlang-228x200.png">
+    <meta property="og:url" content="https://beta.erlang.org/">
+
+    <!-- Twitter metadata -->
+    <meta name="twitter:card" content="summary" />
+    <meta property="twitter:title" content="Index" />
+    <meta name="twitter:site" content="@erlang_org" />
+
+    <!-- Rich data for google search -->
+    <script type="application/ld+json">
+{"@type":"WebSite","url":"https://erlang.org/","headline":"A first look at the JIT - Erlang/OTP","name":"Erlang.org","sameAs":["https://twitter.com/erlang_org","https://github.com/erlang/otp"],"@context":"https://schema.org"}</script>
+
+    <title>A first look at the JIT - Erlang/OTP</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- tells iOS browsers to not show telephone numbers as links -->
+    <meta name="format-detection" content="telephone=no">
+
+    <meta name="application-name" content="Erlang.org">
+    <meta name="description" content="The official home of the Erlang Programming Language">
+    <meta name="keywords" content="Erlang programming language functional parallel distributed documentation download community">
+    <!-- https://www.rssboard.org/rss-autodiscovery -->
+    <link rel="alternate" type="application/atom+xml" title="News Atom Feed" href="https://beta.erlang.org/news.xml" />
+    <link rel="alternate" type="application/atom+xml" title="Blog Atom Feed" href="https://beta.erlang.org/blog.xml" />
+    
+    <link rel="stylesheet" href="/assets/css/main.css">
+</head>
+
+<body>
+    <header class="navbar navbar-expand-lg navbar-light bg-body">
+        <nav class="container">
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
+                aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <a class="navbar-brand" href="/"><img
+                    src="/assets/img/erlang.png" class="img-fluid" width="60" alt="Erlang.org main page"/></a>
+            <div class="collapse navbar-collapse fw-bold" id="navbarSupportedContent">
+                <ul class="navbar-nav text-uppercase me-auto mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link" href="/downloads">Download</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/docs">Documentation</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/community">Community</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/news">News</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/blog">Blog</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/eep">EEP</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/about">About</a></li>
+                </ul>
+                <form class="d-flex" role="search" method="get" action="https://duckduckgo.com/">
+                    <input type="hidden" name="sites" value="erlang.org">
+                    <input class="form-control me-2" id="searchfield" name="q" type="search" placeholder="Search erlang.org"
+                        aria-label="Search">
+                    <button class="btn btn-outline-primary" type="submit">Search</button>
+                </form>
+            </div>
+        </nav>
+    </header>
+    <div class="container border-top pt-4">
+    <div class="row-lg">
+        <div class="col-lg-8 offset-lg-2">
+            <article class="card mb-4">
+    <div class="card-header">
+        <h3><a href="/blog/a-first-look-at-the-jit/">A first look at the JIT</a></h3>
+        <div class="date">November 03, 2020
+             · by John Högberg
+        </div>
+    </div>
+
+    <div class="card-body">
+        
+        
+        
+        <p>Now that we’ve had a look at <a href="http://blog.erlang.org/a-brief-BEAM-primer/">BEAM</a> and the <a href="http://blog.erlang.org/a-closer-look-at-the-interpreter/">interpreter</a> we’re going to
+explore one of the most exciting additions in OTP 24: the just-in-time
+compiler, or “JIT” for short.</p>
+
+<p>If you’re like me the word “JIT” probably makes you think of Hotspot (Java) or
+V8 (Javascript). These are very impressive pieces of engineering but they seem
+to have hijacked the term; not all JITs are that sophisticated, nor do they
+have to be in order to be fast.</p>
+
+<p>We’ve made many attempts at a JIT over the years that aimed for the stars only
+to fall down. Our latest and by far most successful attempt went for simplicity
+instead, trading slight inefficiencies in the generated code for ease of
+implementation. If we exclude the run-time assembler library we use, <a href="https://asmjit.com/">asmjit</a>,
+the entire thing is roughly as big as the interpreter.</p>
+
+<p>I believe much of our success can be attributed to four ideas we had early in
+the project:</p>
+
+<ol>
+  <li>
+    <p><strong>All modules are always compiled to machine code.</strong></p>
+
+    <p>Previous attempts (and HiPE too) had a difficult time switching between the
+interpreter and machine code: it was either too slow, too difficult to
+maintain, or both.</p>
+
+    <p>Always running machine code means we never have to switch.</p>
+  </li>
+  <li>
+    <p><strong>Data may only be kept (passed) in BEAM registers between instructions.</strong></p>
+
+    <p>This may seem silly, aren’t machine registers faster?</p>
+
+    <p>Yes, but in practice not by much and it would make things more complicated.
+By always passing data in BEAM registers we can use the register allocation
+given to us by the Erlang compiler, saving us from having to do this very
+expensive step at runtime.</p>
+
+    <p>More importantly, this minimizes the difference between the interpreter and
+the JIT from the runtime system’s point of view.</p>
+  </li>
+  <li>
+    <p><strong>Modules are compiled one instruction at a time.</strong></p>
+
+    <p>One of the most difficult problems in our prior attempts was to strike a
+good balance between the time it took to compile something and the eagerness
+to do so. If we’re too eager, we’ll spend too much time compiling, and if
+we’re too lax we won’t see any improvements.</p>
+
+    <p>This problem was largely self-inflicted and caused by the compiler being too
+slow (we often used LLVM), which was made worse by us giving it large pieces
+of code to allow more optimizations.</p>
+
+    <p>By limiting ourselves to compiling one instruction at a time, we leave some
+performance on the table but greatly improve compilation speed.</p>
+  </li>
+  <li>
+    <p><strong>Every instruction has a handwritten machine code template.</strong></p>
+
+    <p>This makes compilation <em>extremely</em> fast as we basically just copy-paste
+the template every time the instruction is used, only performing some minor
+tweaks depending on its arguments.</p>
+
+    <p>This may seem daunting at first but it’s actually not that bad once you get
+used to it. While it certainly takes a lot of code to achieve even the
+smallest of things, it’s inherently simple and easy to follow as long as
+the code is kept short.</p>
+
+    <p>The downside is that every instruction needs to be implemented for each
+architecture, but luckily there’s not a lot of popular ones and we hope to
+support the two most common ones by the time we release OTP 24: <code>x86_64</code>
+and <code>AArch64</code>. The others will continue to use the interpreter.</p>
+  </li>
+</ol>
+
+<p>When compiling a module the JIT goes through the instructions one by one,
+invoking machine code templates as it goes. This has two very large benefits
+over the interpreter: there’s no need to jump between them because they’re
+emitted back-to-back and the end of each is the start of the next one, and the
+arguments don’t need to be resolved at runtime because they’re already “burnt
+in.”</p>
+
+<p>Now that we have some background, let’s look at the machine code template for
+our example in the previous post, <code>is_nonempty_list</code>:</p>
+
+<pre><code class="language-c++">/* Arguments are passed as `ArgVal` objects which hold a
+ * type and a value, for example saying "X register 4",
+ * "the atom 'hello'", "label 57" and so on. */
+void BeamModuleAssembler::emit_is_nonempty_list(const ArgVal &amp;Fail,
+                                                const ArgVal &amp;Src) {
+    /* Figure out which memory address `Src` lives in. */
+    x86:Mem list_ptr = getArgRef(Src);
+
+    /* Emit a `test` instruction, which does a non-
+     * destructive AND on the memory pointed at by
+     * list_ptr, clearing the zero flag if the list is
+     * empty. */
+    a.test(list_ptr, imm(_TAG_PRIMARY_MASK - TAG_PRIMARY_LIST));
+
+    /* Emit a `jnz` instruction, jumping to the fail label
+     * if the zero flag is clear (the list is empty). */
+    a.jnz(labels[Fail.getValue()]);
+
+    /* Unlike the interpreter there's no need to jump to
+     * the next instruction on success as it immediately
+     * follows this one. */
+}
+</code></pre>
+
+<p>This template will generate code that looks almost identical to the template
+itself. Let’s say our source is “<code>X</code> register 1” and our fail label is 57:</p>
+
+<pre><code>test qword ptr [rbx+8], _TAG_PRIMARY_MASK - TAG_PRIMARY_LIST
+jnz label_57
+</code></pre>
+
+<p>This is much faster than the interpreter, and even a bit more compact than the
+threaded code, but this is a trivial instruction. What about more complex
+ones? Let’s have a look at the <code>timeout</code> instruction in the interpreter:</p>
+
+<pre><code class="language-c++">timeout() {
+    if (IS_TRACED_FL(c_p, F_TRACE_RECEIVE)) {
+        trace_receive(c_p, am_clock_service, am_timeout, NULL);
+    }
+    if (ERTS_PROC_GET_SAVED_CALLS_BUF(c_p)) {
+        save_calls(c_p, &amp;exp_timeout);
+    }
+    c_p-&gt;flags &amp;= ~F_TIMO;
+    JOIN_MESSAGE(c_p);
+}
+</code></pre>
+
+<p>That’s bound to be a lot of code, and those macros will be really annoying to
+convert by hand. How on earth are we going to do this without losing our minds?</p>
+
+<p>By cheating, that’s how :D</p>
+
+<pre><code class="language-c++">static void timeout(Process *c_p) {
+    if (IS_TRACED_FL(c_p, F_TRACE_RECEIVE)) {
+        trace_receive(c_p, am_clock_service, am_timeout, NULL);
+    }
+    if (ERTS_PROC_GET_SAVED_CALLS_BUF(c_p)) {
+        save_calls(c_p, &amp;exp_timeout);
+    }
+    c_p-&gt;flags &amp;= ~F_TIMO;
+    JOIN_MESSAGE(c_p);
+}
+
+void BeamModuleAssembler::emit_timeout() {
+    /* Set the first C argument to our currently executing
+     * process, c_p, and then call the above C function. */
+    a.mov(ARG1, c_p);
+    a.call(imm(timeout));
+}
+</code></pre>
+
+<p>This little escape hatch saved us from having to write everything in assembler
+from the start, and many instructions remain like this because there hasn’t
+been any point to changing them.</p>
+
+<p>That’s all for today. In the next post we’ll walk through our conventions and
+some of the techniques we’ve used to reduce the code size.</p>
+
+        
+    </div>
+</article>
+        </div>
+    </div>
+</div>
+<script src="/assets/js/prismjs/prism.js"></script>
+<script src="/assets/js/prismjs/components/prism-erlang.js"></script>
+<script src="/assets/js/prismjs/components/prism-c.js"></script>
+<script src="/assets/js/prismjs/components/prism-bash.js"></script>
+    <footer class="container-fluid footer text-center border-top border-bottom">
+        <div>
+            <a href="/downloads.html" title="DOWNLOAD"><img src="/assets/img/download.png" alt="Download Erlang/OTP"></a>
+        </div>
+        <div>
+            <a href="http://www.github.com/erlang/otp"><img
+                    src="/assets/img/GitHub-Mark-32px.png" alt="Erlang/OTP on Github"></a>
+        </div>
+        
+        <div>
+            <a href="http://www.twitter.com/erlang_org"><img src="/assets/img/twitter.png"
+                    width="32" alt="Erlang/OTP twitter"></a>
+        </div>
+    </footer>
+    <script src="/assets/js/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+
+
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <!-- Allow pinning of website on windows -->
+    <meta name="application-name" content="Erlang.org">
+    <meta name="msapplication-tooltip" content="The official home of the Erlang Programming Language">
+    <meta name="msapplication-starturl" content="/" >
+
+    <!-- Make the site look nicer on facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Erlang.org">
+    <meta property="og:title" content="Welcome to Erlang.org">
+    <meta property="og:description" content="The official home of the Erlang Programming Language">
+    <meta property="og:image" content="https://beta.erlang.org/assets/img/erlang-228x200.png">
+    <meta property="og:image:secure_url" content="https://beta.erlang.org/assets/img/erlang-228x200.png">
+    <meta property="og:url" content="https://beta.erlang.org/">
+
+    <!-- Twitter metadata -->
+    <meta name="twitter:card" content="summary" />
+    <meta property="twitter:title" content="Index" />
+    <meta name="twitter:site" content="@erlang_org" />
+
+    <!-- Rich data for google search -->
+    <script type="application/ld+json">
+{"@type":"WebSite","url":"https://erlang.org/","headline":"Core Erlang Optimizations - Erlang/OTP","name":"Erlang.org","sameAs":["https://twitter.com/erlang_org","https://github.com/erlang/otp"],"@context":"https://schema.org"}</script>
+
+    <title>Core Erlang Optimizations - Erlang/OTP</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- tells iOS browsers to not show telephone numbers as links -->
+    <meta name="format-detection" content="telephone=no">
+
+    <meta name="application-name" content="Erlang.org">
+    <meta name="description" content="The official home of the Erlang Programming Language">
+    <meta name="keywords" content="Erlang programming language functional parallel distributed documentation download community">
+    <!-- https://www.rssboard.org/rss-autodiscovery -->
+    <link rel="alternate" type="application/atom+xml" title="News Atom Feed" href="https://beta.erlang.org/news.xml" />
+    <link rel="alternate" type="application/atom+xml" title="Blog Atom Feed" href="https://beta.erlang.org/blog.xml" />
+    
+    <link rel="stylesheet" href="/assets/css/main.css">
+</head>
+
+<body>
+    <header class="navbar navbar-expand-lg navbar-light bg-body">
+        <nav class="container">
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
+                aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <a class="navbar-brand" href="/"><img
+                    src="/assets/img/erlang.png" class="img-fluid" width="60" alt="Erlang.org main page"/></a>
+            <div class="collapse navbar-collapse fw-bold" id="navbarSupportedContent">
+                <ul class="navbar-nav text-uppercase me-auto mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link" href="/downloads">Download</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/docs">Documentation</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/community">Community</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/news">News</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/blog">Blog</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/eep">EEP</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/about">About</a></li>
+                </ul>
+                <form class="d-flex" role="search" method="get" action="https://duckduckgo.com/">
+                    <input type="hidden" name="sites" value="erlang.org">
+                    <input class="form-control me-2" id="searchfield" name="q" type="search" placeholder="Search erlang.org"
+                        aria-label="Search">
+                    <button class="btn btn-outline-primary" type="submit">Search</button>
+                </form>
+            </div>
+        </nav>
+    </header>
+    <div class="container border-top pt-4">
+    <div class="row-lg">
+        <div class="col-lg-8 offset-lg-2">
+            <article class="card mb-4">
+    <div class="card-header">
+        <h3><a href="/blog/core-erlang-optimizations/">Core Erlang Optimizations</a></h3>
+        <div class="date">May 18, 2018
+             · by Björn Gustavsson
+        </div>
+    </div>
+
+    <div class="card-body">
+        
+        
+        
+        <p>This blog post continues the exploration of Core Erlang by
+looking at some optimizations done by the <code>sys_core_fold</code>
+compiler pass. The Core Erlang language was introduced in
+the <a href="http://blog.erlang.org/core-erlang-by-example/">previous blog post</a>.</p>
+
+<p>To prepare the examples in this blog post I used two
+commands.</p>
+
+<pre><code>$ erlc +time +dcore core_fold_example.erl
+Compiling "core_fold_example"
+ parse_module                  :      0.000 s       9.4 kB
+ transform_module              :      0.000 s       9.4 kB
+ lint_module                   :      0.005 s       9.4 kB
+ expand_records                :      0.000 s       9.4 kB
+ core                          :      0.000 s      59.3 kB
+ listing                       :      0.003 s      59.3 kB
+</code></pre>
+
+<p>The <code>dcore</code> option produces the file <code>core_fold_example.core</code>
+containing a listing of the Core Erlang code produced by the <code>core</code>
+parse (implemented by the module <code>v3_core</code>).</p>
+
+<pre><code>$ erlc +time +dcopt core_fold_example.erl
+Compiling "core_fold_example"
+ parse_module                  :      0.000 s       9.4 kB
+ transform_module              :      0.000 s       9.4 kB
+ lint_module                   :      0.002 s       9.4 kB
+ expand_records                :      0.000 s       9.4 kB
+ core                          :      0.000 s      59.3 kB
+ sys_core_fold                 :      0.000 s      25.3 kB
+ core_transforms               :      0.000 s      25.3 kB
+ listing                       :      0.002 s      25.3 kB
+</code></pre>
+
+<p>The <code>dcopt</code> option produces the file <code>core_fold_example.copt</code>
+containing a listing of the Core Erlang code as it looks
+after optimization by the <code>sys_core_fold</code> pass.</p>
+
+<p>As was mentioned in my first blog post about the compiler,
+<code>compile:options()</code> will print most of the hidden options for
+the compiler.</p>
+      <h2 id="the-most-basic-optimization">
+        
+        
+          The most basic optimization <a href="#the-most-basic-optimization">#</a>
+        
+        
+      </h2>
+    
+
+<p>The most basic optimization done by <code>sys_core_fold</code> is constant propagation.</p>
+
+<p>Consider this Erlang function:</p>
+
+<pre><code class="language-erlang">a() -&gt;
+    A = 42,
+    {ok,A}.
+</code></pre>
+
+<p>It can be translated to Core Erlang like this:</p>
+
+<pre><code>'a'/0 =
+    fun () -&gt;
+       let &lt;A&gt; = 42
+       in {'ok',A}
+</code></pre>
+
+<p>The variable <code>A</code> is bound to a constant (as opposed to an expression such
+as function call). We can replace all occurrences of the variable <code>A</code> with
+the constant value <code>42</code> and eliminate the <code>let</code>:</p>
+
+<pre><code>'a'/0 =
+    fun () -&gt;
+	{'ok',42}
+</code></pre>
+      <h2 id="optimizing-case-expressions">
+        
+        
+          Optimizing <code>case</code> expressions <a href="#optimizing-case-expressions">#</a>
+        
+        
+      </h2>
+    
+
+<p>Actually, the first version of <code>a/0</code> that I showed was already
+slightly optimized by me.</p>
+
+<p>Here is the actual Core Erlang code (only slightly edited to
+remove annotations and unnecessary line breaks):</p>
+
+<pre><code>'a'/0 =
+    fun () -&gt;
+        case &lt;&gt; of
+	  &lt;&gt; when 'true' -&gt;
+	      let &lt;A&gt; = 42
+	      in {'ok',A}
+	  &lt;&gt; when 'true' -&gt;
+		primop 'match_fail'({'function_clause'})
+	end
+</code></pre>
+
+<p>The <code>let</code> has been wrapped in a useless outer <code>case</code>. The
+<code>case</code> would serve some purpose if there had been some function
+arguments, but why complicate the code generator if <code>sys_core_fold</code> is
+perfectly capable of simplifying this code?</p>
+
+<p><code>sys_core_fold</code> will simplify the code in several steps.</p>
+
+<p>First it will look at each clause. If a clause can’t possibly
+be executed (for example, it its guard is <code>false</code>) it will be
+dropped. If a clause will always match, all clauses following
+the clause will be dropped.</p>
+
+<p>In this case, the first clause will always match, because the
+pattern is a list of no variables that can’t fail to match, and
+the guard is <code>true</code>. Thus the second clause is unreachable and
+is dropped:</p>
+
+<pre><code>'a'/0 =
+    fun () -&gt;
+        case &lt;&gt; of
+	  &lt;&gt; when 'true' -&gt;
+	      let &lt;A&gt; = 42
+	      in {'ok',A}
+	end
+</code></pre>
+
+<p>The next step is to see if there is only one clause remaining.
+If it is, the body of the clause can be kept and the <code>case</code>
+eliminated:</p>
+
+<pre><code>'a'/0 =
+    fun () -&gt;
+       let &lt;A&gt; = 42
+       in {'ok',A}
+</code></pre>
+      <h2 id="another-case-example">
+        
+        
+          Another case example <a href="#another-case-example">#</a>
+        
+        
+      </h2>
+    
+
+<p>Let’s see how a more complicated function can be optimized
+following the steps just described. Consider this Erlang
+function:</p>
+
+<pre><code class="language-erlang">aa() -&gt;
+    case {a,tuple} of
+	[List] -&gt; List;
+	{A,B} -&gt;  {tuple,A,B};
+	_ -&gt;      something_else
+    end.
+</code></pre>
+
+<p>Translated to Core Erlang code (with the outer <code>case</code> and
+annotations removed) it will look this:</p>
+
+<pre><code>'aa'/0 =
+    fun () -&gt;
+      case {'a','tuple'} of
+	&lt;[List|[]]&gt; when 'true' -&gt;
+	    List
+	&lt;{A,B}&gt; when 'true' -&gt;
+	    {'tuple',A,B}
+	&lt;_@c1&gt; when 'true' -&gt;
+	    'something_else'
+	&lt;_@c0&gt; when 'true' -&gt;
+	    primop 'match_fail'({'case_clause',_@c0})
+      end
+</code></pre>
+
+<p>Let’s go through the clauses one by one:</p>
+
+<ul>
+  <li>
+    <p>The first clause will only match a list with exactly one element.
+The <code>case</code> expression is a tuple, so the first clause can’t
+possibly match. It will be dropped.</p>
+  </li>
+  <li>
+    <p>The second clause will match a tuple with (any) two elements.
+The case expression is a tuple with two elements, so this clause
+will always match.</p>
+  </li>
+  <li>
+    <p>There is no need to look at the remaining clauses, since the
+second clause will always match. The remaining clauses are dropped.</p>
+  </li>
+</ul>
+
+<p>We now have:</p>
+
+<pre><code>'aa'/0 =
+    fun () -&gt;
+      case {'a','tuple'} of
+	&lt;{A,B}&gt; when 'true' -&gt;
+	    {'tuple',A,B}
+      end
+</code></pre>
+
+<p>This is a <code>case</code> with just one clause, so we can keep
+the body of the clause and remove the <code>case</code>. But there is
+a problem if we do that naively:</p>
+
+<pre><code>'aa'/0 =
+    fun () -&gt;
+       {'tuple',A,B}
+</code></pre>
+
+<p>The variables <code>A</code> and <code>B</code> are used, but they don’t have
+any values bound to them. We must use a <code>let</code> to bind
+the variables before they can be used:</p>
+
+<pre><code>'aa'/0 =
+    fun () -&gt;
+      let &lt;A,B&gt; = &lt;'a','tuple'&gt;
+      in {'tuple',A,B}
+</code></pre>
+
+<p>Propagating constants, the final code is:</p>
+
+<pre><code>'aa'/0 =
+    fun () -&gt;
+	{'tuple','a','tuple'}
+</code></pre>
+      <h2 id="avoiding-tuple-building">
+        
+        
+          Avoiding tuple building <a href="#avoiding-tuple-building">#</a>
+        
+        
+      </h2>
+    
+
+<p>Here is an example of a common pattern of matching
+several expressions in parallel:</p>
+
+<pre><code class="language-erlang">b(A, B) -&gt;
+    case {A,B} of
+	{true,false} -&gt; ok;
+	{false,true} -&gt; not_ok;
+	{_,_} -&gt; error
+    end.
+</code></pre>
+
+<p>The unoptimized Core Erlang code looks like this:</p>
+
+<pre><code>'b'/2 =
+    fun (_@c1,_@c0) -&gt;
+	case &lt;_@c1,_@c0&gt; of
+	  &lt;A,B&gt; when 'true' -&gt;
+	      case {A,B} of
+		&lt;{'true','false'}&gt; when 'true' -&gt;
+		    'ok'
+		&lt;{'false','true'}&gt; when 'true' -&gt;
+		    'not_ok'
+		&lt;{_@c5,_@c6}&gt; when 'true' -&gt;
+		    'error'
+		&lt;_@c2&gt; when 'true' -&gt;
+		      primop 'match_fail'({'case_clause',_@c2})
+	      end
+	end
+</code></pre>
+
+<p>The <code>case</code> expression is <code>{A,B}</code>. When executing the <code>case</code>
+a tuple will built, and then almost immediately discarded.
+That is wasteful. Therefore <code>sys_core_fold</code> rewrites the
+code to eliminate the tuple building:</p>
+
+<pre><code>'b'/2 =
+    fun (_@c1,_@c0) -&gt;
+	case &lt;_@c1,_@c0&gt; of
+	  &lt;'true','false'&gt; when 'true' -&gt;
+	      'ok'
+	  &lt;'false','true'&gt; when 'true' -&gt;
+	      'not_ok'
+	  &lt;_@c5,_@c6&gt; when 'true' -&gt;
+	      'error'
+	end
+</code></pre>
+
+<p>Here a value list is used instead of a tuple. (See
+<a href="http://blog.erlang.org/core-erlang-by-example/">previous blog post</a>
+for several examples of value lists.)</p>
+
+<p>Another common pattern where tuples are built and immediately
+discarded is shown in this example:</p>
+
+<pre><code class="language-erlang">c(X) -&gt;
+    {A,B} = case X of
+		a1 -&gt; {10,1};
+		b2 -&gt; {20,2};
+		_ -&gt;  {100,42}
+	    end,
+    A+B.
+</code></pre>
+
+<p>The unoptimized Core Erlang code looks like this:</p>
+
+<pre><code>'c'/1 =
+    fun (_@c0) -&gt;
+	case _@c0 of
+	  &lt;X&gt; when 'true' -&gt;
+	      let &lt;_@c2&gt; =
+		  case X of
+		    &lt;'a1'&gt; when 'true' -&gt;
+			{10,1}
+		    &lt;'b2'&gt; when 'true' -&gt;
+			{20,2}
+		    &lt;_@c5&gt; when 'true' -&gt;
+			{100,42}
+		    &lt;_@c1&gt; when 'true' -&gt;
+			  primop 'match_fail'({'case_clause',_@c1})
+		  end
+	      in
+		  case _@c2 of
+		    &lt;{A,B}&gt; when 'true' -&gt;
+			call 'erlang':'+'(A, B)
+		    &lt;_@c3&gt; when 'true' -&gt;
+			  primop 'match_fail'({'badmatch',_@c3})
+		  end
+	  &lt;_@c4&gt; when 'true' -&gt;
+		  primop 'match_fail'({'function_clause',_@c4})
+	end
+</code></pre>
+
+<p>Here a tuple is built and assigned to <code>_@c2</code>. It is then matched
+in a <code>case</code>.</p>
+
+<p>First the code is optimized like this to eliminate the tuple building
+in each clause of the first <code>case</code>:</p>
+
+<pre><code>'c'/1 =
+    fun (_@c0) -&gt;
+	let &lt;_@f4,_@f5&gt; =
+	    case _@c0 of
+	      &lt;'a1'&gt; when 'true' -&gt;
+		  &lt;10,1&gt;
+	      &lt;'b2'&gt; when 'true' -&gt;
+		  &lt;20,2&gt;
+	      &lt;_@c5&gt; when 'true' -&gt;
+		  &lt;100,42&gt;
+	    end
+	in
+            let &lt;_@c2&gt; = {_@f4,_@f5}
+            in
+	          case _@c2 of
+		    &lt;{A,B}&gt; when 'true' -&gt;
+			call 'erlang':'+'(A, B)
+		    &lt;_@c3&gt; when 'true' -&gt;
+			  primop 'match_fail'({'badmatch',_@c3})
+		  end
+	end
+</code></pre>
+
+<p>Applying all of the optimizations previously described,
+the remaining tuple building and matching can be eliminated:</p>
+
+<pre><code>'c'/1 =
+    fun (_@c0) -&gt;
+	let &lt;_@f4,_@f5&gt; =
+	    case _@c0 of
+	      &lt;'a1'&gt; when 'true' -&gt;
+		  &lt;10,1&gt;
+	      &lt;'b2'&gt; when 'true' -&gt;
+		  &lt;20,2&gt;
+	      &lt;_@c5&gt; when 'true' -&gt;
+		  &lt;100,42&gt;
+	    end
+	in
+	    call 'erlang':'+'(_@f4, _@f5)
+</code></pre>
+      <h2 id="conclusion">
+        
+        
+          Conclusion <a href="#conclusion">#</a>
+        
+        
+      </h2>
+    
+
+<p>That was a quick look at some of the optimizations done by
+<code>sys_core_fold</code>.</p>
+
+<p>Some of the optimizations are very simple. The power of the
+<code>sys_core_fold</code> pass comes from the combination of optimizations.  One
+optimization gives opportunities for other optimizations, as could be
+seen in the examples.</p>
+      <h2 id="points-to-ponder">
+        
+        
+          Points to Ponder <a href="#points-to-ponder">#</a>
+        
+        
+      </h2>
+    
+
+<p>Why is the optimization pass called <code>sys_core_fold</code>?</p>
+
+<p>A hint can be found in the title of this Wikipedia article:
+<a href="https://en.wikipedia.org/wiki/Constant_folding">Constant folding</a>.</p>
+
+        
+    </div>
+</article>
+        </div>
+    </div>
+</div>
+<script src="/assets/js/prismjs/prism.js"></script>
+<script src="/assets/js/prismjs/components/prism-erlang.js"></script>
+<script src="/assets/js/prismjs/components/prism-c.js"></script>
+<script src="/assets/js/prismjs/components/prism-bash.js"></script>
+    <footer class="container-fluid footer text-center border-top border-bottom">
+        <div>
+            <a href="/downloads.html" title="DOWNLOAD"><img src="/assets/img/download.png" alt="Download Erlang/OTP"></a>
+        </div>
+        <div>
+            <a href="http://www.github.com/erlang/otp"><img
+                    src="/assets/img/GitHub-Mark-32px.png" alt="Erlang/OTP on Github"></a>
+        </div>
+        
+        <div>
+            <a href="http://www.twitter.com/erlang_org"><img src="/assets/img/twitter.png"
+                    width="32" alt="Erlang/OTP twitter"></a>
+        </div>
+    </footer>
+    <script src="/assets/js/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

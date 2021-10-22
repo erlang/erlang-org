@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+
+
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <!-- Allow pinning of website on windows -->
+    <meta name="application-name" content="Erlang.org">
+    <meta name="msapplication-tooltip" content="The official home of the Erlang Programming Language">
+    <meta name="msapplication-starturl" content="/" >
+
+    <!-- Make the site look nicer on facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Erlang.org">
+    <meta property="og:title" content="Welcome to Erlang.org">
+    <meta property="og:description" content="The official home of the Erlang Programming Language">
+    <meta property="og:image" content="https://beta.erlang.org/assets/img/erlang-228x200.png">
+    <meta property="og:image:secure_url" content="https://beta.erlang.org/assets/img/erlang-228x200.png">
+    <meta property="og:url" content="https://beta.erlang.org/">
+
+    <!-- Twitter metadata -->
+    <meta name="twitter:card" content="summary" />
+    <meta property="twitter:title" content="Index" />
+    <meta name="twitter:site" content="@erlang_org" />
+
+    <!-- Rich data for google search -->
+    <script type="application/ld+json">
+{"@type":"WebSite","url":"https://erlang.org/","headline":"Introduction to SSA - Erlang/OTP","name":"Erlang.org","sameAs":["https://twitter.com/erlang_org","https://github.com/erlang/otp"],"@context":"https://schema.org"}</script>
+
+    <title>Introduction to SSA - Erlang/OTP</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- tells iOS browsers to not show telephone numbers as links -->
+    <meta name="format-detection" content="telephone=no">
+
+    <meta name="application-name" content="Erlang.org">
+    <meta name="description" content="The official home of the Erlang Programming Language">
+    <meta name="keywords" content="Erlang programming language functional parallel distributed documentation download community">
+    <!-- https://www.rssboard.org/rss-autodiscovery -->
+    <link rel="alternate" type="application/atom+xml" title="News Atom Feed" href="https://beta.erlang.org/news.xml" />
+    <link rel="alternate" type="application/atom+xml" title="Blog Atom Feed" href="https://beta.erlang.org/blog.xml" />
+    
+    <link rel="stylesheet" href="/assets/css/main.css">
+</head>
+
+<body>
+    <header class="navbar navbar-expand-lg navbar-light bg-body">
+        <nav class="container">
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
+                aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <a class="navbar-brand" href="/"><img
+                    src="/assets/img/erlang.png" class="img-fluid" width="60" alt="Erlang.org main page"/></a>
+            <div class="collapse navbar-collapse fw-bold" id="navbarSupportedContent">
+                <ul class="navbar-nav text-uppercase me-auto mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link" href="/downloads">Download</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/docs">Documentation</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/community">Community</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/news">News</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/blog">Blog</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/eep">EEP</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/about">About</a></li>
+                </ul>
+                <form class="d-flex" role="search" method="get" action="https://duckduckgo.com/">
+                    <input type="hidden" name="sites" value="erlang.org">
+                    <input class="form-control me-2" id="searchfield" name="q" type="search" placeholder="Search erlang.org"
+                        aria-label="Search">
+                    <button class="btn btn-outline-primary" type="submit">Search</button>
+                </form>
+            </div>
+        </nav>
+    </header>
+    <div class="container border-top pt-4">
+    <div class="row-lg">
+        <div class="col-lg-8 offset-lg-2">
+            <article class="card mb-4">
+    <div class="card-header">
+        <h3><a href="/blog/introducing-ssa/">Introduction to SSA</a></h3>
+        <div class="date">September 05, 2018
+             · by Björn Gustavsson
+        </div>
+    </div>
+
+    <div class="card-body">
+        
+        
+        
+        <p>This blog post is an introduction to the <a href="https://github.com/erlang/otp/pull/1935">new SSA-based intermediate
+representation</a> that has recently been merged to the <code>master</code>
+branch in the <a href="https://github.com/erlang/otp">Erlang/OTP repository</a>. It uses the same
+example as in the <a href="http://blog.erlang.org/opt-traps-and-pitfalls/">previous blog post</a>, first looking at the
+generated SSA code, and then at some optimizations.</p>
+
+<p>Here again is the example function that does the kind of tuple matching
+typically done when matching records:</p>
+
+<pre><code class="language-erlang">foo({tag,A,_,_}) -&gt;
+    {ok,A}.
+</code></pre>
+
+<p>At the end of this blog post there will be section on <a href="#generating_listings">how to generate
+listing files</a> to inspect the code from the
+compiler passes.</p>
+      <h2 id="a-brief-introduction-to-the-ssa-intermediate-format">
+        
+        
+          A brief introduction to the SSA intermediate format <a href="#a-brief-introduction-to-the-ssa-intermediate-format">#</a>
+        
+        
+      </h2>
+    
+
+<p>SSA stands for <a href="https://en.wikipedia.org/wiki/Static_single_assignment_form">Static Single Assignment</a>. Strictly speaking, SSA
+is the property of an <a href="https://en.wikipedia.org/wiki/Intermediate_representation">intermediate representation</a> where
+each variable is assigned exactly once, and where every variable is
+defined before it is used. In this blog post, we will use the term
+<em>SSA code</em> to refer to the new intermediate representation in the
+Erlang compiler.</p>
+
+<p>Here is the SSA code for the <code>foo/1</code> function:</p>
+
+<pre><code>function blog:foo(_0) {
+0:
+  @ssa_bool:6 = bif:is_tuple _0
+  br @ssa_bool:6, label 7, label 3
+
+7:
+  @ssa_arity = bif:tuple_size _0
+  @ssa_bool:8 = bif:'=:=' @ssa_arity, literal 4
+  br @ssa_bool:8, label 5, label 3
+
+5:
+  _8 = get_tuple_element _0, literal 0
+  _7 = get_tuple_element _0, literal 1
+  @ssa_bool = bif:'=:=' _8, literal tag
+  br @ssa_bool, label 4, label 3
+
+4:
+  _9 = put_tuple literal ok, _7
+  ret _9
+
+3:
+  _4 = put_list _0, literal []
+
+  %% blog.erl:4
+  @ssa_ret:9 = call remote (literal erlang):(literal error)/2, literal function_clause, _4
+  ret @ssa_ret:9
+
+%% Unreachable blocks
+
+1:
+  @ssa_ret = call remote (literal erlang):(literal error)/1, literal badarg
+  ret @ssa_ret
+}
+</code></pre>
+      <h3 id="a-deeper-look-at-the-example">
+        
+        
+          A deeper look at the example <a href="#a-deeper-look-at-the-example">#</a>
+        
+        
+      </h3>
+    
+
+<p>We will go through the code a few lines at the time.</p>
+
+<pre><code>function blog:foo(_0) {
+</code></pre>
+
+<p>This is the head of the function. It gives the module name (<code>blog</code>),
+function name (<code>foo</code>), and the arguments (the single variable _0).</p>
+
+<p>Variables named as <code>_</code> followed by an integer are inherited from
+<a href="http://blog.erlang.org/core-erlang-by-example/">Core Erlang</a>. In OTP 22, variable names in Core Erlang
+are integers (to avoid filling the atom table when compiling huge
+functions).</p>
+
+<pre><code>0:
+</code></pre>
+
+<p>Following the function head is one or more <em>blocks</em> (sometimes called
+<em>nodes</em>).  A integer followed by a colon gives the number of the block
+that follows.</p>
+
+<p>The block number <code>0</code> is special.  It is the first block that will be
+executed in this function.</p>
+
+<pre><code>  @ssa_bool:6 = bif:is_tuple _0
+</code></pre>
+
+<p>Here is the first real instruction! All instructions have this
+basic format. First there is a variable, followed by <code>=</code>, followed
+by the name of the instruction, followed by its operands.</p>
+
+<p>The variable to the left, <code>@ssa_bool:6</code> in this example, will be
+assigned the value of the expression to right of the <code>=</code>.</p>
+
+<p>Each variable can only be assigned once, just as in Erlang. The name
+of this variable consists of two parts, the base part <code>@ssa_bool</code> and
+the numeric suffix <code>6</code>. Whenever the base name itself is not unique,
+the numeric suffix is added to make the name unique.</p>
+
+<p>The instruction name is <code>bif:is_tuple</code>. This is one of the
+instructions that use a two-part name.  The <code>bif</code> prefix means that
+the second part must be the name of an Erlang guard BIF, in this case
+<code>is_tuple/1</code>.</p>
+
+<p>Following the name of the instruction is the operand <code>_0</code>, which is
+the name of the function argument for the <code>foo/1</code> function.</p>
+
+<p>Thus, this instruction will call <code>is_tuple/1</code> and assign the result
+(either <code>true</code> or <code>false</code>) to <code>ssa_bool:6</code>.</p>
+
+<pre><code>  br @ssa_bool:6, label 7, label 3
+</code></pre>
+
+<p>This is the last instruction of block 0. Instructions at the end
+of a block are called <em>terminators</em> and they have a different format
+compared to instructions in the interior of a block. Terminators
+either transfer control to another block or returns from the
+function.</p>
+
+<p><code>br</code> transfers control to another block. The first operand is a
+variable, whose value must be <code>true</code> or <code>false</code>. If the value of
+<code>ssa_bool:6</code> is <code>true</code>, the second operand (<code>label 7</code>) is used as the
+block number for the block where execution will continue. In this
+example: block 7. Similarly, if the value of <code>ssa_bool:6</code> is <code>false</code>,
+the third operand (<code>label 3</code>) will be used to transfer control to
+block 3.</p>
+
+<pre><code>7:
+  @ssa_arity = bif:tuple_size _0
+</code></pre>
+
+<p>This is the beginning of block 7. This block will be executed
+if <code>_0</code> was found to be a tuple. <code>@ssa_arity</code> will be assigned
+the value of the call <code>tuple_size(_0)</code>.</p>
+
+<p>Note that <code>@ssa_arity</code> does not have a numeric suffix, since there
+is no other variable in this function having the same base name.</p>
+
+<pre><code>  @ssa_bool:8 = bif:'=:=' @ssa_arity, literal 4
+</code></pre>
+
+<p>Here <code>bif:=:=</code> compares <code>@ssa_arity</code> and <code>4</code> and assigns the
+result to <code>@ssa_bool:8</code>. (Note that <code>=:=</code> is a guard BIF
+in Erlang; it is allowed but unusual to write
+<code>erlang:'=:='(Arity, 4)</code> instead of <code>Arity =:= 4</code>.)</p>
+
+<pre><code>  br @ssa_bool:8, label 5, label 3
+</code></pre>
+
+<p>Here is another <code>br</code> instruction. It will transfer control to
+block 5 if <code>@ssa_bool:8</code> is <code>true</code> (that is, if <code>@ssa_arity</code>
+is equal to 4), and to block 3 otherwise.</p>
+
+<pre><code>5:
+  _8 = get_tuple_element _0, literal 0
+  _7 = get_tuple_element _0, literal 1
+</code></pre>
+
+<p>Block 5 is executed if <code>_0</code> has been found to be a tuple of
+size 4. The <code>get_tuple_element</code> instruction extracts an element
+from a tuple at the given position. The position is zero-based.</p>
+
+<p>The <code>get_tuple_element</code> instruction in SSA in named after the
+BEAM instruction with the same name:</p>
+
+<pre><code>{get_tuple_element,{x,0},0,{x,1}}.
+</code></pre>
+
+<p>Notice the similarity between the SSA instruction and the BEAM
+instruction. The SSA form uses variables instead of registers,
+and the destination variable is to the left of the <code>=</code> as in
+all SSA instructions.</p>
+
+<pre><code>  @ssa_bool = bif:'=:=' _8, literal tag
+  br @ssa_bool, label 4, label 3
+</code></pre>
+
+<p>Here comes the test that the first element of the tuple
+is equal to the atom <code>tag</code>. If the first element is <code>tag</code>,
+execution continues at block 4, otherwise at block 3.</p>
+
+<pre><code>4:
+  _9 = put_tuple literal ok, _7
+</code></pre>
+
+<p>This instruction constructs the <code>{ok,A}</code> tuple. The variable <code>_7</code>
+contains the second element of the tuple.</p>
+
+<p>The <code>put_tuple</code> instruction takes any number of operands and
+constructs a tuple from them. The result is assigned to the 
+variable <code>_9</code>.</p>
+
+<p>In this case, the <code>put_tuple</code> instruction in SSA does more than the
+corresponding BEAM instruction. To construct the same tuple, three
+BEAM instructions are needed:</p>
+
+<pre><code>{put_tuple,2,{x,0}}.
+{put,{atom,ok}}.
+{put,{x,2}}.
+</code></pre>
+
+<p>Having a single instruction to construct a tuple instead of
+the multiple BEAM instructions simplifies optimizations
+immensely. Also note that SSA has no equivalent of the <code>test_heap</code>
+instruction that caused so much trouble in the <a href="http://blog.erlang.org/opt-traps-and-pitfalls/">previous blog post</a>.</p>
+
+<pre><code>  ret _9
+</code></pre>
+
+<p><code>ret</code> is another terminator instruction. <code>ret</code> returns from the function
+with the value of variable <code>_9</code> as the return value.</p>
+
+<p>That concludes the successful path through the function.</p>
+
+<pre><code>3:
+  _4 = put_list _0, literal []
+
+  %% blog.erl:4
+  @ssa_ret:9 = call remote (literal erlang):(literal error)/2, literal function_clause, _4
+  ret @ssa_ret:9
+</code></pre>
+
+<p>This block is executed if any of <code>br</code> instructions in the previous blocks
+were given the value <code>false</code>, that is if the function argument was not a tuple or
+had the wrong size or wrong first element.</p>
+
+<p>The comment line (starting with <code>%%</code>) has been added by the pretty printer based on
+annotation in the <code>call</code> instruction.</p>
+
+<p>It is left as an exercise to the reader to figure out exactly what the
+instructions in the block do.  As a hint, here is the code for the
+block translated back to Erlang code:</p>
+
+<pre><code class="language-erlang">erlang:error(function_clause, [_0]).
+</code></pre>
+
+<p>Moving on to the part of the function that is not executed at all:</p>
+
+<pre><code>%% Unreachable blocks
+
+1:
+  @ssa_ret = call remote (literal erlang):(literal error)/1, literal badarg
+  ret @ssa_ret
+</code></pre>
+
+<p>The comment (<code>Unreachable blocks</code>) was added by the pretty printer to
+indicate that the blocks that follow can never be executed, because no
+block will ever branch to them.</p>
+
+<p>Why is there an unreachable block?</p>
+
+<p>Block 1 is a special block. It generates a <code>badarg</code> exeception, just
+as a call to <code>error:error(badarg)</code>. The SSA code generator always
+includes block 1 with the exact same instructions in every function,
+even if it never actually used.</p>
+
+<p>We will not go into details about the purpose of this block in this
+blog post (but we will see how it is used in the next blog post).</p>
+      <h2 id="optimizing-the-code">
+        
+        
+          Optimizing the code <a href="#optimizing-the-code">#</a>
+        
+        
+      </h2>
+    
+
+<p>Now it’s time to see how the SSA code can be optimized. The SSA
+optimizations follow the same idea as the <a href="http://blog.erlang.org/core-erlang-optimizations/">Core Erlang
+optimizations</a> of using many simple optimizations
+working together rather than a few complicated optimizations.</p>
+
+<p>Here is the code for the function again as it looks after running a few preliminary
+optimization passes:</p>
+
+<pre><code>function blog:foo(_0) {
+0:
+  @ssa_bool:6 = bif:is_tuple _0
+  br @ssa_bool:6, label 7, label 3
+
+7:
+  @ssa_arity = bif:tuple_size _0
+  @ssa_bool:8 = bif:'=:=' @ssa_arity, literal 4
+  br @ssa_bool:8, label 5, label 3
+
+5:
+  _8 = get_tuple_element _0, literal 0
+  _7 = get_tuple_element _0, literal 1
+  @ssa_bool = bif:'=:=' _8, literal tag
+  br @ssa_bool, label 4, label 3
+
+4:
+  _9 = put_tuple literal ok, _7
+  ret _9
+
+3:
+  _4 = put_list _0, literal []
+  br label 10
+
+10:
+  %% blog.erl:4
+  @ssa_ret:9 = call remote (literal erlang):(literal error)/2, literal function_clause, _4
+  ret @ssa_ret:9
+}
+</code></pre>
+
+<p>The unreachable block 1 has been deleted.</p>
+
+<p>A pass that <a href="https://github.com/erlang/otp/blob/869537a9bf799c8d12fc46c2b413e532d6e3b10c/lib/compiler/src/beam_ssa_opt.erl#L100">splits blocks</a> before certain
+instructions has also been run (in order to make the passes for
+<a href="https://github.com/erlang/otp/blob/869537a9bf799c8d12fc46c2b413e532d6e3b10c/lib/compiler/src/beam_ssa_opt.erl#L1025">sinking <code>get_tuple_element</code> instructions</a> and <a href="https://github.com/erlang/otp/blob/869537a9bf799c8d12fc46c2b413e532d6e3b10c/lib/compiler/src/beam_ssa_opt.erl#L119">swapping
+<code>element/2</code> calls</a> more effective). This pass has
+split block 3 into two blocks. At the end of block 3 there is a
+variant of the <code>br</code> terminator that we have not seen before.  <code>br label
+10</code> unconditionally continues the execution at block 10.</p>
+
+<p>The first interesting optimization for our example is the
+<a href="https://github.com/erlang/otp/blob/869537a9bf799c8d12fc46c2b413e532d6e3b10c/lib/compiler/src/beam_ssa_opt.erl#L194">ssa_opt_record</a> optimizations, which attempts to translate tuple
+matching instructions with an <code>is_tagged_tuple</code> instruction.
+Here is the part of the code that will be optimized:</p>
+
+<pre class="highlight">
+    0:
+      @ssa_bool:6 = bif:is_tuple _0
+      br @ssa_bool:6, label 7, <b>label 3</b>
+
+    7:
+      @ssa_arity = bif:tuple_size _0
+      @ssa_bool:8 = bif:'=:=' @ssa_arity, <b>literal 4</b>
+      br @ssa_bool:8, label 5, <b>label 3</b>
+
+    5:
+      _8 = get_tuple_element _0, literal 0
+      @ssa_bool = bif:'=:=' _8, <b>literal tag</b>
+      br @ssa_bool, label 4, <b>label 3</b>
+</pre>
+
+<p>The optimization is done in two stages. First the code is analyzed to find out
+whether the optimization is applicable. There must be a test for a tuple of
+a certain size (4 in this example) and with a certain first element
+(<code>tag</code> in this example). Furthermore all failure labels must be the same.</p>
+
+<p>If all conditions are fulfilled, the optimization is done in the second stage.
+Here is the code again, with the optimized part of the code highlighted:</p>
+
+<pre class="highlight">
+    function blog:foo(_0) {
+    0:
+      @ssa_bool:6 = <b>is_tagged_tuple _0, literal 4, literal tag</b>
+      br @ssa_bool:6, label 7, label 3
+
+    7:
+      @ssa_arity = bif:tuple_size _0
+      @ssa_bool:8 = bif:'=:=' @ssa_arity, literal 4
+      br @ssa_bool:8, label 5, label 3
+
+    5:
+      _8 = get_tuple_element _0, literal 0
+      @ssa_bool = bif:'=:=' _8, literal tag
+      br @ssa_bool, label 4, label 3
+
+    4:
+      _7 = get_tuple_element _0, literal 1
+      _9 = put_tuple literal ok, _7
+      ret _9
+
+    3:
+      _4 = put_list _0, literal []
+      br label 10
+
+    10:
+      %% blog.erl:4
+      @ssa_ret:9 = call remote (literal erlang):(literal error)/2, literal function_clause, _4
+      ret @ssa_ret:9
+    }
+</pre>
+
+<p>Yes, it really is this simple, but so far it is more of a
+<a href="https://stackoverflow.com/questions/32618848/what-is-pessimization">pessimization</a> than an optimization, because the <code>bif:is_tuple</code>
+instruction has been replaced with the more expensive
+<code>is_tagged_tuple</code> instruction.</p>
+
+<p>The next optimization is a type analysis pass, which is implemented in
+the module <a href="https://github.com/erlang/otp/blob/869537a9bf799c8d12fc46c2b413e532d6e3b10c/lib/compiler/src/beam_ssa_type.erl">beam_ssa_type</a>. Here is the code after running <code>beam_ssa_type</code>:</p>
+
+<pre class="highlight">
+    function blog:foo(_0) {
+    0:
+      @ssa_bool:6 = is_tagged_tuple _0, literal 4, literal tag
+      br @ssa_bool:6, label 7, label 3
+
+    7:
+      @ssa_arity = bif:tuple_size _0
+      @ssa_bool:8 = bif:'=:=' <b>literal 4, literal 4</b>
+      <b>br label 5</b>
+
+    5:
+      _8 = get_tuple_element _0, literal 0
+      @ssa_bool = bif:'=:=' <b>literal tag, literal tag</b>
+      <b>br label 4</b>
+
+    4:
+      _7 = get_tuple_element _0, literal 1
+      _9 = put_tuple literal ok, _7
+      ret _9
+
+    3:
+      _4 = put_list _0, literal []
+      br label 10
+
+    10:
+      %% blog.erl:4
+      @ssa_ret:9 = call remote (literal erlang):(literal error)/2, literal function_clause, _4
+      ret @ssa_ret:9
+    }
+</pre>
+
+<p><code>beam_ssa_type</code> analyzes the code in execution order, remembering the
+type of each variable seen. Based on the types, <code>beam_ssa_type</code> replaces
+variables with known values with the values themselves.</p>
+
+<p>Two of the conditional branchs have been converted to unconditional
+branches.</p>
+
+<p>The next optimization is <a href="https://github.com/erlang/otp/blob/869537a9bf799c8d12fc46c2b413e532d6e3b10c/lib/compiler/src/beam_ssa_opt.erl#L683">liveness analysis</a>. The code
+is scanned in reverse execution order, and if an expression is never
+used, and has no observable side effect, it can be deleted. The
+highlighted instructions in the code that follows was identified by
+the liveness analysis pass as unused:</p>
+
+<pre class="highlight">
+    function blog:foo(_0) {
+    0:
+      @ssa_bool:6 = is_tagged_tuple _0, literal 4, literal tag
+      br @ssa_bool:6, label 7, label 3
+
+    7:
+      <b>@ssa_arity = bif:tuple_size _0</b>
+      <b>@ssa_bool:8 = bif:'=:=' literal 4, literal 4</b>
+      br label 5
+
+    5:
+      <b>_8 = get_tuple_element _0, literal 0</b>
+      <b>@ssa_bool = bif:'=:=' literal tag, literal tag</b>
+      br label 4
+
+    4:
+      _7 = get_tuple_element _0, literal 1
+      _9 = put_tuple literal ok, _7
+      ret _9
+
+    3:
+      _4 = put_list _0, literal []
+      br label 10
+
+    10:
+      %% blog.erl:4
+      @ssa_ret:9 = call remote (literal erlang):(literal error)/2, literal function_clause, _4
+      ret @ssa_ret:9
+    }
+</pre>
+
+<p>Because those expressions don’t have any side effects, they can be deleted:</p>
+
+<pre class="highlight">
+    function blog:foo(_0) {
+    0:
+      @ssa_bool:6 = is_tagged_tuple _0, literal 4, literal tag
+      br @ssa_bool:6, label 7, label 3
+
+    7:
+      br label 5
+
+    5:
+      br label 4
+
+    4:
+      _7 = get_tuple_element _0, literal 1
+      _9 = put_tuple literal ok, _7
+      ret _9
+
+    3:
+      _4 = put_list _0, literal []
+      br label 10
+
+    10:
+      %% blog.erl:4
+      @ssa_ret:9 = call remote (literal erlang):(literal error)/2, literal function_clause, _4
+      ret @ssa_ret:9
+    }
+</pre>
+
+<p>After running a pass that <a href="https://github.com/erlang/otp/blob/869537a9bf799c8d12fc46c2b413e532d6e3b10c/lib/compiler/src/beam_ssa_opt.erl#L976">merges blocks</a>, the final code
+looks like this:</p>
+
+<pre><code>function blog:foo(_0) {
+0:
+  @ssa_bool:6 = is_tagged_tuple _0, literal 4, literal tag
+  br @ssa_bool:6, label 5, label 3
+
+5:
+  _7 = get_tuple_element _0, literal 1
+  _9 = put_tuple literal ok, _7
+  ret _9
+
+3:
+  _4 = put_list _0, literal []
+
+  %% blog.erl:4
+  @ssa_ret:9 = call remote (literal erlang):(literal error)/2, literal function_clause, _4
+  ret @ssa_ret:9
+}
+</code></pre>
+
+<p>Now it’s time to look at the resulting BEAM code. Here is the successful part of the
+function:</p>
+
+<pre><code>%% Block 0.
+{test,is_tagged_tuple,{f,1},[{x,0},4,{atom,tag}]}.
+
+%% Block 5.
+{test_heap,3,1}.
+{get_tuple_element,{x,0},1,{x,0}}.
+{put_tuple,2,{x,1}}.
+{put,{atom,ok}}.
+{put,{x,0}}.
+{move,{x,1},{x,0}}.
+return.
+</code></pre>
+
+<p>Since register allocation was done after the <code>is_tagged_tuple</code>
+optimization, the <code>get_tuple_instruction</code> will extract the second
+element of the tuple to the first available register, namely
+<code>{x,0}</code>. That avoids any potential problem of registers being
+undefined at a <code>test_heap</code> instruction. The <code>put_tuple</code> instruction
+will put the built tuple into <code>{x,1}</code> since the following
+<code>{put,{x,0}}</code> instruction still needs the contents of <code>{x,0}</code>. To
+return the built tuple, the <code>{move,{x,1},{x,0}}</code> instruction just
+before the <code>return</code> instruction copies the contents of <code>{x,1}</code>
+to <code>{x,0}</code>.</p>
+
+<p>It happens that for this particular example, the OTP 21 compiler will produce
+slightly better code:</p>
+
+<pre class="highlight">
+    {test,is_tagged_tuple,{f,1},[{x,0},4,{atom,tag}]}.
+    {test_heap,3,1}.
+    {get_tuple_element,{x,0},1,<b>{x,2}</b>}.
+    {put_tuple,2,<b>{x,0}</b>}.
+    {put,{atom,ok}}.
+    {put,<b>{x,2}</b>}.
+    return.
+</pre>
+
+<p>(The tuple can be built to <code>{x,0}</code> directly, avoiding the <code>move</code>
+instruction before the <code>return</code>.)</p>
+      <h2 id="getting-rid-of-the-move-instruction">
+        
+        
+          Getting rid of the <code>move</code> instruction <a href="#getting-rid-of-the-move-instruction">#</a>
+        
+        
+      </h2>
+    
+
+<p>Perhaps I should have chosen another example to avoid revealing that
+the SSA-based compiler sometimes produces worse code than the old
+compiler.</p>
+
+<p>Anyway, now that the secret is out, let’s see what can been done
+about that extra <code>move</code> instruction.</p>
+
+<p>Let’s look at another example:</p>
+
+<pre><code class="language-erlang">make_tuple(A) -&gt;
+    {ok,A}.
+</code></pre>
+
+<p>The BEAM code produced by either the compiler in OTP 21
+or the new SSA-based compiler looks like this:</p>
+
+<pre><code>{test_heap,3,1}.
+{put_tuple,2,{x,1}}.
+{put,{atom,ok}}.
+{put,{x,0}}.
+{move,{x,1},{x,0}}.
+return.
+</code></pre>
+
+<p>Clearly, the way the tuple building instructions work, it would be
+impossible to avoid the <code>move</code> instruction. When building a tuple, the
+destination register for the built tuple must not be the same
+as one of the source registers. It seems that we will need
+better instructions for constructing tuples if we are to avoid
+the <code>move</code> instruction.</p>
+
+<p>The problem doesn’t exist when building a list:</p>
+
+<pre><code>%% build_list(A) -&gt; [A].
+{test_heap,2,1}.
+{put_list,{x,0},nil,{x,0}}.
+return.
+</code></pre>
+
+<p>The <code>put_list</code> instruction can safely place the built list into the
+same register as either of the source registers.</p>
+
+<p>Introducing a new <code>put_tuple2</code> instruction that builds a tuple in a
+single instruction, the <code>move</code> instruction can be eliminated:</p>
+
+<pre><code>{test_heap,3,1}.
+{put_tuple2,{x,0},{list,[{atom,ok},{x,0}]}}.
+return.
+</code></pre>
+
+<p>At the time of writing, the implementation of <code>put_tuple2</code> has not yet
+been merged to the <code>master</code> branch, but can be found in <a href="https://github.com/erlang/otp/pull/1947">#1947:
+Introduce a put_tuple2 instruction</a>.</p>
+      <h2 id="next-time">
+        
+        
+          Next time <a href="#next-time">#</a>
+        
+        
+      </h2>
+    
+
+<p>As we have seen, a variable in the SSA code can only be assigned
+once (just as in Erlang). So how can the following code be
+translated to SSA code?</p>
+
+<pre><code>bar(X) -&gt;
+    case X of
+        none -&gt;
+            Y = 0;
+        _ -&gt;
+            Y = X
+    end,
+    Y + 1.
+</code></pre>
+      <h2 id="how-to-generate-listing-files">
+        
+        
+          <a name="generating_listings"></a>How to generate listing files <a href="#how-to-generate-listing-files">#</a>
+        
+        
+      </h2>
+    
+
+<p>To generate the unoptimized SSA code for a module, use the <code>dssa</code> option:</p>
+
+<pre><code>erlc +dssa blog.erl
+</code></pre>
+
+<p>The SSA code will be pretty printed into the file <code>blog.ssa</code>.</p>
+
+<p>Use the <code>dssaopt</code> option to generate the optimized SSA code, printing
+it to the file <code>blog.ssaopt</code>.</p>
+
+<pre><code>erlc +dssaopt blog.erl
+</code></pre>
+
+<p>To see how the SSA code looked when not all optimization passes had been
+run, I used variations of the following command line</p>
+
+<pre><code>erlc +dssaopt +no_ssa_opt_type +no_ssa_opt_live +no_ssa_opt_merge_blocks blog.erl
+</code></pre>
+
+<p>Those options are intentionally not documented. Skipping optimization
+is only intended for debugging or exploring how the optimization
+passes work. Skipping some optimizations passes that are actually
+mandatory will crash the compiler.</p>
+
+<p>To find the names of the options for skipping passes, see the <a href="https://github.com/erlang/otp/blob/869537a9bf799c8d12fc46c2b413e532d6e3b10c/lib/compiler/src/beam_ssa_opt.erl#L49">list of
+sub passes of <code>beam_ssa_opt</code></a> and add <code>no_</code> to the name of the
+pass.</p>
+
+<p>To generate <code>blog.S</code> with the BEAM code, use the <code>-S</code> option:</p>
+
+<pre><code>erlc -S blog.erl
+</code></pre>
+
+<p>To skip all SSA optimizations, use the <code>no_ssa_opt</code> option:</p>
+
+<pre><code>erlc +no_ssa_opt -S blog.erl
+</code></pre>
+
+        
+    </div>
+</article>
+        </div>
+    </div>
+</div>
+<script src="/assets/js/prismjs/prism.js"></script>
+<script src="/assets/js/prismjs/components/prism-erlang.js"></script>
+<script src="/assets/js/prismjs/components/prism-c.js"></script>
+<script src="/assets/js/prismjs/components/prism-bash.js"></script>
+    <footer class="container-fluid footer text-center border-top border-bottom">
+        <div>
+            <a href="/downloads.html" title="DOWNLOAD"><img src="/assets/img/download.png" alt="Download Erlang/OTP"></a>
+        </div>
+        <div>
+            <a href="http://www.github.com/erlang/otp"><img
+                    src="/assets/img/GitHub-Mark-32px.png" alt="Erlang/OTP on Github"></a>
+        </div>
+        
+        <div>
+            <a href="http://www.twitter.com/erlang_org"><img src="/assets/img/twitter.png"
+                    width="32" alt="Erlang/OTP twitter"></a>
+        </div>
+    </footer>
+    <script src="/assets/js/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

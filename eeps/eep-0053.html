@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+
+
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <!-- Allow pinning of website on windows -->
+    <meta name="application-name" content="Erlang.org">
+    <meta name="msapplication-tooltip" content="The official home of the Erlang Programming Language">
+    <meta name="msapplication-starturl" content="/" >
+
+    <!-- Make the site look nicer on facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Erlang.org">
+    <meta property="og:title" content="Welcome to Erlang.org">
+    <meta property="og:description" content="The official home of the Erlang Programming Language">
+    <meta property="og:image" content="https://beta.erlang.org/assets/img/erlang-228x200.png">
+    <meta property="og:image:secure_url" content="https://beta.erlang.org/assets/img/erlang-228x200.png">
+    <meta property="og:url" content="https://beta.erlang.org/">
+
+    <!-- Twitter metadata -->
+    <meta name="twitter:card" content="summary" />
+    <meta property="twitter:title" content="Index" />
+    <meta name="twitter:site" content="@erlang_org" />
+
+    <!-- Rich data for google search -->
+    <script type="application/ld+json">
+{"@type":"WebSite","url":"https://erlang.org/","headline":"Eep 0053 - Erlang/OTP","name":"Erlang.org","sameAs":["https://twitter.com/erlang_org","https://github.com/erlang/otp"],"@context":"https://schema.org"}</script>
+
+    <title>Eep 0053 - Erlang/OTP</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- tells iOS browsers to not show telephone numbers as links -->
+    <meta name="format-detection" content="telephone=no">
+
+    <meta name="application-name" content="Erlang.org">
+    <meta name="description" content="The official home of the Erlang Programming Language">
+    <meta name="keywords" content="Erlang programming language functional parallel distributed documentation download community">
+    <!-- https://www.rssboard.org/rss-autodiscovery -->
+    <link rel="alternate" type="application/atom+xml" title="News Atom Feed" href="https://beta.erlang.org/news.xml" />
+    <link rel="alternate" type="application/atom+xml" title="Blog Atom Feed" href="https://beta.erlang.org/blog.xml" />
+    
+    <link rel="stylesheet" href="/assets/css/main.css">
+</head>
+
+<body>
+    <header class="navbar navbar-expand-lg navbar-light bg-body">
+        <nav class="container">
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
+                aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <a class="navbar-brand" href="/"><img
+                    src="/assets/img/erlang.png" class="img-fluid" width="60" alt="Erlang.org main page"/></a>
+            <div class="collapse navbar-collapse fw-bold" id="navbarSupportedContent">
+                <ul class="navbar-nav text-uppercase me-auto mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link" href="/downloads">Download</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/docs">Documentation</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/community">Community</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/news">News</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/blog">Blog</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/eep">EEP</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/about">About</a></li>
+                </ul>
+                <form class="d-flex" role="search" method="get" action="https://duckduckgo.com/">
+                    <input type="hidden" name="sites" value="erlang.org">
+                    <input class="form-control me-2" id="searchfield" name="q" type="search" placeholder="Search erlang.org"
+                        aria-label="Search">
+                    <button class="btn btn-outline-primary" type="submit">Search</button>
+                </form>
+            </div>
+        </nav>
+    </header>
+    <div class="container border-top pt-4">
+    <div class="row-lg">
+        <div class="col-lg-10 offset-lg-1">
+            <div class="card">
+                <div class="card-body">
+                    <dl class="mb-0 dl-single">
+                        <dt>Author:</dt>
+                        <dd>
+                            Rickard Green &lt;rickard(at)erlang(dot)org&gt;
+                            
+                            
+                        </dd>
+                        
+                        <dt>Status:</dt>
+                        <dd>Accepted/24.0 Proposal is to be implemented in OTP release 24</dd>
+                        <dt>Type:</dt>
+                        <dd>Standards Track</dd>
+                        
+                        
+                        <dt>Created:</dt>
+                        <dd>01-Sept-2019</dd>
+                        
+                        <dt>Erlang-Version:</dt>
+                        <dd>24.0</dd>
+                        
+                        
+                        
+                        
+                    </dl>
+                </div>
+            </div>
+            <div class="border-top mt-4">
+                
+                <h2 id="eep-53-process-aliases-preventing-late-replies-reaching-clients">
+        
+        
+          EEP 53: Process aliases preventing late replies reaching clients <a href="#eep-53-process-aliases-preventing-late-replies-reaching-clients">#</a>
+        
+        
+      </h2>
+    
+      <h1 id="abstract">
+        
+        
+          Abstract <a href="#abstract">#</a>
+        
+        
+      </h1>
+    
+
+<p>Currently there exists no lightweight mechanism for preventing late replies
+from a server to a client after a timeout or connection loss has occurred.
+The only way to prevent late replies today is to make the request via
+a proxy process.</p>
+
+<p>The proposed process alias feature is a lightweight mechanism that solves
+the above problem. A process alias is similar to a registered name that
+is used temporarily while a request is outstanding. If the request times
+out or the connection to the server is lost, the alias is deactivated which
+prevents a late reply from reaching the client.</p>
+      <h1 id="copyright">
+        
+        
+          Copyright <a href="#copyright">#</a>
+        
+        
+      </h1>
+    
+
+<p>This document has been placed in the public domain.</p>
+      <h1 id="specification">
+        
+        
+          Specification <a href="#specification">#</a>
+        
+        
+      </h1>
+    
+
+<p>An alias is of the Erlang type <code>reference()</code> and can be used as destination
+when sending using the <code>!</code> operator, or when sending using the <code>erlang:send()</code>
+and <code>erlang:send_nosuspend()</code> BIFs. An alias can be used both on local
+node and on remote nodes in a distributed system. The alias identifies a
+process that exist, or has existed, on the node with the node name returned
+by <code>node(Alias)</code>.</p>
+
+<p>All references will, as of this, be accepted as destination in the message send
+operations listed above. If the reference is not an alias or a previous alias
+that has been deactivated, the message will silently be dropped.</p>
+
+<p>These new BIFs are introduced:</p>
+
+<ul>
+  <li>
+    <p><code>alias/0</code>, <code>alias/1</code>. The <code>alias()</code> BIF creates and returns an alias which
+can be used when sending messages to the process that called the <code>alias()</code>
+BIF. The <code>alias/1</code> BIF takes an option list as argument with the following
+accepted options:</p>
+
+    <ul>
+      <li><code>explicit_unalias</code> - The alias will remain until it has been
+deactivated by the <code>unalias/1</code> BIF.</li>
+      <li><code>reply</code> - The alias will be automatically deactivated when a reply
+message sent using the alias is received.</li>
+    </ul>
+  </li>
+  <li>
+    <p><code>unalias/1</code>. The <code>unalias(Alias)</code> BIF deactivates an alias that identifies
+the calling process. The BIF returns <code>true</code> if the alias <code>Alias</code> identified
+the calling process and thus was deactivated; otherwise, no change of the
+alias state was made and <code>false</code> is returned.</p>
+  </li>
+  <li>
+    <p><code>monitor/3</code>. The <code>monitor/3</code> BIF is an extension of the <code>monitor/2</code> BIF
+where the third argument is an option list. As of its introduction it
+accepts two options:</p>
+
+    <ul>
+      <li>
+        <p><code>{alias, UnaliasOpt}</code>. The first element of the two tuple indicates
+that we want the returned monitor reference to also work as an alias.
+The second element determines how the alias should be deactivated:</p>
+
+        <ul>
+          <li><code>explicit_unalias</code> - The alias will remain until it has been
+deactivated by the <code>unalias/1</code> BIF.</li>
+          <li><code>demonitor</code> - The alias will be deactivated when the monitor is
+deactivated. That is, either when the <code>demonitor()</code> BIF is called
+on the monitor, or when the monitor is automatically deactivated
+by the reception of a <code>'DOWN'</code> message. The alias can still be
+deactivated before this happens by calling the <code>unalias/1</code> BIF.</li>
+          <li><code>reply_demonitor</code> - The alias will be deactivated when either
+the monitor is deactivated or a message that has been passed
+using the alias is received. If the alias is deactivated due to
+a message passed using the alias, the monitor is also deactivated
+as if the <code>demonitor()</code> BIF had been called.</li>
+        </ul>
+      </li>
+      <li>
+        <p><code>{tag, UserDefinedTag}</code>. This will replace the default <code>Tag</code> with
+<code>UserDefinedTag</code> in the monitor message delivered when the monitor is
+triggered. For example, when monitoring a process, the <code>'DOWN'</code> tag in
+the down message will be replaced by <code>UserDefinedTag</code>.</p>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<p>The <code>spawn_opt()</code> and <code>spawn_request()</code> BIFs have also been extended to
+accept an option <code>{monitor, MonitorOpts}</code> where <code>MonitorOpts</code> correspond to
+the option list of the <code>monitor/3</code> BIF.</p>
+
+<p>Full documentation of these BIFs and options can be found via
+<a href="https://github.com/erlang/otp/pull/2735">pull request #2735</a>
+containing the reference implementation.</p>
+
+<p>It is not possible to retrieve the process identifier of the process
+identified by an alias, and it is not possible to test if a reference is an
+alias or not.</p>
+      <h1 id="motivation">
+        
+        
+          Motivation <a href="#motivation">#</a>
+        
+        
+      </h1>
+    
+
+<p>As previously stated it is possible to prevent late replies by using a
+proxy process that forwards the reply to the client. By spawning the proxy
+process and send its process identifier to the server instead of the
+clients own process identifier, the proxy can be terminated when the
+operation times out or the connection is lost. Since the proxy process
+is not alive, a reply will be silently dropped and no stray message
+will reach the previous client of the request. This however both makes
+the code more complicated and less efficient than it needs to be. The
+inefficiency comes from both the need to create, schedule, execute, and
+terminate the proxy process and the extra copying of data over the proxy
+process.</p>
+
+<p>When the author of the client code has full control over the client process
+such late replies can be handled without a proxy since the code can be
+aware of these potential stray messages and drop them when received. This
+is, however, not possible when implementing library code. You then either
+need to use a proxy process, as done by the <code>gen_statem</code> behavior, or
+accept that the client process may get stray messages after a call, as
+done by the <code>gen_server</code> behavior.</p>
+
+<p>Process aliases solves these issues with a very small overhead.</p>
+      <h1 id="rationale">
+        
+        
+          Rationale <a href="#rationale">#</a>
+        
+        
+      </h1>
+    
+      <h2 id="why-use-the-reference-data-type-for-alias">
+        
+        
+          Why use the reference data type for alias? <a href="#why-use-the-reference-data-type-for-alias">#</a>
+        
+        
+      </h2>
+    
+
+<p>This is more or less what the reference data type is there for. A data type
+that can identify a huge amount of different entities. References are unique
+and contain a node identifier identifying the the node it originates from.
+This makes it easy to identify a specific process on a specific node while
+also identifying different aliases created by the same process. The embedded
+node identifier makes it easy to provide distribution transparency.</p>
+      <h2 id="why-not-make-alias-an-opaque-data-type">
+        
+        
+          Why not make alias an opaque data type? <a href="#why-not-make-alias-an-opaque-data-type">#</a>
+        
+        
+      </h2>
+    
+
+<p>The expected most common use case is in a client server request. Such as
+<code>gen_server:call()</code>. Client server requests in Erlang are typically made
+while monitoring the server from the client. In order to minimize the data
+produced and sent in the request we want to reuse the reference created for
+identification of the monitor to also function as an alias. Since the monitor
+identifier is documented as a reference and is not opaque (which one can
+argue was a design mistake when introducing monitors), it becomes hard not
+to document the type of an alias as a reference as well.</p>
+      <h2 id="why-not-allow-references-as-registered-names-in-the-already-existing-api">
+        
+        
+          Why not allow references as registered names in the already existing API? <a href="#why-not-allow-references-as-registered-names-in-the-already-existing-api">#</a>
+        
+        
+      </h2>
+    
+
+<p>There are two reasons. Distribution transparency and scalability.</p>
+
+<p>Distribution transparency is really desirable since the user can use the
+functionality the same way regardless of whether it is a node local operation
+or node remote operation. The name registration API is not distribution
+transparent.</p>
+
+<p>Regarding scalability. Due to how the name registration API has been designed
+we need some sort of table in order to implement the API. This table will be
+written to and read from by processes that are executing in parallel. In the
+use case we are focusing on, names (aliases) are expected to be temporary and
+created in huge amounts. That is, there will be large amounts of modifications
+of this table from processes executing on different processors. This will
+make it challenging to implement such a table that scales well.</p>
+
+<p>In the proposed solution the information needed to route the message to the
+correct place is saved in the alias itself, the reference. The information
+needed to determine if the message passed via the alias should be dropped or
+passed along is saved in the process identified by the alias. That is, all
+information needed is distributed to where it is needed instead of being
+centralized in a node global table. This approach of distributed information
+introduce no new synchronization points at all when it has been fully
+implemented (more on that below) which will scale extremely well. An
+implementation based on a node global table can <em>never</em> compete scalability
+wise with that.</p>
+
+<p>The already existing functionality for registered names cannot be implemented
+using this distributed information approach, but needs this centralized
+storage of names. That is, the already existing API cannot be used.</p>
+
+<p>Besides node identifier a reference today contains three 32-bit words of data
+or in other words 96-bits of data. Of these 96 bits only 82 bits are allowed
+to be passed over the distribution to another node. This for historical
+reasons. While a reference resides locally it can however contain more or
+less unlimited amount of data. 82-bits are not enough to make a reference
+unique on the local node and at the same time uniquely identify a node local
+process. In order to be able to store all information needed in alias, the
+reference data type needs to be extended.</p>
+
+<p>In the proposed solution references used as aliases are extended to use
+five 32-bit words on 64-bit architectures and four 32-bit words on 32-bit
+architectures. Since that much data in a reference cannot be passed over
+the distribution today, the reference implementation saves aliases that
+are alive in a node global table. When a node local alias enters the local
+node over the distribution one needs to look it up in this table in order to
+be able to restore it to its actual value. While aliases are passed around
+locally there is no need for look-ups in this table.</p>
+
+<p>The reference implementation also modifies the distribution protocol to
+allow references with up to five 32-bit values. For backwards compatibility
+reasons this modification of the distribution protocol cannot be used at once
+when aliases are introduced. This since we need to be able to communicate with
+older nodes from previous releases for a while. When this has been living in
+the system for enough time (expected to be OTP 26) we can begin sending
+references with up to five 32-bit words and remove the usage of the table
+mapping references over the distribution to aliases. That is, it is not until
+this happens that the alias implementation is fully complete.</p>
+      <h2 id="why-is-it-not-possible-to-get-the-pid-of-the-process-that-an-alias-refers-to">
+        
+        
+          Why is it not possible to get the PID of the process that an alias refers to? <a href="#why-is-it-not-possible-to-get-the-pid-of-the-process-that-an-alias-refers-to">#</a>
+        
+        
+      </h2>
+    
+
+<p>Most importantly there is no need to know the PID of the process that an
+alias refers to in order to solve the problems that alias are intended
+to solve. The user is expected to utilize alias in a protocol where one knows
+whether a reference is an alias or not and should not need to know the PID of
+the process that it refers to.</p>
+
+<p>Besides the above there are also other issues with such functionality. The
+content of a reference is just a large integer. In order to keep distribution
+transparency one would either have to specify how this integer should be
+interpreted or require synchronous signaling with the node where the
+identified process resides. The synchronous signal-ling will be very
+expensive. By specifying how the reference integer should be interpreted we
+would prevent future changes to how the integer of the reference should be
+interpreted which might prevent future optimizations, improvements and new
+features. Up until the time when large references with five 32-bit words can
+be passed over the distribution, synchronous communication is also the only
+option on how to implement such functionality.</p>
+
+<p>If we should mimic the <code>whereis()</code> function of the registered name API where
+you also can see if a name is currently registered, no other option than
+synchronous signaling with the process identified by the alias is possible.</p>
+      <h2 id="why-is-it-not-possible-to-test-if-a-reference-is-an-alias">
+        
+        
+          Why is it not possible to test if a reference is an alias? <a href="#why-is-it-not-possible-to-test-if-a-reference-is-an-alias">#</a>
+        
+        
+      </h2>
+    
+
+<p>The same reason as to why it is not possible to get the PID of the
+process that is referred to by an alias.</p>
+      <h2 id="why-not-allow-registration-of-arbitrary-erlang-terms-instead">
+        
+        
+          Why not allow registration of arbitrary Erlang terms instead? <a href="#why-not-allow-registration-of-arbitrary-erlang-terms-instead">#</a>
+        
+        
+      </h2>
+    
+
+<p>Such a feature could solve the same issue that aliases are intended to
+solve, but there are problems with such an approach.</p>
+
+<p>Terms other than pids, ports, and references do not have a node identifier
+embedded into the data type. For such data types you need some other way
+to identify the node of where the name is registered. In the current case
+of atoms as registered names, this is done by wrapping the name in a
+two-tuple that contains the node name. Something like this is needed for
+all other terms than just plain pids, ports, and references. This also
+introduce a problem. Is a two-tuple just a name or a name plus a node
+identifier?</p>
+
+<p>Should it be possible to register a PID as a name for another process?
+This would force all send operations to first lookup the PID in the
+table of registered names before performing the operation. This will
+cost performance in all send operations. The same is true for ports.</p>
+
+<p>We don’t think registration of arbitrary terms should be implemented
+due to the problems that arise. Current registration feature that only
+allows atoms can however be a bit too limiting when you need to register
+a number of processes for the same service. An option could be to allow
+registration of two-tuples containing an atom and an integer. Perhaps
+other terms such as strings should also be allowed, but arbitrary terms
+should not be allowed.</p>
+
+<p>Allowing references as registered names implies scalability bottlenecks
+not present in the alias API. That is, this would be an inferior solution
+to the problem we set out to solve.</p>
+
+<p>One probably wants to extend name registration with more allowed terms
+than just atoms, but this for solving other problems than what aliases
+are intended to solve. The name registration API does not fit aliases
+so we don’t see that aliases should be combined with such an extension
+of the registration API. The alias solution solves the problem we set out
+to solve, so this eep is limited to that.</p>
+      <h2 id="why-is-the-tag-option-of-monitor3-introduced">
+        
+        
+          Why is the tag option of monitor/3 introduced? <a href="#why-is-the-tag-option-of-monitor3-introduced">#</a>
+        
+        
+      </h2>
+    
+
+<p>When using the monitor option <code>alias</code> in a <code>spawn_request()</code> call you
+get unnecessary delays since you cannot share the alias with the
+child process until you have gotten the spawn reply with the process
+identifier of the child process. You instead typically want to
+explicitly create the alias before the <code>spawn_request()</code> call and pass
+it as an argument to the child process.</p>
+
+<p>In a typical scenario you want to receive a response or an error
+of the operation. However, if you explicitly create an alias before
+the <code>spawn_request()</code> operation, the monitor reference and the alias
+will be different references. This will prevent the compiler from
+optimizing the receive (to skip messages present in the message queue
+when the reference was created) since not all receive clauses will
+match on the same reference.</p>
+
+<p>We solve this by using the <code>tag</code> monitor option as well as the
+<code>reply_tag</code> spawn request. The following is a fully functional rpc
+implementation using this method on a system with the prototype
+implementation of aliases:</p>
+
+<pre><code class="language-erlang">rpc(Node, M, F, A) -&gt;
+    Alias = alias([reply]),
+    ReqId = spawn_request(Node,
+                          fun () -&gt;
+                                  Result = apply(M, F, A),
+                                  Alias ! {{result, Alias}, Result}
+                          end,
+                          [{monitor, [{tag, {'DOWN', Alias}}]},
+                           {reply_tag, {spawn_reply, Alias}},
+                           {reply, error_only}]),
+    receive
+        {{result, Alias}, Result} -&gt;
+            demonitor(ReqId, [flush]),
+            Result;
+        {{'DOWN', Alias}, ReqId, process, _, Error} -&gt;
+            rpc_error_cleanup(Alias, Error);
+        {{spawn_reply, Alias}, ReqId, error, Error} -&gt;
+            rpc_error_cleanup(Alias, Error)
+    end.
+
+rpc_error_cleanup(Alias, Error) -&gt;
+    case unalias(Alias) of
+        true -&gt;
+            %% No flush needed since we used the 'reply' option
+            %% to alias(), and the alias was still active...
+            error({rpc_error, Error});
+        false -&gt;
+            %% Flush a possible result message...
+            receive {{result, Alias}, Result} -&gt; Result
+            after 0 -&gt; error({rpc_error, Error})
+            end
+    end.
+</code></pre>
+
+<p>The <code>tag</code> monitor option can be used in other situations as
+well in order to get a single reference that is present in
+all types of responses from a group of processes. The processes
+may be pre-existing or not. This reference can then be utilized
+to determine if a message corresponds to a specific operation
+made to a specific group of processes.</p>
+
+<p>There are plans to extend the receive optimization so that multiple
+receives matching on the same reference in all clauses can utilize
+the optimization. This will also improve performance for such
+implementations receiving multiple messages matching on the same
+reference.</p>
+
+<p>The tag to use in the monitor message is stored locally in the
+process that sets up the monitor and does not have to be
+communicated between processes. Most importantly it does not
+have to be sent over the wire in the distributed case. This also
+means that it can also be used when monitoring processes on older
+nodes which does not support this functionality.</p>
+      <h1 id="backwards-compatibility">
+        
+        
+          Backwards Compatibility <a href="#backwards-compatibility">#</a>
+        
+        
+      </h1>
+    
+
+<p>The alias feature is a pure extension, so there are no real backwards
+compatibility issues.</p>
+
+<p>In order to be able to communicate aliases over Erlang nodes from
+previous releases we cannot pass large references over the distribution
+and therefore need to keep information about aliases in a node global
+table. The implementation benefits from being able to pass larger
+references over the distribution, but will not do so until we can make
+it mandatory to be able to handle such large references. Both OTP 24
+and OTP 25 will be able to handle large references over the distribution
+and since we only guarantee distribution compatibility with the two
+closest releases backwards and forwards we can then make large
+references mandatory in OTP 26.</p>
+
+<p>This node global table for alias introduce an overhead when utilizing
+aliases compared to sending using the PID of the process. This due
+to allocation and manipulation of table structures. Comparing to the
+existing solution of utilizing a proxy process in order to
+prevent stray messages the overhead of this node global table for
+aliases is small. Fortunately this node global table also only need to
+be present temporarily and can be removed in OTP 26.</p>
+      <h1 id="reference-implementation">
+        
+        
+          Reference Implementation <a href="#reference-implementation">#</a>
+        
+        
+      </h1>
+    
+
+<p>The reference implementation is provided by
+<a href="https://github.com/erlang/otp/pull/2735">pull request #2735</a>.</p>
+
+<p>Beside implementation of the alias feature. The pull request also contain
+usage of aliases in the gen behaviors such as gen_server. Due to this it is
+now also possible to implement <code>receive_response()</code> functionality similar to
+<code>erpc:receive_response()</code> which also have been implemented:</p>
+
+<ul>
+  <li><code>gen_server:receive_response/2</code></li>
+  <li><code>gen_statem:receive_response/2</code></li>
+  <li><code>gen_event:receive_response/2</code></li>
+</ul>
+      <h1 id="change-log">
+        
+        
+          Change Log <a href="#change-log">#</a>
+        
+        
+      </h1>
+    
+
+<ul>
+  <li>2020-10-29: The <code>tag</code> monitor option was introduced.</li>
+  <li>2020-11-12: The <code>once</code> option of <code>alias/1</code> was changed to
+            <code>reply</code>. The <code>unalias</code> option of <code>alias/1</code> was
+            changed to <code>explicit_unalias</code>. In the <code>UnaliasOpt</code>
+            part of the <code>alias</code> monitor option, <code>unalias</code>
+            was changed to <code>explicit_unalias</code>.</li>
+  <li>2020-11-12: The state of the EEP was changed to Accepted.</li>
+</ul>
+
+            </div>
+        </div>
+    </div>
+</div>
+<script src="/assets/js/prismjs/prism.js"></script>
+<script src="/assets/js/prismjs/components/prism-erlang.js"></script>
+    <footer class="container-fluid footer text-center border-top border-bottom">
+        <div>
+            <a href="/downloads.html" title="DOWNLOAD"><img src="/assets/img/download.png" alt="Download Erlang/OTP"></a>
+        </div>
+        <div>
+            <a href="http://www.github.com/erlang/otp"><img
+                    src="/assets/img/GitHub-Mark-32px.png" alt="Erlang/OTP on Github"></a>
+        </div>
+        
+        <div>
+            <a href="http://www.twitter.com/erlang_org"><img src="/assets/img/twitter.png"
+                    width="32" alt="Erlang/OTP twitter"></a>
+        </div>
+    </footer>
+    <script src="/assets/js/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+
+
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <!-- Allow pinning of website on windows -->
+    <meta name="application-name" content="Erlang.org">
+    <meta name="msapplication-tooltip" content="The official home of the Erlang Programming Language">
+    <meta name="msapplication-starturl" content="/" >
+
+    <!-- Make the site look nicer on facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Erlang.org">
+    <meta property="og:title" content="Welcome to Erlang.org">
+    <meta property="og:description" content="The official home of the Erlang Programming Language">
+    <meta property="og:image" content="https://beta.erlang.org/assets/img/erlang-228x200.png">
+    <meta property="og:image:secure_url" content="https://beta.erlang.org/assets/img/erlang-228x200.png">
+    <meta property="og:url" content="https://beta.erlang.org/">
+
+    <!-- Twitter metadata -->
+    <meta name="twitter:card" content="summary" />
+    <meta property="twitter:title" content="Index" />
+    <meta name="twitter:site" content="@erlang_org" />
+
+    <!-- Rich data for google search -->
+    <script type="application/ld+json">
+{"@type":"WebSite","url":"https://erlang.org/","headline":"I/O polling options in OTP 21 - Erlang/OTP","name":"Erlang.org","sameAs":["https://twitter.com/erlang_org","https://github.com/erlang/otp"],"@context":"https://schema.org"}</script>
+
+    <title>I/O polling options in OTP 21 - Erlang/OTP</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- tells iOS browsers to not show telephone numbers as links -->
+    <meta name="format-detection" content="telephone=no">
+
+    <meta name="application-name" content="Erlang.org">
+    <meta name="description" content="The official home of the Erlang Programming Language">
+    <meta name="keywords" content="Erlang programming language functional parallel distributed documentation download community">
+    <!-- https://www.rssboard.org/rss-autodiscovery -->
+    <link rel="alternate" type="application/atom+xml" title="News Atom Feed" href="https://beta.erlang.org/news.xml" />
+    <link rel="alternate" type="application/atom+xml" title="Blog Atom Feed" href="https://beta.erlang.org/blog.xml" />
+    
+    <link rel="stylesheet" href="/assets/css/main.css">
+</head>
+
+<body>
+    <header class="navbar navbar-expand-lg navbar-light bg-body">
+        <nav class="container">
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
+                aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <a class="navbar-brand" href="/"><img
+                    src="/assets/img/erlang.png" class="img-fluid" width="60" alt="Erlang.org main page"/></a>
+            <div class="collapse navbar-collapse fw-bold" id="navbarSupportedContent">
+                <ul class="navbar-nav text-uppercase me-auto mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link" href="/downloads">Download</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/docs">Documentation</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/community">Community</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/news">News</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/blog">Blog</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/eep">EEP</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/about">About</a></li>
+                </ul>
+                <form class="d-flex" role="search" method="get" action="https://duckduckgo.com/">
+                    <input type="hidden" name="sites" value="erlang.org">
+                    <input class="form-control me-2" id="searchfield" name="q" type="search" placeholder="Search erlang.org"
+                        aria-label="Search">
+                    <button class="btn btn-outline-primary" type="submit">Search</button>
+                </form>
+            </div>
+        </nav>
+    </header>
+    <div class="container border-top pt-4">
+    <div class="row-lg">
+        <div class="col-lg-8 offset-lg-2">
+            <article class="card mb-4">
+    <div class="card-header">
+        <h3><a href="/blog/IO-Polling/">I/O polling options in OTP 21</a></h3>
+        <div class="date">April 11, 2018
+             · by Lukas Larsson
+        </div>
+    </div>
+
+    <div class="card-body">
+        
+        
+        
+        <p>Erlang/OTP 21 will introduce a completely new IO polling implementation.
+This new implementation comes with a new set of tuneable parameters that
+can be used to get the most out of your system. This blog post describes
+the parameters and attempts to describe what they should be used for.</p>
+
+<p>The I/O polling framework in erts is responsible for delivering events to
+ports and processes that have subscribed to events on file descriptors.
+Before OTP 21 it was the job of an Erlang scheduler thread to deliver these
+events. In OTP 21 dedicated threads are used to deliver the events.</p>
+
+<p>For information about how the new implementation works under the hood you can
+look at Kenneth Lundin’s presentation <a href="http://www.erlang-factory.com/euc2017/kenneth-lundin">Erlang VM News Regarding Dirty Schedulers and I/O</a>
+from the EUC 2017.</p>
+      <h2 id="kernel-space-vs-user-space-polling">
+        
+        
+          Kernel-space vs User-space polling <a href="#kernel-space-vs-user-space-polling">#</a>
+        
+        
+      </h2>
+    
+
+<p>In OTP 21 the <code>+K</code> option has been removed as it is not longer possible to
+choose whether to use kernel-space poll or not at run-time. Instead the decision
+is made at compile time where kernel-space poll will be used by default. If you
+want to use user-space poll instead you have to pass the <code>--disable-kernel-poll</code>
+flag to configure when compiling Erlang/OTP.</p>
+
+<p>Before OTP 21 it made sense to run using user-space polling if the file
+descriptors that was subscribed to tended to be removed quickly. For example
+if a HTTP server managed short-lived connection from only a handful other
+machines, it could be beneficial to use user-space poll. However if the
+connection start being long-lived, or the number of concurrent connection
+go up, kernel-space poll becomes better.</p>
+
+<p>In OTP 21, this is no longer true. Because the polling has been moved to another
+thread, it is almost always better to use kernel-space polling. The user-space
+polling implementation is left in place for platforms that do not support
+parallel update of the kernel-space pollset. Also user-space polling is used
+for individual file descriptors when they cannot be put in a kernel-space pollset
+for some reason.</p>
+      <h2 id="poll-threads-and-poll-sets">
+        
+        
+          Poll-threads and Poll-sets <a href="#poll-threads-and-poll-sets">#</a>
+        
+        
+      </h2>
+    
+
+<p>OTP 21 introduces two new configuration parameters: +IOt and +IOp.</p>
+      <h3 id="configure-iot">
+        
+        
+          Configure +IOt <a href="#configure-iot">#</a>
+        
+        
+      </h3>
+    
+
+<p>+IOt controls the number of threads that are used to deliver events. The default
+is 1 and it should be enough for most applications. However on very busy
+systems with many concurrent connection it could be beneficial to increase this.
+One way to get an indication of whether your system could benefit from it is
+by using <a href="/doc/man/msacc.html">msacc</a>. If you turn it on briefly
+and when examining the <code>msacc:print()</code> output notice that sleep time
+of the the thread type <code>poll</code> is low, the system may benefit from increasing the
+number of polling threads.</p>
+
+<pre><code>Eshell V9.3  (abort with ^G)
+1&gt; msacc:start(10000),msacc:print().
+Average thread real-time    : 10000410 us
+Accumulated system run-time :      937 us
+Average scheduler run-time  :      897 us
+
+        Thread      aux check_io emulator       gc    other     port    sleep
+
+Stats per thread:
+     async( 0)    0.00%    0.00%    0.00%    0.00%    0.00%    0.00%  100.00%
+       aux( 1)    0.00%    0.00%    0.00%    0.00%    0.00%    0.00%  100.00%
+dirty_cpu_( 1)    0.00%    0.00%    0.00%    0.00%    0.00%    0.00%  100.00%
+dirty_io_s( 1)    0.00%    0.00%    0.00%    0.00%    0.00%    0.00%  100.00%
+      poll( 0)    0.00%    0.00%    0.00%    0.00%    0.00%    0.00%  100.00%
+ scheduler( 1)    0.00%    0.00%    0.00%    0.00%    0.01%    0.00%   99.99%
+
+Stats per type:
+         async    0.00%    0.00%    0.00%    0.00%    0.00%    0.00%  100.00%
+           aux    0.00%    0.00%    0.00%    0.00%    0.00%    0.00%  100.00%
+dirty_cpu_sche    0.00%    0.00%    0.00%    0.00%    0.00%    0.00%  100.00%
+dirty_io_sched    0.00%    0.00%    0.00%    0.00%    0.00%    0.00%  100.00%
+          poll    0.00%    0.00%    0.00%    0.00%    0.00%    0.00%  100.00%
+     scheduler    0.00%    0.00%    0.00%    0.00%    0.01%    0.00%   99.99%
+</code></pre>
+
+<p>In the example above the poll thread is sleeping for 100% of the time so no need to
+increase the number of poll threads.</p>
+      <h3 id="configure-iop">
+        
+        
+          Configure +IOp <a href="#configure-iop">#</a>
+        
+        
+      </h3>
+    
+
+<p>+IOp controls the number of pollsets used to put the file descriptors in. This
+options defaults to 1, and it should be very rare for any system to benefit
+from changing this. The only time so far that I have seen it to be beneficial is when the
+kernel-space poll implementation does not scale well when accessed in parallel
+by multiple threads. So if you run <a href="http://man7.org/linux/man-pages/man1/perf-top.1.html">perf top</a>
+(or something similar) on your system and notice that a lot of time is spent
+locking the kernel-space pollset, it would be a good idea to increase the
+number of pollsets used.</p>
+
+        
+    </div>
+</article>
+        </div>
+    </div>
+</div>
+<script src="/assets/js/prismjs/prism.js"></script>
+<script src="/assets/js/prismjs/components/prism-erlang.js"></script>
+<script src="/assets/js/prismjs/components/prism-c.js"></script>
+<script src="/assets/js/prismjs/components/prism-bash.js"></script>
+    <footer class="container-fluid footer text-center border-top border-bottom">
+        <div>
+            <a href="/downloads.html" title="DOWNLOAD"><img src="/assets/img/download.png" alt="Download Erlang/OTP"></a>
+        </div>
+        <div>
+            <a href="http://www.github.com/erlang/otp"><img
+                    src="/assets/img/GitHub-Mark-32px.png" alt="Erlang/OTP on Github"></a>
+        </div>
+        
+        <div>
+            <a href="http://www.twitter.com/erlang_org"><img src="/assets/img/twitter.png"
+                    width="32" alt="Erlang/OTP twitter"></a>
+        </div>
+    </footer>
+    <script src="/assets/js/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

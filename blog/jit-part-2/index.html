@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+
+
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <!-- Allow pinning of website on windows -->
+    <meta name="application-name" content="Erlang.org">
+    <meta name="msapplication-tooltip" content="The official home of the Erlang Programming Language">
+    <meta name="msapplication-starturl" content="/" >
+
+    <!-- Make the site look nicer on facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Erlang.org">
+    <meta property="og:title" content="Welcome to Erlang.org">
+    <meta property="og:description" content="The official home of the Erlang Programming Language">
+    <meta property="og:image" content="https://beta.erlang.org/assets/img/erlang-228x200.png">
+    <meta property="og:image:secure_url" content="https://beta.erlang.org/assets/img/erlang-228x200.png">
+    <meta property="og:url" content="https://beta.erlang.org/">
+
+    <!-- Twitter metadata -->
+    <meta name="twitter:card" content="summary" />
+    <meta property="twitter:title" content="Index" />
+    <meta name="twitter:site" content="@erlang_org" />
+
+    <!-- Rich data for google search -->
+    <script type="application/ld+json">
+{"@type":"WebSite","url":"https://erlang.org/","headline":"Further adventures in the JIT - Erlang/OTP","name":"Erlang.org","sameAs":["https://twitter.com/erlang_org","https://github.com/erlang/otp"],"@context":"https://schema.org"}</script>
+
+    <title>Further adventures in the JIT - Erlang/OTP</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- tells iOS browsers to not show telephone numbers as links -->
+    <meta name="format-detection" content="telephone=no">
+
+    <meta name="application-name" content="Erlang.org">
+    <meta name="description" content="The official home of the Erlang Programming Language">
+    <meta name="keywords" content="Erlang programming language functional parallel distributed documentation download community">
+    <!-- https://www.rssboard.org/rss-autodiscovery -->
+    <link rel="alternate" type="application/atom+xml" title="News Atom Feed" href="https://beta.erlang.org/news.xml" />
+    <link rel="alternate" type="application/atom+xml" title="Blog Atom Feed" href="https://beta.erlang.org/blog.xml" />
+    
+    <link rel="stylesheet" href="/assets/css/main.css">
+</head>
+
+<body>
+    <header class="navbar navbar-expand-lg navbar-light bg-body">
+        <nav class="container">
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
+                aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <a class="navbar-brand" href="/"><img
+                    src="/assets/img/erlang.png" class="img-fluid" width="60" alt="Erlang.org main page"/></a>
+            <div class="collapse navbar-collapse fw-bold" id="navbarSupportedContent">
+                <ul class="navbar-nav text-uppercase me-auto mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link" href="/downloads">Download</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/docs">Documentation</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/community">Community</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/news">News</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/blog">Blog</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/eep">EEP</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/about">About</a></li>
+                </ul>
+                <form class="d-flex" role="search" method="get" action="https://duckduckgo.com/">
+                    <input type="hidden" name="sites" value="erlang.org">
+                    <input class="form-control me-2" id="searchfield" name="q" type="search" placeholder="Search erlang.org"
+                        aria-label="Search">
+                    <button class="btn btn-outline-primary" type="submit">Search</button>
+                </form>
+            </div>
+        </nav>
+    </header>
+    <div class="container border-top pt-4">
+    <div class="row-lg">
+        <div class="col-lg-8 offset-lg-2">
+            <article class="card mb-4">
+    <div class="card-header">
+        <h3><a href="/blog/jit-part-2/">Further adventures in the JIT</a></h3>
+        <div class="date">November 10, 2020
+             · by John Högberg
+        </div>
+    </div>
+
+    <div class="card-body">
+        
+        
+        
+        <p>This post continues our <a href="http://blog.erlang.org/a-first-look-at-the-jit/">adventures in the JIT</a>, digging a bit deeper into the
+implementation details.</p>
+
+<p>While writing things in machine code (assembler) gives you great freedom it
+comes at the cost of having to invent almost everything yourself, and there’s
+no clever compiler to help you catch mistakes. For example, if you call a
+function in a certain manner and said function doesn’t expect that, you’ll
+crash your OS process at best or spend hours chasing a <a href="https://en.wikipedia.org/wiki/Heisenbug">heisenbug</a> at worst.</p>
+
+<p>Hence, <em>conventions</em> are always front and center when writing assembler, so we
+need to visit some of the ones we’ve chosen before moving on.</p>
+
+<p>The most important one concerns registers, and we base it on the system calling
+convention to make it easier to call C code. I’ve included tables for the
+SystemV convention used on Linux below. The registers differ on other systems
+like Windows, but the principle is the same on all of them.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: left">Register</th>
+      <th style="text-align: center">Name</th>
+      <th style="text-align: center">Callee save</th>
+      <th style="text-align: right">Purpose</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: left"><code>RDI</code></td>
+      <td style="text-align: center"><code>ARG1</code></td>
+      <td style="text-align: center">no</td>
+      <td style="text-align: right">First argument</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code>RSI</code></td>
+      <td style="text-align: center"><code>ARG2</code></td>
+      <td style="text-align: center">no</td>
+      <td style="text-align: right"> </td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code>RDX</code></td>
+      <td style="text-align: center"><code>ARG3</code></td>
+      <td style="text-align: center">no</td>
+      <td style="text-align: right"> </td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code>RCX</code></td>
+      <td style="text-align: center"><code>ARG4</code></td>
+      <td style="text-align: center">no</td>
+      <td style="text-align: right"> </td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code>R8</code></td>
+      <td style="text-align: center"><code>ARG5</code></td>
+      <td style="text-align: center">no</td>
+      <td style="text-align: right"> </td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code>R9</code></td>
+      <td style="text-align: center"><code>ARG6</code></td>
+      <td style="text-align: center">no</td>
+      <td style="text-align: right">Sixth argument</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code>RAX</code></td>
+      <td style="text-align: center"><code>RET</code></td>
+      <td style="text-align: center">no</td>
+      <td style="text-align: right">Function return value</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Thus, if we want to call a C function with two arguments, we move the first
+into <code>ARG1</code> and the second into <code>ARG2</code> before calling it, and we’ll have the
+result in <code>RET</code> when it returns.</p>
+
+<p>Beyond saying which registers are used to pass arguments, calling conventions
+also say which registers retain their value over function calls. These are
+called “callee save” registers, since the called function needs to save and
+restore them if they’re modified.</p>
+
+<p>In these registers, we keep commonly-used data that rarely (if ever) changes in
+C code, helping us avoid saving and restoring them whenever we call C code:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: left">Register</th>
+      <th style="text-align: center">Name</th>
+      <th style="text-align: center">Callee save</th>
+      <th style="text-align: right">Purpose</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: left"><code>RBP</code></td>
+      <td style="text-align: center"><code>active_code_ix</code></td>
+      <td style="text-align: center">yes</td>
+      <td style="text-align: right">Active code index</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code>R13</code></td>
+      <td style="text-align: center"><code>c_p</code></td>
+      <td style="text-align: center">yes</td>
+      <td style="text-align: right">Current process</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code>R15</code></td>
+      <td style="text-align: center"><code>HTOP</code></td>
+      <td style="text-align: center">yes</td>
+      <td style="text-align: right">Top of the current process’ heap</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code>R14</code></td>
+      <td style="text-align: center"><code>FCALLS</code></td>
+      <td style="text-align: center">yes</td>
+      <td style="text-align: right">Reduction counter</td>
+    </tr>
+    <tr>
+      <td style="text-align: left"><code>RBX</code></td>
+      <td style="text-align: center"><code>registers</code></td>
+      <td style="text-align: center">yes</td>
+      <td style="text-align: right">BEAM register structure</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>We also keep the current process’ stack in <code>RSP</code>, the <em>machine stack pointer</em>,
+to allow <code>call</code> and <code>ret</code> instructions in Erlang code.</p>
+
+<p>The downside of this is that we can no longer call arbitrary C code as it may
+assume a much larger stack, requiring us to swap back and forth between a “C
+stack” and the “Erlang stack”.</p>
+
+<p>In my previous post we called a C function (<a href="https://github.com/erlang/otp/blob/030472803bc6646c47c3d5847125a4bb8f9af4d1/erts/emulator/beam/jit/instr_msg.cpp#L460-L469"><code>timeout</code></a>) without doing any of
+this, which was a bit of a white lie. It used to be done that way before we
+changed how the stack works, but it’s still pretty simple as you can see below:</p>
+
+<pre><code class="language-c++">void BeamModuleAssembler::emit_timeout() {
+    /* Swap to the C stack. */
+    emit_enter_runtime();
+
+    /* Call the `timeout` C function.
+     *
+     * runtime_call compiles down to a single `call`
+     * instruction in optimized builds, and has a few
+     * assertions in debug builds to prevent mistakes
+     * like forgetting to switch stacks. */
+    a.mov(ARG1, c_p);
+    runtime_call&lt;1&gt;(timeout);
+
+    /* Swap back to the Erlang stack. */
+    emit_leave_runtime();
+}
+</code></pre>
+
+<p>Swapping the stack is very cheap because of a trick we use when setting up
+<code>registers</code>: by allocating the structure on the <em>C stack</em> we can compute the
+address of said stack from <code>registers</code>, which avoids having to reserve a
+precious callee save register and is much faster than having it saved in memory
+somewhere.</p>
+
+<p>With the conventions out of the way we can start looking at code again. Let’s
+pick a larger instruction this time, <a href="https://github.com/erlang/otp/blob/OTP-23.1/erts/emulator/beam/macros.tab#L77-L88"><code>test_heap</code></a>, which allocates heap
+memory:</p>
+
+<pre><code class="language-c++">void BeamModuleAssembler::emit_test_heap(const ArgVal &amp;Needed,
+                                         const ArgVal &amp;Live) {
+    const int words_needed = (Needed.getValue() + S_RESERVED);
+    Label after_gc_check = a.newLabel();
+
+    /* Do we have enough free space already? */
+    a.lea(ARG2, x86::qword_ptr(HTOP, words_needed * sizeof(Eterm)));
+    a.cmp(ARG2, E);
+    a.jbe(after_gc_check);
+
+    /* No, we need to GC.
+     *
+     * Switch to the C stack, and update the process
+     * structure with our current stack (E) and heap
+     * (HTOP) pointers so the C code can use them. */
+    emit_enter_runtime&lt;Update::eStack | Update::eHeap&gt;();
+
+    /* Call the GC, passing how many words we need and
+     * how many X registers we use. */
+    a.mov(ARG2, imm(words_needed));
+    a.mov(ARG4, imm(Live.getValue()));
+
+    a.mov(ARG1, c_p);
+    load_x_reg_array(ARG3);
+    a.mov(ARG5, FCALLS);
+    runtime_call&lt;5&gt;(erts_garbage_collect_nobump);
+    a.sub(FCALLS, RET);
+
+    /* Swap back to the Erlang stack, reading the new
+     * values for E and HTOP from the process structure. */
+    emit_leave_runtime&lt;Update::eStack | Update::eHeap&gt;();
+
+    a.bind(after_gc_check);
+}
+</code></pre>
+
+<p>While this isn’t too complicated it’s still a rather large amount of code:
+since all instructions are emitted directly into their modules, small
+inefficiencies like this tend to bloat the modules rather quickly. Beyond using
+more RAM, this wastes precious instruction cache so we’ve spent a lot of time
+and effort on reducing code size.</p>
+
+<p>Our most common method of reducing code size is to break out as much of the
+instruction as possible into a globally shared part. Let’s see how we can apply
+this technique:</p>
+
+<pre><code class="language-c++">void BeamModuleAssembler::emit_test_heap(const ArgVal &amp;Needed,
+                                         const ArgVal &amp;Live) {
+    const int words_needed = (Needed.getValue() + S_RESERVED);
+    Label after_gc_check = a.newLabel();
+
+    a.lea(ARG2, x86::qword_ptr(HTOP, words_needed * sizeof(Eterm)));
+    a.cmp(ARG2, E);
+    a.jbe(after_gc_check);
+
+    a.mov(ARG4, imm(Live.getValue()));
+
+    /* Call the global "garbage collect" fragment. */
+    fragment_call(ga-&gt;get_garbage_collect());
+
+    a.bind(after_gc_check);
+}
+
+/* This is the global part of the instruction. Since we
+ * know it will only be called from the module code above,
+ * we're free to assume that ARG4 is the number of live
+ * registers and that ARG2 is (HTOP + bytes needed). */
+void BeamGlobalAssembler::emit_garbage_collect() {
+    /* Convert ARG2 to "words needed" by subtracting
+     * HTOP and dividing it by 8.
+     *
+     * This saves us from having to explicitly pass
+     * "words needed" in the module code above. */
+    a.sub(ARG2, HTOP);
+    a.shr(ARG2, imm(3));
+
+    emit_enter_runtime&lt;Update::eStack | Update::eHeap&gt;();
+
+    /* ARG2 and ARG4 have already been set earlier. */
+    a.mov(ARG1, c_p);
+    load_x_reg_array(ARG3);
+    a.mov(ARG5, FCALLS);
+    runtime_call&lt;5&gt;(erts_garbage_collect_nobump);
+    a.sub(FCALLS, RET);
+
+    emit_leave_runtime&lt;Update::eStack | Update::eHeap&gt;();
+
+    a.ret();
+}
+</code></pre>
+
+<p>While we had to write about as much code, the part that is copied into the
+module is significantly smaller.</p>
+
+<p>In our next post we’ll take a break from implementation details and look at the
+history behind this JIT.</p>
+
+        
+    </div>
+</article>
+        </div>
+    </div>
+</div>
+<script src="/assets/js/prismjs/prism.js"></script>
+<script src="/assets/js/prismjs/components/prism-erlang.js"></script>
+<script src="/assets/js/prismjs/components/prism-c.js"></script>
+<script src="/assets/js/prismjs/components/prism-bash.js"></script>
+    <footer class="container-fluid footer text-center border-top border-bottom">
+        <div>
+            <a href="/downloads.html" title="DOWNLOAD"><img src="/assets/img/download.png" alt="Download Erlang/OTP"></a>
+        </div>
+        <div>
+            <a href="http://www.github.com/erlang/otp"><img
+                    src="/assets/img/GitHub-Mark-32px.png" alt="Erlang/OTP on Github"></a>
+        </div>
+        
+        <div>
+            <a href="http://www.twitter.com/erlang_org"><img src="/assets/img/twitter.png"
+                    width="32" alt="Erlang/OTP twitter"></a>
+        </div>
+    </footer>
+    <script src="/assets/js/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+
+
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <!-- Allow pinning of website on windows -->
+    <meta name="application-name" content="Erlang.org">
+    <meta name="msapplication-tooltip" content="The official home of the Erlang Programming Language">
+    <meta name="msapplication-starturl" content="/" >
+
+    <!-- Make the site look nicer on facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Erlang.org">
+    <meta property="og:title" content="Welcome to Erlang.org">
+    <meta property="og:description" content="The official home of the Erlang Programming Language">
+    <meta property="og:image" content="https://beta.erlang.org/assets/img/erlang-228x200.png">
+    <meta property="og:image:secure_url" content="https://beta.erlang.org/assets/img/erlang-228x200.png">
+    <meta property="og:url" content="https://beta.erlang.org/">
+
+    <!-- Twitter metadata -->
+    <meta name="twitter:card" content="summary" />
+    <meta property="twitter:title" content="Index" />
+    <meta name="twitter:site" content="@erlang_org" />
+
+    <!-- Rich data for google search -->
+    <script type="application/ld+json">
+{"@type":"WebSite","url":"https://erlang.org/","headline":"Lost in Translation (Exploring the Compiler's Front End) - Erlang/OTP","name":"Erlang.org","sameAs":["https://twitter.com/erlang_org","https://github.com/erlang/otp"],"@context":"https://schema.org"}</script>
+
+    <title>Lost in Translation (Exploring the Compiler's Front End) - Erlang/OTP</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- tells iOS browsers to not show telephone numbers as links -->
+    <meta name="format-detection" content="telephone=no">
+
+    <meta name="application-name" content="Erlang.org">
+    <meta name="description" content="The official home of the Erlang Programming Language">
+    <meta name="keywords" content="Erlang programming language functional parallel distributed documentation download community">
+    <!-- https://www.rssboard.org/rss-autodiscovery -->
+    <link rel="alternate" type="application/atom+xml" title="News Atom Feed" href="https://beta.erlang.org/news.xml" />
+    <link rel="alternate" type="application/atom+xml" title="Blog Atom Feed" href="https://beta.erlang.org/blog.xml" />
+    
+    <link rel="stylesheet" href="/assets/css/main.css">
+</head>
+
+<body>
+    <header class="navbar navbar-expand-lg navbar-light bg-body">
+        <nav class="container">
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
+                aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <a class="navbar-brand" href="/"><img
+                    src="/assets/img/erlang.png" class="img-fluid" width="60" alt="Erlang.org main page"/></a>
+            <div class="collapse navbar-collapse fw-bold" id="navbarSupportedContent">
+                <ul class="navbar-nav text-uppercase me-auto mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link" href="/downloads">Download</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/docs">Documentation</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/community">Community</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/news">News</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/blog">Blog</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/eep">EEP</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/about">About</a></li>
+                </ul>
+                <form class="d-flex" role="search" method="get" action="https://duckduckgo.com/">
+                    <input type="hidden" name="sites" value="erlang.org">
+                    <input class="form-control me-2" id="searchfield" name="q" type="search" placeholder="Search erlang.org"
+                        aria-label="Search">
+                    <button class="btn btn-outline-primary" type="submit">Search</button>
+                </form>
+            </div>
+        </nav>
+    </header>
+    <div class="container border-top pt-4">
+    <div class="row-lg">
+        <div class="col-lg-8 offset-lg-2">
+            <article class="card mb-4">
+    <div class="card-header">
+        <h3><a href="/blog/compiler-lost-in-translation/">Lost in Translation (Exploring the Compiler's Front End)</a></h3>
+        <div class="date">April 26, 2018
+             · by Björn Gustavsson
+        </div>
+    </div>
+
+    <div class="card-body">
+        
+        
+        
+        <p>In this blog post, we will explore the compiler passes that make up
+the compiler’s front end.</p>
+
+<p>In the <a href="http://blog.erlang.org/compiler-time-option/">previous blog post</a>
+we showed how the <code>time</code> option shows information about the compiler passes
+being executed:</p>
+
+<pre><code>$ erlc +time trivial.erl
+Compiling "trivial"
+ remove_file                   :      0.000 s       3.7 kB
+ parse_module                  :      0.000 s       5.5 kB
+ transform_module              :      0.000 s       5.5 kB
+ lint_module                   :      0.002 s       5.5 kB
+ expand_records                :      0.000 s       5.3 kB
+     .
+     .
+     .
+</code></pre>
+
+<p>We explained what the <code>remove_file</code> pass does in the previous
+blog post. In today’s blog post, we will discuss the other passes
+listed in the output above.</p>
+
+<p>Those passes makes up the compiler’s front end. The implementation
+modules for those passes are not in the <strong>compiler</strong> application, but
+in <strong>STDLIB</strong>. The reason is that the Erlang shell also uses those
+modules. That means that the shell will work in an embedded system
+that does not include the <strong>compiler</strong> application.</p>
+
+<p>The front end passes operate on the <strong>abstract format</strong>. The abstract
+format is fairly close to the original Erlang source code. In fact, by
+pretty-printing the abstract format, we can reconstruct the original
+source code, albeit not perfectly.</p>
+      <h2 id="lost-in-translation">
+        
+        
+          Lost in translation <a href="#lost-in-translation">#</a>
+        
+        
+      </h2>
+    
+
+<p>To see how much we will lose in translation, we will compile and
+pretty-print this module:</p>
+
+<pre><code class="language-erlang">-module(trivial).
+-export([example/4]).
+-record(rec, {mod,func,result}).
+
+%% Example to help explore the compiler front end.
+example(A, B, C, D) -&gt;
+    #rec{mod=?MODULE,func=?FUNCTION_NAME,result=A + (B*C*(D+42))}.
+</code></pre>
+
+<p>We use <code>-P</code> option to run the <code>parse_module</code> pass and produce
+a listing of the result:</p>
+
+<pre><code>$ erlc -P +time trivial.erl
+Compiling "trivial"
+ parse_module                  :      0.000 s       5.5 kB
+ transform_module              :      0.000 s       5.5 kB
+ lint_module                   :      0.003 s       5.5 kB
+ listing                       :      0.001 s       5.5 kB
+</code></pre>
+
+<p>For the moment, ignore the <code>transform_module</code> and <code>erl_lint</code> passes.
+They don’t change the abstract code for this module. The <code>listing</code>
+pass pretty prints the abstract format, converting it back to Erlang
+source code and creating the file <code>trivial.P</code>.</p>
+
+<pre><code class="language-erlang">$ cat trivial.P
+-file("trivial.erl", 1).
+
+-module(trivial).
+
+-export([example/4]).
+
+-record(rec,{mod,func,result}).
+
+example(A, B, C, D) -&gt;
+    #rec{mod = trivial,func = example,result = A + B * C * (D + 42)}.
+</code></pre>
+
+<p>Comparing the <code>trivial.P</code> file to the original, we can see what was
+lost in translation:</p>
+
+<ul>
+  <li>
+    <p>The <code>?MODULE</code> and <code>?FUNCTION_NAME</code> macro invocations have been
+replaced with <code>trival</code> and <code>example</code>, respectively. That was done by
+the preprocessor.</p>
+  </li>
+  <li>
+    <p>The comment has disappeared. There are also several differences in the
+amount of whitespace surrounding variables and operators. The abstract format
+does not include whitepace or comments in its representation.</p>
+  </li>
+  <li>
+    <p>Also note that a redundant pair of parentheses has been omitted in the
+expression <code>A + (B*C*(D+42))</code>. The parentheses around <code>D+42</code> are still there
+because otherwise the value of the expression would change. The abstract
+format has no direct representation of parenheses.</p>
+  </li>
+</ul>
+      <h2 id="looking-closer-at-the-parse_module-pass">
+        
+        
+          Looking closer at the parse_module pass <a href="#looking-closer-at-the-parse_module-pass">#</a>
+        
+        
+      </h2>
+    
+
+<p>Now that we have seen what is lost in translation, we will take a
+closer look at the abstract format.</p>
+
+<p>We will use the expression <code>A+(B*C*(D+42))</code> as an example and
+translate it to the abstract format using the same modules that the
+<code>parse_module</code> pass uses to do its work.</p>
+      <h3 id="tokenizing-using-erl_scan">
+        
+        
+          Tokenizing using erl_scan <a href="#tokenizing-using-erl_scan">#</a>
+        
+        
+      </h3>
+    
+
+<p>The first step in the translation from Erlang source code is to group
+the characters into logical groups called <strong>tokens</strong>. This process is
+called <strong>tokenization</strong> or <strong>scanning</strong>, and is done by the <code>erl_scan</code>
+module.</p>
+
+<p>We will use <code>erl_scan:string/1</code> to tokenize our example. (The
+compiler will use other functions in <code>erl_scan</code>, but the principle
+is the same.)</p>
+
+<pre><code class="language-erlang">1&gt; {ok,Tokens,_} = erl_scan:string("A + (B*C*(D+42))."), Tokens.
+[{var,1,'A'},
+ {'+',1},
+ {'(',1},
+ {var,1,'B'},
+ {'*',1},
+ {var,1,'C'},
+ {'*',1},
+ {'(',1},
+ {var,1,'D'},
+ {'+',1},
+ {integer,1,42},
+ {')',1},
+ {')',1},
+ {dot,1}]
+</code></pre>
+
+<p>The output is a list of tokens. The second element in each tuple
+is the line number. The first element is the category of the token.
+If there is a third element, it is the symbol within that category.</p>
+
+<p>We can see that whitespace has already been lost. Had there been
+a comment, it would have been lost too.</p>
+
+<p>To read more details about tokens, see <a href="http://erlang.org/doc/man/erl_scan.html#string-1">erl_scan:string/1</a>.</p>
+      <h3 id="preprocessing-the-tokens">
+        
+        
+          Preprocessing the tokens <a href="#preprocessing-the-tokens">#</a>
+        
+        
+      </h3>
+    
+
+<p>In the compiler, the next step would be to run the preprocessor
+on the tokens. In this example, there are no macro invocations
+and thus nothing to preprocess, so we will skip to the next step.</p>
+      <h3 id="parsing-using-erl_parse">
+        
+        
+          Parsing using erl_parse <a href="#parsing-using-erl_parse">#</a>
+        
+        
+      </h3>
+    
+
+<p>The next step is to <strong>parse</strong> the tokens to produce the abstract
+format:</p>
+
+<pre><code class="language-erlang">2&gt; {ok,Abstract} = erl_parse:parse_exprs(Tokens), Abstract.
+[{op,1,'+',
+     {var,1,'A'},
+     {op,1,'*',
+         {op,1,'*',{var,1,'B'},{var,1,'C'}},
+         {op,1,'+',{var,1,'D'},{integer,1,42}}}}]
+</code></pre>
+
+<p>The result is a list with one expression. The expression is not a
+list, but a <strong>parse tree</strong>. It can be visualized like this:</p>
+
+<p><img class="img-fluid"src="../images/compiler-2018-04-26.svg" alt="Abstract format visualized" /></p>
+
+<p>The parentheses have been lost, because the structure of the tree
+makes the evaluation order unambiguous.</p>
+
+<p>See <a href="http://erlang.org/doc/apps/erts/absform.html">The Abstract Format</a> for more details about the abstract format.</p>
+      <h3 id="pretty-printing-using-erl_pp">
+        
+        
+          Pretty-printing using erl_pp <a href="#pretty-printing-using-erl_pp">#</a>
+        
+        
+      </h3>
+    
+
+<p>The <code>listing</code> pass uses the <a href="http://erlang.org/doc/man/erl_pp.html">erl_pp</a> module to pretty print the
+abstract format to produce a listing file.</p>
+
+<p>We can pretty print the abstract format of the example:</p>
+
+<pre><code class="language-erlang">3&gt; lists:flatten(erl_pp:exprs(Abstract)).
+"A + B * C * (D + 42)"
+</code></pre>
+
+<p>Here the pretty printer has inserted one pair of parentheses, but the
+redundant pair of parentheses in the original expression has been lost.
+The whitespace is also different from the original.</p>
+      <h3 id="a-quick-look-at-the-preprocessor">
+        
+        
+          A quick look at the preprocessor <a href="#a-quick-look-at-the-preprocessor">#</a>
+        
+        
+      </h3>
+    
+
+<p>A mentioned in passing, the preprocessor (the <a href="http://erlang.org/doc/man/epp.html">epp</a> module) is run
+after tokenization and before parsing.</p>
+
+<p>The preprocessor goes through the tokens, looking for a question
+mark followed by a variable or atom. For example, <code>?MODULE</code> in
+a source file would be tokenized like this by <code>erl_scan</code>:</p>
+
+<pre><code>[{'?',1},{var,1,'MODULE'}]
+</code></pre>
+
+<p>Assuming that the module name is <code>trivial</code>, the preprocessor will
+replace those tokens with the token:</p>
+
+<pre><code>[{atom,1,trivial}]
+</code></pre>
+      <h2 id="the-other-passes-operating-on-the-abstract-format">
+        
+        
+          The other passes operating on the abstract format <a href="#the-other-passes-operating-on-the-abstract-format">#</a>
+        
+        
+      </h2>
+    
+
+<p>Now that <code>parse_module</code> has been explained, let’s take quick look at the
+other passes in the front end.</p>
+      <h3 id="the-transform_module-pass">
+        
+        
+          The transform_module pass <a href="#the-transform_module-pass">#</a>
+        
+        
+      </h3>
+    
+
+<p>The <code>transform_module</code> pass runs parse transforms, for example
+for <a href="http://erlang.org/doc/man/qlc.html">QLC</a> or <a href="http://erlang.org/doc/man/ms_transform.html">ms_transform</a>.</p>
+      <h3 id="the-lint_module-pass">
+        
+        
+          The lint_module pass <a href="#the-lint_module-pass">#</a>
+        
+        
+      </h3>
+    
+
+<p>The <code>lint_module</code> pass verifies that the code is semantically
+correct. That is, variables must be bound before they are used,
+all clauses for a function must have the same number of arguments,
+and so on.</p>
+
+<p>When we compile a module with problems, <a href="http://erlang.org/doc/man/erl_lint.html">erl_lint</a> will print
+error messages and terminate the compilation:</p>
+
+<pre><code class="language-erlang">$ cat bug.erl
+-module(bug).
+-export([main/0]).
+
+main() -&gt;
+    A+B.
+</code></pre>
+<pre><code>$ erlc +time bug.erl
+Compiling "bug"
+ remove_file                   :      0.000 s       2.1 kB
+ parse_module                  :      0.000 s       2.7 kB
+ transform_module              :      0.000 s       2.7 kB
+ lint_module                   :      0.004 s       2.4 kB
+bug.erl:5: variable 'A' is unbound
+bug.erl:5: variable 'B' is unbound
+$
+</code></pre>
+      <h3 id="translating-records">
+        
+        
+          Translating records <a href="#translating-records">#</a>
+        
+        
+      </h3>
+    
+
+<p>The <code>expand_records</code> pass uses <a href="http://erlang.org/doc/man/erl_expand_records.html">erl_expand_records</a> to translate
+records:</p>
+
+<pre><code>$ erlc -E +time trivial.erl
+Compiling "trivial"
+ parse_module                  :      0.000 s       5.5 kB
+ transform_module              :      0.000 s       5.5 kB
+ lint_module                   :      0.002 s       5.5 kB
+ expand_records                :      0.000 s       5.3 kB
+ listing                       :      0.001 s       5.3 kB
+</code></pre>
+<pre><code class="language-erlang">$ cat trivial.E
+-file("trivial.erl", 1).
+
+-module(trivial).
+
+-export([example/4]).
+
+-record(rec,{mod,func,result}).
+
+example(A, B, C, D) -&gt;
+    {rec,trivial,example,A + B * C * (D + 42)}.
+</code></pre>
+
+<p>The <code>-E</code> option produces a listing of the abstract format
+produced by the <code>expand_records</code> pass.</p>
+
+<p>The <code>-record()</code> declaration is still there, but the construction of
+the record has been replaced with construction of a tuple. Similarly,
+matching of records will be translated to matching of tuples.</p>
+      <h2 id="tip-producing-a-single-source-file-using--p">
+        
+        
+          Tip: Producing a single source file using -P <a href="#tip-producing-a-single-source-file-using--p">#</a>
+        
+        
+      </h2>
+    
+
+<p>The <code>-P</code> option can be used to package a source file that includes
+multiple include files into a single self-contained source file.</p>
+
+<p>Having a self-contained source file is useful if you want to report
+a compiler bug, but don’t have the time to minimize the source code
+to a minimum example.</p>
+
+<p>Here is an example. The <code>compile.erl</code> file includes two header files.
+Compiling it directly like this will not work:</p>
+
+<pre><code>$ cd lib/compiler/src
+$ erlc compile.erl
+compile.erl:36: can't find include file "erl_compile.hrl"
+   .
+   .
+   .
+$
+</code></pre>
+
+<p>We must give the path to the <code>include</code> directories of both
+Kernel and STDLIB:</p>
+
+<pre><code>$ erlc -I ../../kernel/include -I ../../stdlib/include compile.erl
+$
+</code></pre>
+
+<p>To package the source from <code>compile.erl</code> as well as the contents
+of the header files, use the <code>-P</code> option to generate <code>compile.P</code>:</p>
+
+<pre><code>$ erlc -P -I ../../kernel/include -I ../../stdlib/include compile.erl
+</code></pre>
+
+<p><code>compile.P</code> can be renamed to <code>compile.erl</code> and successfully
+compiled without any additional options:</p>
+
+<pre><code>$ mv compile.P $HOME/compile.erl
+$ cd $HOME
+$ erlc compile.erl
+$
+</code></pre>
+      <h2 id="points-to-ponder">
+        
+        
+          Points to Ponder <a href="#points-to-ponder">#</a>
+        
+        
+      </h2>
+    
+
+<p>The preprocessor is run after tokenization, before running the
+parser.</p>
+
+<p>So how are the <code>?FUNCTION_NAME</code> and <code>?FUNCTION_ARITY</code> macros implemented?</p>
+
+<p>Here is an example of how tokens for a simple function looks like:</p>
+
+<pre><code class="language-erlang">1&gt; {ok,T,_} = erl_scan:string("foo({tag,X,Y}) -&gt; ?FUNCTION_ARITY."), T.
+[{atom,1,foo},
+ {'(',1},
+ {'{',1},
+ {atom,1,tag},
+ {',',1},
+ {var,1,'X'},
+ {',',1},
+ {var,1,'Y'},
+ {'}',1},
+ {')',1},
+ {'-&gt;',1},
+ {'?',1},
+ {var,1,'FUNCTION_ARITY'},
+ {dot,1}]
+</code></pre>
+
+        
+    </div>
+</article>
+        </div>
+    </div>
+</div>
+<script src="/assets/js/prismjs/prism.js"></script>
+<script src="/assets/js/prismjs/components/prism-erlang.js"></script>
+<script src="/assets/js/prismjs/components/prism-c.js"></script>
+<script src="/assets/js/prismjs/components/prism-bash.js"></script>
+    <footer class="container-fluid footer text-center border-top border-bottom">
+        <div>
+            <a href="/downloads.html" title="DOWNLOAD"><img src="/assets/img/download.png" alt="Download Erlang/OTP"></a>
+        </div>
+        <div>
+            <a href="http://www.github.com/erlang/otp"><img
+                    src="/assets/img/GitHub-Mark-32px.png" alt="Erlang/OTP on Github"></a>
+        </div>
+        
+        <div>
+            <a href="http://www.twitter.com/erlang_org"><img src="/assets/img/twitter.png"
+                    width="32" alt="Erlang/OTP twitter"></a>
+        </div>
+    </footer>
+    <script src="/assets/js/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

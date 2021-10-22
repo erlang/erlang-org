@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+
+
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <!-- Allow pinning of website on windows -->
+    <meta name="application-name" content="Erlang.org">
+    <meta name="msapplication-tooltip" content="The official home of the Erlang Programming Language">
+    <meta name="msapplication-starturl" content="/" >
+
+    <!-- Make the site look nicer on facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Erlang.org">
+    <meta property="og:title" content="Welcome to Erlang.org">
+    <meta property="og:description" content="The official home of the Erlang Programming Language">
+    <meta property="og:image" content="https://beta.erlang.org/assets/img/erlang-228x200.png">
+    <meta property="og:image:secure_url" content="https://beta.erlang.org/assets/img/erlang-228x200.png">
+    <meta property="og:url" content="https://beta.erlang.org/">
+
+    <!-- Twitter metadata -->
+    <meta name="twitter:card" content="summary" />
+    <meta property="twitter:title" content="Index" />
+    <meta name="twitter:site" content="@erlang_org" />
+
+    <!-- Rich data for google search -->
+    <script type="application/ld+json">
+{"@type":"WebSite","url":"https://erlang.org/","headline":"Clever use of persistent_term - Erlang/OTP","name":"Erlang.org","sameAs":["https://twitter.com/erlang_org","https://github.com/erlang/otp"],"@context":"https://schema.org"}</script>
+
+    <title>Clever use of persistent_term - Erlang/OTP</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- tells iOS browsers to not show telephone numbers as links -->
+    <meta name="format-detection" content="telephone=no">
+
+    <meta name="application-name" content="Erlang.org">
+    <meta name="description" content="The official home of the Erlang Programming Language">
+    <meta name="keywords" content="Erlang programming language functional parallel distributed documentation download community">
+    <!-- https://www.rssboard.org/rss-autodiscovery -->
+    <link rel="alternate" type="application/atom+xml" title="News Atom Feed" href="https://beta.erlang.org/news.xml" />
+    <link rel="alternate" type="application/atom+xml" title="Blog Atom Feed" href="https://beta.erlang.org/blog.xml" />
+    
+    <link rel="stylesheet" href="/assets/css/main.css">
+</head>
+
+<body>
+    <header class="navbar navbar-expand-lg navbar-light bg-body">
+        <nav class="container">
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
+                aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <a class="navbar-brand" href="/"><img
+                    src="/assets/img/erlang.png" class="img-fluid" width="60" alt="Erlang.org main page"/></a>
+            <div class="collapse navbar-collapse fw-bold" id="navbarSupportedContent">
+                <ul class="navbar-nav text-uppercase me-auto mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link" href="/downloads">Download</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/docs">Documentation</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/community">Community</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/news">News</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/blog">Blog</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/eep">EEP</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/about">About</a></li>
+                </ul>
+                <form class="d-flex" role="search" method="get" action="https://duckduckgo.com/">
+                    <input type="hidden" name="sites" value="erlang.org">
+                    <input class="form-control me-2" id="searchfield" name="q" type="search" placeholder="Search erlang.org"
+                        aria-label="Search">
+                    <button class="btn btn-outline-primary" type="submit">Search</button>
+                </form>
+            </div>
+        </nav>
+    </header>
+    <div class="container border-top pt-4">
+    <div class="row-lg">
+        <div class="col-lg-8 offset-lg-2">
+            <article class="card mb-4">
+    <div class="card-header">
+        <h3><a href="/blog/persistent_term/">Clever use of persistent_term</a></h3>
+        <div class="date">September 09, 2019
+             · by Lukas Larsson
+        </div>
+    </div>
+
+    <div class="card-body">
+        
+        
+        
+        <p>This blog post will go through three different uses of <a href="/doc/man/persistent_term.html">persistent_term</a>
+that I have used since its release and explain a bit why they work so well with
+<a href="/doc/man/persistent_term.html">persistent_term</a>.</p>
+      <h1 id="global-counters">
+        
+        
+          Global counters <a href="#global-counters">#</a>
+        
+        
+      </h1>
+    
+
+<p>Let’s say you want to have some global counters in your system. For example the number
+of times an http request has been made. If the system is very busy that counter
+will be incremented many many times per second by many different processes. Before
+OTP-22 the best way that I know of to get the best performance is by using a striped
+ets tables. i.e. something like the code below:</p>
+
+<pre><code class="language-erlang">incr(Counter) -&gt;
+  ets:update_counter(?MODULE,{Counter,erlang:system_info(scheduler_id)},1).
+
+read(Counter) -&gt;
+  lists:sum(ets:select(?MODULE,[{{{Counter,'_'},'$1'},[],['$1']}])).
+</code></pre>
+
+<p>The code above would make sure that there is very little contention on the ets table
+as each scheduler will get a separate slot in the table to update. This comes at the
+cost of more memory usage and that when reading the value you may not get an exact
+value.</p>
+
+<p>In OTP-22 the same can be achieved by using <a href="/doc/man/counters.html">counters</a>.
+<a href="/doc/man/counters.html">Counters</a> have built-in
+support for striping by using the <code>write_concurrency</code> option, so we don’t have
+to write our own implementation for that. They are also faster and use less memory
+than ets tables, so lots of wins.</p>
+
+<p>The remaining problem then is finding the reference to the counter. We could put it
+into ets and then do an <a href="/doc/man/ets.html#lookup_element-3">ets:lookup_element/3</a>
+when updating a counter.</p>
+
+<pre><code class="language-erlang">cnt_incr(Counter) -&gt;
+    counters:add(ets:lookup_element(?MODULE,Counter,2),1,1).
+
+cnt_read(Counter) -&gt;
+    counters:get(ets:lookup_element(?MODULE,Counter,2),1).
+</code></pre>
+
+<p>This gives a performance degradation of about 20%, so not really what we want.
+However, if we place the counter in <a href="/doc/man/persistent_term.html">persistent_term</a>
+like the code below we get a performance increase by about 140%, which is much
+more in line with what we wanted.</p>
+
+<pre><code class="language-erlang">cnt_pt_incr(Counter) -&gt;
+    counters:add(persistent_term:get({?MODULE,Counter}),1,1).
+
+cnt_pt_read(Counter) -&gt;
+    counters:get(persistent_term:get({?MODULE,Counter}),1).
+</code></pre>
+
+<p>The reason for this huge difference is because when the <a href="/doc/man/counters.html">counters</a>
+are placed into <a href="/doc/man/persistent_term.html">persistent_term</a>
+they are placed there as literals which means that at each increment we not longer
+have to make a copy of the <a href="/doc/man/counters.html">counters</a> reference.
+This is good for two reasons:</p>
+
+<p>1) The amount of garbage will decrease. In my benchmarks the amount of garbage generated
+by <code>cnt_incr</code> is 6 words while both <code>ets_incr</code> and <code>cnt_pt_incr</code> create 3 words.</p>
+
+<p>2) No reference counts have to be modified. What I mean by this is that the
+<a href="/doc/man/counters.html">counters</a> reference
+is what is called a magic reference or nif resource. These references work much in the same
+way as reference counted binaries in that they are not copied when sent to different
+processes. Instead only a reference count is incremented at copy and then decremented later
+by the GC. This means that for <code>cnt_incr</code> we actually have 3 counters that are modified for
+each call. First we increment the reference count on the counter when copying from ets, then
+we update the actual counter and then eventually we decrement the reference counter. If we
+use <a href="/doc/man/persistent_term.html">persistent_term</a>, the term is never
+copied so we don’t have to update any reference counters, instead we just have to update the
+actual counter.</p>
+
+<p>However, placing the counter in <a href="/doc/man/persistent_term.html">persistent_term</a>
+is not trouble free. In order to delete or replace the counter reference in
+<a href="/doc/man/persistent_term.html">persistent_term</a> we have to do a global
+GC which depending on the system could be very very expensive.</p>
+
+<p>So this method is best to only be used by global persistent counters that will never be deleted.</p>
+
+<p>You can find the code for all the above examples and the benchmark I ran
+<a href="https://gist.github.com/garazdawi/17cdb5914b950f0acae21d9fcf7e8d41">here</a>.</p>
+      <h1 id="logger-level-check">
+        
+        
+          Logger level check <a href="#logger-level-check">#</a>
+        
+        
+      </h1>
+    
+
+<p>In <a href="/doc/man/logger.html">logger</a> there is a primary logging
+level that is the first test to be done for each potential log message to be generated.
+This check can be done many times per second and needs to be very quick. At the
+moment of writing (OTP-22) logger uses an ets table to keep all its configuration which
+includes the primary logging level.</p>
+
+<p>This is not really ideal as doing a lookup from the ets table means that we have to take
+a read-lock to protect against parallel writes to the value. Taking such a read lock is not
+terribly expensive, but when done thousands of times per second it adds up.</p>
+
+<p>So in <a href="https://github.com/erlang/otp/pull/2356">this PR</a> I’ve used
+<a href="/doc/man/persistent_term.html">persistent_term</a> as
+a cache for the primary logging level. Now when reading the value from the hot path
+logger will instead use <a href="/doc/man/persistent_term.html">persistent_term</a>.
+This removes all locks from the hot path and we only need to do a lookup in the
+<a href="/doc/man/persistent_term.html">persistent_term</a> hash table.</p>
+
+<p>But what if we need to update the primary logger level? Don’t we force a global GC then?
+No, because the small integer representing the primary logger level is an immediate.
+This means that the value fits in one machine word and is always copied in its
+entirety to the calling process. Which in turn means that we don’t have to do a global
+GC when replacing the value.</p>
+
+<p>When doing this we have to be very careful so that the value does not become a heap value
+as the cost of doing an update would explode. However, it works great for logger and
+has reduced the overhead of a ?LOG_INFO call by about 65% when no logging should be done.</p>
+      <h1 id="large-constant-data">
+        
+        
+          Large constant data <a href="#large-constant-data">#</a>
+        
+        
+      </h1>
+    
+
+<p>We use an internal tool here at the OTP-team called the “ticket tool”. It basically
+manages all of the OTP-XYZ tickets that you see in the release notes that comes with
+each release of Erlang/OTP. It is an ancient tool from late 90’s or early 00’s that
+no one really wants to touch.</p>
+
+<p>One part of it is a server that contains a cache of all the 17000 or so tickets that
+have been created through the years. In that server there is a single process that
+has each ticket and its state in order to speed up searching in the tickets. The state
+of this process is quite large and when it is doing a GC it takes somewhere around 10
+seconds for it to finish. This means that about every 10 minutes the server freezes for
+10 seconds and we get to experience the joy of being Java programmers for a while.</p>
+
+<p>Being a VM developer I’ve always thought the solution to this problem is to implement
+either an incremental GC or at least a mark and sweep GC for large heaps. However, the
+ticket tool server has never been of high enough priority to make me spend a year or two
+rewriting the GC.</p>
+
+<p>So, two weeks ago I decided to take a look and instead I used
+<a href="/doc/man/persistent_term.html">persistent_term</a>
+to move the data from the heap into the literal area instead. This was possible to do because
+I know that the majority of tickets are only searched and never changed, so they will
+remain in the literal area forever, while the tickets that do get edited move onto the
+heap of the ticket server. Basically my code change was this:</p>
+
+<pre><code class="language-erlang">handle_info(timeout, State) -&gt;
+  persistent_term:put(?MODULE,State),
+  erlang:start_timer(60 * 60 * 1000, self(), timeout),
+  {noreply,persistent_term:get(?MODULE)}.
+</code></pre>
+
+<p>This small change puts the entire gen_server state into the literal area and then
+any changes done to it will pull the data into the heap. This dropped the GC pauses
+down to be non-noticeable and took considerable less time to implement than a new GC
+algorithm.</p>
+
+        
+    </div>
+</article>
+        </div>
+    </div>
+</div>
+<script src="/assets/js/prismjs/prism.js"></script>
+<script src="/assets/js/prismjs/components/prism-erlang.js"></script>
+<script src="/assets/js/prismjs/components/prism-c.js"></script>
+<script src="/assets/js/prismjs/components/prism-bash.js"></script>
+    <footer class="container-fluid footer text-center border-top border-bottom">
+        <div>
+            <a href="/downloads.html" title="DOWNLOAD"><img src="/assets/img/download.png" alt="Download Erlang/OTP"></a>
+        </div>
+        <div>
+            <a href="http://www.github.com/erlang/otp"><img
+                    src="/assets/img/GitHub-Mark-32px.png" alt="Erlang/OTP on Github"></a>
+        </div>
+        
+        <div>
+            <a href="http://www.twitter.com/erlang_org"><img src="/assets/img/twitter.png"
+                    width="32" alt="Erlang/OTP twitter"></a>
+        </div>
+    </footer>
+    <script src="/assets/js/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

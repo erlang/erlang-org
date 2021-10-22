@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+
+
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <!-- Allow pinning of website on windows -->
+    <meta name="application-name" content="Erlang.org">
+    <meta name="msapplication-tooltip" content="The official home of the Erlang Programming Language">
+    <meta name="msapplication-starturl" content="/" >
+
+    <!-- Make the site look nicer on facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Erlang.org">
+    <meta property="og:title" content="Welcome to Erlang.org">
+    <meta property="og:description" content="The official home of the Erlang Programming Language">
+    <meta property="og:image" content="https://beta.erlang.org/assets/img/erlang-228x200.png">
+    <meta property="og:image:secure_url" content="https://beta.erlang.org/assets/img/erlang-228x200.png">
+    <meta property="og:url" content="https://beta.erlang.org/">
+
+    <!-- Twitter metadata -->
+    <meta name="twitter:card" content="summary" />
+    <meta property="twitter:title" content="Index" />
+    <meta name="twitter:site" content="@erlang_org" />
+
+    <!-- Rich data for google search -->
+    <script type="application/ld+json">
+{"@type":"WebSite","url":"https://erlang.org/","headline":"Decentralized ETS Counters for Better Scalability - Erlang/OTP","name":"Erlang.org","sameAs":["https://twitter.com/erlang_org","https://github.com/erlang/otp"],"@context":"https://schema.org"}</script>
+
+    <title>Decentralized ETS Counters for Better Scalability - Erlang/OTP</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- tells iOS browsers to not show telephone numbers as links -->
+    <meta name="format-detection" content="telephone=no">
+
+    <meta name="application-name" content="Erlang.org">
+    <meta name="description" content="The official home of the Erlang Programming Language">
+    <meta name="keywords" content="Erlang programming language functional parallel distributed documentation download community">
+    <!-- https://www.rssboard.org/rss-autodiscovery -->
+    <link rel="alternate" type="application/atom+xml" title="News Atom Feed" href="https://beta.erlang.org/news.xml" />
+    <link rel="alternate" type="application/atom+xml" title="Blog Atom Feed" href="https://beta.erlang.org/blog.xml" />
+    
+    <link rel="stylesheet" href="/assets/css/main.css">
+</head>
+
+<body>
+    <header class="navbar navbar-expand-lg navbar-light bg-body">
+        <nav class="container">
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
+                aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <a class="navbar-brand" href="/"><img
+                    src="/assets/img/erlang.png" class="img-fluid" width="60" alt="Erlang.org main page"/></a>
+            <div class="collapse navbar-collapse fw-bold" id="navbarSupportedContent">
+                <ul class="navbar-nav text-uppercase me-auto mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link" href="/downloads">Download</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/docs">Documentation</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/community">Community</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/news">News</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/blog">Blog</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/eep">EEP</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/about">About</a></li>
+                </ul>
+                <form class="d-flex" role="search" method="get" action="https://duckduckgo.com/">
+                    <input type="hidden" name="sites" value="erlang.org">
+                    <input class="form-control me-2" id="searchfield" name="q" type="search" placeholder="Search erlang.org"
+                        aria-label="Search">
+                    <button class="btn btn-outline-primary" type="submit">Search</button>
+                </form>
+            </div>
+        </nav>
+    </header>
+    <div class="container border-top pt-4">
+    <div class="row-lg">
+        <div class="col-lg-8 offset-lg-2">
+            <article class="card mb-4">
+    <div class="card-header">
+        <h3><a href="/blog/scalable-ets-counters/">Decentralized ETS Counters for Better Scalability</a></h3>
+        <div class="date">August 03, 2021
+             · by Kjell Winblad
+        </div>
+    </div>
+
+    <div class="card-body">
+        
+        
+        
+        <p>A shared <a href="https://erlang.org/doc/man/ets.html">Erlang Term Storage
+(ETS)</a> table is often an
+excellent place to store data that is updated and read from
+multiple Erlang processes frequently. ETS provides key-value stores to
+Erlang processes. When the
+<a href="https://erlang.org/doc/man/ets.html#new-2">write_concurrency</a> option
+is activated, ETS tables use fine-grained locking
+internally. Therefore, a scenario where multiple processes insert and
+remove different items in an ETS table should scale well with the
+number of utilized cores. However, in practice the scalability
+for such scenarios is not yet perfect. This blog post will explore
+how the <code>decentralized_counters</code> option brings us one step closer to
+perfect scalability.</p>
+
+<p>The ETS table option
+<a href="https://erlang.org/doc/man/ets.html#new-2"><code>decentralized_counters</code></a>
+(introduced in Erlang/OTP 22 for <code>ordered_set</code> tables and in
+Erlang/OTP 23 for the other table types) has made the scalability much
+better. A table with <code>decentralized_counters</code> activated uses
+decentralized counters instead of centralized counters to track the
+number of items in the table and the memory
+consumption. Unfortunately, tables with <code>decentralized_counters</code>
+activated will have slow operations to get the table size and
+memory usage (<a href="https://erlang.org/doc/man/ets.html#info-2"><code>ets:info(Table,
+size)</code></a> and
+<a href="https://erlang.org/doc/man/ets.html#info-2"><code>ets:info(Table,
+memory)</code></a>), so whether it
+is beneficial to turn <code>decentralized_counters</code> on or off depends on
+your use case. This blog post will give you a better understanding of
+when one should activate the <code>decentralized_counters</code> option and how
+the decentralized counters work.</p>
+      <h2 id="scalability-with-decentralized-ets-counters">
+        
+        
+          Scalability with Decentralized ETS Counters <a href="#scalability-with-decentralized-ets-counters">#</a>
+        
+        
+      </h2>
+    
+
+<p>The following figure shows the throughput (operations/second) achieved
+when processes are doing inserts (<code>ets:insert/2</code>) and deletes
+(<code>ets:delete/2</code>) to an ETS table of the <code>set</code> type on a machine with
+64 hardware threads both when <code>decentralized_counters</code> option is
+activated and when it is deactivated. The table types <code>bag</code> and
+<code>duplicate_bag</code> have similar scalability behavior as their
+implementation is based on the same hash table.</p>
+
+<p><img class="img-fluid"src="/blog/images/ets_scalable_counters/bench_set_50_ins_50_del_nospread.png" alt="alt text" title="Throughput of inserts and deletes on a table of type set with and without the decentralized_counters activated" /></p>
+
+<p>The following figure shows the results for the same benchmark but with
+a table of type <code>ordered_set</code>:</p>
+
+<p><img class="img-fluid"src="/blog/images/ets_scalable_counters/bench_ordset_50_ins_50_del_nospread.png" alt="alt text" title="Throughput of inserts and deletes on a table of type ordered_set with and without the decentralized_counters activated" /></p>
+
+<p>The interested reader can find more information about the benchmark at
+the <a href="http://winsh.me/ets_catree_benchmark/decent_ctrs_hash.html">benchmark website for
+<code>decentralized_counters</code></a>. The
+benchmark results above show that both <code>set</code> and <code>ordered_set</code> tables
+get a significant scalability boost when the <code>decentralized_counter</code>
+option is activated. The <code>ordered_set</code> type receives a more
+substantial scalability improvement than the <code>set</code> type. Tables of the
+set type have a fixed number of locks for the hash table buckets. The
+<code>ordered_set</code> table type is implemented with a <a href="https://doi.org/10.1016/j.jpdc.2017.11.007">contention adapting
+search tree</a> that
+dynamically changes the locking granularity based on how much
+contention is detected. This implementation difference explains the
+difference in scalability between <code>set</code> and <code>ordered_set</code>. The
+interested reader can find details about the <code>ordered_set</code>
+implementation in an <a href="/blog/the-new-scalable-ets-ordered_set/">earlier blog
+post</a>.</p>
+
+<p>Worth noting is also that the Erlang VM that ran the benchmarks has
+been compiled with the configure option “<code>./configure
+--with-ets-write-concurrency-locks=256</code>”. The configure option
+<code>--with-ets-write-concurrency-locks=256</code> changes the number of locks
+for hash-based ETS tables from the current default of 64 to 256 (256
+is currently the max value one can set this configuration option
+to). Changing the implementation of the hash-based tables so that one
+can set the number of locks per table instance or so that the lock
+granularity is adjusted automatically seems like an excellent future
+improvement, but this is not what this blog post is about.</p>
+
+<p>A centralized counter consists of a single memory word that is
+incremented and decremented with atomic instructions. The problem with
+a centralized counter is that modifications of the counter
+by multiple cores are serialized. This problem is amplified because
+frequent modifications of a single memory word by multiple cores cause
+a lot of expensive traffic in the <a href="https://en.wikipedia.org/wiki/Cache_coherence">cache
+coherence</a>
+system. However, reading from a centralized counter is quite efficient
+as the reader only has to read a single memory word.</p>
+
+<p>When designing the decentralized counters for ETS, we have tried to
+optimize for update performance and scalability as most applications
+need to get the size of an ETS table relatively rarely. However, since
+there may be applications out in the wild that frequently call
+<a href="https://erlang.org/doc/man/ets.html#info-2"><code>ets:info(Table, size)</code></a>
+and <a href="https://erlang.org/doc/man/ets.html#info-2"><code>ets:info(Table,
+memory)</code></a>, we have chosen
+to make decentralized counters optional.</p>
+
+<p>Another thing that might be worth keeping in mind is that the
+hash-based tables that use decentralized counters tend to use slightly
+more hash table buckets than the corresponding tables without
+decentralized counters. The reason for this is that, with
+decentralized counters activated, the resizing decision is based on an
+estimate of the number of items in the table rather than an exact
+count, and the resizing heuristics trigger an increase of the number
+of buckets more eagerly than a decrease.</p>
+      <h2 id="implementation">
+        
+        
+          Implementation <a href="#implementation">#</a>
+        
+        
+      </h2>
+    
+
+<p>You will now learn how the decentralized counters in ETS works. The
+<a href="https://github.com/erlang/otp/blob/ce7dbe8742e66f4632b5d39a9b4d7aa461e4f164/erts/emulator/beam/erl_flxctr.h">decentralized counter implementation exports an
+API</a>
+that makes it easy to swap between a decentralized counter and a
+centralized one. ETS uses this to support the usage of both
+centralized and decentralized counters. The data structure for the
+decentralized counter is illustrated in the following picture. When
+<code>is_decentralized = false</code>, the counter field represents the current
+count instead of a pointer to an array of cache line padded counters.</p>
+
+<p><img class="img-fluid"src="/blog/images/ets_scalable_counters/structure.png" alt="alt text" title="An image
+showing the structure of a decentralized counter" /></p>
+
+<p>When <code>is_decentralized = true</code>, processes that update (increment or
+decrement) the counter follow the pointer to the array of counters and
+increments the counter at the slot in the array that the current
+scheduler maps to (one takes the scheduler identifier modulo the
+number of slots in the array to get the appropriate slot). Updates do
+not need to do anything else, so they are very efficient and can scale
+perfectly with the number of cores as long as there are as many slots
+as schedulers. One can configure the maximum number of slots in the
+array of counters with the
+<a href="https://erlang.org/doc/man/erl.html"><code>+dcg</code></a> option.</p>
+
+<p>To implement the <code>ets:info(Table, size)</code> and <code>ets:info(Table, memory)</code>
+operations, one also needs to read the current counter value. Reading
+the current counter value can be implemented by taking the sum of the
+values in the counter array. However, if this summation is done
+concurrently with updates to the array of counters, we could get
+strange results. For example, we could end up in a situation where
+<code>ets:info(Table, size)</code> returns a negative number, which is not
+exactly what we want. On the other hand, we want to make counter
+updates as fast as possible so having locks to protect the counters in
+the counter array is not a good solution. We opted for a solution that
+lets readers swap out the entire counter array and wait (using the
+<a href="https://github.com/erlang/otp/blob/7c06ca6231b812965305522284dd9f2653ced98d/erts/emulator/internal_doc/ThreadProgress.md">Erlang VM’s thread progress
+system</a>)
+until no updates can occur in the swapped-out array before the sum is
+calculated. The following example illustrates this approach:</p>
+
+<ul>
+  <li>
+    <p><strong>[Step 1]</strong></p>
+
+    <p>A thread is going to read the counter value.</p>
+
+    <p><img class="img-fluid"src="/blog/images/ets_scalable_counters/snap_ani_1.png" alt="alt text" title="Step 1" /></p>
+  </li>
+  <li>
+    <p><strong>[Step 2]</strong></p>
+
+    <p>The reader starts by creating a new counter array.</p>
+
+    <p><img class="img-fluid"src="/blog/images/ets_scalable_counters/snap_ani_1_b.png" alt="alt text" title="Step 2" /></p>
+  </li>
+  <li>
+    <p><strong>[Step 3]</strong></p>
+
+    <p>The pointer to the old counter array is changed to point to the new
+ one with the <code>snapshot_ongoing</code> field set to <code>true</code>. This
+ change can only be done when the <code>snapshot_onging</code> field is set to
+ <code>false</code> in the old counter array.</p>
+
+    <p><img class="img-fluid"src="/blog/images/ets_scalable_counters/snap_ani_2.png" alt="alt text" title="Step 3" /></p>
+  </li>
+  <li>
+    <p><strong>[Step 4]</strong></p>
+
+    <p>Now, the reader has to wait until all other threads that will
+ update a counter in the old array have completed their updates. As
+ mentioned, this can be done using the <a href="https://github.com/erlang/otp/blob/7c06ca6231b812965305522284dd9f2653ced98d/erts/emulator/internal_doc/ThreadProgress.md">Erlang VM’s thread progress
+ system</a>. After
+ that, the reader can safely calculate the sum of counters in the
+ old counter array (the sum is 1406). The calculated sum is also
+ given to the process that requested the count so that it can
+ continue execution.</p>
+
+    <p><img class="img-fluid"src="/blog/images/ets_scalable_counters/snap_ani_3.png" alt="alt text" title="Step 4" /></p>
+  </li>
+  <li>
+    <p><strong>[Step 5]</strong></p>
+
+    <p>The read operation is not done, even though we have successfully
+ calculated a count. One must add the calculated sum from the old
+ array to the new array to avoid losing something.</p>
+
+    <p><img class="img-fluid"src="/blog/images/ets_scalable_counters/snap_ani_4.png" alt="alt text" title="Step 5" /></p>
+  </li>
+  <li>
+    <p><strong>[Step 6]</strong></p>
+
+    <p>Finally, the <code>snapshot_ongoing</code> field in the new counter array is
+ set to <code>false</code> so that other read operations can swap out the new
+ counter array.</p>
+
+    <p><img class="img-fluid"src="/blog/images/ets_scalable_counters/snap_ani_5.png" alt="alt text" title="Step 6" /></p>
+  </li>
+</ul>
+
+<p>Now, you should have got a basic understanding of how ETS’
+decentralized counters work. You are also welcome to look at the
+source code in
+<a href="https://github.com/erlang/otp/blob/ce7dbe8742e66f4632b5d39a9b4d7aa461e4f164/erts/emulator/beam/erl_flxctr.c">erl_flxctr.c</a>
+and
+<a href="https://github.com/erlang/otp/blob/ce7dbe8742e66f4632b5d39a9b4d7aa461e4f164/erts/emulator/beam/erl_flxctr.h">erl_flxctr.h</a>
+if you are interested in details of the implementation.</p>
+
+<p>As you can imagine, reading the value of a decentralized counter with,
+for example, <code>ets:info(Table, size)</code> is extremely slow compared to a
+centralized counter. Fortunately, most time that is spent reading the
+value of a decentralized counter is spent waiting for the thread
+progress system to report that it is safe to read the swapped-out array,
+and the read operation does not block any scheduler and does not
+consume any CPU time during this time. On the other hand, the
+decentralized counter can be updated in a very efficient and scalable
+way, so using decentralized counters is most likely to prefer, if you
+seldom need to get the size and the memory consumed by your shared
+ETS table.</p>
+      <h2 id="concluding-remarks">
+        
+        
+          Concluding Remarks <a href="#concluding-remarks">#</a>
+        
+        
+      </h2>
+    
+
+<p>This blog post has described the implementation of the decentralized
+counter option for ETS tables. ETS tables with decentralized counters
+scale much better with the number of cores than ETS tables with
+centralized counters. However, as decentralized counters make
+<code>ets:info(Table, size)</code> and <code>ets:info(Table, memory)</code> very slow, one
+should not use them if any of these two operations need to be
+performed frequently.</p>
+
+        
+    </div>
+</article>
+        </div>
+    </div>
+</div>
+<script src="/assets/js/prismjs/prism.js"></script>
+<script src="/assets/js/prismjs/components/prism-erlang.js"></script>
+<script src="/assets/js/prismjs/components/prism-c.js"></script>
+<script src="/assets/js/prismjs/components/prism-bash.js"></script>
+    <footer class="container-fluid footer text-center border-top border-bottom">
+        <div>
+            <a href="/downloads.html" title="DOWNLOAD"><img src="/assets/img/download.png" alt="Download Erlang/OTP"></a>
+        </div>
+        <div>
+            <a href="http://www.github.com/erlang/otp"><img
+                    src="/assets/img/GitHub-Mark-32px.png" alt="Erlang/OTP on Github"></a>
+        </div>
+        
+        <div>
+            <a href="http://www.twitter.com/erlang_org"><img src="/assets/img/twitter.png"
+                    width="32" alt="Erlang/OTP twitter"></a>
+        </div>
+    </footer>
+    <script src="/assets/js/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
