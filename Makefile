@@ -1,4 +1,4 @@
-.PHONY: patches documentation setup build update serve check algolia setup_gems setup_npm
+.PHONY: patches setup build update serve check algolia setup_gems setup_npm
 
 ## For netlify the BUNDLE_PATH is different so we need to check it
 BUNDLE_PATH?=vendor/bundle
@@ -59,18 +59,24 @@ docs: otp_versions.table _scripts/otp_flatten_docs _scripts/otp_doc_sitemap.sh a
 	if [ ! -d $@ ]; then git clone --single-branch -b $@ https://github.com/erlang/erlang-org $@; fi
 	_scripts/download-docs.sh $<
 
-_patches assets/js assets/webfonts _clones:
+PATCHES_DEPS=otp_versions.table _scripts/src/create-releases.erl _scripts/src/otp_readme.erl _scripts/src/gh.erl
+PATCHES_HASH=$(shell cat $(PATCHES_DEPS) | sha256sum - | awk '{print $$1}')
+_patches: $(PATCHES_DEPS)
+	if [ ! -d $@ ]; then git clone --single-branch -b $@ https://github.com/erlang/erlang-org $@; fi
+	if [ ! -f _patches/$(PATCHES_HASH) ]; then $(MAKE) patches; fi
+
+assets/js assets/webfonts _clones:
 	mkdir -p $@
 
-patches: _data/releases.json
-
-_data/releases.json: _scripts/_build/default/bin/erlang-org otp_versions.table _patches
-	$< create-releases otp_versions.table _data/releases.json _patches/
+patches: _scripts/_build/default/bin/erlang-org otp_versions.table
+	rm -f _patches/*
+	$< create-releases otp_versions.table _patches/releases.json _patches/
+	touch _patches/$(PATCHES_HASH)
 
 update:
 	npm update
 
-setup: setup_gems setup_npm _data/releases.json docs _eeps faq
+setup: setup_gems setup_npm _patches docs _eeps faq
 
 serve: setup
 	bundle exec jekyll serve --incremental --trace --livereload --host 0.0.0.0
