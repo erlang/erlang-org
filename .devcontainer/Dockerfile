@@ -20,3 +20,11 @@ RUN sudo su -l $USER -c 'git clone https://github.com/asdf-vm/asdf.git ~/.asdf -
 ## Install tools
 RUN sudo su -l $USER -c '. ~/.asdf/asdf.sh && cut -d" " -f1 .tool-versions | xargs -i asdf plugin add {} && asdf install' && \
     sudo bash -c "curl https://s3.amazonaws.com/rebar3-nightly/rebar3 > /usr/local/bin/rebar3 && chmod +x /usr/local/bin/rebar3"
+
+ADD Gemfile Gemfile 
+ADD Gemfile.lock Gemfile.lock
+
+RUN if [ ! -f /home/$USER/Gemfile ]; then \
+    mv Gemfile* /home/$USER/ && chown $USER /home/$USER/Gemfile*; fi
+
+RUN sudo su -l $USER -c '. ~/.asdf/asdf.sh && cat Gemfile.lock | tail -n 2 | grep -C2 "BUNDLED WITH" | tail -n 1 | xargs gem install bundler -v && bundler install'
