@@ -33,9 +33,6 @@ setup_npm: node_modules | assets/js/bootstrap assets/js/fontawesome-free assets/
 otp_versions.table:
 	curl https://raw.githubusercontent.com/erlang/otp/master/otp_versions.table > $@
 
-documentation: otp_versions.table docs
-	_scripts/download-docs.sh $<
-
 _scripts/_build/default/bin/erlang-org: $(wildcard _scripts/src/*.erl) _scripts/rebar.config
 	$(MAKE) -C _scripts
 
@@ -58,7 +55,11 @@ _eeps: _scripts/_build/default/bin/erlang-org eeps
 	$< format-eeps $@ _clones/eep/eeps/eep-0000.html eeps/*.md
 	@touch $@
 
-_patches assets/js assets/webfonts _clones docs:
+docs: otp_versions.table _scripts/otp_flatten_docs _scripts/otp_doc_sitemap.sh assets/doc-search.tsx
+	if [ ! -d $@ ]; then git clone --single-branch -b $@ https://github.com/erlang/erlang-org $@; fi
+	_scripts/download-docs.sh $<
+
+_patches assets/js assets/webfonts _clones:
 	mkdir -p $@
 
 patches: _data/releases.json
@@ -69,7 +70,7 @@ _data/releases.json: _scripts/_build/default/bin/erlang-org otp_versions.table _
 update:
 	npm update
 
-setup: setup_gems setup_npm _data/releases.json documentation _eeps faq
+setup: setup_gems setup_npm _data/releases.json docs _eeps faq
 
 serve: setup
 	bundle exec jekyll serve --incremental --trace --livereload --host 0.0.0.0
