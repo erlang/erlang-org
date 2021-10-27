@@ -1,4 +1,4 @@
-.PHONY: setup build update serve test algolia setup_gems setup_npm format-eeps patches
+.PHONY: setup clean build update serve test algolia setup_gems setup_npm format-eeps patches
 
 ## For netlify the BUNDLE_PATH is different so we need to check it
 BUNDLE_PATH?=vendor/bundle
@@ -7,8 +7,11 @@ build: setup
 	bundler exec jekyll build
 	npx purgecss --css _site/assets/css/*.css --content `find _site -name "*.html" -o -name "*.js" | grep -v _site/doc/ | grep -v _site/docs/`  -o _site/assets/css/
 
-netlify:
+netlify: clean
 	$(MAKE) -j $(shell nproc) BUNDLE_PATH=/opt/build/cache/bundle JEKYLL_ENV=production
+
+clean:
+	rm -rf _patches docs _eeps faq _clones eeps
 
 $(BUNDLE_PATH):
 	bundler install --jobs 4 --retry 3 --path $(BUNDLE_PATH)
