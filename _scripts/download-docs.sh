@@ -70,8 +70,8 @@ for ARCHIVE in docs/*.tar.gz; do
     tar xzf "${ARCHIVE}" -C "docs/tmp"
     ERTS_VSN=$(echo docs/tmp/erts-* | sed 's/.*erts-\(.*\)/\1/')
     # shellcheck disable=SC2001
-    VSN=$(echo "${ARCHIVE}" | sed 's/.*otp_doc_html_\(.\+\)\.tar.gz/\1/')
-    MAJOR_VSN=$(echo "${VSN}" | awk -F. '{ print $1}')
+    VSN=$(echo "${ARCHIVE}" | sed 's/.*otp_doc_html_\(.*\)\.tar.gz/\1/')
+    MAJOR_VSN=$(echo "${VSN}" | awk -F. '{ print $1 }')
     mv "docs/tmp" "docs/doc-${ERTS_VSN}"
     if [ "${MAJOR_VSN}" = "${LATEST_MAJOR_VSN}" ]; then
         (cd docs && ../_scripts/otp_flatten_docs "doc-${ERTS_VSN}" true)
