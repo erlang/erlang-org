@@ -74,6 +74,7 @@ format-eeps: _scripts/_build/default/bin/erlang-org _clones/eep
 docs: otp_versions.table _scripts/otp_flatten_docs _scripts/otp_doc_sitemap.sh assets/doc-search.tsx
 	if [ ! -d $@ ]; then git clone --single-branch -b $@ https://github.com/erlang/erlang-org $@; fi
 	_scripts/download-docs.sh $<
+	@touch docs
 
 PATCHES_DEPS=otp_versions.table _scripts/src/create-releases.erl _scripts/src/otp_readme.erl _scripts/src/gh.erl
 PATCHES_HASH=$(shell cat $(PATCHES_DEPS) | sha256sum - | awk '{print $$1}')
