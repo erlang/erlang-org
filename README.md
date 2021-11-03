@@ -8,7 +8,7 @@ We use [ruby] /w [jekyll], [nodejs] /w [bootstrap 5] and Erlang to build this we
 
 To launch a local copy, install the correct [prerequisites](#Prerequisites) and do `make serve` and navigate to http://localhost:4000.
 
-You can view the latest prototype here: https://beta.erlang.org
+You can view the deployed version here: https://www.erlang.org
 
 [ruby]: https://www.ruby-lang.org/en/
 [jekyll]: https://jekyllrb.com/
@@ -32,7 +32,7 @@ The makefile supports these targets
 
 This project can be run as a vscode devcontainer and/or in gitpod.io.
 
-To work with this project in gitpod go to: https://gitpod.io/#https://github.com/erlang/erlang-org/tree/beta
+To work with this project in gitpod go to: https://gitpod.io/#https://github.com/erlang/erlang-org/
 
 For instructions on how to run with vscode devcontainers see: https://code.visualstudio.com/docs/remote/containers
 
@@ -114,7 +114,7 @@ For the search widget we use [docsearch v3], which is currently in alpha.
 
 When trying to improve the search results the best way is to create an
 account of your own on algolia and then run the scraper with the improved
-settings. You can run the scraper against https://beta.erlang.org using:
+settings. You can run the scraper against https://www.erlang.org using:
 
 ```sh
 APPLICATION_ID=MY_APPID API_KEY=MY_ADMIN_API_KEY make algolia
