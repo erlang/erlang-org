@@ -36,7 +36,7 @@ for VSN in ${MAJOR_VSNs}; do
 
     if [ ! -f "${ARCHIVE}" ] && [ ! -f "docs/${VSN}/$(_get_doc_hash "${LATEST_VSN}")" ]; then
         if [ "${VSN}" = "${LATEST_MAJOR_VSN}" ]; then
-            echo "Checking for ${LATEST_VSN} on garazdawi github"
+            echo "Checking for ${LATEST_VSN} on github"
             _scripts/download-latest-doc.sh;
         else
             echo "Checking for ${LATEST_VSN} on github"
