@@ -25,7 +25,8 @@ interface DocSearchProps extends DocSearchComponentProps {
 }
 
 const docsearch = <DocSearch
-  indexName='erlang' apiKey="bf29f41417431fe16225fa8cde510744"
+  appId='LUYTU1J2MB'
+  indexName='erlang' apiKey="86152ba1d4a9d7e179d537b8060a4c31"
   transformSearchClient={(searchClient) => {
     searchClient.addAlgoliaAgent('docsearch.js', version);
     return searchClient;
