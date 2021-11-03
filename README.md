@@ -123,7 +123,7 @@ APPLICATION_ID=MY_APPID API_KEY=MY_ADMIN_API_KEY make algolia
 In order to understand how the scraper actually works it might be useful
 to have a look at its [source code](https://github.com/algolia/docsearch-scraper).
 I've especially found the [algolia_settings](https://github.com/algolia/docsearch-scraper/blob/master/scraper/src/strategies/algolia_settings.py)
-file to be helpfull in knowing what custom parameters to set.
+file to be helpful in knowing what custom parameters to set.
 
 Getting perfect results from the search is hard, so maybe we should
 implement a way to make sure that `lists:map` is recognized as a module
