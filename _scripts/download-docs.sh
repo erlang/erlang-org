@@ -13,7 +13,7 @@ TOKEN=${2:-"token ${GITHUB_TOKEN}"}
 HDR=(-H "Authorization: ${TOKEN}")
 
 # The files that are involved when generating docs
-SCRIPT_FILES="_scripts/otp_flatten_docs _scripts/otp_doc_sitemap.sh assets/doc-search.tsx"
+SCRIPT_FILES="_scripts/otp_flatten_docs _scripts/otp_doc_sitemap.sh"
 
 _get_vsns() {
     grep "${1}" "${OTP_VERSIONS_TABLE}" | awk '{print $1}' | sed 's/OTP-\(.*\)/\1/g'

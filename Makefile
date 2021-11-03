@@ -71,7 +71,7 @@ format-eeps: _scripts/_build/default/bin/erlang-org _clones/eep
 	$< format-eeps _eeps _clones/eep/eeps/eep-0000.html _clones/eep/eeps/*.md
 	touch _eeps/$(shell cd _clones/eep && git rev-parse --short HEAD)-$(EEPS_HASH)
 
-docs: otp_versions.table _scripts/otp_flatten_docs _scripts/otp_doc_sitemap.sh assets/doc-search.tsx
+docs: otp_versions.table _scripts/otp_flatten_docs _scripts/otp_doc_sitemap.sh
 	if [ ! -d $@ ]; then git clone --single-branch -b $@ https://github.com/erlang/erlang-org $@; fi
 	_scripts/download-docs.sh $<
 	@touch docs
