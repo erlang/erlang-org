@@ -1,5 +1,7 @@
 # Erlang.org
 
+[![Netlify Status](https://api.netlify.com/api/v1/badges/dedfbd28-2e3c-4c37-a08e-7b7a580eb43a/deploy-status)](https://app.netlify.com/sites/erlang-org-garazdawi/deploys)
+
 This is the repository for the erlang.org website.
 
 We use [ruby] /w [jekyll], [nodejs] /w [bootstrap 5] and Erlang to build this website.
@@ -15,7 +17,7 @@ You can view the latest prototype here: https://beta.erlang.org
 
 ## Makefile
 
-The makefile supports three targets
+The makefile supports these targets
 
 * build (default) - depeds on setup
   * Builds the entire site under `_site` for exporting
@@ -59,7 +61,8 @@ There are also two yaml data files that contain the [documentation] and [communi
 
 ## Auto-generated content
 
-When doing `make setup` the auto-generated content is created. We auto-generate this:
+When doing `make setup` the auto-generated content is created. All auto-generated
+content is cached on github in order to speed up the netlify build. 
 
 ### EEPs
 
@@ -81,7 +84,7 @@ Clone https://github.com/matthiasl/Erlang-FAQ and then build it.
 This is placed under `_data/release.json` and `_patches`.
 
 We fetch the latest [otp_versions.table] and from there use the [Github API](https://docs.github.com/en/rest)
-and the erlang.org rsync to fetch information about each patch released since OTP-17.0.
+and use erlang.org rsync to fetch information about each patch released since OTP-17.0.
 
 The files in `_patches` and `_data/release.json` contain a lot of duplicate information. We could have kept the
 `_data/release.json` as the only place to keep the data, but we didn't as doing lookups in it turned out to
@@ -91,14 +94,14 @@ be too slow for jekyll.
 
 ### Documentation
 
-This is placed under `docs` and `doc`.
+This is placed under `docs`.
 
 The latest documentation for each release since OTP-17 is downloaded+flattened and put into the `docs` folder.
 The documentation is not built from scratch but rather fetched from github releases or erlang.org.
 
-The documentation in `doc` is modified to have the algolia search functionality inserted into it.
+The documentation in `docs/doc` is modified to have the algolia search functionality inserted into it.
 
-### Algolia
+## Algolia
 
 We have an agreement with algolia that they run a scraper that goes through our documentation and
 provides search results from that. There is a [commented configuration](/docsearch.json) that is used
@@ -117,7 +120,7 @@ settings. You can run the scraper against https://beta.erlang.org using:
 APPLICATION_ID=MY_APPID API_KEY=MY_ADMIN_API_KEY make algolia
 ```
 
-In order to understand how the scraper actually works it might be usefull
+In order to understand how the scraper actually works it might be useful
 to have a look at its [source code](https://github.com/algolia/docsearch-scraper).
 I've especially found the [algolia_settings](https://github.com/algolia/docsearch-scraper/blob/master/scraper/src/strategies/algolia_settings.py)
 file to be helpfull in knowing what custom parameters to set.
@@ -230,21 +233,21 @@ You can of course also create your own styles, but we try to stay with the boots
 - [ ] Change www.erlang.org to point to new cdn.
 
 ### Redirection fixes
-- [ ] Redirect blog.erlang.org/* to www.erlang.org/blog
-- [ ] Redirect bugs.erlang.org/browse/* to www.erlang.org/bugs/
-- [ ] Redirect bugs.erlang.org to github.com/erlang/otp/issues
+- [x] Redirect blog.erlang.org/* to www.erlang.org/blog
+- [x] Redirect bugs.erlang.org/browse/* to www.erlang.org/bugs/
+- [x] Redirect bugs.erlang.org to github.com/erlang/otp/issues
 - [ ] Redirect erlang.org/faq/* to www.erlang.org/faq
 - [ ] Redirect erlang.org/eep/* to www.erlang.org/eep
 - [ ] Redirect erlang.org/eeps/* to www.erlang.org/eeps
 - [ ] Redirect erlang.org/doc/* to www.erlang.org/doc
 - [ ] Redirect erlang.org/workshop/* to www.erlang.org/workshop
-- [ ] Redirect www.erlang.org/download/* to erlang.org/download
-- [ ] Redirect www.erlang.org/~* to erlang.org/~*
-- [ ] Redirect www.erlang.org/course/* to erlang.org/course
-- [ ] Redirect www.erlang.org/documentation/* to erlang.org/documentation
-- [ ] Redirect www.erlang.org/mailman/* to erlang.org/mailman
-- [ ] Redirect www.erlang.org/mailman-icons/* to erlang.org/mailman-icons
-- [ ] Redirect www.erlang.org/pipermail/* to erlang.org/pipermail
+- [x] Redirect www.erlang.org/download/* to erlang.org/download
+- [x] Redirect www.erlang.org/~* to erlang.org/~*
+- [x] Redirect www.erlang.org/course/* to erlang.org/course
+- [x] Redirect www.erlang.org/documentation/* to erlang.org/documentation
+- [x] Redirect www.erlang.org/mailman/* to erlang.org/mailman
+- [x] Redirect www.erlang.org/mailman-icons/* to erlang.org/mailman-icons
+- [x] Redirect www.erlang.org/pipermail/* to erlang.org/pipermail
 
 ## Things that have been removed
 
@@ -256,7 +259,9 @@ You can of course also create your own styles, but we try to stay with the boots
 
 * Add plausable.io tracking
 * Add https://search.google.com/search-console/ support?
-* Use [BackstopJS](https://css-tricks.com/automating-css-regression-testing/) for regression testing 
+* Add visual testing
+  * Use [BackstopJS](https://css-tricks.com/automating-css-regression-testing/) for regression testing 
+  * https://applitools.com/
 * Rework /community to not just be a bunch of links. Maybe the rust page can give some inspiration? https://www.rust-lang.org/community
 * Add markdownlint? https://www.npmjs.com/package/markdownlint
 * Add paginated docsearch results. See https://discourse.algolia.com/t/dedicated-search-page/583 and https://jsfiddle.net/maxiloc/oemnhuv4/
