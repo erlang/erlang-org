@@ -1,78 +1,272 @@
-# Erlang.org website
-Source code for the Erlang.org website.
+# Erlang.org
 
-## Setting up Erlang.org locally
+[![Netlify Status](https://api.netlify.com/api/v1/badges/dedfbd28-2e3c-4c37-a08e-7b7a580eb43a/deploy-status)](https://app.netlify.com/sites/erlang-org-garazdawi/deploys)
 
-Erlang.org uses [Cowboy](https://github.com/ninenines/cowboy) for web server support and [ErlyDTL](https://github.com/erlydtl/erlydtl) for rendering the web pages. It uses [sumo_db](https://github.com/inaka/sumo_db) to connect to a PostgreSQL database.
+This is the repository for the erlang.org website.
 
-### Setting up Erlang.org using docker
+We use [ruby] /w [jekyll], [nodejs] /w [bootstrap 5] and Erlang to build this website.
 
-Run:
+To launch a local copy, install the correct [prerequisites](#Prerequisites) and do `make serve` and navigate to http://localhost:4000.
 
-   docker-compose up
+You can view the latest prototype here: https://beta.erlang.org
 
-Then connect to http://localhost:8080 and enjoy.
+[ruby]: https://www.ruby-lang.org/en/
+[jekyll]: https://jekyllrb.com/
+[nodejs]: https://nodejs.org
+[bootstrap 5]: https://getbootstrap.com/docs/5.0/
 
-### Erlang/OTP
+## Makefile
 
-Use Erlang/OTP 18.3. Follow the instructions on https://github.com/kerl/kerl to install Erlang/OTP.
+The makefile supports these targets
 
-### Configure ops.config
+* build (default) - depeds on setup
+  * Builds the entire site under `_site` for exporting
+* serve - depends on setup
+  * start jekyll to serve the erlang.org site at http://localhost:4000
+* setup
+  * Download and generate all [Auto-generated Content](#Auto-generated-content).
+* test - depends on setup
+  * Runs linting and all testcases
 
-Edit and rename the file `rel/ops.config.template` to `rel/ops.config`. It contains the configuration information and tells the application which port (by default `8080`) to host the website on and which database to pull information from.
+### Devcontainer / gitpod.io
 
-### Database 
-By default, Erlang.org connects to a PostgresSQL database called `erlang_org`, using the username `postgres` and password `postgres`. 
+This project can be run as a vscode devcontainer and/or in gitpod.io.
 
-Create a database `erlang_org`:
-```sql
-CREATE DATABASE erlang_org;
+To work with this project in gitpod go to: https://gitpod.io/#https://github.com/erlang/erlang-org/tree/beta
+
+For instructions on how to run with vscode devcontainers see: https://code.visualstudio.com/docs/remote/containers
+
+## Adding content
+
+Most pages are either html or markdown pages so they can be edited directly. They
+are located in the at the same place as the URL. So, for instance, the `/about` URL
+is implemented by [/about.md](/about.md) and `/community/euc` is implemented in
+[/community/euc](/community/euc.md).
+
+There are three major [collections](https://jekyllrb.com/docs/collections/) that
+you can add new items to: [News], [Blog] and [Release]. Each of these are
+markdown files found in _news, _posts and _releases respectively. There is a
+README file in each of those folders that describe the mandatory front matter
+for each item.
+
+The markdown dialect used is [github flavored markdown](https://github.github.com/gfm/).
+
+There are also two yaml data files that contain the [documentation] and [community] links.
+
+[News]: /_news/README.md
+[Blog]: /_posts/README.md
+[Release]: /_releases/README.md
+[documentation]: [/_data/doc-links.yaml]
+[community]: [/_data/community-links.yaml]
+
+## Auto-generated content
+
+When doing `make setup` the auto-generated content is created. All auto-generated
+content is cached on github in order to speed up the netlify build. 
+
+### EEPs
+
+This is placed under `_eeps`.
+
+Clone https://github.com/erlang/eep then parse using [format-eeps.erl]. We do not use
+the perl markdown formatter for EEPs as the html produced does not look very nice.
+
+[format-eeps.erl]: _scripts/src/format-eeps.erl
+
+### FAQ
+
+This is placed under `faq`.
+
+Clone https://github.com/matthiasl/Erlang-FAQ and then build it.
+
+### Patches
+
+This is placed under `_data/release.json` and `_patches`.
+
+We fetch the latest [otp_versions.table] and from there use the [Github API](https://docs.github.com/en/rest)
+and use erlang.org rsync to fetch information about each patch released since OTP-17.0.
+
+The files in `_patches` and `_data/release.json` contain a lot of duplicate information. We could have kept the
+`_data/release.json` as the only place to keep the data, but we didn't as doing lookups in it turned out to
+be too slow for jekyll.
+
+[otp_versions.table]: https://github.com/erlang/otp/blob/master/otp_versions.table
+
+### Documentation
+
+This is placed under `docs`.
+
+The latest documentation for each release since OTP-17 is downloaded+flattened and put into the `docs` folder.
+The documentation is not built from scratch but rather fetched from github releases or erlang.org.
+
+The documentation in `docs/doc` is modified to have the algolia search functionality inserted into it.
+
+## Algolia
+
+We have an agreement with algolia that they run a scraper that goes through our documentation and
+provides search results from that. There is a [commented configuration](/docsearch.json) that is used
+to crawl [erlang.org/doc](https://erlang.org/doc). The actual configuration run is located on [Algolia's github].
+
+Check Algolia's [docsearch documentation] for details on what configuration
+options are available.
+
+For the search widget we use [docsearch v3], which is currently in alpha.
+
+When trying to improve the search results the best way is to create an
+account of your own on algolia and then run the scraper with the improved
+settings. You can run the scraper against https://beta.erlang.org using:
+
+```sh
+APPLICATION_ID=MY_APPID API_KEY=MY_ADMIN_API_KEY make algolia
 ```
-Import the sample data:
+
+In order to understand how the scraper actually works it might be useful
+to have a look at its [source code](https://github.com/algolia/docsearch-scraper).
+I've especially found the [algolia_settings](https://github.com/algolia/docsearch-scraper/blob/master/scraper/src/strategies/algolia_settings.py)
+file to be helpful in knowing what custom parameters to set.
+
+Getting perfect results from the search is hard, so maybe we should
+implement a way to make sure that `lists:map` is recognized as a module
+and function. However, our react skills are not there yet so this will
+have to do for now.
+
+[Algolia's github]: https://github.com/algolia/docsearch-configs/blob/master/configs/erlang.json
+[docsearch documentation]: https://docsearch.algolia.com/docs/what-is-docsearch/
+[docsearch v3]: https://autocomplete-experimental.netlify.app/docs/getting-started/
+
+
+## Prerequisites
+
+You need to have the following tools installed to build the erlang.org site:
+
+* GNU make 4.1 or later
+* ruby 2.6.5 or later
+* bundler 1.16 or later
+* nodejs 14 or later
+* erlang 24 or later
+* xsltproc
+
+Most likely earlier versions of these tools will work, but they have not been tested.
+
+If you want to be sure that you use the correct version of the dependencies you can either
+use the [devcontainer](#devcontainer--gitpodio) or [asdf](https://asdf-vm.com/).
+
+## Development
+
+### Layout
+
+erlang.org uses a combination of [CSS Grid] layout and [Bootstrap 5
+Grid] layout. The goal is to use CSS Grid for all responsive layouts
+and then use Bootstrap Grid for all the non-responsive things.
+
+Using CSS Grid to do the responsive layout instead of Bootstrap
+removes a lot of extra divs and `order` classes that are needed
+otherwise. However, it removes the layout from the html, so it
+sometimes becomes less obvious what is going on.
+
+[CSS Grid]: https://css-tricks.com/snippets/css/complete-guide-grid/
+[Bootstrap 5 Grid]: https://getbootstrap.com/docs/5.0/layout/grid/
+
+The HTML for a normal page looks something like this:
+
+```html
+<body>
+    <header class="container header">
+        <nav></nav>
+    </header>
+    <div class="container body">
+      <aside class="sidebar"></aside>
+      <main class="main">
+          <div class="top"></div>
+          <div class="content"></div>
+      </main>
+    </div>
+    <footer class="container footer"></footer>
+</body>
 ```
-$ psql erlang_org < erlang_org_data
+
+In the above the `container` class is part of bootstrap and is used for
+styling and then we use CSS grid to place the content of the `body` and
+`main` classes responsively:
+
+```scss
+@include media-breakpoint-up(lg) {
+    .body {
+        display: grid;
+        /* 2 columns on > lg screens */
+        grid-template-columns: 1fr auto;
+    }
+    .main {
+        display: grid;
+    }
+}
+@include media-breakpoint-down(lg) {
+    .body {
+        display: grid;
+        /* Hide the sidebar on small screens */
+        .sidebar {
+            display: none;
+        }
+    }
+    .main {
+        display: grid;
+    }
+}
 ```
 
-### Running Erlang.org
-Run the following command to start the server:
-```
-$ make run
-```
-The website will be available at http://localhost:8080.
+### Manipulating CSS
 
-### Templates
+Bootstrap 5 comes with a lot of css entities built in. You should have a look around in the [bootstrap docs] to see what you can use.
 
-The templates for rendering the web pages are located at `templates/*.dtl`. Learn more about the [ErlyDTL](https://github.com/erlydtl/erlydtl/wiki) templates at https://github.com/erlydtl/erlydtl/wiki.
+If you want to change the color of a specific component there is a list of the sass variable that you need to change in the specific page. For example if you want to change the font-size in badges you can lookup the variable here: https://getbootstrap.com/docs/5.0/components/badge/#sass. And then set `$badge-font-size: 0.80em` in [_variables.scss](_sass/_variables.scss]).
 
-### Project Structure
+A full list of all the variables can be found in `node_modules/bootstrap/scss/_variables.scss`.
 
-Since this project is built with [sumo_db](http://github.com/inaka/sumo_db), it's code structure uses the _repository pattern_. Therefore, the code is organized in the following folders:
+You can of course also create your own styles, but we try to stay with the bootstrap styles as much as possible.
 
-* **handlers:** In it you will find handlers for cowboy. For example, `erlang_docs_handler` is the one used to serve the `/docs` page.
-* **models:** In this folder you will find _sumo_db_ models and repos. For each entity in the system you'll find two modules:
-  - one of them represents the Abstract Data Type that models the entity (e.g. `erlorg_articles` contains all the functions that allow you to manipulate entities with type `erlorg_articles:article()`, but there is no business logic in it).
-  - the other one (with suffix `_repo`) contains the business logic associated with the entity. For example, in `erlorg_articles_repo` you'll find functions to _create_, _fetch_, _list_, etc. entities with type `erlorg_articles:article()`. These functions only manipulate the internal data for those entities using the functions in the `erlorg_articles` module. And they talk to the database using functions in the `sumo` model, like `sumo:persist/2` to store objects.
-* **stores:** In this folder you will find _sumo_db_ stores. This is the place where database specific logic is written. Functions that are specific to the underlying persistence tool we're using (in this case postgreSQL) and not generic are written in `erlorg_store_pgsql`.
-* **utils:** In this folder we have utility functions to deal with some non-sumo-specific datatypes like binaries, datetimes and cowboy requests.
+[bootstrap docs]: https://getbootstrap.com/docs/5.1/
 
-For more documentation on SumoDB, you can check its [hex.pm page](http://hex.pm/packages/sumo_db) and if you want to contribute to this project and you are unsure about where to put your code or how to write it don't hesitate to contact [Inaka](http://inaka.net) through their [public hipchat room](http://inaka.net/hipchat).
+## Architecture
 
----
+## Things to do when switching
 
-## License
+- [ ] Change www.erlang.org to point to new cdn.
 
-```
-Copyright 2016 Industrial Erlang User Group
+### Redirection fixes
+- [x] Redirect blog.erlang.org/* to www.erlang.org/blog
+- [x] Redirect bugs.erlang.org/browse/* to www.erlang.org/bugs/
+- [x] Redirect bugs.erlang.org to github.com/erlang/otp/issues
+- [ ] Redirect erlang.org/faq/* to www.erlang.org/faq
+- [ ] Redirect erlang.org/eep/* to www.erlang.org/eep
+- [ ] Redirect erlang.org/eeps/* to www.erlang.org/eeps
+- [ ] Redirect erlang.org/doc/* to www.erlang.org/doc
+- [ ] Redirect erlang.org/workshop/* to www.erlang.org/workshop
+- [x] Redirect www.erlang.org/download/* to erlang.org/download
+- [x] Redirect www.erlang.org/~* to erlang.org/~*
+- [x] Redirect www.erlang.org/course/* to erlang.org/course
+- [x] Redirect www.erlang.org/documentation/* to erlang.org/documentation
+- [x] Redirect www.erlang.org/mailman/* to erlang.org/mailman
+- [x] Redirect www.erlang.org/mailman-icons/* to erlang.org/mailman-icons
+- [x] Redirect www.erlang.org/pipermail/* to erlang.org/pipermail
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+## Things that have been removed
 
-    http://www.apache.org/licenses/LICENSE-2.0
+* The course (this is actually on erlang.org)
+* The events (redirect to EEF?)
+* Documentation version index page (redirect to erlang.org/documentation)
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-```
+## Ideas
+
+* Add plausable.io tracking
+* Add https://search.google.com/search-console/ support?
+* Add visual testing
+  * Use [BackstopJS](https://css-tricks.com/automating-css-regression-testing/) for regression testing 
+  * https://applitools.com/
+* Rework /community to not just be a bunch of links. Maybe the rust page can give some inspiration? https://www.rust-lang.org/community
+* Add markdownlint? https://www.npmjs.com/package/markdownlint
+* Add paginated docsearch results. See https://discourse.algolia.com/t/dedicated-search-page/583 and https://jsfiddle.net/maxiloc/oemnhuv4/
+* `/docs`
+  * Other sections? Learning/Developing/References
+* `/community`
+  * Beam Languages
+  * Other projects

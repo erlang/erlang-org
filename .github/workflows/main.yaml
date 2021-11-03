@@ -1,0 +1,82 @@
+name: Build and Deploy
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v2.3.1
+
+      - name: asdf setup
+        uses: asdf-vm/actions/setup@v1
+      - name: asdf add plugins
+        uses: asdf-vm/actions/plugins-add@v1
+      - name: asdf cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.asdf/installs
+          key: ${{ runner.os }}-${{ hashFiles('**/.tool-versions') }}
+          restore-keys: |
+            ${{ runner.os }}-asdf-
+      - name: asdf install
+        run: asdf install && asdf reshim
+
+      - name: Cache Node.js modules
+        uses: actions/cache@v2
+        with:
+          # npm caches files in `~/.npm`
+          path: ~/.npm
+          key: ${{ runner.OS }}-${{ hashFiles('package-lock.json') }}
+      - name: Setup NPM
+        run: sudo npm i -g npm && make setup_npm
+
+      - name: Cache Ruby gems
+        uses: actions/cache@v2
+        with:
+          # bundler caches files in `vendor`
+          path: vendor/bundle
+          key: ${{ runner.OS }}-${{ hashFiles('Gemfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-gems-
+
+      - name: Setup ruby gems
+        run: |
+          cat Gemfile.lock | tail -n 2 | grep -C2 "BUNDLED WITH" | tail -n 1 | xargs gem install bundler -v
+          bundler config set --local deployment 'true'
+          bundler install --jobs 4 --retry 3
+
+      - name: Install rebar3
+        run: sudo bash -c "curl https://s3.amazonaws.com/rebar3-nightly/rebar3 > /usr/local/bin/rebar3 && chmod +x /usr/local/bin/rebar3"
+
+      - name: Fetch otp_versions.table
+        run: make otp_versions.table
+
+      - name: Install ubuntu packages
+        run: |
+          sudo apt update -y
+          sudo apt install xsltproc yamllint -y
+
+      - name: Configure Site 📈
+        run: |
+          if [ "${{ github.repository }}" = "erlang/erlang-org" ]; then
+            URL="beta.erlang.org"
+            REPOSITORY_NAME=
+          else
+            URL="${{ github.repository_owner }}.github.io"
+            REPOSITORY_NAME=$(echo ${{ github.repository }} | tr '/' ' ' | awk '{ print "/" $2 }')
+          fi
+          sed -i "s@url: \"https://erlang.org\"@url: \"https://${URL}\"@g" _config.yml
+          sed -i "s@baseurl: \"\"@baseurl: \"$REPOSITORY_NAME\"@g" _config.yml
+          echo ${URL} > CNAME
+
+      - name: Setup site 💽
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEPLOY: true
+        run: make -j4 setup
+
+      - name: Test Site 🧪
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEPLOY: true
+        run: make test
