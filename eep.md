@@ -11,7 +11,7 @@ To document the various proposals and the decisions taken we use the Erlang Enha
 
 Because Erlang is a programming language with a few million lines of running business critical code in the world, the development process must impose some rigidity and provide resistance against accepting premature changes. Users have Erlang code, linked in drivers written in C, and applications that embed Erlang, so it is important that the inconvenience of upgrading to new versions of Erlang is minimized. Language changes might also make the language more difficult for new users to learn.
 
-To ensure that changes are carefully considered, significant changes must be described in an EEP, short for Erlang Extension Proposal. Each EEP should explain, among other things, why the change is needed, document how it should work, and give an overview how it should be implemented. The EEP author should listen to the community's feeback and edit the EEP as necessary.
+To ensure that changes are carefully considered, significant changes must be described in an EEP, short for Erlang Extension Proposal. Each EEP should explain, among other things, why the change is needed, document how it should work, and give an overview how it should be implemented. The EEP author should listen to the community's feedback and edit the EEP as necessary.
 
 Before submitting an EEP; read [EEP 1 - EEP Purpose and Guidelines] that thoroughly explains the purpose of EEPs, their life cycle, and prescribed format. The EEP editor will reject EEPs that do not follow the guidelines. Also check the list of existing [EEPs] before reinventing something.
 

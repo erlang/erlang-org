@@ -127,7 +127,7 @@ source code lines instead of only functions when using [perf report] and
 
 # Improved error messages #
 
-Erlang's error messages tend to get a lot of (valid) critisism for being hard to
+Erlang's error messages tend to get a lot of (valid) criticism for being hard to
 understand. Two great new features have been added to help the user understand
 why something has failed.
 
@@ -532,7 +532,7 @@ uses of ECDSA (none of them in Erlang as far as we know :).
 when you are using `EdDSA`, the communication is secure even if your random
 number generator is not.
 
-Despite the added security, `EdDSA` is claimed to be faster than other eliptic
+Despite the added security, `EdDSA` is claimed to be faster than other elliptic
 curve signature algorithms. If you have [OpenSSL] 1.1.1 or later, then as of
 Erlang/OTP 24 you will have access to this algorithm!
 

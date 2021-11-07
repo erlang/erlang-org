@@ -237,7 +237,7 @@ Core Erlang does not allow repeating a variable:
 	end
 ```
 
-* Here the second occurence of the variable `Same` has been renamed to
+* Here the second occurrence of the variable `Same` has been renamed to
 a new variable named `_@c4`, and a guard has been added to compare
 `Same` and `_@c4`.
 
