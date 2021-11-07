@@ -275,7 +275,7 @@ block will ever branch to them.
 
 Why is there an unreachable block?
 
-Block 1 is a special block. It generates a `badarg` exeception, just
+Block 1 is a special block. It generates a `badarg` exception, just
 as a call to `error:error(badarg)`. The SSA code generator always
 includes block 1 with the exact same instructions in every function,
 even if it never actually used.
@@ -440,7 +440,7 @@ the module [beam_ssa_type]. Here is the code after running `beam_ssa_type`:
 type of each variable seen. Based on the types, `beam_ssa_type` replaces
 variables with known values with the values themselves.
 
-Two of the conditional branchs have been converted to unconditional
+Two of the conditional branches have been converted to unconditional
 branches.
 
 The next optimization is [liveness analysis][ssa_opt_live]. The code

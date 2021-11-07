@@ -221,7 +221,7 @@ with the primop `dsetelement/3`, which destructively updates a tuple:
 		T
 ```
 
-`do` evalutes two expressions in sequence, ignoring the value of the
+`do` evaluates two expressions in sequence, ignoring the value of the
 first expression. It is used here because the primop `dsetelement/3`
 updates its tuple argument without returning a value.
 

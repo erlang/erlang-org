@@ -211,7 +211,7 @@ duplicate what I've done you can follow
 [these instructions](https://gist.github.com/garazdawi/062627973b2887e50e9c9bbc86740b63).
 
 Not all features of `TLSv1.3` have been implemented, you can see which parts of the RFCs
-that are missing in the `ssl` application's [Standard Complience documentation](/doc/apps/ssl/standards_compliance.html#tls-1.3).
+that are missing in the `ssl` application's [Standard Compliance documentation](/doc/apps/ssl/standards_compliance.html#tls-1.3).
 
 # Fragmented distribution messages
 
