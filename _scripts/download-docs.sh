@@ -80,6 +80,7 @@ for ARCHIVE in docs/*.tar.gz; do
         URL=$(grep "^url: " _config.yml | sed 's@url: "\([^"]*\)".*@\1@')
         BASEURL=$(grep "^baseurl: " _config.yml | sed 's@baseurl: "\([^"]*\)".*@\1@')
         _scripts/otp_doc_sitemap.sh doc/ "${URL}${BASEURL}/" > doc/sitemap_algolia.xml
+        ln -s ../../search.html docs/doc/search.html
     fi
     (cd docs && ../_scripts/otp_flatten_docs "doc-${ERTS_VSN}" false)
     touch "docs/doc-1/$(_get_doc_hash "${VSN}")"
