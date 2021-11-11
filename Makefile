@@ -86,6 +86,7 @@ assets/js assets/webfonts _clones:
 	mkdir -p $@
 
 patches: _scripts/_build/default/bin/erlang-org otp_versions.table
+	-mkdir _patches
 	rm -f _patches/*
 	$< create-releases otp_versions.table _patches/releases.json _patches/
 	touch _patches/$(PATCHES_HASH)
