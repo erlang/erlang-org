@@ -1,10 +1,10 @@
-import { AutocompleteState } from "@algolia/autocomplete-core"
+import type { AutocompleteState } from "@algolia/autocomplete-core"
 import {
   DocSearch,
   DocSearchProps as DocSearchComponentProps,
   version,
 } from '@docsearch/react';
-import { InternalDocSearchHit } from "@docsearch/react/dist/esm/types/InternalDocSearchHit";
+import type { InternalDocSearchHit, StoredDocSearchHit } from "@docsearch/react/dist/esm/types/";
 import React from 'react';
 import ReactDOM from 'react-dom';
 
@@ -26,7 +26,7 @@ interface DocSearchProps extends DocSearchComponentProps {
   environment?: typeof window;
 }
 
-function DocSearchFooter({ state }: {
+function Footer({ state }: {
   state: AutocompleteState<InternalDocSearchHit>;
 }): JSX.Element {
   return <>
@@ -38,10 +38,57 @@ function DocSearchFooter({ state }: {
   </>;
 }
 
+interface HitProps {
+  hit: InternalDocSearchHit & { isModule: boolean } | StoredDocSearchHit & { isModule: boolean };
+  children: React.ReactNode;
+}
+
+function Hit({ hit }: HitProps): JSX.Element {
+  console.log(hit);
+  return <a href={hit.url}>
+    <div className="DocSearch-Hit-Container">
+      <div className="DocSearch-Hit-icon">
+        <svg width="20" height="20" viewBox="0 0 20 20">
+          <path d="M17 5H3h14zm0 5H3h14zm0 5H3h14z" stroke="currentColor" fill="none" fill-rule="evenodd" stroke-linejoin="round"></path>
+        </svg>
+      </div>
+      <div className="DocSearch-Hit-content-wrapper">
+        <span className="DocSearch-Hit-title">{hit.content}</span>
+        <span className="DocSearch-Hit-path">
+          {hit.isModule ? hit.hierarchy.lvl1 + ':' + hit.hierarchy.lvl2 :
+            hit.hierarchy.lvl1 + ' → ' + hit.hierarchy.lvl2}
+        </span>
+      </div>
+      <div className="DocSearch-Hit-action">
+        <svg className="DocSearch-Hit-Select-Icon" width="20" height="20" viewBox="0 0 20 20">
+          <g stroke="currentColor" fill="none" fill-rule="evenodd" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 3v4c0 2-2 4-4 4H2"></path><path d="M8 17l-6-6 6-6"></path>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </a>;
+}
+
 const docsearch = <DocSearch
   appId='LUYTU1J2MB'
   indexName='erlang' apiKey="86152ba1d4a9d7e179d537b8060a4c31"
-  resultsFooterComponent={DocSearchFooter}
+  searchParameters={{
+    attributesToRetrieve: [
+      'hierarchy.lvl0',
+      'hierarchy.lvl1',
+      'hierarchy.lvl2',
+      'hierarchy.lvl3',
+      'hierarchy.lvl4',
+      'hierarchy.lvl5',
+      'hierarchy.lvl6',
+      'content',
+      'type',
+      'url',
+      'isModule']
+  }}
+  resultsFooterComponent={Footer}
+  hitComponent={Hit}
   transformSearchClient={(searchClient) => {
     searchClient.addAlgoliaAgent('docsearch.js', version);
     return searchClient;
