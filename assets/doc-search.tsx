@@ -44,7 +44,11 @@ interface HitProps {
 }
 
 function Hit({ hit }: HitProps): JSX.Element {
-  console.log(hit);
+  let path = hit.hierarchy.lvl1;
+  if (hit.hierarchy.lvl2) {
+    path += hit.isModule ? ':' : ' → ';
+    path += hit.hierarchy.lvl2;
+  }
   return <a href={hit.url}>
     <div className="DocSearch-Hit-Container">
       <div className="DocSearch-Hit-icon">
@@ -54,10 +58,7 @@ function Hit({ hit }: HitProps): JSX.Element {
       </div>
       <div className="DocSearch-Hit-content-wrapper">
         <span className="DocSearch-Hit-title">{hit.content}</span>
-        <span className="DocSearch-Hit-path">
-          {hit.isModule ? hit.hierarchy.lvl1 + ':' + hit.hierarchy.lvl2 :
-            hit.hierarchy.lvl1 + ' → ' + hit.hierarchy.lvl2}
-        </span>
+        <span className="DocSearch-Hit-path">{path}</span>
       </div>
       <div className="DocSearch-Hit-action">
         <svg className="DocSearch-Hit-Select-Icon" width="20" height="20" viewBox="0 0 20 20">
