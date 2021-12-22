@@ -47,12 +47,13 @@ _clones/faq: | _clones
 	git clone https://github.com/matthiasl/Erlang-FAQ $@
 
 faq: _clones/faq
-	FAQ_HASH=$(shell (cat .tools-versions && cd $< && git rev-parse --short HEAD) | sha256sum | awk '{print $$1}')
+
 	if [ ! -d $@ ]; then git clone --single-branch -b $@ https://github.com/erlang/erlang-org $@; fi
-	if [ ! -f $@/$(FAQ_HASH) ]; then \
+	FAQ_HASH=$(shell (cat .tool-versions && cd $< && git rev-parse --short HEAD) | sha256sum | awk '{print $$1}') && \
+	if [ ! -f $@/$${FAQ_HASH} ]; then \
 	  rm -rf $@/* && \
 	  (cd $< && LC_ALL="en_US-UTF8" make && make install FAQ_ROOT=../../$@) && \
-	  touch $@/$(FAQ_HASH); \
+	  touch $@/$${FAQ_HASH}; \
 	fi
 
 eeps: _clones/eep
