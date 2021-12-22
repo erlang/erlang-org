@@ -53,7 +53,7 @@ faq: _clones/faq
 	if [ ! -f $@/$${FAQ_HASH} ]; then \
 	  rm -rf $@/* && \
 	  (cd $< && LC_ALL="en_US-UTF8" make && make install FAQ_ROOT=../../$@) && \
-	  touch $@/$${FAQ_HASH}; \
+	  echo "faq" > $@/$${FAQ_HASH}; \
 	fi
 	ls -la $@
 
