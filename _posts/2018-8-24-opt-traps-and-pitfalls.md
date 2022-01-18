@@ -262,7 +262,7 @@ more circumstances. It turned out that would it be hard or impossible
 to substantially improve the optimization by working on BEAM assembly
 language.
 
-[bin_matching]: http://erlang.org/doc/efficiency_guide/binaryhandling.html#matching-binaries
+[bin_matching]: https://erlang.org/doc/efficiency_guide/binaryhandling.html#matching-binaries
 
 Apart from the problem of leaving undefined registers, as illustrated
 in the previous optimization example, there is also the complexity of

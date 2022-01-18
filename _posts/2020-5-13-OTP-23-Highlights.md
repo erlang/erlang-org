@@ -14,7 +14,7 @@ which has revealed some bugs and flaws that our internal testing did not find.
 This blog post will describe some highlights of what is new in OTP 23.
 
 You can download the readme describing the changes here:
-[OTP 23 Readme](http://erlang.org/download/otp_src_23.0.readme).
+[OTP 23 Readme](https://erlang.org/download/otp_src_23.0.readme).
 Or, as always, look at the release notes of the application you are interested in.
 For instance here: [OTP 23 Erts Release Notes](/doc/apps/erts/notes.html).
 
@@ -140,7 +140,7 @@ ERL_FLAGS="-kernel inet_backend socket"
 ```
 
 # Help in the shell
-We have implemented [EEP 48](http://erlang.org/eeps/eep-0048.html) which specifies a storage format for API documentation to be used by BEAM languages. By standardizing how API documentation is stored, it will be possible to write tools that work across languages.
+We have implemented [EEP 48](https://erlang.org/eeps/eep-0048.html) which specifies a storage format for API documentation to be used by BEAM languages. By standardizing how API documentation is stored, it will be possible to write tools that work across languages.
 
 The ordinary doc build is extended with the generation of `.chunk` files for all OTP modules. You can run `make docs DOC_TARGETS=chunks` to build only the EEP 48 chunks. Running just `make docs` without setting the DOC_TARGETS variable will build all formats (html, man, pdf, chunks).
 

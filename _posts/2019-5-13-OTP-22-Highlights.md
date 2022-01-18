@@ -15,7 +15,7 @@ This blog post will describe some highlights of what is released in OTP 22
 and in OTP 21 maintenance patches.
 
 You can download the readme describing the changes here:
-[OTP 22 Readme](http://erlang.org/download/otp_src_22.0.readme).
+[OTP 22 Readme](https://erlang.org/download/otp_src_22.0.readme).
 Or, as always, look at the release notes of the application you are interested in.
 For instance here: [OTP 22 Erts Release Notes](/doc/apps/erts/notes.html).
 
