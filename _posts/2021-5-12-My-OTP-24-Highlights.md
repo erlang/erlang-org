@@ -31,8 +31,8 @@ This years highlights are:
 * [Edwards-curve Digital Signature Algorithm](#edwards-curve-digital-signature-algorithm)
 
 [about 10 years]: https://vimeo.com/44231138
-[Erlang/OTP 24 Readme]: http://erlang.org/download/otp_src_24.0.readme
-[Erlang/OTP 24 - Erts Release Notes - Version 12.0]: http://erlang.org/doc/apps/erts/notes.html#erts-12.0
+[Erlang/OTP 24 Readme]: https://erlang.org/download/otp_src_24.0.readme
+[Erlang/OTP 24 - Erts Release Notes - Version 12.0]: https://erlang.org/doc/apps/erts/notes.html#erts-12.0
 [AsmJit]: https://asmjit.com/
 [As]: https://blog.erlang.org/My-OTP-21-Highlights/
 [tradition]: https://blog.erlang.org/OTP-22-Highlights/
@@ -426,7 +426,7 @@ Eshell V11.2.1  (abort with ^G)
 For more information about how to enable this in your project see
 the [Doc chunks section in the Edoc User's Guide].
 
-[erl_docgen]: http://erlang.org/doc/man/erl_docgen_app.html
+[erl_docgen]: https://erlang.org/doc/man/erl_docgen_app.html
 [EEP-48]: https://www.erlang.org/erlang-enhancement-proposals/eep-0048.html
 [Erlang LS]: https://erlang-ls.github.io/
 [Radek Szymczyszyn]: https://github.com/erszcz
@@ -477,7 +477,7 @@ measure and check for yourself!
 [inet]: https://erlang.org/doc/man/inet.html
 [inet:i/0]: https://erlang.org/doc/man/inet.html#i-0
 [socket]: https://erlang.org/doc/man/socket.html
-[opaque]: http://erlang.org/doc/reference_manual/typespec.html#type-declarations-of-user-defined-types
+[opaque]: https://erlang.org/doc/reference_manual/typespec.html#type-declarations-of-user-defined-types
 
 # EEP-56: Supervisor automatic shutdown #
 
@@ -545,5 +545,5 @@ Erlang/OTP 24 you will have access to this algorithm!
 
 [Edwards-curve Digital Signature Algorithm]: https://datatracker.ietf.org/doc/html/rfc8032
 [OpenSSL]: https://www.openssl.org/
-[strong cryptographically secure random number]: http://erlang.org/doc/man/crypto.html#strong_rand_bytes-1
+[strong cryptographically secure random number]: https://erlang.org/doc/man/crypto.html#strong_rand_bytes-1
 [elliptic curve signature algorithm]: https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm

@@ -127,7 +127,7 @@ runtime of those systems is typically dominated by some combination of
 message passing, calls to the [ETS BIFs][ets], and garbage collection, none
 of which HiPE can optimize.
 
-[ets]: http://erlang.org/doc/man/ets.html
+[ets]: https://erlang.org/doc/man/ets.html
 
 Another reason could be that big systems typically have many small
 modules.  The HiPE native compiler (in common with the Erlang
@@ -191,7 +191,7 @@ contributions from the HiPE project to OTP:
   be nice for [Wings3D][wings3d] to have floating-point literals.  The
   OTP team implemented literal pools in OTP R12.
 
-[dialyzer]: http://erlang.org/doc/apps/dialyzer/index.html
+[dialyzer]: https://erlang.org/doc/apps/dialyzer/index.html
 [newtags]: http://www.it.uu.se/research/publications/reports/2000-029/2000-029-nc.pdf
 [bitstrings]: http://user.it.uu.se/%7Epergu/papers/erlang05.pdf
 [core]: https://www.it.uu.se/research/group/hipe/cerl/doc/core_erlang-1.0.3.pdf
@@ -201,7 +201,7 @@ contributions from the HiPE project to OTP:
 [richcarl]: https://github.com/richcarl
 [wings3d]: http://www.wings3d.com
 [pool]: https://en.wikipedia.org/wiki/Literal_pool
-[cprof]: http://erlang.org/doc/man/cprof.html
+[cprof]: https://erlang.org/doc/man/cprof.html
 
 ### The Tracing JIT projects (BEAMJIT)
 
@@ -394,7 +394,7 @@ The pull request was merged on September 22.
 [beamasm]: https://github.com/erlang/otp/pull/2745
 [jit_presentation]: https://www.youtube.com/watch?v=lM7UV95Rpyo
 [perf]: https://en.wikipedia.org/wiki/Perf_(Linux)
-[process_flag]: http://erlang.org/doc/man/erlang.html#process_flag-2
+[process_flag]: https://erlang.org/doc/man/erlang.html#process_flag-2
 
 ### The Future
 

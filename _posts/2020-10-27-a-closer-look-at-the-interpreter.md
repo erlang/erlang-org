@@ -186,7 +186,7 @@ avoids these issues.
 [directly threaded code]: https://en.wikipedia.org/wiki/Threaded_code
 [`ops.tab`]: https://github.com/erlang/otp/blob/OTP-23.1/erts/emulator/beam/ops.tab
 [`beam_makeops`]: https://github.com/erlang/otp/blob/OTP-23.1/erts/emulator/utils/beam_makeops
-[documentation for the `beam_makeops` script]: http://erlang.org/doc/apps/erts/beam_makeops.html
+[documentation for the `beam_makeops` script]: https://erlang.org/doc/apps/erts/beam_makeops.html
 [`move2_par`]: https://github.com/erlang/otp/blob/OTP-23.1/erts/emulator/beam/instrs.tab#L577
 [`is_nonempty_list_get_list`]: https://github.com/erlang/otp/blob/OTP-23.1/erts/emulator/beam/instrs.tab#L795
 [`perf`]: https://en.wikipedia.org/wiki/Perf_%28Linux%29

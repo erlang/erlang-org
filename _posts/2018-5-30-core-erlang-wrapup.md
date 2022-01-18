@@ -184,7 +184,7 @@ Guide][efficiency_guide].  `sys_core_bsm` adds annotations that are
 later used by `v3_codegen` and `beam_bsm` to optimize matching of
 binaries.
 
-[efficiency_guide]: http://erlang.org/doc/efficiency_guide/binaryhandling.html
+[efficiency_guide]: https://erlang.org/doc/efficiency_guide/binaryhandling.html
 
 ### sys_core_dsetel
 

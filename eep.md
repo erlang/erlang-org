@@ -20,7 +20,7 @@ Before submitting an EEP; read [EEP 1 - EEP Purpose and Guidelines] that thoroug
 [EEP 0]: {% link eeps.html %}
 
 ### EEP Editorial
-There is a mailing list for EEPs: eeps (at) erlang (dot) org, see [Mailing Lists](../community/mailinglists). Anyone interested can subscribe to the list. The EEP editor(s) are subscribed to the list, as well as the EEP repository owner. New EEPs should be sent here, as well as EEP updates. Note that as with all [erlang.org](http://www.erlang.org/) mailing lists only subscribers are allowed to post to the list.
+There is a mailing list for EEPs: eeps (at) erlang (dot) org, see [Mailing Lists](../community/mailinglists). Anyone interested can subscribe to the list. The EEP editor(s) are subscribed to the list, as well as the EEP repository owner. New EEPs should be sent here, as well as EEP updates. Note that as with all [erlang.org](https://www.erlang.org/) mailing lists only subscribers are allowed to post to the list.
 
 ### Erlang Extension Proposal repository
 The EEP source texts are in a Github GIT version control [repository](http://www.github.com/erlang/eep). Anyone with a Github account can fork the repository, add or change any EEP, inform the [eeps](mailto:eeps@erlang.org) mailing list about the new version, and the origin repository owner will (if approving) pull the commit.

@@ -10,7 +10,7 @@ through the changes that I am the most excited about. Most likely this will
 mostly mean features in erts and the core libraries as those are the
 changes that I am the most familiar with.
 
-You can download the readme describing the changes here: [OTP 21-RC1 Readme](http://erlang.org/download/otp_src_21.0-rc1.readme).
+You can download the readme describing the changes here: [OTP 21-RC1 Readme](https://erlang.org/download/otp_src_21.0-rc1.readme).
 Or, as always, look at the release notes of the application you are interested in.
 For instance here: [OTP 21-RC1 Erts Release Notes](/doc/apps/erts/notes.html).
 
@@ -124,7 +124,7 @@ logger](https://docs.python.org/3/howto/logging.html) works.
 With logger the logging handlers can intercept the logging
 call in the process that does the actual call instead of having to
 wait for a message. This opens up all sorts of possibilities of early
-rejection of log messages in case of an overload, see [Logger User's Guide](http://erlang.org/documentation/doc-10.0-rc1/lib/kernel-6.0/doc/html/logger_chapter.html#protecting-the-handler-from-overload)
+rejection of log messages in case of an overload, see [Logger User's Guide](https://erlang.org/documentation/doc-10.0-rc1/lib/kernel-6.0/doc/html/logger_chapter.html#protecting-the-handler-from-overload)
 for more details. The user can also add special purpose filters that are run
 before the handler is invoked in order to silence or amend log messages in the system.
 

@@ -142,4 +142,4 @@ For those who'd like to know more about how our memory allocators work, Lukas
 Larsson's [talk at EUC 2014](https://erlangcentral.org/videos/euc-2014-lukas-larsson-memory-allocators-in-the-vm-memory-management-battle-stories/) is a good primer. Our internal
 documentation on [carrier migration](https://github.com/erlang/otp/blob/master/erts/emulator/internal_doc/CarrierMigration.md) and [inter-thread deallocation](https://github.com/erlang/otp/blob/master/erts/emulator/internal_doc/DelayedDealloc.md) may also be of interest.
 
-The PR implementing this change can be found [here](https://github.com/erlang/otp/pull/1790), and the documentation for the old instrumentation module can be found [here](http://erlang.org/documentation/doc-9.3/lib/tools-2.11.2/doc/html/instrument.html).
+The PR implementing this change can be found [here](https://github.com/erlang/otp/pull/1790), and the documentation for the old instrumentation module can be found [here](https://erlang.org/documentation/doc-9.3/lib/tools-2.11.2/doc/html/instrument.html).
