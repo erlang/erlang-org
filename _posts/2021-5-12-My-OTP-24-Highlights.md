@@ -244,7 +244,7 @@ by any application that wants to provide extra information about their exception
 For example, we have been working on providing better error information around
 `io:format` in [PR-4757](https://github.com/erlang/otp/pull/4757).
 
-[EEP-54]: https://www.erlang.org/erlang-enhancement-proposals/eep-0054.html
+[EEP-54]: /erlang-enhancement-proposals/eep-0054.html
 [BIFs]: https://erlang.org/doc/reference_manual/functions.html#built-in-functions--bifs-
 
 # Improved receive optimizations #
@@ -389,7 +389,7 @@ call(To, Msg, Tmo) ->
 
 You can read more about this functionality in the [alias documentation].
 
-[EEP-53]: https://www.erlang.org/erlang-enhancement-proposals/eep-0053.html
+[EEP-53]: /erlang-enhancement-proposals/eep-0053.html
 [alias documentation]: https://erlang.org/doc/reference_manual/processes.html#process-aliases
 
 # EEP-48: Documentation chunks for edoc #
@@ -427,7 +427,7 @@ For more information about how to enable this in your project see
 the [Doc chunks section in the Edoc User's Guide].
 
 [erl_docgen]: https://erlang.org/doc/man/erl_docgen_app.html
-[EEP-48]: https://www.erlang.org/erlang-enhancement-proposals/eep-0048.html
+[EEP-48]: /erlang-enhancement-proposals/eep-0048.html
 [Erlang LS]: https://erlang-ls.github.io/
 [Radek Szymczyszyn]: https://github.com/erszcz
 [edoc]: https://erlang.org/doc/man/edoc.html
@@ -511,7 +511,7 @@ You can read more about automatic shutdown in the [supervisor documentation].
 
 [ssl]: https://erlang.org/doc/man/ssl.html
 [ssh]: https://erlang.org/doc/man/ssh.html
-[EEP-56]: https://www.erlang.org/erlang-enhancement-proposals/eep-0056.html
+[EEP-56]: /erlang-enhancement-proposals/eep-0056.html
 [supervisor:terminate_child/2]: https://erlang.org/doc/man/supervisor.html#terminate_child-2
 [supervisor documentation]: https://erlang.org/doc/man/supervisor.html#auto_shutdown
 
