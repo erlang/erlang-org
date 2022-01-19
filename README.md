@@ -8,7 +8,7 @@ We use [ruby] /w [jekyll], [nodejs] /w [bootstrap 5] and Erlang to build this we
 
 To launch a local copy, install the correct [prerequisites](#Prerequisites) and do `make serve` and navigate to http://localhost:4000.
 
-You can view the deployed version here: https://www.erlang.org
+You can view the deployed version here: <https://www.erlang.org>
 
 [ruby]: https://www.ruby-lang.org/en/
 [jekyll]: https://jekyllrb.com/
@@ -32,9 +32,9 @@ The makefile supports these targets
 
 This project can be run as a vscode devcontainer and/or in gitpod.io.
 
-To work with this project in gitpod go to: https://gitpod.io/#https://github.com/erlang/erlang-org/
+To work with this project in gitpod go to: <https://gitpod.io/#https://github.com/erlang/erlang-org/>
 
-For instructions on how to run with vscode devcontainers see: https://code.visualstudio.com/docs/remote/containers
+For instructions on how to run with vscode devcontainers see: <https://code.visualstudio.com/docs/remote/containers>
 
 ## Adding content
 
@@ -68,7 +68,7 @@ content is cached on github in order to speed up the netlify build.
 
 This is placed under `_eeps`.
 
-Clone https://github.com/erlang/eep then parse using [format-eeps.erl]. We do not use
+Clone <https://github.com/erlang/eep> then parse using [format-eeps.erl]. We do not use
 the perl markdown formatter for EEPs as the html produced does not look very nice.
 
 [format-eeps.erl]: _scripts/src/format-eeps.erl
@@ -77,7 +77,7 @@ the perl markdown formatter for EEPs as the html produced does not look very nic
 
 This is placed under `faq`.
 
-Clone https://github.com/matthiasl/Erlang-FAQ and then build it.
+Clone <https://github.com/matthiasl/Erlang-FAQ> and then build it.
 
 ### Patches
 
@@ -206,7 +206,7 @@ styling and then we use CSS grid to place the content of the `body` and
 
 Bootstrap 5 comes with a lot of css entities built in. You should have a look around in the [bootstrap docs] to see what you can use.
 
-If you want to change the color of a specific component there is a list of the sass variable that you need to change in the specific page. For example if you want to change the font-size in badges you can lookup the variable here: https://getbootstrap.com/docs/5.0/components/badge/#sass. And then set `$badge-font-size: 0.80em` in [_variables.scss](_sass/_variables.scss]).
+If you want to change the color of a specific component there is a list of the sass variable that you need to change in the specific page. For example if you want to change the font-size in badges you can lookup the variable here: <https://getbootstrap.com/docs/5.0/components/badge/#sass>. And then set `$badge-font-size: 0.80em` in [_variables.scss](_sass/_variables.scss]).
 
 A full list of all the variables can be found in `node_modules/bootstrap/scss/_variables.scss`.
 
@@ -246,13 +246,13 @@ You can of course also create your own styles, but we try to stay with the boots
 ## Ideas
 
 * Add plausable.io tracking
-* Add https://search.google.com/search-console/ support?
+* Add <https://search.google.com/search-console/> support?
 * Add visual testing
   * Use [BackstopJS](https://css-tricks.com/automating-css-regression-testing/) for regression testing 
-  * https://applitools.com/
-* Rework /community to not just be a bunch of links. Maybe the rust page can give some inspiration? https://www.rust-lang.org/community
-* Add markdownlint? https://www.npmjs.com/package/markdownlint
-* Add paginated docsearch results. See https://discourse.algolia.com/t/dedicated-search-page/583 and https://jsfiddle.net/maxiloc/oemnhuv4/
+  * <https://applitools.com/>
+* Rework /community to not just be a bunch of links. Maybe the rust page can give some inspiration? <https://www.rust-lang.org/community>
+* Add markdownlint? <https://www.npmjs.com/package/markdownlint>
+* Add paginated docsearch results. See <https://discourse.algolia.com/t/dedicated-search-page/583> and <https://jsfiddle.net/maxiloc/oemnhuv4/>
 * `/docs`
   * Other sections? Learning/Developing/References
 * `/community`
