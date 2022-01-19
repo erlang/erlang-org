@@ -54,15 +54,15 @@ parse_erlang_org_downloads() ->
                     lists:foldl(
                         fun({Vsn, Key}, Map) ->
                             Info = maps:get(Vsn, Map, #{}),
-                            Map#{ Vsn => Info#{ Key => iolist_to_binary(["https://www.erlang.org/download/",Download]) } }
+                            Map#{ Vsn => Info#{ Key => iolist_to_binary(["https://erlang.org/download/",Download]) } }
                         end, Vsns, Ms)
               end
       end, #{}, Downloads).
 
 download_erlang_org_downloads() ->
     {ok,{{_,200,_},Hdrs,Body}} = httpc:request(
-        get,{"https://erlang.org/download",[]},
-        ssl_opts("https://erlang.org/download"),[]),
+        get,{"https://erlang.org/download/",[]},
+        ssl_opts("https://erlang.org/download/"),[]),
     case lists:member({"content-encoding","gzip"}, Hdrs) of
         true ->
             zlib:gunzip(Body);
