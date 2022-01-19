@@ -54,7 +54,7 @@ parse_erlang_org_downloads() ->
                     lists:foldl(
                         fun({Vsn, Key}, Map) ->
                             Info = maps:get(Vsn, Map, #{}),
-                            Map#{ Vsn => Info#{ Key => iolist_to_binary(["https://erlang.org/download/",Download]) } }
+                            Map#{ Vsn => Info#{ Key => iolist_to_binary(["https://www.erlang.org/download/",Download]) } }
                         end, Vsns, Ms)
               end
       end, #{}, Downloads).

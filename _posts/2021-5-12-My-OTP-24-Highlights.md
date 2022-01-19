@@ -31,7 +31,7 @@ This years highlights are:
 * [Edwards-curve Digital Signature Algorithm](#edwards-curve-digital-signature-algorithm)
 
 [about 10 years]: https://vimeo.com/44231138
-[Erlang/OTP 24 Readme]: https://erlang.org/download/otp_src_24.0.readme
+[Erlang/OTP 24 Readme]: https://www.erlang.org/download/otp_src_24.0.readme
 [Erlang/OTP 24 - Erts Release Notes - Version 12.0]: /doc/apps/erts/notes.html#erts-12.0
 [AsmJit]: https://asmjit.com/
 [As]: /blog/My-OTP-21-Highlights/

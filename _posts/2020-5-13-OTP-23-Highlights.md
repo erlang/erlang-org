@@ -14,7 +14,7 @@ which has revealed some bugs and flaws that our internal testing did not find.
 This blog post will describe some highlights of what is new in OTP 23.
 
 You can download the readme describing the changes here:
-[OTP 23 Readme](https://erlang.org/download/otp_src_23.0.readme).
+[OTP 23 Readme](https://www.erlang.org/download/otp_src_23.0.readme).
 Or, as always, look at the release notes of the application you are interested in.
 For instance here: [OTP 23 Erts Release Notes](/doc/apps/erts/notes.html).
 
