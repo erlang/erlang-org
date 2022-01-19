@@ -610,7 +610,7 @@ seeing during my bug hunt generated code that stored off-heap message
 references on the stack.
 
 [rickard]: https://github.com/rickard-green
-[process_flag]: https://erlang.org/doc/man/erlang.html#process_flag-2
+[process_flag]: /doc/man/erlang.html#process_flag-2
 [lukas_gc]: https://github.com/erlang/otp/blob/OTP-21.0.9/erts/emulator/internal_doc/GarbageCollection.md
 [bad_receive]: https://github.com/erlang/otp/blob/333e4c5a1406cdeb9d1d5cf9bf4a4fadb232fca8/lib/compiler/test/beam_validator_SUITE_data/receive_stacked.S#L22
 
@@ -850,7 +850,7 @@ On Aug 24 I [merged][merged_ssa] the pull request.
 
 [pr1935]: https://github.com/erlang/otp/pull/1935
 
-[bin_matching]: https://erlang.org/doc/efficiency_guide/binaryhandling.html#matching-binaries
+[bin_matching]: /doc/efficiency_guide/binaryhandling.html#matching-binaries
 
 [ssa]: https://en.wikipedia.org/wiki/Static_single_assignment_form
 
@@ -862,7 +862,7 @@ On Aug 24 I [merged][merged_ssa] the pull request.
 
 [beam_kernel_to_ssa_finalize]: https://github.com/erlang/otp/blob/6bee2ac7d11668888d93ec4f93730bcae3e5fa79/lib/compiler/src/beam_kernel_to_ssa.erl#L1231
 
-[dialyzer]: https://erlang.org/doc/apps/dialyzer/index.html
+[dialyzer]: /doc/apps/dialyzer/index.html
 
 [linear_scan_polleto]: http://web.cs.ucla.edu/~palsberg/course/cs132/linearscan.pdf
 [linear_scan_references]: https://github.com/erlang/otp/blob/494cb3be4a98653c212d673008085bc3ea70dc7e/lib/compiler/src/beam_ssa_pre_codegen.erl#L52

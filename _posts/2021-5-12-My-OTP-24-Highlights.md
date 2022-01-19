@@ -32,7 +32,7 @@ This years highlights are:
 
 [about 10 years]: https://vimeo.com/44231138
 [Erlang/OTP 24 Readme]: https://erlang.org/download/otp_src_24.0.readme
-[Erlang/OTP 24 - Erts Release Notes - Version 12.0]: https://erlang.org/doc/apps/erts/notes.html#erts-12.0
+[Erlang/OTP 24 - Erts Release Notes - Version 12.0]: /doc/apps/erts/notes.html#erts-12.0
 [AsmJit]: https://asmjit.com/
 [As]: /blog/My-OTP-21-Highlights/
 [tradition]: /blog/OTP-22-Highlights/
@@ -119,7 +119,7 @@ source code lines instead of only functions when using [perf report] and
 [shown what it is capable of]: https://twitter.com/garazdawi/status/1385263924803735556
 [perf]: https://perf.wiki.kernel.org/index.php/Main_Page
 [gdb]: https://www.gnu.org/software/gdb/
-[eprof]: https://erlang.org/doc/man/eprof.html
+[eprof]: /doc/man/eprof.html
 [perf report]: https://man7.org/linux/man-pages/man1/perf-report.1.html
 [hotspot]: https://github.com/KDAB/hotspot
 [speedscope]: https://twitter.com/michalslaski/status/1391381431335669765
@@ -184,7 +184,7 @@ would give very cryptic error messages:
 
 In the example above, the only thing we know is that one or more of the
 arguments are invalid, but without checking
-[the documentation](https://erlang.org/doc/man/erlang.html#element-2)
+[the documentation](/doc/man/erlang.html#element-2)
 there is no way of knowing which one and why. This is especially a problem for
 BIFs where the arguments may fail for different reasons depending on factors not
 visible in the arguments. For example in the `ets:update_counter` call below:
@@ -245,7 +245,7 @@ For example, we have been working on providing better error information around
 `io:format` in [PR-4757](https://github.com/erlang/otp/pull/4757).
 
 [EEP-54]: /erlang-enhancement-proposals/eep-0054.html
-[BIFs]: https://erlang.org/doc/reference_manual/functions.html#built-in-functions--bifs-
+[BIFs]: /doc/reference_manual/functions.html#built-in-functions--bifs-
 
 # Improved receive optimizations #
 
@@ -324,7 +324,7 @@ optimization is triggered!
 
 You can read more about this optimization and others in the [Efficiency Guide].
 
-[Efficiency Guide]: https://erlang.org/doc/efficiency_guide/processes.html#process-messages
+[Efficiency Guide]: /doc/efficiency_guide/processes.html#process-messages
 
 # EEP-53: Process aliases #
 
@@ -390,7 +390,7 @@ call(To, Msg, Tmo) ->
 You can read more about this functionality in the [alias documentation].
 
 [EEP-53]: /erlang-enhancement-proposals/eep-0053.html
-[alias documentation]: https://erlang.org/doc/reference_manual/processes.html#process-aliases
+[alias documentation]: /doc/reference_manual/processes.html#process-aliases
 
 # EEP-48: Documentation chunks for edoc #
 
@@ -426,13 +426,13 @@ Eshell V11.2.1  (abort with ^G)
 For more information about how to enable this in your project see
 the [Doc chunks section in the Edoc User's Guide].
 
-[erl_docgen]: https://erlang.org/doc/man/erl_docgen_app.html
+[erl_docgen]: /doc/man/erl_docgen_app.html
 [EEP-48]: /erlang-enhancement-proposals/eep-0048.html
 [Erlang LS]: https://erlang-ls.github.io/
 [Radek Szymczyszyn]: https://github.com/erszcz
-[edoc]: https://erlang.org/doc/man/edoc.html
+[edoc]: /doc/man/edoc.html
 [added]: https://github.com/erlang/otp/pull/2803
-[Doc chunks section in the Edoc User's Guide]: https://erlang.org/doc/apps/edoc/chapter.html#doc-chunks
+[Doc chunks section in the Edoc User's Guide]: /doc/apps/edoc/chapter.html#doc-chunks
 
 # `socket` support in `gen_tcp` #
 
@@ -473,11 +473,11 @@ to 4 times the throughput vs the old implementation. In others,
 there is no difference or even a loss of throughput. So, as always, you need to
 measure and check for yourself!
 
-[gen_tcp]: https://erlang.org/doc/man/gen_tcp.html
-[inet]: https://erlang.org/doc/man/inet.html
-[inet:i/0]: https://erlang.org/doc/man/inet.html#i-0
-[socket]: https://erlang.org/doc/man/socket.html
-[opaque]: https://erlang.org/doc/reference_manual/typespec.html#type-declarations-of-user-defined-types
+[gen_tcp]: /doc/man/gen_tcp.html
+[inet]: /doc/man/inet.html
+[inet:i/0]: /doc/man/inet.html#i-0
+[socket]: /doc/man/socket.html
+[opaque]: /doc/reference_manual/typespec.html#type-declarations-of-user-defined-types
 
 # EEP-56: Supervisor automatic shutdown #
 
@@ -509,11 +509,11 @@ nor risking dead-locking itself during termination.
 
 You can read more about automatic shutdown in the [supervisor documentation].
 
-[ssl]: https://erlang.org/doc/man/ssl.html
-[ssh]: https://erlang.org/doc/man/ssh.html
+[ssl]: /doc/man/ssl.html
+[ssh]: /doc/man/ssh.html
 [EEP-56]: /erlang-enhancement-proposals/eep-0056.html
-[supervisor:terminate_child/2]: https://erlang.org/doc/man/supervisor.html#terminate_child-2
-[supervisor documentation]: https://erlang.org/doc/man/supervisor.html#auto_shutdown
+[supervisor:terminate_child/2]: /doc/man/supervisor.html#terminate_child-2
+[supervisor documentation]: /doc/man/supervisor.html#auto_shutdown
 
 
 # Edwards-curve Digital Signature Algorithm #
@@ -545,5 +545,5 @@ Erlang/OTP 24 you will have access to this algorithm!
 
 [Edwards-curve Digital Signature Algorithm]: https://datatracker.ietf.org/doc/html/rfc8032
 [OpenSSL]: https://www.openssl.org/
-[strong cryptographically secure random number]: https://erlang.org/doc/man/crypto.html#strong_rand_bytes-1
+[strong cryptographically secure random number]: /doc/man/crypto.html#strong_rand_bytes-1
 [elliptic curve signature algorithm]: https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm
