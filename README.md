@@ -40,8 +40,8 @@ For instructions on how to run with vscode devcontainers see: <https://code.visu
 
 Most pages are either html or markdown pages so they can be edited directly. They
 are located in the at the same place as the URL. So, for instance, the `/about` URL
-is implemented by [/about.md](/about.md) and `/community/euc` is implemented in
-[/community/euc](/community/euc.md).
+is implemented by [https://www.erlang.org/about.md](/about.md) and `/community/euc` is implemented in
+[https://www.erlang.org/community/euc](/community/euc.md).
 
 There are three major [collections](https://jekyllrb.com/docs/collections/) that
 you can add new items to: [News], [Blog] and [Release]. Each of these are

@@ -2,7 +2,7 @@
 
 Blog posts are displayed under `/blog` and `/blog/{{title}}/`.
 
-All images are located in [/blog/images]. If your post has many images,
+All images are located in [https://www.erlang.org/blog/images](/blog/images). If your post has many images,
 place them in a folder dedicated to that blog post.
 
 Use the code below as a template:
