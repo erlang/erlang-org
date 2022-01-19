@@ -415,7 +415,7 @@ for future releases:
 * Introducing new instructions for binary matching and/or construction
   to help the JIT generate better code.
 
-[ssa]: https://blog.erlang.org/ssa-history/
+[ssa]: /blog/ssa-history/
 
 [john]: https://github.com/jhogberg
 [lukas]: https://github.com/garazdawi

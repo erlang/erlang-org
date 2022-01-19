@@ -34,9 +34,9 @@ This years highlights are:
 [Erlang/OTP 24 Readme]: https://erlang.org/download/otp_src_24.0.readme
 [Erlang/OTP 24 - Erts Release Notes - Version 12.0]: https://erlang.org/doc/apps/erts/notes.html#erts-12.0
 [AsmJit]: https://asmjit.com/
-[As]: https://blog.erlang.org/My-OTP-21-Highlights/
-[tradition]: https://blog.erlang.org/OTP-22-Highlights/
-[now]: https://blog.erlang.org/OTP-23-Highlights/
+[As]: /blog/My-OTP-21-Highlights/
+[tradition]: /blog/OTP-22-Highlights/
+[now]: /blog/OTP-23-Highlights/
 
 # BeamAsm - the JIT compiler for Erlang #
 
@@ -44,9 +44,9 @@ The most anticipated feature of Erlang/OTP 24 has to be the JIT compiler.
 A lot has already been said about it:
 
 * [Initial PR](https://github.com/erlang/otp/pull/2745)
-* [A first look at the JIT](https://blog.erlang.org/a-first-look-at-the-jit/)
-* [Further adventures in the JIT](https://blog.erlang.org/jit-part-2/)
-* [The Road to the JIT](https://blog.erlang.org/the-road-to-the-jit/)
+* [A first look at the JIT](/blog/a-first-look-at-the-jit/)
+* [Further adventures in the JIT](/blog/jit-part-2/)
+* [The Road to the JIT](/blog/the-road-to-the-jit/)
 * [BeamAsm, the Erlang JIT](/doc/apps/erts/BeamAsm.html)
 
 and even before released the WhatsApp team has [shown what it is capable of].
