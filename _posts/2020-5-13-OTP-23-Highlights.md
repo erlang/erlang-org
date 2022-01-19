@@ -140,7 +140,7 @@ ERL_FLAGS="-kernel inet_backend socket"
 ```
 
 # Help in the shell
-We have implemented [EEP 48](https://erlang.org/eeps/eep-0048.html) which specifies a storage format for API documentation to be used by BEAM languages. By standardizing how API documentation is stored, it will be possible to write tools that work across languages.
+We have implemented [EEP 48](/eeps/eep-0048.html) which specifies a storage format for API documentation to be used by BEAM languages. By standardizing how API documentation is stored, it will be possible to write tools that work across languages.
 
 The ordinary doc build is extended with the generation of `.chunk` files for all OTP modules. You can run `make docs DOC_TARGETS=chunks` to build only the EEP 48 chunks. Running just `make docs` without setting the DOC_TARGETS variable will build all formats (html, man, pdf, chunks).
 
