@@ -197,7 +197,7 @@ contributions from the HiPE project to OTP:
 [core]: https://www.it.uu.se/research/group/hipe/cerl/doc/core_erlang-1.0.3.pdf
 [core_introduction]: http://www.erlang.se/workshop/carlsson.ps
 [core_by_example]: http://blog.erlang.org/core-erlang-by-example
-[exception]: https://erlang.org/workshop/2004/exception.pdf
+[exception]: /workshop/2004/exception.pdf
 [richcarl]: https://github.com/richcarl
 [wings3d]: http://www.wings3d.com
 [pool]: https://en.wikipedia.org/wiki/Literal_pool
