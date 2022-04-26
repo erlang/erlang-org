@@ -127,7 +127,7 @@ to test that the first element of the tuple is `ok` because it must be.
 In OTP 24, the JIT translates that instruction to a sequence of 5 native
 instructions for x86_64:
 
-```assembly
+```nasm
 # i_is_tuple_fs
     mov rsi, qword ptr [rbx]
     rex test sil, 1
@@ -149,7 +149,9 @@ word.
 Now let's see what the compiler and the JIT in OTP 25 do with this
 instruction. The BEAM code is now:
 
-```erlang
+{% raw %}
+
+```text
     {test,is_tuple,
           {f,3},
           [{tr,{x,0},
@@ -161,6 +163,8 @@ instruction. The BEAM code is now:
                                      2 => {t_integer,any}}}}],
                         none}}]}.
 ```
+
+{% endraw %}
 
 The operand that was `{x,0}` in OTP 24 is now a tuple:
 
@@ -190,7 +194,7 @@ atom() | tuple()
 By knowing that `{x,0}` must be an atom or a tuple, the JIT in OTP 25
 emits the following simplified native code:
 
-```assembly
+```nasm
 # i_is_tuple_fs
     mov rsi, qword ptr [rbx]
 # simplified tuple test since the source is always a tuple when boxed
@@ -237,7 +241,7 @@ for the JIT to emit the code to handle all kinds of terms. Therefore, the
 JIT emits code that directly handles the most common case and
 calls a generic routine to handle everything else:
 
-```assembly
+```nasm
 # is_lt_fss
     mov rsi, qword ptr [rbx+8]
     mov rdi, qword ptr [rbx]
@@ -256,7 +260,7 @@ L40:
 
 Let's walk through the code. The first two instructions:
 
-```assembly
+```nasm
     mov rsi, qword ptr [rbx+8]
     mov rdi, qword ptr [rbx]
 ```
@@ -273,7 +277,7 @@ an object on the heap.
 
 Here is the native code for testing that both operands are small:
 
-```assembly
+```nasm
     mov eax, edi
     and eax, esi
     and al, 15
@@ -290,7 +294,7 @@ written in a slightly convoluted way so that the conditional jump
 (`jge label_9`) that transfers control to the failure label can be
 shared with the generic code:
 
-```assembly
+```nasm
     cmp rdi, rsi
     short jmp L40
 L39:
@@ -332,7 +336,7 @@ means an integer with an unknown range.
 Having that knowledge of the types, the JIT can emit a slightly
 shorter test for a small integer:
 
-```assembly
+```nasm
 # simplified small test since all other types are boxed
     mov eax, edi
     and eax, esi
@@ -376,7 +380,7 @@ a map will exceed or even get close to 288230376151711743.
 Since both the lower and upper bounds for `{x,0}` and `{x,1}` fit in
 60 bits, there is no need to test the type of the operands:
 
-```assembly
+```nasm
 # is_lt_fss
     mov rsi, qword ptr [rbx+8]
     mov rdi, qword ptr [rbx]
@@ -414,7 +418,7 @@ The BEAM code looks like this:
 
 The JIT translates the `+` instruction to the following native instructions:
 
-```assembly
+```nasm
 # i_plus_ssjd
     mov rsi, qword ptr [rbx]
     mov rdx, qword ptr [rbx+8]
@@ -438,7 +442,7 @@ L14:
 
 The first two instructions:
 
-```assembly
+```nasm
     mov rsi, qword ptr [rbx]
     mov rdx, qword ptr [rbx+8]
 ```
@@ -446,7 +450,7 @@ loads the operands for the `+` operation BEAM registers into CPU registers.
 
 The next 5 instructions tests for small operands:
 
-```assembly
+```nasm
 # are both operands small?
     mov eax, esi
     and eax, edx
@@ -460,7 +464,7 @@ that we examined earlier. The only difference is that other CPU
 registers are used. If one or both of the operands is not a small
 integer, a jump is made to label `L15`, which looks like this:
 
-```assembly
+```nasm
 L15:
     call 4328985696
 ```
@@ -472,7 +476,7 @@ non-number operands by raising a `badarith` exception.
 If both operands indeed are smalls, the following code adds them and
 checks for overflow:
 
-```assembly
+```nasm
 # add with overflow check
     mov rax, rsi
     mov rcx, rdx
@@ -485,7 +489,7 @@ If the addition overflowed, the generic addition routine is
 called. Otherwise, control is transferred to the following
 instruction:
 
-```assembly
+```nasm
     mov qword ptr [rbx], rax
 ```
 
@@ -528,7 +532,7 @@ Based on our experience of adding types to the `<` operator, we might
 guess that we would save only one instruction in the type test. We
 would be right:
 
-```assembly
+```nasm
 # simplified test for small operands since both are numbers
     mov eax, esi
     and eax, edx
@@ -603,7 +607,7 @@ OTP 25 to write an equivalent guard that will result in
 much more efficient code **and** establish known ranges for `X` and
 `Y`:
 
-```assembly
+```erlang
 add5(X, Y) when X =:= X band 16#3FF,
                 Y =:= Y band 16#3FF ->
     X + Y.
@@ -644,7 +648,7 @@ relatively efficient.
 The `band` instruction needs to test the operands and be prepared to handle
 integers that don't fit in 60 bits:
 
-```assembly
+```nasm
 # i_band_ssjd
     mov rsi, qword ptr [rbx]
     mov eax, 16383
@@ -667,7 +671,7 @@ executing the `band` instruction. Since the right-hand side operand is known
 to be a small integer that fits in a machine word, a simple comparison is
 sufficient with no need for fallback code to handle other Erlang terms:
 
-```assembly
+```nasm
 # is_eq_exact_fss
 # simplified check since one argument is an immediate
     mov rdi, qword ptr [rbx+16]
@@ -677,7 +681,7 @@ sufficient with no need for fallback code to handle other Erlang terms:
 
 The JIT generates the following code for the `+` operator:
 
-```assembly
+```nasm
 # i_plus_ssjd
 # add without overflow check
     mov rax, qword ptr [rbx]
@@ -757,7 +761,7 @@ position argument is an integer and the tuple argument is a literal
 tuple. For the way `element/2` is used in `be64e/1`, all type tests
 and range checks will be removed:
 
-```assembly
+```nasm
 # bif_element_jssd
 # skipped tuple test since source is always a literal tuple
 L302:
@@ -782,7 +786,7 @@ That is 7 instructions with no conditional branches.
 If you want to follow along and examine the native code for loaded
 modules, start the runtime system like this:
 
-```sh
+```bash
 erl +JDdump true
 ```
 
@@ -791,13 +795,13 @@ extension `.asm`.
 
 To find code that has been simplified by the JIT, use this command:
 
-```sh
+```bash
 egrep "simplified|skipped|without overflow" *.asm
 ```
 
 To examine the BEAM code for a module, use the `-S` option. For example:
 
-```sh
+```bash
 erlc -S base64.erl
 ```
 

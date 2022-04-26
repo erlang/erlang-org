@@ -18,7 +18,7 @@ The Erlang/OTP version scheme is described in the [Erlang/OTP Systems Principles
 
 You can build Erlang from source on your own, following the [building and installation instructions]({% link doc/installation_guide/INSTALL.html %}). In a nutshell to install a pre-built archive you need only do:
 
-```sh
+```bash
 ./configure && make && make install
 ```
 
