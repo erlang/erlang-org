@@ -304,8 +304,8 @@ Here are some.
 an infinite period, since the time it will take for it to repeat
 is assumed to be longer than the Erlang node will survive.
 
-For the new fast generators the period it is about 2<sup>35</sup>`,
-and for the good ones in `rand` it is at least `2<sup>116</sup>&nbsp;-&nbsp;1,
+For the new fast generators the period it is about 2<sup>35</sup>,
+and for the good ones in `rand` it is at least 2<sup>116</sup>&nbsp;-&nbsp;1,
 which is a huge difference and also much more than what can be consumed
 during an Erlang node's lifetime.
 
