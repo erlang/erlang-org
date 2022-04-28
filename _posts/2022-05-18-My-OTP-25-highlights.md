@@ -159,9 +159,257 @@ Or
 erl -enable-feature all
 ```
 
-# The new `maybe`expression (`maybe_expr) EEP-49
+## The new `maybe_expr` feature EEP-49
 
-The maybe_expr feature is the first feature in the new feature concept.
+The EEP-49 "Value-Based Error Handling Mechanisms", was suggested by Fred Hebért already 2018 and now finally
+it has been implemented as the first feature in the new feature concept.
+
+Specification
+=============
+
+We propose the `maybe ... end` construct which is similar to `begin
+... end` in that it is used to group multiple distinct expression as a
+single block. But there is one important difference in that the
+`maybe` block does not export its variables while `begin` does
+export its variables.
+
+We propose a new
+type of expressions (denoted `MatchOrReturnExprs`), which are only valid within a
+`maybe ... end` expression:
+
+    maybe
+        Exprs | MatchOrReturnExprs
+    end
+
+`MatchOrReturnExprs` are defined as having the following form:
+
+    Pattern ?= Expr
+
+This definition means that `MatchOrReturnExprs` are only allowed at the
+top-level of `maybe ... end` expressions.
+
+The `?=` operator takes the value returned by `Expr` and pattern matches on
+it against `Pattern`.
+
+If the pattern matches, all variables from `Pattern` are bound in the local
+environment, and the expression is equivalent to a successful `Pattern = Expr`
+call. If the value does not match, the `maybe ... end` expression returns the
+failed expression directly.
+
+A special case exists in which we extend `maybe ... end` into the following form:
+
+    maybe
+        Exprs | MatchOrReturnExprs
+    else
+        Pattern -> Exprs;
+        ...
+        Pattern -> Exprs
+    end
+
+This form exists to capture non-matching expressions in a `MatchOrReturnExprs`
+to handle failed matches rather than returning their value. In such a case, an
+unhandled failed match will raise an `else_clause` error, otherwise identical to
+a `case_clause` error.
+
+This extended form is useful to properly identify and handle successful and
+unsuccessful matches within the same construct without risking to confuse
+happy and unhappy paths.
+
+Given the structure described here, the final expression may look like:
+
+    maybe
+        Foo = bar(),            % normal exprs still allowed
+        {ok, X} ?= f(Foo),
+        [H|T] ?= g([1,2,3]),
+        ...
+    else
+        {error, Y} ->
+            {ok, "default"};
+        {ok, _Term} ->
+            {error, "unexpected wrapper"}
+    end
+
+Do note that to allow easier pattern matching and more intuitive usage,
+the `?=` operator should have associativity rules lower than `=`, such that:
+
+    maybe
+        X = [H|T] ?= exp()
+    end
+
+is a valid `MatchOrReturnExprs` equivalent to the non-infix form `'?='('='(X,
+[H|T]), exp())`, since reversing the priorities would give `'='('?='(X, [H|T]),
+exp())`, which would create a `MatchOrReturnExp` out of context and be invalid.
+
+Motivation
+==========
+
+Erlang has some of the most flexible error handling available across a
+large number of programming languages. The language supports:
+
+1. three types of exceptions (`throw`, `error`, `exit`)
+   - handled by `catch Exp`
+   - handled by `try ... [of ...] catch ... [after ...] end`
+2. links, `exit/2`, and `trap_exit`
+3. monitors
+4. return values such as `{ok, Val} | {error, Term}`,
+    `{ok, Val} | false`, or `ok | {error, Val}`
+5. a combination of one or more of the above
+
+So why should we look to add more? There are various reasons for this,
+including trying to reduce deeply nested conditional expressions,
+cleaning up some messy patterns found in the wild, and providing a better
+separation of concerns when implementing functions.
+
+Reducing Nesting
+----------------
+
+One common pattern that can be seen in Erlang is deep nesting of `case
+... end` expressions, to check complex conditionals.
+
+Take the following code taken from
+[Mnesia](https://github.com/erlang/otp/blob/a0ae44f324576104760a63fe6cf63e0ca31756fc/lib/mnesia/src/mnesia_backup.erl#L106-L126),
+for example:
+
+    commit_write(OpaqueData) ->
+        B = OpaqueData,
+        case disk_log:sync(B#backup.file_desc) of
+            ok ->
+                case disk_log:close(B#backup.file_desc) of
+                    ok ->
+                        case file:rename(B#backup.tmp_file, B#backup.file) of
+                           ok ->
+                                {ok, B#backup.file};
+                           {error, Reason} ->
+                                {error, Reason}
+                        end;
+                    {error, Reason} ->
+                        {error, Reason}
+                end;
+            {error, Reason} ->
+                {error, Reason}
+        end.
+
+The code is nested to the extent that shorter aliases must be introduced
+for variables (`OpaqueData` renamed to `B`), and half of the code just
+transparently returns the exact values each function was given.
+
+By comparison, the same code could be written as follows with the new
+construct:
+
+    commit_write(OpaqueData) ->
+        maybe
+            ok ?= disk_log:sync(OpaqueData#backup.file_desc),
+            ok ?= disk_log:close(OpaqueData#backup.file_desc),
+            ok ?= file:rename(OpaqueData#backup.tmp_file, OpaqueData#backup.file),
+            {ok, OpaqueData#backup.file}
+        end.
+
+Or, to protect against `disk_log` calls returning something else than `ok |
+{error, Reason}`, the following form could be used:
+
+    commit_write(OpaqueData) ->
+        maybe
+            ok ?= disk_log:sync(OpaqueData#backup.file_desc),
+            ok ?= disk_log:close(OpaqueData#backup.file_desc),
+            ok ?= file:rename(OpaqueData#backup.tmp_file, OpaqueData#backup.file),
+            {ok, OpaqueData#backup.file}
+        else
+            {error, Reason} -> {error, Reason}
+        end.
+
+The semantics of these calls are identical, except that it is now
+much easier to focus on the flow of individual operations and either
+success or error paths.
+
+Obsoleting Messy Patterns
+-------------------------
+
+Frequent ways in which people work with sequences of failable operations
+include folds over lists of functions, and abusing list comprehensions.
+Both patterns have heavy weaknesses that makes them less than ideal.
+
+Folds over list of functions use patterns such as those defined in
+[posts from the
+mailing list](http://erlang.org/pipermail/erlang-questions/2017-September/093575.html):
+
+    pre_check(Action, User, Context, ExternalThingy) ->
+        Checks =
+            [fun check_request/1,
+             fun check_permission/1,
+             fun check_dispatch_target/1,
+             fun check_condition/1],
+        Args = {Action, User, Context, ExternalThingy},
+        Harness =
+            fun
+                (Check, ok)    -> Check(Args);
+                (_,     Error) -> Error
+            end,
+        case lists:foldl(Harness, ok, Checks) of
+            ok    -> dispatch(Action, User, Context);
+            Error -> Error
+        end.
+
+This code requires declaring the functions one by one, ensuring the
+entire context is carried from function to function. Since there is no
+shared scope between functions, all functions must operate on all
+arguments.
+
+By comparison, the same code could be implemented with the new construct
+as:
+
+    pre_check(Action, User, Context, ExternalThingy) ->
+        maybe
+            ok ?= check_request(Context, User),
+            ok ?= check_permissions(Action, User),
+            ok ?= check_dispatch_target(ExternalThingy),
+            ok ?= check_condition(Action, Context),
+            dispatch(Action, User, Context)
+        end.
+
+And if there was a need for derived state between any two steps, it
+would be easy to weave it in:
+
+    pre_check(Action, User, Context, ExternalThingy) ->
+        maybe
+            ok ?= check_request(Context, User),
+            ok ?= check_permissions(Action, User),
+            ok ?= check_dispatch_target(ExternalThingy),
+            DispatchData = dispatch_target(ExternalThingy),
+            ok ?= check_condition(Action, Context),
+            dispatch(Action, User, Context, DispatchData)
+        end.
+
+The list comprehension _hack_, by comparison, is a bit more rare. In
+fact, it is mostly theoretical. Some things that hint at how it could
+work can be found in [Diameter test
+cases](https://github.com/erlang/otp/blob/869537a9bf799c8d12fc46c2b413e532d6e3b10c/lib/diameter/test/diameter_examples_SUITE.erl#L254-L266)
+or the [PropEr plugin for
+Rebar3](https://github.com/ferd/rebar3_proper/blob/e7eb96498a9d31f41c919474ec6800df62e237e1/src/rebar3_proper_prv.erl#L298-L308).
+
+Its overall form uses generators in list comprehensions to tunnel a happy
+path:
+
+    [Res] =
+        [f(Z) || {ok, W} <- [b()],
+                 {ok, X} <- [c(W)],
+                 {ok, Y} <- [d(X)],
+                 Z <- [e(Y)]],
+    Res.
+
+This form doesn't see too much usage since it is fairly obtuse and I
+suspect most people have either been reasonable enough not to use it, or
+did not think about it. Obviously the new form would be cleaner:
+
+    maybe
+        {ok, W} ?= b(),
+        {ok, X} ?= c(W),
+        {ok, Y} ?= d(X),
+        Z = e(Y),
+        f(Z)
+    end
+
+which on top of it, has the benefit of returning an error value if one
+is found.
 
 # Compiler news
 * Add compile attribute `-nifs()` to empower compiler and loader with information     about   which functions may be overridden as NIFs by `erlang:load_nif/2`.
