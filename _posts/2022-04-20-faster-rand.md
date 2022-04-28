@@ -10,7 +10,7 @@ to generate them fast and cheap; then maybe the full featured
 Pseudo Random Number Generators in the `rand` module are overkill.
 This blog post will dive in to new additions to the
 said module, how the Just-In-Time compiler optimizes them,
-known tricks, and and tries to compare these apples and potatoes.
+known tricks, and tries to compare these apples and potatoes.
 
 
 
@@ -20,22 +20,41 @@ Speed over quality?
 The Pseudo Random Number Generators implemented in
 the `rand` module offers many useful features such as
 repeatable sequences, non-biased range generation,
-any size (bignum) range, non-overlapping sequences,
+any size range, non-overlapping sequences,
 generating floats, normal distribution floats, etc.
 Many of those features are implemented through
-a plug-in framework, whith a performance cost.
+a plug-in framework, with a performance cost.
 
 The different algorithms offered by the `rand` module are selected
 to have excellent statistical quality and to perform well
-in serious PRNG tests, (see section [PRNG tests]).
+in serious PRNG tests (see section [PRNG tests]).
 
 Most of these algorithms are designed for machines with
 64-bit arithmetic (unsigned), but in Erlang such integers
 become bignums and almost an order of magnitude slower
 to handle than immediate integers.
 
+Erlang terms in the 64-bit VM are tagged 64-bit words.
+The tag for an immediate integer is 4 bit, leaving 60 bits
+for the signed integer value.  The largest positive
+immediate integer value is therefore 2<sup>59</sup>-1.
+
+Many algorithms work on unsigned integers so we have
+59 bits useful for that.  It could be theoretically
+possible to pretend 60 bits unsigned using split code paths
+for negative and positive values, but extremely impractical.
+
+We decided to choose 58 bit unsigned integers in this context
+since then we can for example add two integers, and check
+for overflow or simply mask back to 58 bit, without
+the intermediate result becoming a bignum.  To work with
+59 bit integers would require having to check for overflow
+before even doing an addition so the code that avoids
+bignums would eat up much of the speed gained from
+avoiding bignums.  So 58-bit integers it is!
+
 The algorithms that perform well in Erlang are the ones
-that have been redesigned to work on 58-bit words.
+that have been redesigned to work on 58-bit integers.
 But still, when executed in Erlang, they are far from
 as fast as their C origins.  Achieving good PRNG quality
 costs much more in Erlang than in C.  In the section
@@ -43,9 +62,10 @@ costs much more in Erlang than in C.  In the section
 that boasts sub-ns speed in C needs 17 ns in Erlang.
 
 32-bit Erlang is a sad story in this regard.  The bignum limit
-on such an Erlang system is so low that designing a PRNG
-that uses non-bignums has to use such a small word size
-that the generator becomes too bad to be used.
+on such an Erlang system is so low, calculations would have
+to use 26-bit integers, that designing a PRNG
+that uses non-bignums must be so small in period and size
+that it becomes too bad to be useful.
 The known trick `erlang:phash2(erlang:unique_integer(), Range)`
 is still fairly fast, but all `rand` generators work exactly the same
 as on a 64-bit system, hence operates on bignums so they are much slower.
@@ -64,7 +84,7 @@ Suggested solutions
 * [Write a BIF]
 * [Write a NIF]
 * [Use the system time]
-* [Hash an "unique" value]
+* [Hash a "unique" value]
 * [Write a simple PRNG]
 
 Reasoning and measurement results are in the following sections,
@@ -91,20 +111,20 @@ the `rand` module's default algorithm is done in 43 ns.
 
 Generating a number as fast as possible (`rand:lcg35/1`) can be done
 in just above 3 ns, but that algorithm has got pretty bad
-statistical quality by to today's standards.  See section [PRNG tests].
+statistical quality by today's standards.  See section [PRNG tests].
 Using a good quality algorithm instead (`rand:exsp_next/1`) takes 16 ns,
 if you can store the generator's state in a loop variable.
 
 If you can not store the generator state in a loop variable
 there will be more overhead, see section [Storing the state].
 
-Now, if you also need a number on an awkward range, as in not much smaller
+Now, if you also need a number in an awkward range, as in not much smaller
 than the generator's size, you might have to implement a reject-and-resample
 loop, or must concatenate numbers.
 
 The overhead of code that has to implement this much of the features
 that the `rand` module already offers will easily approach
-it's 26 ns overhead, so often there is no point in
+its 26 ns overhead, so often there is no point in
 re-implementing this wheel...
 
 
@@ -117,7 +137,7 @@ wrote an experimental BIF.
 
 The suggested BIF `erlang:random_integer(Range)` offered
 no repeatability, generator state per scheduler, guaranteed
-sequence separatiton between schedulers, and high generator
+sequence separation between schedulers, and high generator
 quality.  All this due to using one of the good generators from
 the `rand` module, but now written in C in the BIF.
 
@@ -146,18 +166,18 @@ Measurements, however, showed that the overhead is significantly larger
 than for a BIF.  Although the NIF used the same trick as the BIF to store
 the state in thread specific data it ended up with the same
 performance as `erlang:phash2(erlang:unique_integer(), Range)`,
-which is about 2..3 times slower than the BIF.
+which is about 2 to 3 times slower than the BIF.
 
 As a speed improvement we tried was to have the NIF generate
 a list of numbers, and use that list as a cache in Erlang.
 The performance with such a cache was as fast as the BIF,
 but introduced problems such as that you would have to decide
 on a cache size, the application would have to keep the cache on the heap,
-and when generating on a range the application would have to know
+and when generating in a range the application would have to know
 in advance the range for the whole cache.
 
 A NIF could like a BIF also achieve good performance on a 32-bit system,
-with the same open question - platform independent numbers or performance?
+with the same open question &mdash; platform independent numbers or performance?
 
 
 
@@ -176,13 +196,13 @@ See sectom [Measurement results] for the performance for this "solution".
 
 
 
-### Hash an "unique" value
+### Hash a "unique" value
 
 The best combination would most certainly be
 `erlang:phash2(erlang:unique_integer(), Range)` or
 `erlang:phash2(erlang:unique_integer())` which is slightly faster.
 
-`erlang:unique_integer/0` is designed to return a unique integer
+`erlang:unique_integer/0` is designed to return an unique integer
 with a very small overhead.  It is hard to find a better candidate
 for an integer to hash.
 
@@ -199,7 +219,7 @@ See section [Measurement results] for the performance for this solution.
 ### Write a simple PRNG
 
 To be fast, the implementation of a PRNG algorithm cannot
-execute many operations operations.  The operations have to be
+execute many operations.  The operations have to be
 on immediate values (not bignums), and the state as well
 as the returned number also have to be immediate values.
 This seriously limits how powerful algorithms that can be used.
@@ -210,7 +230,7 @@ and oldest PRNG:s.  It is implemented like this (in Erlang):
     X1 = (A * X0 + C) rem P
 ```
 For this to produce a sequence of numbers that appear random,
-there are a number of requirements on the constants A, C and P.
+there are a number of requirements on the constants `A`, `C` and `P`.
 
 One criteria for statistical quality is the spectral score,
 see section [Spectral score].
@@ -227,9 +247,9 @@ there are more restrictions imposed on `A`, `P` and `C`, but we will
 not dig deeper into this field and instead use established research.
 
 There is a classical (1999) paper by Pierre L'Ecuyer:
-"Tables of linear congruential generators of different sizes
-and good lattice structure".  Lattice structure is the property
-that the spectral score measures.
+[Tables of linear congruential generators of different sizes
+and good lattice structure][latrules].  Lattice structure
+is the property that the spectral score measures.
 
 From that paper I selected two generators that avoids bignums:
 ``` erlang
@@ -242,13 +262,13 @@ which I named `lcg35`, and
 which I named `mcg35`
 
 `lcg35` is a power of 2 generator with an odd addition constant
-and a state interval of `0 =< X < 2^35`.
+and a state interval of 0&nbsp;&leq;&nbsp;X&nbsp;<&nbsp;2<sup>35</sup>.
 
 `mcg35` is a prime modulus multiplicative generator (Lehmer generator)
-with a state interval of `1 =< X < 2^35-31`.  Since the modulus,
-the prime number `2^35 - 31`, is close to a power of 2, the expensive
-`rem` operation can be optimized, but the generator is still
-slightly slower than `lcg35`.
+with a state interval of 1&nbsp;&leq;&nbsp;X&nbsp;<&nbsp;2<sup>35</sup>-31.
+Since the modulus, the prime number 2<sup>35</sup>&nbsp;-&nbsp;31,
+is close to a power of 2, the expensive `rem` operation can be optimized,
+but the generator is still slightly slower than `lcg35`.
 
 Because state is not a power of 2, generating for example a 32-bit number
 with this generator gets tricky if you want it non-biased.  Simply masking
@@ -284,14 +304,15 @@ Here are some.
 an infinite period, since the time it will take for it to repeat
 is assumed to be longer than the Erlang node will survive.
 
-For the new fast generators the period it is about `2^35`,
-and for the good ones in `rand` it is at least `2^116 - 1`,
+For the new fast generators the period it is about 2<sup>35</sup>`,
+and for the good ones in `rand` it is at least `2<sup>116</sup>&nbsp;-&nbsp;1,
 which is a huge difference and also much more than what can be consumed
 during an Erlang node's lifetime.
 
 There are also generators in `rand` with a period of
-`2^928 -1` which is ridiculously long, but facilitates generating
-very many parallel sub-sequences that are guaranteed to not overlap.
+2<sup>928</sup>&nbsp;-&nbsp;1 which is ridiculously long,
+but facilitates generating very many parallel sub-sequences
+that are guaranteed to not overlap.
 
 For example in physical simulation it is common practice to only
 use a fraction of the period, both regarding how many numbers
@@ -307,19 +328,19 @@ while others are not, and this needs to be considered.
 The size of the new fast generators is about 35 bits, which is both
 the generator's state size (period) and value size.
 The good quality generators in the `rand` module has got a size
-(value size) of 58 bits..
+(value size) of 58 bits.
 
-If you need numbers on a power of two range then you can
+If you need numbers in a power of 2 range then you can
 simply mask out or shift down the required number of bits,
 depending on if the generator is known to have weak high or low bits.
 
-If the range you need is not a power of two, but still
+If the range you need is not a power of 2, but still
 much smaller than the generator's size you can use the `rem`
 operator, but it is noticably slower than a bitwise operation.
 
 Other tricks are possible, for example if you need numbers
-on the range 0..999 you may use bitwise operations to get
-a number 0..1023, and if too high re-try, which actually
+in the range 0 through 999 you may use bitwise operations to get
+a number 0 through 1023, and if too high re-try, which actually
 may be faster on average than using `rem`.
 
 ### Spectral score
@@ -343,15 +364,15 @@ All PRNG generators discussed here have got good spectral scores.
 ### PRNG tests
 
 There are test frameworks that tests the statistical properties
-of PRNG:s, such as the TestU01 framework, or PractRand.
+of PRNG:s, such as the [TestU01] framework, or [PractRand].
 
 The good quality generators in the `rand` module perform well
 in such tests, and pass even their most thorough.
 
-When testing the `lcg35` and `mct35` generators in TestU01
+When testing the `lcg35` and `mcg35` generators in [TestU01]
 it quickly becomes obvious that a good spectral score is not
 the whole picture.  They do not perform well at all.  Partly
-because of their short period and small size.  TestU01 measures
+because of their short period and small size.  [TestU01] measures
 32-bit random numbers and trying to get good test results with
 just a 35-bit generator is kind of futile.
 
@@ -360,7 +381,7 @@ belongs to.  The lowest bit alternates.  The next to lowest has a period
 of 4, and so on.  This is detected immediately in PRNG test programs.
 
 `erlang:phash2(N, Range)` over an incrementing sequence also does not do well
-in TestU01, which shows that a hash function has got different
+in [TestU01], which shows that a hash function has got different
 design criterias than PRNG:s.
 
 However, these kind of tests may be completely irrelevant
@@ -433,7 +454,7 @@ JIT optimizations
 
 The speed of the newly implemented `lcg53` and `mcg53` algorithms
 is much thanks to the recent [type-based optimizations] in the compiler
-and the Just-In-Time compliling .BEAM code loader.
+and the Just-In-Time compiling BEAM code loader.
 
 ### Without type-based optimization
 
@@ -442,18 +463,14 @@ This is the Erlang code for the `lcg35` generator:
 lcg35(X0) ->
     (15319397 * X0 + 15366142135) band ((1 bsl 35)-1).
 ```
-which compiles to (Erlang .BEAM assembler, erlc -S rand.erl):
+which compiles to (Erlang BEAM assembler, `erlc -S rand.erl`):
 ``` erlang
     {gc_bif,'*',{f,0},1,[{x,0},{integer,15319397}],{x,0}}.
     {gc_bif,'+',{f,0},1,[{tr,{x,0},number},{integer,15366142135}],{x,0}}.
     {gc_bif,'band',{f,0},1,[{tr,{x,0},number},{integer,34359738367}],{x,0}}.
 ```
-when loaded by the JIT (x86) (erl +JDdump true) the machine code becomes:
+when loaded by the JIT (x86) (`erl +JDdump true`) the machine code becomes:
 ```
-# i_test_yield
-    lea rdx, qword ptr [lcg35/1+24]
-    dec r14
-    jle L423
 # i_times_jssd
     mov rsi, qword ptr [rbx]
     mov edx, 245110367
@@ -463,8 +480,8 @@ when loaded by the JIT (x86) (erl +JDdump true) the machine code becomes:
     cmp edi, 15
     short jne L1891
 ```
-Above was a test for if X0 is a small integer.
-Below is a multiplication that has to check for overflow
+Above was a test for `{x,0}` being a small integer.
+Below is a multiplication that has to check for overflow:
 ```
 # mul with overflow check, imm RHS
     mov rax, rsi
@@ -475,8 +492,8 @@ Below is a multiplication that has to check for overflow
     or rax, 15
     short jmp L1890
 ```
-If X0 was not a small integer the following fallback code is used
-that handles multiplication of any term.
+If `{x,0}` was not a small integer the following fallback code is used
+that handles multiplication of any term:
 ```
 L1891:
     call 140408504026912
@@ -486,7 +503,7 @@ L1890:
 The following addition knows that the argument is a number,
 so it can use a simplified test for if the argument
 is a small integer and then it has a fallback for other terms
-which could be a bignum or a float.
+which could be a bignum or a float:
 ```
 # i_increment_SWd
     mov rsi, qword ptr [rbx]
@@ -503,7 +520,7 @@ L1893:
     mov qword ptr [rbx], rax
 ```
 Here is a mask operation to 35 bits that also
-knows that the argument is a number.
+knows that the argument is a number:
 ```
 # i_band_ssjd
     mov rsi, qword ptr [rbx]
@@ -526,14 +543,14 @@ L1895:
 ### With type-based optimization
 
 When the compiler can figure out type information about the arguments
-it can emit more effective code.  One would like to add a guard
+it can emit more efficient code.  One would like to add a guard
 that restricts the argument to a 58 bit integer, but unfortunately
 the compiler cannot yet make use of such a guard test.
 
 But adding a redundant input bit mask to the Erlang code puts the compiler
 on the right track.  This is a kludge, and will only be used
 until the compiler has been improved to deduce the same information
-from a guard instead:
+from a guard instead.
 
 Erlang code; note the first redundant mask to 35 bits:
 ``` erlang
@@ -541,7 +558,7 @@ lcg35(X0) ->
     X = X0 band ((1 bsl 35)-1),
     (15319397 * X + 15366142135) band ((1 bsl 35)-1).
 ```
-The .BEAM assembler now becomes:
+The BEAM assembler now becomes:
 ``` erlang
     {gc_bif,'band',{f,0},1,[{x,0},{integer,34359738367}],{x,0}}.
     {gc_bif,'*',
@@ -563,17 +580,12 @@ The .BEAM assembler now becomes:
             {x,0}}.
 ```
 Note the `{t_integer,Range}` type information that instead of just declaring
-that the argument is a number, now states that it is an integer on
+that the argument is a number, now states that it is an integer in
 a specific range, and this information is propagated to all operations
 following the initial input mask operation.
 
-Now the JIT:ed code becomes noticably shorter:
-```
-# i_test_yield
-    lea rdx, qword ptr [lcg35/1+24]
-    dec r14
-    jle L423
-```
+Now the JIT:ed code becomes noticably shorter.
+
 The input mask operation knows nothing about the value so it has all
 the checks and fallbacks:
 ```
@@ -625,7 +637,7 @@ The execution time goes down from 4.0 ns to 3.2 ns which is
 20% faster just by avoiding redundant checks and tests.
 
 And there is room for improvement.  The values are moved back and forth
-to .BEAM X registers (`qword ptr [rbx]`) between operations.
+to BEAM X registers (`qword ptr [rbx]`) between operations.
 Moving back from the X register could be avoided by the JIT
 since it could know that the value is in a process register.
 Moving out to the X register could be optimized away if the compiler
@@ -641,7 +653,7 @@ after the initial input mask, but the `lcg35` is shorter to explain.
 `rand_SUITE:measure/1`
 ----------------------
 
-The test suite for the `rand` module - `rand_SUITE`,
+The test suite for the `rand` module &mdash; `rand_SUITE`,
 in the Erlang/OTP source tree, contains a test case `measure/1`.
 This test case is a micro-benchmark of all the algorithms
 in the `rand` module, and some more.  It measures the execution
@@ -737,7 +749,7 @@ RNG uniform integer 32 bit performance
 In this section `lcg35_inline`, `exsp_inline` and `system_time`
 use bit operations such as `X band 16#ffffffff` or `X bsr 3`
 to achieve the desired range, and now we see that this is
-about 5..10 ns faster than for the `rem` operation
+about 5 to 10 ns faster than for the `rem` operation
 in the previous section.  `lcg35_inline` is now 3 times faster.
 
 `unique_phash2` still uses BIF coded integer division to achieve
@@ -745,8 +757,9 @@ the range, which gives it about the same speed as in the previous section.
 
 The `mcg35_inline` generator does not participate in this section since
 range capping with binary operations would give noticable bias
-because the generator has got a state range that is 1 .. 2^35-31,
-which is not a power of two and has got a very low margin down to 32 bits.
+because the generator has got a state range that is
+1 through 2<sup>35</sup>-31, which is not a power of 2
+and has got a very low margin down to 32 bits.
 
 
 ```
@@ -803,7 +816,7 @@ the precisous CPU cycles are used for.
 [Write a BIF]:              #write-a-bif
 [Write a NIF]:              #write-a-nif
 [Use the system time]:      #use-the-system-time
-[Hash an "unique" value]:   #hash-an-unique-value
+[Hash a "unique" value]:    #hash-a-unique-value
 [Write a simple PRNG]:      #write-a-simple-prng
 
 [Quality]:                  #quality
@@ -814,6 +827,15 @@ the precisous CPU cycles are used for.
 
 [Looking for a faster RNG]:
 https://erlangforums.com/t/looking-for-a-faster-rng/
+
+[latrules]:
+https://www.iro.umontreal.ca/~lecuyer/myftp/papers/latrules.ps
+
+[TestU01]:
+http://simul.iro.umontreal.ca/testu01/
+
+[PractRand]:
+http://pracrand.sourceforge.net/
 
 [type-based optimizations]:
 https://www.erlang.org/blog/type-based-optimizations-in-the-jit/
