@@ -158,10 +158,10 @@ Or
 ```
 erl -enable-feature all
 ```
+
 # The new `maybe`expression (`maybe_expr) EEP-49
 
 The maybe_expr feature is the first feature in the new feature concept.
-
 
 # Compiler news
 * Add compile attribute `-nifs()` to empower compiler and loader with information     about   which functions may be overridden as NIFs by `erlang:load_nif/2`.
