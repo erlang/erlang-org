@@ -637,12 +637,12 @@ The execution time goes down from 4.0 ns to 3.2 ns which is
 20% faster just by avoiding redundant checks and tests.
 
 And there is room for improvement.  The values are moved back and forth
-to BEAM X registers (`qword ptr [rbx]`) between operations.
-Moving back from the X register could be avoided by the JIT
+to BEAM `{x,_}` registers (`qword ptr [rbx]`) between operations.
+Moving back from the `{x,_}` register could be avoided by the JIT
 since it could know that the value is in a process register.
-Moving out to the X register could be optimized away if the compiler
+Moving out to the `{x,_}` register could be optimized away if the compiler
 would emit the information that the value will not be used
-from the X register after the operation.
+from the `{x,_}` register after the operation.
 
 The shown type-based optimizations actually gives more improvement
 for the `mcg35` generator since it has got more operations on the value
