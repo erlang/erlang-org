@@ -97,8 +97,8 @@ but, in short:
   would emerge, we could reconsider this decision.
 * Using the system time is a bad idea.
 * `erlang:phash2(erlang:unique_integer(), Range)` has its use cases.
-* We have implemented two simple PRNGs to fill the niche of non-critical
-  but very fast number generation: `lcg35` and `mcg35`.
+* We have implemented a simple PRNG to fill the niche of non-critical
+  but very fast number generation: `mwc59`.
 
 
 ### Use `rand` anyway
@@ -109,8 +109,8 @@ In the [Measurement results] at the end of this text,
 it shows that generating a good quality random number using
 the `rand` module's default algorithm is done in 43 ns.
 
-Generating a number as fast as possible (`rand:lcg35/1`) can be done
-in just above 3 ns, but that algorithm has got pretty bad
+Generating a number as fast as possible (`rand:mwc59/1`) can be done
+in just under 4 ns, but that algorithm has not got good
 statistical quality by today's standards.  See section [PRNG tests].
 Using a good quality algorithm instead (`rand:exsp_next/1`) takes 16 ns,
 if you can store the generator's state in a loop variable.
@@ -132,8 +132,8 @@ re-implementing this wheel...
 ### Write a BIF
 
 There was been a discussion thread on Erlang Forums:
-[Looking for a faster RNG].  Triggered by this the user "potatosallad"
-wrote an experimental BIF.
+[Looking for a faster RNG].  Triggered by this Andrew Bennett
+[potatosalad] wrote an experimental BIF.
 
 The suggested BIF `erlang:random_integer(Range)` offered
 no repeatability, generator state per scheduler, guaranteed
@@ -141,9 +141,8 @@ sequence separation between schedulers, and high generator
 quality.  All this due to using one of the good generators from
 the `rand` module, but now written in C in the BIF.
 
-The performance was comparable to the `mcg35` generator, so a bit slower
-than the (fastest) 'lcg53' generator, but with top of the line quality.
-See section [Measurement results].
+The performance was a bit slower than the `mwc` generator state update,
+but with top of the line quality. See section [Measurement results].
 
 Questions arised regarding maintenance burden, what more to implement, etc.
 For example we probably also would need `erlang:random_integer/0`,
@@ -159,7 +158,7 @@ generated numbers or with respect to performance?
 
 ### Write a NIF
 
-"potatosallad" also wrote a NIF, since we (The Erlang/OTP team)
+[potatosalad] also wrote a NIF, since we (The Erlang/OTP team)
 suggested that it could have good enough performance.
 
 Measurements, however, showed that the overhead is significantly larger
@@ -224,61 +223,43 @@ on immediate values (not bignums), and the state as well
 as the returned number also have to be immediate values.
 This seriously limits how powerful algorithms that can be used.
 
-A Linear Congruential Generator is one of the most researched
-and oldest PRNG:s.  It is implemented like this (in Erlang):
+A Multiply With Carry generator is one of the classical PRNG:s
+and is a special form of a Muliplicative Contruential Generator.
+It is a well researched PRNG, and can be implemented
+like this (in Erlang):
 ``` erlang
-    X1 = (A * X0 + C) rem P
+    C   = CX0 bsl B,
+    X   = CX0 band ((1 bsl B) - 1)
+    CX1 = A * X + C
 ```
 For this to produce a sequence of numbers that appear random,
-there are a number of requirements on the constants `A`, `C` and `P`.
+there are a number of requirements on the constants `A`, `C` and `B`.
 
 One criteria for statistical quality is the spectral score,
 see section [Spectral score].
 
 To get a decent spectral score `A` cannot be too small, not (much)
-smaller than the square root of `P`.  And `(A * X0 + C)` produces a number
-as large as `A * P`, which must not become a bignum.
-
-The `rem` operation is expensive, but if `P` is a power of 2,
-we can use `band (P-1)` instead, which is much faster.
+smaller than 2<sup>B</sup>.  And `A * X + C` produces a number
+as large as `A * 2<sup>B</sup>`, which must not become a bignum.
 
 To get a full sequence, that is, to use all numbers in the state range,
-there are more restrictions imposed on `A`, `P` and `C`, but we will
-not dig deeper into this field and instead use established research.
+there are more restrictions imposed on `A`, `B` and `C`, but we will
+not dig deeper into this field and instead consult the profession,
+in this case Prof. Sebastiano Vigna at the University of Milano
+that also helped develop our current 58-bit Xorshift family generators.
 
-There is a classical (1999) paper by Pierre L'Ecuyer:
-[Tables of linear congruential generators of different sizes
-and good lattice structure][latrules].  Lattice structure
-is the property that the spectral score measures.
+After trying many parameters in spectral score programs and
+programs for [PRNG tests] we selected the parameters
+`A&nbsp;=&nbsp;16#7f17555` and `B&nbsp;=&nbsp;32`, which I named `mwc59`.
 
-From that paper I selected two generators that avoids bignums:
-``` erlang
-    X1 = (15319397 * X0 + 15366142135) band ((1 bsl 35)-1)
-```
-which I named `lcg35`, and
-``` erlang
-    X1 = (185852 * X0) rem ((1 bsl 35)-31)
-```
-which I named `mcg35`
+It has a 59-bit state space and an MWC "digit" size of 32 bits which
+gives the low 32 bits mathematical guarantees about their spectral score.
 
-`lcg35` is a power of 2 generator with an odd addition constant
-and a state interval of 0&nbsp;&leq;&nbsp;X&nbsp;<&nbsp;2<sup>35</sup>.
-
-`mcg35` is a prime modulus multiplicative generator (Lehmer generator)
-with a state interval of 1&nbsp;&leq;&nbsp;X&nbsp;<&nbsp;2<sup>35</sup>-31.
-Since the modulus, the prime number 2<sup>35</sup>&nbsp;-&nbsp;31,
-is close to a power of 2, the expensive `rem` operation can be optimized,
-but the generator is still slightly slower than `lcg35`.
-
-Because state is not a power of 2, generating for example a 32-bit number
-with this generator gets tricky if you want it non-biased.  Simply masking
-off the high 3 bits gives 8 possibilities for all values but the top 31
-and zero, that only get 7 possibilities.  So the probability for
-a zero or one of the top 31 values is 7/8 of the probability for all others.
-
-Note that it is unwise to use more than say half the bits
-corresponding to a generator's period anyway. See section [Quality],
-about that and other differences between these generators.
+On the flip side, since an MWC generator corresponds to an MCG
+with a power of 2 multiplier, it gets a bad spectral score for
+3 dimensions.  This can be fixed with a scrambling function
+to convert the state into a generated number.  We selected
+two different scrambling functions with increasing quality.
 
 As gap filler between really fast with low quality, and full featured,
 an internal function in `rand` has been exported: `rand:exsp_next/1`.
@@ -369,18 +350,11 @@ of PRNG:s, such as the [TestU01] framework, or [PractRand].
 The good quality generators in the `rand` module perform well
 in such tests, and pass even their most thorough.
 
-When testing the `lcg35` and `mcg35` generators in [TestU01]
-it quickly becomes obvious that a good spectral score is not
-the whole picture.  They do not perform well at all.  Partly
-because of their short period and small size.  [TestU01] measures
-32-bit random numbers and trying to get good test results with
-just a 35-bit generator is kind of futile.
+The `mcg59` generator pass [PractRand] with its low 16 bits
+without any scrambling.  To pass [PractRand] and [TestU01]
+with more bits the scrambling functions are needed.
 
-There is a known property of the family of generators that `lcg35`
-belongs to.  The lowest bit alternates.  The next to lowest has a period
-of 4, and so on.  This is detected immediately in PRNG test programs.
-
-`erlang:phash2(N, Range)` over an incrementing sequence also does not do well
+`erlang:phash2(N, Range)` over an incrementing sequence does not do well
 in [TestU01], which shows that a hash function has got different
 design criterias than PRNG:s.
 
@@ -456,133 +430,164 @@ The speed of the newly implemented `lcg53` and `mcg53` algorithms
 is much thanks to the recent [type-based optimizations] in the compiler
 and the Just-In-Time compiling BEAM code loader.
 
-### Without type-based optimization
+### With only partial type-based optimization
 
-This is the Erlang code for the `lcg35` generator:
+This is the Erlang code for the `mwc59` generator:
 ``` erlang
-lcg35(X0) ->
-    (15319397 * X0 + 15366142135) band ((1 bsl 35)-1).
+mwc59(CX) ->
+    16#7f17555 * (CX band ((1 bsl 32)-1)) + (CX bsr 32).
 ```
 which compiles to (Erlang BEAM assembler, `erlc -S rand.erl`):
 ``` erlang
-    {gc_bif,'*',{f,0},1,[{x,0},{integer,15319397}],{x,0}}.
-    {gc_bif,'+',{f,0},1,[{tr,{x,0},number},{integer,15366142135}],{x,0}}.
-    {gc_bif,'band',{f,0},1,[{tr,{x,0},number},{integer,34359738367}],{x,0}}.
+    {gc_bif,'bsr',{f,0},1,[{x,0},{integer,32}],{x,1}}.
+    {gc_bif,'band',
+            {f,0},
+            2,
+            [{tr,{x,0},{t_integer,any}},{integer,4294967295}],
+            {x,0}}.
+    {line,[{location,"lib/stdlib/src/rand.erl",1517}]}.
+    {gc_bif,'*',
+            {f,0},
+            2,
+            [{tr,{x,0},{t_integer,{0,4294967295}}},{integer,133264725}],
+            {x,0}}.
+    {gc_bif,'+',
+            {f,0},
+            2,
+            [{tr,{x,0},{t_integer,{0,572367635452168875}}},
+             {tr,{x,1},{t_integer,any}}],
+            {x,0}}.
 ```
+Note that the first `bsr` has no type information on `{x,0}`
+since there is no `{tr,_}` annotation, and that the `band`
+and the `+` operations does not know the range of one argument
+since it is annotated as `{t_integer,any}`.
+
 when loaded by the JIT (x86) (`erl +JDdump true`) the machine code becomes:
 ```
-# i_times_jssd
+# i_bsr_ssjd
     mov rsi, qword ptr [rbx]
-    mov edx, 245110367
 # is the operand small?
     mov edi, esi
     and edi, 15
     cmp edi, 15
-    short jne L1891
+    short jne L1816
 ```
-Above was a test for `{x,0}` being a small integer.
-Below is a multiplication that has to check for overflow:
+Above was a test if `{x,0}` is a small integer and if not
+the fallback at `L1816` is called to handle any term.
+Here follows the machine code shift left, Erlang `bsl 32`,
+x86 `sar rax 32`, and a skip over the fallback code.
 ```
-# mul with overflow check, imm RHS
     mov rax, rsi
-    mov rcx, 15319397
-    and rax, -16
-    imul rax, rcx
-    short jo L1891
+    sar rax, 32
     or rax, 15
-    short jmp L1890
-```
-If `{x,0}` was not a small integer the following fallback code is used
-that handles multiplication of any term:
-```
-L1891:
-    call 140408504026912
-L1890:
-    mov qword ptr [rbx], rax
-```
-The following addition knows that the argument is a number,
-so it can use a simplified test for if the argument
-is a small integer and then it has a fallback for other terms
-which could be a bignum or a float:
-```
-# i_increment_SWd
-    mov rsi, qword ptr [rbx]
-    mov rdx, 245858274160
-# simplified test for small operand since it is a number
-    mov rax, rsi
-    test al, 1
-    short je L1892
-    add rax, rdx
-    short jno L1893
-L1892:
-    call 140408504025560
-L1893:
-    mov qword ptr [rbx], rax
-```
-Here is a mask operation to 35 bits that also
-knows that the argument is a number:
-```
+    short jmp L1817
+L1816:
+    mov eax, 527
+    call 139848450407608
+L1817:
+    mov qword ptr [rbx+8], rax
+# line_I
 # i_band_ssjd
     mov rsi, qword ptr [rbx]
-    mov rax, 549755813887
+    mov rax, 68719476735
 # simplified test for small operand since it is a number
     test esi, 1
-    short je L1894
+    short je L1818
     and rax, rsi
-    short jmp L1895
-L1894:
-    call 140408504023680
-L1895:
+    short jmp L1819
+L1818:
+    call 139848450407040
+L1819:
     mov qword ptr [rbx], rax
-# return
-    dec r14
-    jl L424
-    ret
+# line_I
+```
+Above was a `band` that did not know the size of the argument.
+Below comes a multiplication that knows both operands and
+the result are small integers so it can skip overflow check
+and fallback code.
+```
+# i_times_jssd
+# multiplication without overflow check
+    mov rax, qword ptr [rbx]
+    mov esi, 2132235615
+    and rax, -16
+    sar rsi, 4
+    imul rax, rsi
+    or rax, 15
+    mov qword ptr [rbx], rax
+# i_plus_ssjd
+    mov rsi, qword ptr [rbx]
+    mov rdx, qword ptr [rbx+8]
+```
+The following `+` does not know if the result may overflow.
+```
+# simplified test for small operands since both are numbers
+    test edx, 1
+    short je L1821
+# add with overflow check
+    mov rax, rsi
+    mov rcx, rdx
+    and rcx, -16
+    add rax, rcx
+    short jno L1820
+L1821:
+    call 139848450409568
+L1820:
+    mov qword ptr [rbx], rax
 ```
 
 ### With type-based optimization
 
 When the compiler can figure out type information about the arguments
-it can emit more efficient code.  One would like to add a guard
-that restricts the argument to a 58 bit integer, but unfortunately
-the compiler cannot yet make use of such a guard test.
+it can emit more efficient code.  It did so on one operation above.
+One would like to add a guard that restricts the argument
+to a 59 bit integer, but unfortunately the compiler cannot yet
+make use of such a guard test.
 
 But adding a redundant input bit mask to the Erlang code puts the compiler
 on the right track.  This is a kludge, and will only be used
 until the compiler has been improved to deduce the same information
 from a guard instead.
 
-Erlang code; note the first redundant mask to 35 bits:
+Erlang code; note the first redundant mask to 59 bits:
 ``` erlang
-lcg35(X0) ->
-    X = X0 band ((1 bsl 35)-1),
-    (15319397 * X + 15366142135) band ((1 bsl 35)-1).
+mwc59(CX0) ->
+    CX = CX0 band ((1 bsl 59)-1),
+    16#7f17555 * (CX band ((1 bsl 32)-1)) + (CX bsr 32).
 ```
 The BEAM assembler now becomes:
 ``` erlang
-    {gc_bif,'band',{f,0},1,[{x,0},{integer,34359738367}],{x,0}}.
-    {gc_bif,'*',
+    {gc_bif,'band',{f,0},1,[{x,0},{integer,576460752303423487}],{x,0}}.
+    {line,[{location,"lib/stdlib/src/rand.erl",1515}]}.
+    {gc_bif,'bsr',
             {f,0},
             1,
-            [{tr,{x,0},{t_integer,{0,34359738367}}},{integer,15319397}],
+            [{tr,{x,0},{t_integer,{0,576460752303423487}}},{integer,32}],
+            {x,1}}.
+    {line,[{location,"lib/stdlib/src/rand.erl",1516}]}.
+    {gc_bif,'band',
+            {f,0},
+            2,
+            [{tr,{x,0},{t_integer,{0,576460752303423487}}},
+             {integer,4294967295}],
+            {x,0}}.
+    {line,[{location,"lib/stdlib/src/rand.erl",1517}]}.
+    {gc_bif,'*',
+            {f,0},
+            2,
+            [{tr,{x,0},{t_integer,{0,4294967295}}},{integer,133264725}],
             {x,0}}.
     {gc_bif,'+',
             {f,0},
-            1,
-            [{tr,{x,0},{t_integer,{0,526370472860204699}}},
-             {integer,15366142135}],
-            {x,0}}.
-    {gc_bif,'band',
-            {f,0},
-            1,
-            [{tr,{x,0},{t_integer,{15366142135,526370488226346834}}},
-             {integer,34359738367}],
+            2,
+            [{tr,{x,0},{t_integer,{0,572367635452168875}}},
+             {tr,{x,1},{t_integer,{0,134217727}}}],
             {x,0}}.
 ```
-Note the `{t_integer,Range}` type information that instead of just declaring
-that the argument is a number, now states that it is an integer in
-a specific range, and this information is propagated to all operations
-following the initial input mask operation.
+Note that after the initial input `band` operation,
+a `{t_integer,Range}` type information has been propagated
+all the way down.
 
 Now the JIT:ed code becomes noticably shorter.
 
@@ -591,49 +596,58 @@ the checks and fallbacks:
 ```
 # i_band_ssjd
     mov rsi, qword ptr [rbx]
-    mov rax, 549755813887
+    mov rax, 9223372036854775807
 # is the operand small?
     mov edi, esi
     and edi, 15
     cmp edi, 15
-    short jne L1890
+    short jne L1816
     and rax, rsi
-    short jmp L1891
-L1890:
-    call 140007608482432
-L1891:
+    short jmp L1817
+L1816:
+    call 139805174839936
+L1817:
     mov qword ptr [rbx], rax
 ```
 All the following operations has optimized away checks and fallback code,
-and becomes a straight sequence of machine code:
+to become a straight sequence of machine code:
 ```
+# line_I
+# i_bsr_ssjd
+    mov rsi, qword ptr [rbx]
+# skipped test for small left operand because it is always small
+    mov rax, rsi
+    sar rax, 32
+    or rax, 15
+L1818:
+L1819:
+    mov qword ptr [rbx+8], rax
+# line_I
+# i_band_ssjd
+    mov rsi, qword ptr [rbx]
+    mov rax, 68719476735
+# skipped test for small operands since they are always small
+    and rax, rsi
+    mov qword ptr [rbx], rax
+# line_I
 # i_times_jssd
 # multiplication without overflow check
     mov rax, qword ptr [rbx]
-    mov esi, 245110367
+    mov esi, 2132235615
     and rax, -16
     sar rsi, 4
     imul rax, rsi
     or rax, 15
     mov qword ptr [rbx], rax
-# i_increment_SWd
-# skipped operand and overflow checks
+# i_plus_ssjd
+# add without overflow check
     mov rax, qword ptr [rbx]
-    mov rdi, 245858274160
-    add rax, rdi
+    mov rsi, qword ptr [rbx+8]
+    and rax, -16
+    add rax, rsi
     mov qword ptr [rbx], rax
-# i_band_ssjd
-    mov rsi, qword ptr [rbx]
-    mov rax, 549755813887
-# skipped test for small operands since they are always small
-    and rax, rsi
-    mov qword ptr [rbx], rax
-# return
-    dec r14
-    jl L424
-    ret
 ```
-The execution time goes down from 4.0 ns to 3.2 ns which is
+The execution time goes down from XXX4.0 ns to XXX3.2 ns which is
 20% faster just by avoiding redundant checks and tests.
 
 And there is room for improvement.  The values are moved back and forth
@@ -643,10 +657,6 @@ since it could know that the value is in a process register.
 Moving out to the `{x,_}` register could be optimized away if the compiler
 would emit the information that the value will not be used
 from the `{x,_}` register after the operation.
-
-The shown type-based optimizations actually gives more improvement
-for the `mcg35` generator since it has got more operations on the value
-after the initial input mask, but the `lcg35` is shorter to explain.
 
 
 
@@ -696,10 +706,12 @@ Measurement results
 Here are some selected results from the author's laptop
 from running `rand_SUITE:measure(5)`:
 
-The `mcg35_inline` and `lcg35_inline` generators are
-the newly implemented `rand:mcg35/1` and `rand:lcg35/1`.
+The `{mwc59,Tag}` generator is `rand:mwc59/1`, where
+`Tag` indicates if the `raw` generator,
+the `rand:mwc59_value/1` or the `rand:mwc59_full_value/1`
+scrambler was used.
 
-The `exsp_inline` generator is `rand:exsp_next/1` which
+The `{exsp,_}` generator is `rand:exsp_next/1` which
 is a newly exported internal function that does not use
 the plug-in framework.  When called from the plug-in
 framework it is called `exsp` below.
@@ -727,13 +739,14 @@ after the "overhead:" line.  Note that the measured overhead
 is 3.3 ns which matches pretty well that `exsss` when adjusted
 for overhead got 3.6 ns shorter time than on the warm-up run.
 
-`mcg35_inline`, `lcg35_inline`, `exsp_inline` and `system_time`
-all use `(X rem 10000) + 1` to achieve the desired range.
+`{mwc59,raw_mod}`, `{mwc59,value_mod}`,  `{mwc59,full_mod}`,
+`{exsp,mod}` and `system_time` all use `(X rem 10000) + 1`
+to achieve the desired range.
 This operation is expensive, which we will see when comparing
 with the next section.
 
 `erlang:phash2/2` has got a range argument, that performs
-the `rem 10000` operation in the BIF, which is cheap,
+the `rem 10000` operation in the BIF, which is fairly cheap,
 as we also will see when comparing with the next section.
 
 
@@ -746,20 +759,15 @@ RNG uniform integer 32 bit performance
            unique_phash2:     22.0 ns     40.4%
              system_time:     23.6 ns     43.4%
 ```
-In this section `lcg35_inline`, `exsp_inline` and `system_time`
+In this section `{mwc59,raw_mask}`, `{mwc59,value_mask}`,
+`{mwc59,full_mask}`, `{exsp,shift}`, and `system_time`
 use bit operations such as `X band 16#ffffffff` or `X bsr 3`
 to achieve the desired range, and now we see that this is
 about 5 to 10 ns faster than for the `rem` operation
-in the previous section.  `lcg35_inline` is now 3 times faster.
+in the previous section.  `{mwc59,_}` is now 3 times faster.
 
 `unique_phash2` still uses BIF coded integer division to achieve
 the range, which gives it about the same speed as in the previous section.
-
-The `mcg35_inline` generator does not participate in this section since
-range capping with binary operations would give noticable bias
-because the generator has got a state range that is
-1 through 2<sup>35</sup>-31, which is not a power of 2
-and has got a very low margin down to 32 bits.
 
 
 ```
@@ -782,26 +790,25 @@ update and returns a constant.  It is used here to measure
 plug-in framework overhead.
 
 The plug-in framework overhead is measured to 26 ns that matches
-`exsp` - `exsp_inline` = 24 ns well, which is the same algorithm within
+`exsp` - `{exsp,next}` = 24 ns well, which is the same algorithm within
 and without the plug-in framework.
 
 `procdict` is the default algorithm `exsss` but makes the plug-in
 framework store the generator state in the process dictionary,
 which here costs 27.3 ns.
 
-`lcg35_procdict` is `lcg35_inline` but stores the generator
-state in the process dictionary, which here costs 11.2 ns.
-The state term that is stored is much smaller than for
-the plug-in framework.  Compare to the above.
+`{mwc59,procdict}` stores the generator state in the process dictionary,
+which here costs 11.2 ns. The state term that is stored is much smaller
+than for the plug-in framework.  Compare to the above.
 
 
 
 Summing up
 ----------
 
-The new functions in the `rand` module for fast and dirty
-generators fills a niche for speed over quality where
-the type-based JIT optimizations have elevated the performance.
+The new fast generators functions in the `rand` module
+fills a niche for speed over quality where the type-based
+JIT optimizations have elevated the performance.
 
 The combination of high speed and high quality can only
 be fulfilled with a BIF implementation, but we hope that
@@ -827,6 +834,8 @@ the precisous CPU cycles are used for.
 
 [Looking for a faster RNG]:
 https://erlangforums.com/t/looking-for-a-faster-rng/
+
+[potatosalad]:              https://github.com/potatosalad/
 
 [latrules]:
 https://www.iro.umontreal.ca/~lecuyer/myftp/papers/latrules.ps
