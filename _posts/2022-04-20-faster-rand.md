@@ -183,7 +183,7 @@ with the same open question &mdash; platform independent numbers or performance?
 ### Use the system time
 
 One suggested trick is to use `os:system_time(microseconds)` to get
-a number.  The trick has some pecularities:
+a number.  The trick has some peculiarities:
 * When called repeatedly you might get the same number several times.
 * The resolution is system dependent, so on some systems you get
   the same number even more several times.
@@ -226,7 +226,7 @@ as the returned number also have to be immediate values.
 This seriously limits how powerful algorithms that can be used.
 
 A Multiply With Carry generator is one of the classical PRNG:s
-and is a special form of a Muliplicative Contruential Generator.
+and is a special form of a Multiplicative Congruential Generator.
 It is a well researched PRNG, and can be implemented
 like this (in Erlang):
 ``` erlang
@@ -271,7 +271,7 @@ exported so it is possible to get good quality without
 the plug-in framework overhead, for applications that do not
 need any framework features.
 
-See section [Measurement results] for speed comparisions.
+See section [Measurement results] for speed comparisons.
 
 
 
@@ -319,10 +319,10 @@ depending on if the generator is known to have weak high or low bits.
 
 If the range you need is not a power of 2, but still
 much smaller than the generator's size you can use the `rem`
-operator, but it is noticably slower than a bitwise operation.
+operator, but it is noticeably slower than a bit-wise operation.
 
 Other tricks are possible, for example if you need numbers
-in the range 0 through 999 you may use bitwise operations to get
+in the range 0 through 999 you may use bit-wise operations to get
 a number 0 through 1023, and if too high re-try, which actually
 may be faster on average than using `rem`.
 
@@ -356,11 +356,11 @@ The `mcg59` generator pass [PractRand] with its low 16 bits
 without any scrambling.  To perform well in [PractRand] and [TestU01]
 with more bits the scrambling functions are needed,
 and still, the small state space makes it impossible
-to pass all tests with flying colours.
+to pass all tests with flying colors.
 
 `erlang:phash2(N, Range)` over an incrementing sequence does not do well
 in [TestU01], which shows that a hash function has got different
-design criterias than PRNG:s.
+design criteria than PRNG:s.
 
 However, these kind of tests may be completely irrelevant
 for your application.
@@ -371,7 +371,7 @@ For some applications, a generated number may have to be even
 cryptographically unpredictable, while for others there are
 no strict requirements.
 
-There is a greyzone for "non-critical" applications where for example
+There is a grey-zone for "non-critical" applications where for example
 a rouge party may be able to affect input data, and if it knows the PRNG
 sequence can steer all data to a hash table slot, overload one particular
 worker process, or something similar, and in this way attack an application.
@@ -589,7 +589,7 @@ Note that after the initial input `band` operation,
 type information `{tr,{x_},{t_integer,Range}}` has been propagated
 all the way down.
 
-Now the JIT:ed code becomes noticably shorter.
+Now the JIT:ed code becomes noticeably shorter.
 
 The input mask operation knows nothing about the value so it has
 the operand test and the fallback:
@@ -687,9 +687,9 @@ results after the overhead run.
 
 The warm-up and overhead measurement & compensation are
 recent improvements to the `measure/1` test case.
-Overhead has also been reduced by inlining 10 PRNG iterations
+Overhead has also been reduced by in-lining 10 PRNG iterations
 per test case loop iteration, which got the overhead down to
-one third of without such inlining, and the overhead is now
+one third of without such in-lining, and the overhead is now
 about as large as the fastest generator itself, approaching the
 function call overhead in Erlang.
 
@@ -820,7 +820,7 @@ be fulfilled with a BIF implementation, but we hope that
 to be a combination we do not need to address...
 
 Recent improvements in `rand_suite:measure/1` highlights what
-the precisous CPU cycles are used for.
+the precious CPU cycles are used for.
 
 
 
