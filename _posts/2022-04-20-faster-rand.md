@@ -110,7 +110,7 @@ it shows that generating a good quality random number using
 the `rand` module's default algorithm is done in 43 ns.
 
 Generating a number as fast as possible (`rand:mwc59/1`) can be done
-in just under 4 ns, but that algorithm has not got good
+in just above 3 ns, but that algorithm has not got good
 statistical quality by today's standards.  See section [PRNG tests].
 Using a good quality algorithm instead (`rand:exsp_next/1`) takes 16 ns,
 if you can store the generator's state in a loop variable.
@@ -141,7 +141,7 @@ sequence separation between schedulers, and high generator
 quality.  All this due to using one of the good generators from
 the `rand` module, but now written in C in the BIF.
 
-The performance was a bit slower than the `mwc` generator state update,
+The performance was a bit slower than the `mwc59` generator state update,
 but with top of the line quality. See section [Measurement results].
 
 Questions arised regarding maintenance burden, what more to implement, etc.
@@ -191,7 +191,7 @@ a number.  The trick has some pecularities:
 * Historically it has been a bottleneck, especially on virtualized
   platforms.  Getting the OS time is harder then expected.
 
-See sectom [Measurement results] for the performance for this "solution".
+See section [Measurement results] for the performance for this "solution".
 
 
 
@@ -210,6 +210,8 @@ It has a default return size well suited for 32-bit Erlang systems,
 and it has a `Range` argument.  The range capping is done with a simple
 `rem` in C (`%`) which is much faster than in Erlang.  This works good
  only for ranges much smaller than 32-bit.
+
+Alas this solution does not perform well in [PRNG tests].
 
 See section [Measurement results] for the performance for this solution.
 
@@ -233,24 +235,24 @@ like this (in Erlang):
     CX1 = A * X + C
 ```
 For this to produce a sequence of numbers that appear random,
-there are a number of requirements on the constants `A`, `C` and `B`.
+there are a number of requirements on the constants `A` and `B`.
 
 One criteria for statistical quality is the spectral score,
 see section [Spectral score].
 
 To get a decent spectral score `A` cannot be too small, not (much)
 smaller than 2<sup>B</sup>.  And `A * X + C` produces a number
-as large as `A * 2<sup>B</sup>`, which must not become a bignum.
+as large as `A`&nbsp;*&nbsp;2<sup>B</sup>, which must not become a bignum.
 
 To get a full sequence, that is, to use all numbers in the state range,
-there are more restrictions imposed on `A`, `B` and `C`, but we will
+there are more restrictions imposed on `A` and `B`, but we will
 not dig deeper into this field and instead consult the profession,
 in this case Prof. Sebastiano Vigna at the University of Milano
 that also helped develop our current 58-bit Xorshift family generators.
 
 After trying many parameters in spectral score programs and
 programs for [PRNG tests] we selected the parameters
-`A&nbsp;=&nbsp;16#7f17555` and `B&nbsp;=&nbsp;32`, which I named `mwc59`.
+`A = 16#7f17555` and `B = 32`, which I named `mwc59`.
 
 It has a 59-bit state space and an MWC "digit" size of 32 bits which
 gives the low 32 bits mathematical guarantees about their spectral score.
@@ -261,10 +263,10 @@ with a power of 2 multiplier, it gets a bad spectral score for
 to convert the state into a generated number.  We selected
 two different scrambling functions with increasing quality.
 
-As gap filler between really fast with low quality, and full featured,
-an internal function in `rand` has been exported: `rand:exsp_next/1`.
-This function implements Xoroshiro116+ and is used from the
-`rand` plug-in framework as algorithm `exsp`.  It has been
+As another gap filler between really fast with low quality,
+and full featured, an internal function in `rand` has been exported:
+`rand:exsp_next/1`.  This function implements Xoroshiro116+ and exists
+in the `rand` plug-in framework as algorithm `exsp`.  It has been
 exported so it is possible to get good quality without
 the plug-in framework overhead, for applications that do not
 need any framework features.
@@ -351,8 +353,10 @@ The good quality generators in the `rand` module perform well
 in such tests, and pass even their most thorough.
 
 The `mcg59` generator pass [PractRand] with its low 16 bits
-without any scrambling.  To pass [PractRand] and [TestU01]
-with more bits the scrambling functions are needed.
+without any scrambling.  To perform well in [PractRand] and [TestU01]
+with more bits the scrambling functions are needed,
+and still, the small state space makes it impossible
+to pass all tests with flying colours.
 
 `erlang:phash2(N, Range)` over an incrementing sequence does not do well
 in [TestU01], which shows that a hash function has got different
@@ -426,43 +430,25 @@ is hard to put a number on.
 JIT optimizations
 -----------------
 
-The speed of the newly implemented `lcg53` and `mcg53` algorithms
-is much thanks to the recent [type-based optimizations] in the compiler
+The speed of the newly implemented `mwc59` algorithm
+is partly thanks to the recent [type-based optimizations] in the compiler
 and the Just-In-Time compiling BEAM code loader.
 
-### With only partial type-based optimization
+### With no type-based optimization
 
 This is the Erlang code for the `mwc59` generator:
 ``` erlang
 mwc59(CX) ->
     16#7f17555 * (CX band ((1 bsl 32)-1)) + (CX bsr 32).
 ```
-which compiles to (Erlang BEAM assembler, `erlc -S rand.erl`):
+which compiles to (Erlang BEAM assembler, `erlc -S rand.erl`),
+using the `no_type_opt` flag:
 ``` erlang
     {gc_bif,'bsr',{f,0},1,[{x,0},{integer,32}],{x,1}}.
-    {gc_bif,'band',
-            {f,0},
-            2,
-            [{tr,{x,0},{t_integer,any}},{integer,4294967295}],
-            {x,0}}.
-    {line,[{location,"lib/stdlib/src/rand.erl",1517}]}.
-    {gc_bif,'*',
-            {f,0},
-            2,
-            [{tr,{x,0},{t_integer,{0,4294967295}}},{integer,133264725}],
-            {x,0}}.
-    {gc_bif,'+',
-            {f,0},
-            2,
-            [{tr,{x,0},{t_integer,{0,572367635452168875}}},
-             {tr,{x,1},{t_integer,any}}],
-            {x,0}}.
+    {gc_bif,'band',{f,0},2,[{x,0},{integer,4294967295}],{x,0}}.
+    {gc_bif,'*',{f,0},2,[{x,0},{integer,133264725}],{x,0}}.
+    {gc_bif,'+',{f,0},2,[{x,0},{x,1}],{x,0}}.
 ```
-Note that the first `bsr` has no type information on `{x,0}`
-since there is no `{tr,_}` annotation, and that the `band`
-and the `+` operations does not know the range of one argument
-since it is annotated as `{t_integer,any}`.
-
 when loaded by the JIT (x86) (`erl +JDdump true`) the machine code becomes:
 ```
 # i_bsr_ssjd
@@ -471,7 +457,7 @@ when loaded by the JIT (x86) (`erl +JDdump true`) the machine code becomes:
     mov edi, esi
     and edi, 15
     cmp edi, 15
-    short jne L1816
+    short jne L2271
 ```
 Above was a test if `{x,0}` is a small integer and if not
 the fallback at `L1816` is called to handle any term.
@@ -481,69 +467,83 @@ x86 `sar rax 32`, and a skip over the fallback code.
     mov rax, rsi
     sar rax, 32
     or rax, 15
-    short jmp L1817
-L1816:
+    short jmp L2272
+L2271:
     mov eax, 527
-    call 139848450407608
-L1817:
+    call 140439031217336
+L2272:
     mov qword ptr [rbx+8], rax
 # line_I
 # i_band_ssjd
     mov rsi, qword ptr [rbx]
     mov rax, 68719476735
-# simplified test for small operand since it is a number
-    test esi, 1
-    short je L1818
+# is the operand small?
+    mov edi, esi
+    and edi, 15
+    cmp edi, 15
+    short jne L2273
     and rax, rsi
-    short jmp L1819
-L1818:
-    call 139848450407040
-L1819:
+    short jmp L2274
+L2273:
+    call 140439031216768
+L2274:
     mov qword ptr [rbx], rax
-# line_I
 ```
 Above was a `band` that did not know the size of the argument.
-Below comes a multiplication that knows both operands and
-the result are small integers so it can skip overflow check
-and fallback code.
+Below comes a multiplication that checks the operand
+and has got an overflow check.
 ```
+# line_I
 # i_times_jssd
-# multiplication without overflow check
-    mov rax, qword ptr [rbx]
-    mov esi, 2132235615
+    mov rsi, qword ptr [rbx]
+    mov edx, 2132235615
+# is the operand small?
+    mov edi, esi
+    and edi, 15
+    cmp edi, 15
+    short jne L2276
+# mul with overflow check, imm RHS
+    mov rax, rsi
+    mov rcx, 133264725
     and rax, -16
-    sar rsi, 4
-    imul rax, rsi
+    imul rax, rcx
+    short jo L2276
     or rax, 15
+    short jmp L2275
+L2276:
+    call 140439031220000
+L2275:
     mov qword ptr [rbx], rax
+```
+The following is `+` with checks and fallback code.
+```
 # i_plus_ssjd
     mov rsi, qword ptr [rbx]
     mov rdx, qword ptr [rbx+8]
-```
-The following `+` does not know if the result may overflow.
-```
-# simplified test for small operands since both are numbers
-    test edx, 1
-    short je L1821
+# are both operands small?
+    mov eax, esi
+    and eax, edx
+    and al, 15
+    cmp al, 15
+    short jne L2278
 # add with overflow check
     mov rax, rsi
     mov rcx, rdx
     and rcx, -16
     add rax, rcx
-    short jno L1820
-L1821:
-    call 139848450409568
-L1820:
+    short jno L2277
+L2278:
+    call 140439031219296
+L2277:
     mov qword ptr [rbx], rax
 ```
 
 ### With type-based optimization
 
 When the compiler can figure out type information about the arguments
-it can emit more efficient code.  It did so on one operation above.
-One would like to add a guard that restricts the argument
-to a 59 bit integer, but unfortunately the compiler cannot yet
-make use of such a guard test.
+it can emit more efficient code.  One would like to add a guard
+that restricts the argument to a 59 bit integer, but unfortunately
+the compiler cannot yet make use of such a guard test.
 
 But adding a redundant input bit mask to the Erlang code puts the compiler
 on the right track.  This is a kludge, and will only be used
@@ -556,23 +556,20 @@ mwc59(CX0) ->
     CX = CX0 band ((1 bsl 59)-1),
     16#7f17555 * (CX band ((1 bsl 32)-1)) + (CX bsr 32).
 ```
-The BEAM assembler now becomes:
+The BEAM assembler now becomes, with type-based optimizations:
 ``` erlang
     {gc_bif,'band',{f,0},1,[{x,0},{integer,576460752303423487}],{x,0}}.
-    {line,[{location,"lib/stdlib/src/rand.erl",1515}]}.
     {gc_bif,'bsr',
             {f,0},
             1,
             [{tr,{x,0},{t_integer,{0,576460752303423487}}},{integer,32}],
             {x,1}}.
-    {line,[{location,"lib/stdlib/src/rand.erl",1516}]}.
     {gc_bif,'band',
             {f,0},
             2,
             [{tr,{x,0},{t_integer,{0,576460752303423487}}},
              {integer,4294967295}],
             {x,0}}.
-    {line,[{location,"lib/stdlib/src/rand.erl",1517}]}.
     {gc_bif,'*',
             {f,0},
             2,
@@ -586,7 +583,7 @@ The BEAM assembler now becomes:
             {x,0}}.
 ```
 Note that after the initial input `band` operation,
-a `{t_integer,Range}` type information has been propagated
+type information `{tr,{x_},{t_integer,Range}}` has been propagated
 all the way down.
 
 Now the JIT:ed code becomes noticably shorter.
@@ -596,59 +593,47 @@ the checks and fallbacks:
 ```
 # i_band_ssjd
     mov rsi, qword ptr [rbx]
-    mov rax, 9223372036854775807
+    mov rax, 4611686018427387903
 # is the operand small?
     mov edi, esi
     and edi, 15
     cmp edi, 15
-    short jne L1816
+    short jne L1821
     and rax, rsi
-    short jmp L1817
-L1816:
-    call 139805174839936
-L1817:
+    short jmp L1822
+L1821:
+    call 139812177115776
+L1822:
     mov qword ptr [rbx], rax
 ```
 All the following operations has optimized away checks and fallback code,
 to become a straight sequence of machine code:
 ```
 # line_I
-# i_bsr_ssjd
-    mov rsi, qword ptr [rbx]
-# skipped test for small left operand because it is always small
-    mov rax, rsi
-    sar rax, 32
-    or rax, 15
-L1818:
-L1819:
-    mov qword ptr [rbx+8], rax
-# line_I
 # i_band_ssjd
     mov rsi, qword ptr [rbx]
-    mov rax, 68719476735
+    mov rax, 4503599627370495
 # skipped test for small operands since they are always small
     and rax, rsi
-    mov qword ptr [rbx], rax
-# line_I
-# i_times_jssd
-# multiplication without overflow check
-    mov rax, qword ptr [rbx]
-    mov esi, 2132235615
-    and rax, -16
-    sar rsi, 4
-    imul rax, rsi
+    mov qword ptr [rbx+8], rax
+# i_bsl_ssjd
+# skipped tests because operands and result are always small
+    mov rax, qword ptr [rbx+8]
+    xor rax, 15
+    sal rax, 10
+    or rax, 15
+    mov qword ptr [rbx+8], rax
+# i_bxor_jssd
+    mov rsi, qword ptr [rbx]
+    mov rax, qword ptr [rbx+8]
+# skipped test for small operands since they are always small
+    xor rax, rsi
     or rax, 15
     mov qword ptr [rbx], rax
-# i_plus_ssjd
-# add without overflow check
-    mov rax, qword ptr [rbx]
-    mov rsi, qword ptr [rbx+8]
-    and rax, -16
-    add rax, rsi
-    mov qword ptr [rbx], rax
 ```
-The execution time goes down from XXX4.0 ns to XXX3.2 ns which is
-20% faster just by avoiding redundant checks and tests.
+The execution time goes down from 3.7 ns to 3.3 ns which is
+10% faster just by avoiding some more redundant checks and tests,
+even though adding a not needed initial input mask operation.
 
 And there is room for improvement.  The values are moved back and forth
 to BEAM `{x,_}` registers (`qword ptr [rbx]`) between operations.
@@ -723,21 +708,22 @@ framework it is called `exsp` below.
 
 ```
 RNG uniform integer range 10000 performance
-                   exsss:     58.2 ns (warm-up)
+                   exsss:     58.0 ns (warm-up)
                 overhead:      3.3 ns      5.7%
-                   exsss:     54.6 ns    100.0%
-                    exsp:     49.7 ns     90.9%
-            mcg35_inline:     11.7 ns     21.5%
-            lcg35_inline:     10.4 ns     19.0%
-             exsp_inline:     22.2 ns     40.6%
-           unique_phash2:     24.7 ns     45.1%
-             system_time:     32.5 ns     59.5%
+                   exsss:     54.3 ns    100.0%
+                    exsp:     50.7 ns     93.4%
+         {mwc59,raw_mod}:     10.6 ns     19.6%
+       {mwc59,value_mod}:     15.3 ns     28.2%
+        {mwc59,full_mod}:     19.5 ns     35.8%
+              {exsp,mod}:     23.2 ns     42.7%
+           unique_phash2:     23.8 ns     43.9%
+             system_time:     31.5 ns     58.0%
 ```
 The first two are the warm-up and overhead measurements.
 The measured overhead is subtracted from all measurements
 after the "overhead:" line.  Note that the measured overhead
 is 3.3 ns which matches pretty well that `exsss` when adjusted
-for overhead got 3.6 ns shorter time than on the warm-up run.
+for overhead got 3.7 ns shorter time than on the warm-up run.
 
 `{mwc59,raw_mod}`, `{mwc59,value_mod}`,  `{mwc59,full_mod}`,
 `{exsp,mod}` and `system_time` all use `(X rem 10000) + 1`
@@ -752,19 +738,21 @@ as we also will see when comparing with the next section.
 
 ```
 RNG uniform integer 32 bit performance
-                   exsss:     54.4 ns    100.0%
-                    exsp:     49.4 ns     90.8%
-            lcg35_inline:      3.0 ns      5.6%
-             exsp_inline:     16.8 ns     30.9%
-           unique_phash2:     22.0 ns     40.4%
-             system_time:     23.6 ns     43.4%
+                   exsss:     55.5 ns    100.0%
+                    exsp:     50.7 ns     91.4%
+        {mwc59,raw_mask}:      3.0 ns      5.4%
+      {mwc59,value_mask}:      5.5 ns      9.9%
+       {mwc59,full_mask}:      7.5 ns     13.5%
+            {exsp,shift}:     18.1 ns     32.6%
+           unique_phash2:     21.8 ns     39.2%
+             system_time:     23.6 ns     42.6%
 ```
 In this section `{mwc59,raw_mask}`, `{mwc59,value_mask}`,
 `{mwc59,full_mask}`, `{exsp,shift}`, and `system_time`
 use bit operations such as `X band 16#ffffffff` or `X bsr 3`
 to achieve the desired range, and now we see that this is
-about 5 to 10 ns faster than for the `rem` operation
-in the previous section.  `{mwc59,_}` is now 3 times faster.
+about 5 to 12 ns faster than for the `rem` operation
+in the previous section.  `{mwc59,raw_*}` is now 3 times faster.
 
 `unique_phash2` still uses BIF coded integer division to achieve
 the range, which gives it about the same speed as in the previous section.
@@ -772,15 +760,16 @@ the range, which gives it about the same speed as in the previous section.
 
 ```
 RNG uniform integer full range performance
-                   exsss:     43.0 ns    100.0%
-                    exsp:     40.6 ns     94.4%
-                   dummy:     26.0 ns     60.5%
-            mcg35_inline:      5.1 ns     12.0%
-            lcg35_inline:      3.2 ns      7.4%
-             exsp_inline:     16.6 ns     38.7%
-           unique_phash2:     18.8 ns     43.8%
-                procdict:     70.3 ns    163.6%
-          lcg35_procdict:     14.4 ns     33.6%
+                   exsss:     43.5 ns    100.0%
+                    exsp:     41.4 ns     95.3%
+                   dummy:     26.1 ns     59.9%
+             {mwc59,raw}:      3.3 ns      7.7%
+           {mwc59,value}:      6.8 ns     15.6%
+      {mwc59,full_value}:      8.6 ns     19.8%
+             {exsp,next}:     18.1 ns     41.7%
+           unique_phash2:     21.2 ns     48.8%
+                procdict:     75.7 ns    174.1%
+        {mwc59,procdict}:     15.5 ns     35.7%
 ```
 In this section no range capping is done.  The raw generator output is used.
 
@@ -789,16 +778,16 @@ within the `rand` plug-in framework that only does a minimal state
 update and returns a constant.  It is used here to measure
 plug-in framework overhead.
 
-The plug-in framework overhead is measured to 26 ns that matches
-`exsp` - `{exsp,next}` = 24 ns well, which is the same algorithm within
+The plug-in framework overhead is measured to 26.1 ns that matches
+`exsp` - `{exsp,next}` = 23.3 ns well, which is the same algorithm within
 and without the plug-in framework.
 
 `procdict` is the default algorithm `exsss` but makes the plug-in
 framework store the generator state in the process dictionary,
-which here costs 27.3 ns.
+which here costs 32.2 ns.
 
 `{mwc59,procdict}` stores the generator state in the process dictionary,
-which here costs 11.2 ns. The state term that is stored is much smaller
+which here costs 12.2 ns. The state term that is stored is much smaller
 than for the plug-in framework.  Compare to the above.
 
 
@@ -835,7 +824,8 @@ the precisous CPU cycles are used for.
 [Looking for a faster RNG]:
 https://erlangforums.com/t/looking-for-a-faster-rng/
 
-[potatosalad]:              https://github.com/potatosalad/
+[potatosalad]:
+https://github.com/potatosalad/
 
 [latrules]:
 https://www.iro.umontreal.ca/~lecuyer/myftp/papers/latrules.ps
