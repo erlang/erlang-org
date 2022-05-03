@@ -15,7 +15,7 @@ Or, as always, look at the release notes of the application you are interested i
 For instance here: [Erlang/OTP 25 - Erts Release Notes - Version 13.0].
 
 This years highlights are:
-* New functions in the `maps`and `lists` modules
+* [New functions in the `maps`and `lists` modules](#new-functions-in-the-mapsand-lists-modules)
 * Selectable features as of EEP-60
 * The new `maybe`expression (`maybe_expr) EEP-49
 * The JIT now works for 64-bit ARM processors.
