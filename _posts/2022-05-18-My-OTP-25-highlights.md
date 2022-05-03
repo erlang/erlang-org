@@ -17,7 +17,7 @@ For instance here: [Erlang/OTP 25 - Erts Release Notes - Version 13.0].
 This years highlights are:
 * [New functions in the `maps`and `lists` modules](#new-functions-in-the-mapsand-lists-modules)
 * [Selectable features and the new `maybe_expr` feature](#selectable-features-and-the-new-maybe_expr-feature)
-* The JIT now works for 64-bit ARM processors.
+* [Improvements of the JIT](#improvements-of-the-jit)
 * Type-Based optimizations in the JIT.
 * Improved the JIT’s support for external tools like `perf` and `gdb`
 * ETS-tables with adaptive support for write concurrency
