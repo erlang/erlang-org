@@ -252,7 +252,7 @@ that also helped develop our current 58-bit Xorshift family generators.
 
 After trying many parameters in spectral score programs and
 programs for [PRNG tests] we selected the parameters
-`A = 16#7f17555` and `B = 32`, which I named `mwc59`.
+`A = 16#7fa6502` and `B = 32`, which I named `mwc59`.
 
 It has a 59-bit state space and an MWC "digit" size of 32 bits which
 gives the low 32 bits mathematical guarantees about their spectral score.
@@ -430,7 +430,7 @@ is hard to put a number on.
 JIT optimizations
 -----------------
 
-The speed of the newly implemented `mwc59` algorithm
+The speed of the newly implemented `mwc59` generator
 is partly thanks to the recent [type-based optimizations] in the compiler
 and the Just-In-Time compiling BEAM code loader.
 
@@ -439,14 +439,14 @@ and the Just-In-Time compiling BEAM code loader.
 This is the Erlang code for the `mwc59` generator:
 ``` erlang
 mwc59(CX) ->
-    16#7f17555 * (CX band ((1 bsl 32)-1)) + (CX bsr 32).
+    16#7fa6502 * (CX band ((1 bsl 32)-1)) + (CX bsr 32).
 ```
 which compiles to (Erlang BEAM assembler, `erlc -S rand.erl`),
 using the `no_type_opt` flag:
 ``` erlang
     {gc_bif,'bsr',{f,0},1,[{x,0},{integer,32}],{x,1}}.
     {gc_bif,'band',{f,0},2,[{x,0},{integer,4294967295}],{x,0}}.
-    {gc_bif,'*',{f,0},2,[{x,0},{integer,133264725}],{x,0}}.
+    {gc_bif,'*',{f,0},2,[{x,0},{integer,133850370}],{x,0}}.
     {gc_bif,'+',{f,0},2,[{x,0},{x,1}],{x,0}}.
 ```
 when loaded by the JIT (x86) (`erl +JDdump true`) the machine code becomes:
@@ -460,9 +460,10 @@ when loaded by the JIT (x86) (`erl +JDdump true`) the machine code becomes:
     short jne L2271
 ```
 Above was a test if `{x,0}` is a small integer and if not
-the fallback at `L1816` is called to handle any term.
-Here follows the machine code shift left, Erlang `bsl 32`,
-x86 `sar rax 32`, and a skip over the fallback code.
+the fallback at `L2271` is called to handle any term.
+
+Then follows the machine code shift left, Erlang `bsl 32`,
+x86 `sar rax 32`, and a skip over the fallback code:
 ```
     mov rax, rsi
     sar rax, 32
@@ -474,6 +475,9 @@ L2271:
 L2272:
     mov qword ptr [rbx+8], rax
 # line_I
+```
+Here is `band` with similar test and fallback code:
+```
 # i_band_ssjd
     mov rsi, qword ptr [rbx]
     mov rax, 68719476735
@@ -489,14 +493,13 @@ L2273:
 L2274:
     mov qword ptr [rbx], rax
 ```
-Above was a `band` that did not know the size of the argument.
-Below comes a multiplication that checks the operand
-and has got an overflow check.
+Below comes `*` with test, fallback code,
+and overflow check:
 ```
 # line_I
 # i_times_jssd
     mov rsi, qword ptr [rbx]
-    mov edx, 2132235615
+    mov edx, 2141605935
 # is the operand small?
     mov edi, esi
     and edi, 15
@@ -504,7 +507,7 @@ and has got an overflow check.
     short jne L2276
 # mul with overflow check, imm RHS
     mov rax, rsi
-    mov rcx, 133264725
+    mov rcx, 133850370
     and rax, -16
     imul rax, rcx
     short jo L2276
@@ -515,7 +518,7 @@ L2276:
 L2275:
     mov qword ptr [rbx], rax
 ```
-The following is `+` with checks and fallback code.
+The following is `+` with tests, fallback code, and overflow check:
 ```
 # i_plus_ssjd
     mov rsi, qword ptr [rbx]
@@ -550,11 +553,11 @@ on the right track.  This is a kludge, and will only be used
 until the compiler has been improved to deduce the same information
 from a guard instead.
 
-Erlang code; note the first redundant mask to 59 bits:
+The Erlang code now has a first redundant mask to 59 bits:
 ``` erlang
 mwc59(CX0) ->
     CX = CX0 band ((1 bsl 59)-1),
-    16#7f17555 * (CX band ((1 bsl 32)-1)) + (CX bsr 32).
+    16#7fa6502 * (CX band ((1 bsl 32)-1)) + (CX bsr 32).
 ```
 The BEAM assembler now becomes, with type-based optimizations:
 ``` erlang
@@ -573,7 +576,7 @@ The BEAM assembler now becomes, with type-based optimizations:
     {gc_bif,'*',
             {f,0},
             2,
-            [{tr,{x,0},{t_integer,{0,4294967295}}},{integer,133264725}],
+            [{tr,{x,0},{t_integer,{0,4294967295}}},{integer,133850370}],
             {x,0}}.
     {gc_bif,'+',
             {f,0},
@@ -588,47 +591,60 @@ all the way down.
 
 Now the JIT:ed code becomes noticably shorter.
 
-The input mask operation knows nothing about the value so it has all
-the checks and fallbacks:
+The input mask operation knows nothing about the value so it has
+the operand test and the fallback:
 ```
 # i_band_ssjd
     mov rsi, qword ptr [rbx]
-    mov rax, 4611686018427387903
+    mov rax, 9223372036854775807
 # is the operand small?
     mov edi, esi
     and edi, 15
     cmp edi, 15
-    short jne L1821
+    short jne L1816
     and rax, rsi
-    short jmp L1822
-L1821:
+    short jmp L1817
+L1816:
     call 139812177115776
-L1822:
+L1817:
     mov qword ptr [rbx], rax
 ```
-All the following operations has optimized away checks and fallback code,
-to become a straight sequence of machine code:
+For all the following operations, operand tests and fallback code
+has been optimized away to become a straight sequence of machine code:
 ```
+# line_I
+# i_bsr_ssjd
+    mov rsi, qword ptr [rbx]
+# skipped test for small left operand because it is always small
+    mov rax, rsi
+    sar rax, 32
+    or rax, 15
+L1818:
+L1819:
+    mov qword ptr [rbx+8], rax
 # line_I
 # i_band_ssjd
     mov rsi, qword ptr [rbx]
-    mov rax, 4503599627370495
+    mov rax, 68719476735
 # skipped test for small operands since they are always small
     and rax, rsi
-    mov qword ptr [rbx+8], rax
-# i_bsl_ssjd
-# skipped tests because operands and result are always small
-    mov rax, qword ptr [rbx+8]
-    xor rax, 15
-    sal rax, 10
+    mov qword ptr [rbx], rax
+# line_I
+# i_times_jssd
+# multiplication without overflow check
+    mov rax, qword ptr [rbx]
+    mov esi, 2141605935
+    and rax, -16
+    sar rsi, 4
+    imul rax, rsi
     or rax, 15
-    mov qword ptr [rbx+8], rax
-# i_bxor_jssd
-    mov rsi, qword ptr [rbx]
-    mov rax, qword ptr [rbx+8]
-# skipped test for small operands since they are always small
-    xor rax, rsi
-    or rax, 15
+    mov qword ptr [rbx], rax
+# i_plus_ssjd
+# add without overflow check
+    mov rax, qword ptr [rbx]
+    mov rsi, qword ptr [rbx+8]
+    and rax, -16
+    add rax, rsi
     mov qword ptr [rbx], rax
 ```
 The execution time goes down from 3.7 ns to 3.3 ns which is
