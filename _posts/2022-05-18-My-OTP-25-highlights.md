@@ -16,8 +16,7 @@ For instance here: [Erlang/OTP 25 - Erts Release Notes - Version 13.0].
 
 This years highlights are:
 * [New functions in the `maps`and `lists` modules](#new-functions-in-the-mapsand-lists-modules)
-* Selectable features as of EEP-60
-* The new `maybe`expression (`maybe_expr) EEP-49
+* [Selectable features and the new `maybe_expr` feature]()
 * The JIT now works for 64-bit ARM processors.
 * Type-Based optimizations in the JIT.
 * Improved the JIT’s support for external tools like `perf` and `gdb`
@@ -164,17 +163,13 @@ erl -enable-feature all
 The EEP-49 "Value-Based Error Handling Mechanisms", was suggested by Fred Hebért already 2018 and now finally
 it has been implemented as the first feature in the new feature concept.
 
-Specification
-=============
-
-We propose the `maybe ... end` construct which is similar to `begin
+The `maybe ... end` construct which is similar to `begin
 ... end` in that it is used to group multiple distinct expression as a
 single block. But there is one important difference in that the
 `maybe` block does not export its variables while `begin` does
 export its variables.
 
-We propose a new
-type of expressions (denoted `MatchOrReturnExprs`), which are only valid within a
+A new type of expressions (denoted `MatchOrReturnExprs`) are introduced, which are only valid within a
 `maybe ... end` expression:
 
     maybe
@@ -240,27 +235,11 @@ is a valid `MatchOrReturnExprs` equivalent to the non-infix form `'?='('='(X,
 [H|T]), exp())`, since reversing the priorities would give `'='('?='(X, [H|T]),
 exp())`, which would create a `MatchOrReturnExp` out of context and be invalid.
 
-Motivation
-==========
+### Motivation
 
-Erlang has some of the most flexible error handling available across a
-large number of programming languages. The language supports:
+With the `maybe` construct it is possible to reduce deeply nested conditional expressions and make messy patterns found in the wild unnecessary. It also provides a better separation of concerns when implementing functions.
 
-1. three types of exceptions (`throw`, `error`, `exit`)
-   - handled by `catch Exp`
-   - handled by `try ... [of ...] catch ... [after ...] end`
-2. links, `exit/2`, and `trap_exit`
-3. monitors
-4. return values such as `{ok, Val} | {error, Term}`,
-    `{ok, Val} | false`, or `ok | {error, Val}`
-5. a combination of one or more of the above
-
-So why should we look to add more? There are various reasons for this,
-including trying to reduce deeply nested conditional expressions,
-cleaning up some messy patterns found in the wild, and providing a better
-separation of concerns when implementing functions.
-
-Reducing Nesting
+#### Reducing Nesting
 ----------------
 
 One common pattern that can be seen in Erlang is deep nesting of `case
@@ -320,96 +299,6 @@ Or, to protect against `disk_log` calls returning something else than `ok |
 The semantics of these calls are identical, except that it is now
 much easier to focus on the flow of individual operations and either
 success or error paths.
-
-Obsoleting Messy Patterns
--------------------------
-
-Frequent ways in which people work with sequences of failable operations
-include folds over lists of functions, and abusing list comprehensions.
-Both patterns have heavy weaknesses that makes them less than ideal.
-
-Folds over list of functions use patterns such as those defined in
-[posts from the
-mailing list](http://erlang.org/pipermail/erlang-questions/2017-September/093575.html):
-
-    pre_check(Action, User, Context, ExternalThingy) ->
-        Checks =
-            [fun check_request/1,
-             fun check_permission/1,
-             fun check_dispatch_target/1,
-             fun check_condition/1],
-        Args = {Action, User, Context, ExternalThingy},
-        Harness =
-            fun
-                (Check, ok)    -> Check(Args);
-                (_,     Error) -> Error
-            end,
-        case lists:foldl(Harness, ok, Checks) of
-            ok    -> dispatch(Action, User, Context);
-            Error -> Error
-        end.
-
-This code requires declaring the functions one by one, ensuring the
-entire context is carried from function to function. Since there is no
-shared scope between functions, all functions must operate on all
-arguments.
-
-By comparison, the same code could be implemented with the new construct
-as:
-
-    pre_check(Action, User, Context, ExternalThingy) ->
-        maybe
-            ok ?= check_request(Context, User),
-            ok ?= check_permissions(Action, User),
-            ok ?= check_dispatch_target(ExternalThingy),
-            ok ?= check_condition(Action, Context),
-            dispatch(Action, User, Context)
-        end.
-
-And if there was a need for derived state between any two steps, it
-would be easy to weave it in:
-
-    pre_check(Action, User, Context, ExternalThingy) ->
-        maybe
-            ok ?= check_request(Context, User),
-            ok ?= check_permissions(Action, User),
-            ok ?= check_dispatch_target(ExternalThingy),
-            DispatchData = dispatch_target(ExternalThingy),
-            ok ?= check_condition(Action, Context),
-            dispatch(Action, User, Context, DispatchData)
-        end.
-
-The list comprehension _hack_, by comparison, is a bit more rare. In
-fact, it is mostly theoretical. Some things that hint at how it could
-work can be found in [Diameter test
-cases](https://github.com/erlang/otp/blob/869537a9bf799c8d12fc46c2b413e532d6e3b10c/lib/diameter/test/diameter_examples_SUITE.erl#L254-L266)
-or the [PropEr plugin for
-Rebar3](https://github.com/ferd/rebar3_proper/blob/e7eb96498a9d31f41c919474ec6800df62e237e1/src/rebar3_proper_prv.erl#L298-L308).
-
-Its overall form uses generators in list comprehensions to tunnel a happy
-path:
-
-    [Res] =
-        [f(Z) || {ok, W} <- [b()],
-                 {ok, X} <- [c(W)],
-                 {ok, Y} <- [d(X)],
-                 Z <- [e(Y)]],
-    Res.
-
-This form doesn't see too much usage since it is fairly obtuse and I
-suspect most people have either been reasonable enough not to use it, or
-did not think about it. Obviously the new form would be cleaner:
-
-    maybe
-        {ok, W} ?= b(),
-        {ok, X} ?= c(W),
-        {ok, Y} ?= d(X),
-        Z = e(Y),
-        f(Z)
-    end
-
-which on top of it, has the benefit of returning an error value if one
-is found.
 
 # Compiler news
 * Add compile attribute `-nifs()` to empower compiler and loader with information     about   which functions may be overridden as NIFs by `erlang:load_nif/2`.
