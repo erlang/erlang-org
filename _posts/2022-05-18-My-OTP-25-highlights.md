@@ -16,7 +16,7 @@ For instance here: [Erlang/OTP 25 - Erts Release Notes - Version 13.0].
 
 This years highlights are:
 * [New functions in the `maps`and `lists` modules](#new-functions-in-the-mapsand-lists-modules)
-* [Selectable features and the new `maybe_expr` feature]()
+* [Selectable features and the new `maybe_expr` feature](#selectable-features-and-the-new-maybe_expr-feature)
 * The JIT now works for 64-bit ARM processors.
 * Type-Based optimizations in the JIT.
 * Improved the JIT’s support for external tools like `perf` and `gdb`
@@ -145,7 +145,8 @@ foo() ->
         {error, "unexpected wrapper"}
 end
 ```
-The compiler will note that the feature maybe_expr is enabled and will handle the maybe construct correctly. In the generated `.beam` file it will also be noted that
+
+The compiler will note that the feature `maybe_expr` is enabled and will handle the maybe construct correctly. In the generated `.beam` file it will also be noted that
 the module has enabled the feature.
 
 When starting an Erlang node the specific feature (or all) must be enabled otherwise the `.beam` file with the feature will not be allowed for loading.
@@ -153,18 +154,19 @@ When starting an Erlang node the specific feature (or all) must be enabled other
 ```
 erl -enable-feature maybe_expr
 ```
+
 Or 
+
 ```
 erl -enable-feature all
 ```
 
 ## The new `maybe_expr` feature EEP-49
 
-The EEP-49 "Value-Based Error Handling Mechanisms", was suggested by Fred Hebért already 2018 and now finally
+The EEP-49 "Value-Based Error Handling Mechanisms", was suggested by Fred Hebèrt already 2018 and now finally
 it has been implemented as the first feature in the new feature concept.
 
-The `maybe ... end` construct which is similar to `begin
-... end` in that it is used to group multiple distinct expression as a
+The `maybe ... end` construct which is similar to `begin ... end` in that it is used to group multiple distinct expression as a
 single block. But there is one important difference in that the
 `maybe` block does not export its variables while `begin` does
 export its variables.
@@ -172,13 +174,17 @@ export its variables.
 A new type of expressions (denoted `MatchOrReturnExprs`) are introduced, which are only valid within a
 `maybe ... end` expression:
 
-    maybe
-        Exprs | MatchOrReturnExprs
-    end
+```
+maybe
+    Exprs | MatchOrReturnExprs
+end
+```
 
 `MatchOrReturnExprs` are defined as having the following form:
 
-    Pattern ?= Expr
+```
+Pattern ?= Expr
+```
 
 This definition means that `MatchOrReturnExprs` are only allowed at the
 top-level of `maybe ... end` expressions.
@@ -193,13 +199,15 @@ failed expression directly.
 
 A special case exists in which we extend `maybe ... end` into the following form:
 
-    maybe
-        Exprs | MatchOrReturnExprs
-    else
-        Pattern -> Exprs;
-        ...
-        Pattern -> Exprs
-    end
+```
+maybe
+    Exprs | MatchOrReturnExprs
+else
+    Pattern -> Exprs;
+    ...
+    Pattern -> Exprs
+end
+```
 
 This form exists to capture non-matching expressions in a `MatchOrReturnExprs`
 to handle failed matches rather than returning their value. In such a case, an
@@ -212,24 +220,28 @@ happy and unhappy paths.
 
 Given the structure described here, the final expression may look like:
 
-    maybe
-        Foo = bar(),            % normal exprs still allowed
-        {ok, X} ?= f(Foo),
-        [H|T] ?= g([1,2,3]),
-        ...
-    else
-        {error, Y} ->
-            {ok, "default"};
-        {ok, _Term} ->
-            {error, "unexpected wrapper"}
-    end
+```erlang
+maybe
+    Foo = bar(),            % normal exprs still allowed
+    {ok, X} ?= f(Foo),
+    [H|T] ?= g([1,2,3]),
+    ...
+else
+    {error, Y} ->
+        {ok, "default"};
+    {ok, _Term} ->
+        {error, "unexpected wrapper"}
+end
+```
 
 Do note that to allow easier pattern matching and more intuitive usage,
 the `?=` operator should have associativity rules lower than `=`, such that:
 
-    maybe
-        X = [H|T] ?= exp()
-    end
+```erlang
+maybe
+    X = [H|T] ?= exp()
+end
+```
 
 is a valid `MatchOrReturnExprs` equivalent to the non-infix form `'?='('='(X,
 [H|T]), exp())`, since reversing the priorities would give `'='('?='(X, [H|T]),
@@ -240,7 +252,6 @@ exp())`, which would create a `MatchOrReturnExp` out of context and be invalid.
 With the `maybe` construct it is possible to reduce deeply nested conditional expressions and make messy patterns found in the wild unnecessary. It also provides a better separation of concerns when implementing functions.
 
 #### Reducing Nesting
-----------------
 
 One common pattern that can be seen in Erlang is deep nesting of `case
 ... end` expressions, to check complex conditionals.
@@ -249,24 +260,26 @@ Take the following code taken from
 [Mnesia](https://github.com/erlang/otp/blob/a0ae44f324576104760a63fe6cf63e0ca31756fc/lib/mnesia/src/mnesia_backup.erl#L106-L126),
 for example:
 
-    commit_write(OpaqueData) ->
-        B = OpaqueData,
-        case disk_log:sync(B#backup.file_desc) of
-            ok ->
-                case disk_log:close(B#backup.file_desc) of
-                    ok ->
-                        case file:rename(B#backup.tmp_file, B#backup.file) of
-                           ok ->
-                                {ok, B#backup.file};
-                           {error, Reason} ->
-                                {error, Reason}
-                        end;
-                    {error, Reason} ->
-                        {error, Reason}
-                end;
-            {error, Reason} ->
-                {error, Reason}
-        end.
+```erlang
+commit_write(OpaqueData) ->
+    B = OpaqueData,
+    case disk_log:sync(B#backup.file_desc) of
+        ok ->
+            case disk_log:close(B#backup.file_desc) of
+                ok ->
+                    case file:rename(B#backup.tmp_file, B#backup.file) of
+                        ok ->
+                            {ok, B#backup.file};
+                        {error, Reason} ->
+                            {error, Reason}
+                    end;
+                {error, Reason} ->
+                    {error, Reason}
+            end;
+        {error, Reason} ->
+            {error, Reason}
+    end.
+```
 
 The code is nested to the extent that shorter aliases must be introduced
 for variables (`OpaqueData` renamed to `B`), and half of the code just
@@ -275,26 +288,30 @@ transparently returns the exact values each function was given.
 By comparison, the same code could be written as follows with the new
 construct:
 
-    commit_write(OpaqueData) ->
-        maybe
-            ok ?= disk_log:sync(OpaqueData#backup.file_desc),
-            ok ?= disk_log:close(OpaqueData#backup.file_desc),
-            ok ?= file:rename(OpaqueData#backup.tmp_file, OpaqueData#backup.file),
-            {ok, OpaqueData#backup.file}
-        end.
+```erlang
+commit_write(OpaqueData) ->
+    maybe
+        ok ?= disk_log:sync(OpaqueData#backup.file_desc),
+        ok ?= disk_log:close(OpaqueData#backup.file_desc),
+        ok ?= file:rename(OpaqueData#backup.tmp_file, OpaqueData#backup.file),
+        {ok, OpaqueData#backup.file}
+    end.
+```
 
 Or, to protect against `disk_log` calls returning something else than `ok |
 {error, Reason}`, the following form could be used:
 
-    commit_write(OpaqueData) ->
-        maybe
-            ok ?= disk_log:sync(OpaqueData#backup.file_desc),
-            ok ?= disk_log:close(OpaqueData#backup.file_desc),
-            ok ?= file:rename(OpaqueData#backup.tmp_file, OpaqueData#backup.file),
-            {ok, OpaqueData#backup.file}
-        else
-            {error, Reason} -> {error, Reason}
-        end.
+```erlang
+commit_write(OpaqueData) ->
+    maybe
+        ok ?= disk_log:sync(OpaqueData#backup.file_desc),
+        ok ?= disk_log:close(OpaqueData#backup.file_desc),
+        ok ?= file:rename(OpaqueData#backup.tmp_file, OpaqueData#backup.file),
+        {ok, OpaqueData#backup.file}
+    else
+        {error, Reason} -> {error, Reason}
+    end.
+```
 
 The semantics of these calls are identical, except that it is now
 much easier to focus on the flow of individual operations and either
