@@ -230,7 +230,7 @@ and is a special form of a Muliplicative Contruential Generator.
 It is a well researched PRNG, and can be implemented
 like this (in Erlang):
 ``` erlang
-    C   = CX0 bsl B,
+    C   = CX0 bsr B,
     X   = CX0 band ((1 bsl B) - 1)
     CX1 = A * X + C
 ```
@@ -328,7 +328,7 @@ may be faster on average than using `rem`.
 
 ### Spectral score
 
-The specral score of a generator, measures how a much a sequence of numbers
+The spectral score of a generator, measures how much a sequence of numbers
 from the generator are unrelated.  A sequence of N numbers are interpreted
 as an N-dimensional vector and the spectral score for dimension N is a measure
 on how evenly these vectors are distributed in an N-dimensional (hyper)cube.
@@ -462,8 +462,8 @@ when loaded by the JIT (x86) (`erl +JDdump true`) the machine code becomes:
 Above was a test if `{x,0}` is a small integer and if not
 the fallback at `L2271` is called to handle any term.
 
-Then follows the machine code shift left, Erlang `bsl 32`,
-x86 `sar rax 32`, and a skip over the fallback code:
+Then follows the machine code for right shift, Erlang `bsr 32`,
+x86 `sar rax, 32`, and a skip over the fallback code:
 ```
     mov rax, rsi
     sar rax, 32
