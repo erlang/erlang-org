@@ -18,17 +18,15 @@ This years highlights are:
 * [New functions in the `maps`and `lists` modules](#new-functions-in-the-mapsand-lists-modules)
 * [Selectable features and the new `maybe_expr` feature](#selectable-features-and-the-new-maybe_expr-feature)
 * [Improvements of the JIT](#improvements-of-the-jit)
-* Type-Based optimizations in the JIT.
-* Improved the JIT’s support for external tools like `perf` and `gdb`
 * ETS-tables with adaptive support for write concurrency
 * Compiler news
 * Relocatable installation directory for Erlang
 * New option `short` to the functions `erlang:float_to_list/2` and `erlang:float_to_binary/2` 
-* Introduction of quote/1 and unquote/1 functions in the uri_string module
 * The new module peer supersedes the slave module
 * global will now by default prevent overlapping partitions
 * gen_server, gen_statem and gen_event has got a new format_status/1 callback.
 * The timer module has been modernized and made more efficient
+* CA-certificates can be fetched from the OS standard place 
 
 
 # New functions in the `maps`and `lists` modules
@@ -551,6 +549,32 @@ to show the actual incorrect value:
 
 The new `badrecord` exceptions will show up for code that has been compiled
 with Erlang/OTP 25.
+
+# Relocatable installation directory
+
+Previously shell scripts (e.g., `erl` and `start`) and the `RELEASES` file
+for an Erlang installation depended on a hard coded absolute path to the
+installation's root directory. This made it cumbersome to move an
+installation to a different directory which can be problematic for platforms
+such as Android (#2879) where the
+installation directory is unknown at compile time. This is fixed by:
+
+* Changing the shell scripts so that they can dynamically find the
+  `ROOTDIR`. The dynamically found `ROOTDIR` is selected if it differs
+  from the hard-coded `ROOTDIR` and seems to point to a valid Erlang
+  installation. The `dyn_erl` program has been changed so that it can
+  return its absolute canonicalized path when given the --realpath
+  argument (dyn_erl gets its absolute canonicalized path from the
+  realpath POSIX function). The dyn_erl's --realpath
+  functionality is used by the scripts to get the root dir dynamically.
+
+* Changing the release_handler module that reads and writes to the
+  RELEASES file so that it prepends code:root_dir() whenever it
+  encounters relative paths. This is necessary since the current
+  working directory can be changed so it is something different than
+  `code:root_dir()`.
+
+
 
 Misc #
 
