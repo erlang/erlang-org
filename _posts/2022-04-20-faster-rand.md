@@ -350,9 +350,9 @@ There are test frameworks that tests the statistical properties
 of PRNG:s, such as the [TestU01] framework, or [PractRand].
 
 The good quality generators in the `rand` module perform well
-in such tests, and pass even their most thorough.
+in such tests, and pass thorough test suites.
 
-The `mcg59` generator pass [PractRand] with its low 16 bits
+The `mcg59` generator pass [PractRand] 2 TB with its low 16 bits
 without any scrambling.  To perform well in [PractRand] and [TestU01]
 with more bits the scrambling functions are needed,
 and still, the small state space makes it impossible
@@ -559,7 +559,8 @@ mwc59(CX0) ->
     CX = CX0 band ((1 bsl 59)-1),
     16#7fa6502 * (CX band ((1 bsl 32)-1)) + (CX bsr 32).
 ```
-The BEAM assembler now becomes, with type-based optimizations:
+The BEAM assembler now becomes, with the default type-based optimizations
+in the compiler on the master branch (in the upcoming OTP-25.0):
 ``` erlang
     {gc_bif,'band',{f,0},1,[{x,0},{integer,576460752303423487}],{x,0}}.
     {gc_bif,'bsr',
