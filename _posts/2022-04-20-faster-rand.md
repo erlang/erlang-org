@@ -225,6 +225,9 @@ on immediate values (not bignums), and the state as well
 as the returned number also have to be immediate values.
 This seriously limits how powerful algorithms that can be used.
 
+See section [Designing a PRNG] for how this generator
+was designed and why.
+
 A Multiply With Carry generator is one of the classical PRNG:s
 and is a special form of a Multiplicative Congruential Generator.
 It is a well researched PRNG, and can be implemented
@@ -247,7 +250,7 @@ as large as `A`&nbsp;*&nbsp;2<sup>B</sup>, which must not become a bignum.
 To get a full sequence, that is, to use all numbers in the state range,
 there are more restrictions imposed on `A` and `B`, but we will
 not dig deeper into this field and instead consult the profession,
-in this case Prof. Sebastiano Vigna at the University of Milano
+in this case Prof. [Sebastiano Vigna] at the University of Milano
 that also helped develop our current 58-bit Xorshift family generators.
 
 After trying many parameters in spectral score programs and
@@ -669,6 +672,189 @@ from the `{x,_}` register after the operation.
 
 
 
+Designing a PRNG
+----------------
+
+To create a really fast PRNG in Erlang there are some
+limitations coming with the language implementation:
+
+* If the generator state is a complex term, that is, a heap term,
+  instead of an immediate value, state updates gets much slower.
+  Therefore the state should be a max 59-bit integer.
+* If an intermediate result creates a bignum, that is,
+  overflows 59 bits, arithmetic operations gets much slower,
+  so intermediate results must produce values that fits in 59 bits.
+* If the generator returns both a generated value
+  and a new state in a compound term, then, again,
+  updating heap data makes it much slower.  Therefore
+  a generator should only return an immediate state.
+* If the returned state cannot be used as a generated number,
+  then a separate value function that operates on the state
+  can be used.  Two calls, however, double the call overhead.
+
+### LCG and MCG
+
+The first attempt was to try a classical power of 2
+Linear Congruential Generator:
+``` erlang
+X1 = (A * X0 + C) band (P-1)
+```
+And a Multiplicative Congruential Generator:
+``` erlang
+X1 = (A * X0) rem P
+```
+
+To avoid bignum operations the product `A * X0` must fit in 59 bits.
+The classical paper "Tables of Linear Congruential Generators of
+Different Sizes and Good Lattice Structure" by Pierre L'Ecuyer
+listed two generators that were 35 bit, that is, an LCG
+with `P` = 2<sup>35</sup> and an MCG with P being a prime number
+just below 2<sup>35</sup>.  These were the largest generators
+to be found that did not overflow 59 bits.
+
+The speed of the LCG is very good.  The MCG less so since it has
+to do an integer division by `rem`, but thanks to `P` being
+close to 2<sup>35</sup> that could be optimized so the speed
+reached only about 50% slower than the LCG.
+
+The short period and know quirks of a power of 2 LCG unfortunately
+showed in [PRNG tests].  They failed miserably.
+
+### MWC
+
+Prof. [Sebastiano Vigna] of the University of Milano suggested to use
+a Multiply With Carry generator instead:
+``` erlang
+T  = A * X0 + C0,
+X1 = T band ((1 bsl Bits)-1),
+C0 = T bsr Bits.
+```
+This generator operates on "digits" of size `Bits`, and if a digit
+is half a machine word then the multiplication does not overflow.
+Instead of having the state as a digit `X` and a carry `C` these
+can be merged to have `T` as the state instead.  We get:
+``` erlang
+X  = T0 band ((1 bsl Bits)-1),
+C  = T0 bsr Bits,
+T1 = A * X + C
+```
+
+An MWC generator is actually a different form of a MCG generator
+with a power of 2 multiplier, so this is an equivalent generator:
+``` erlang
+T0 = (T1 bsl Bits) rem ((A bsl Bits) - 1)
+```
+It updates the state in the reverse order, hence `T0` and `T1` are swapped.
+The modulus `(A bsl Bits) - 1` has to be a safe prime number
+or else the generator does not have maximum period.
+
+#### The base generator
+
+Because the multiplier (or its multiplicative inverse) is a power of 2,
+the MWC generator gets bad [Spectral score] in 3 dimensions,
+so using a scrambling function on the state to get a number would
+probably be necessary to improve the quality.
+
+A search for a suitable digit size and multiplier started,
+mostly done by using programs that try multipliers for
+safe prime numbers, and estimates spectral scores.
+
+When the generator is balanced, that is, the multiplier `A`
+has got about `Bits` bits, the spectral scores are the best,
+apart from the problem in 3 dimensions.  But since a scrambling
+function would be needed anyway there was an opportunity to
+try a not quite balanced 32-bit digit and a 27-bit multiplier,
+since a 32-bit digit is a comfortable unit to generate.
+
+With such slightly unbalanced parameters, the spectral scores
+for 2 dimensions also gets bad, but the scrambler should solve that too.
+
+The final generator is:
+``` erlang
+C = T0 bsr 32,
+X = T0 band ((1 bsl 32)-1),
+T1 = 16#7fa6502 * X + C.
+```
+
+The 32-bit digits of the base generator does not perform very
+well in [PRNG tests], but actually the low 16 bits passes
+2 TB in [PractRand] and 1 TB with the bits reversed,
+which is surprisingly good.  The problems in spectral scores
+for 2 and 3 dimensions lie in the higher bits of the MWC digit.
+
+#### Scrambling
+
+The scrambler has to be fast as in use only a few
+and fast operations.  For an arithmetic generator like this,
+Xorshift is a suitable scrambler.  We looked at single
+Xorshift, double Xorshift and double XorRot.  Double XorRot
+was slower than double Xorshift but not better,
+probably since the generator has got good low bits, so they
+need to be shifted up and rotation is no improvement.
+
+When trying `Shift` constants for single Xorshift:
+``` erlang
+V = T bxor (T bsl Shift)
+```
+it showed that with a large shift constant the generator
+performed better in [PractRand], and with a small shift constant
+it performed better in birthday spacing tests (such as in [TestU01]
+BigCrush) and collision tests, and it was not possible to find
+a constant good for both.
+
+The choosen single Xorshift constant is `8` that passes
+4 TB in [PractRand] and BigCrush in [TestU01] but fails
+more thorough birthday spacing tests.  The failures are few,
+such as the lowest bit in 8 and 9 dimensions,
+and some intermediate bits in 2 and 3 dimensions.
+This is something unlikely to affect most applications,
+and if using the high bits of the 32 generated,
+these imperfections should stay under the rug.
+
+The actual Xorshift code has to avoid bignum operations
+and masks the value to 32 bits so it looks like this:
+``` erlang
+V0 = T  band ((1 bsl 32)-1),
+V1 = V0 band ((1 bsl (32-8))-1),
+V  = V0 bxor (V1 bsl 8).
+```
+
+A better scrambler would be a double Xorshift that can
+have both a small shift and a large shift.
+Using the small shift `4` makes the combined generator
+do very well in birthday spacings and collision tests,
+and following up with a large shift `27` shifts the
+whole now improved 32-bit MWC digit all the way up
+to the top bit of the generator's 59-bit state.
+That was the idea, and it turned out work fine.
+
+The double Xorshift scrambler produces a 59-bit
+number where the low, the high, reversed low,
+reversed high, etc... all perform very well in [PractRand],
+[TestU01] BigCrush, and in exhaustive birthday spacing
+and collision tests.  It is also not terribly much slower
+than the single Xorshift scrambler.  Simplified code:
+``` erlang
+V1 = T bxor (T bsl 4),
+V  = V1 bxor (V1 bsl 27).
+```
+Which, to avoid bignum operations and produce a 59-bit value, becomes:
+``` erlang
+V0 = T  band ((1 bsl (59-4))),
+V1 = T  bxor (V0 bsl 4),
+V2 = V1 band ((1 bsl (59-27))),
+V  = V1 bxor (V2 bsl 27).
+```
+
+Many thanks to [Sebastiano Vigna] that has done most of the
+parameter searching and extensive testing of the generator
+and scramblers, backed by knowledge of what could work.
+Using an MWC generator in this particular way is rather uncharted
+territory regarding the math, so extensive testing is
+the way to trust the quality of the generator.
+
+
+
 `rand_SUITE:measure/1`
 ----------------------
 
@@ -716,9 +902,8 @@ Here are some selected results from the author's laptop
 from running `rand_SUITE:measure(20)`:
 
 The `{mwc59,Tag}` generator is `rand:mwc59/1`, where
-`Tag` indicates if the `raw` generator,
-the `rand:mwc59_fast_value/1` or the `rand:mwc59_value/1`
-scrambler was used.
+`Tag` indicates if the `raw` generator, the `rand:mwc59_value32/1`,
+or the `rand:mwc59_value/1` scrambler was used.
 
 The `{exsp,_}` generator is `rand:exsp_next/1` which
 is a newly exported internal function that does not use
@@ -732,33 +917,33 @@ framework it is called `exsp` below.
 
 ```
 RNG uniform integer range 10000 performance
-                   exsss:     59.1 ns (warm-up)
-                overhead:      3.6 ns      6.1%
-                   exsss:     55.2 ns    100.0%
-                    exsp:     51.0 ns     92.4%
-         {mwc59,raw_mod}:     11.7 ns     21.2%
-        {mwc59,fast_mod}:     15.2 ns     27.5%
-       {mwc59,value_mod}:     19.6 ns     35.4%
-              {exsp,mod}:     22.4 ns     40.5%
-         {mwc59,raw_mas}:      4.9 ns      8.8%
-        {mwc59,fast_mas}:      9.5 ns     17.2%
-       {mwc59,value_mas}:     12.5 ns     22.7%
-              {exsp,mas}:     19.4 ns     35.2%
-           unique_phash2:     26.4 ns     47.8%
-             system_time:     32.2 ns     58.3%
+                   exsss:     58.9 ns (warm-up)
+                overhead:      2.7 ns      4.6%
+                   exsss:     58.0 ns    100.0%
+                    exsp:     51.2 ns     88.3%
+         {mwc59,raw_mod}:     12.4 ns     21.3%
+       {mwc59,value_mod}:     20.1 ns     34.6%
+              {exsp,mod}:     24.5 ns     42.3%
+     {mwc59,value32_mas}:     11.0 ns     19.0%
+       {mwc59,value_mas}:     13.1 ns     22.5%
+              {exsp,mas}:     20.6 ns     35.5%
+           unique_phash2:     27.3 ns     47.0%
+             system_time:     32.4 ns     55.8%
 ```
 The first two are the warm-up and overhead measurements.
 The measured overhead is subtracted from all measurements
-after the "overhead:" line.  Note that the measured overhead
-is 3.6 ns which pretty well matches that `exsss` measures 3.9 ns more
-during the warm-up run than after `overhead`.
+after the "overhead:" line.  The measured overhead here
+is 2.7 ns which does not match well that `exsss` measures
+only 0.9 ns more during the warm-up run than after `overhead`.
+The warm-up run is a bit unpredictable.
 
 `{_,*mod}` and `system_time` all use `(X rem 10000) + 1`
-to achieve the desired range.  This operation is expensive,
+to achieve the desired range.  The `rem` operation is expensive,
 which we will see when comparing with the next section.
 
-`{_,*mas}` instead use multiply-and-shift, which is much
-faster than using `rem`.
+`{_,*mas}` use multiply-and-shift to achieve the range,
+that is `((X * 10000) bsr X_Bits) + 1`, which is much faster
+than using `rem`.
 
 `erlang:phash2/2` has got a range argument, that performs
 the `rem 10000` operation in the BIF, which is fairly cheap,
@@ -767,23 +952,25 @@ as we also will see when comparing with the next section.
 
 ```
 RNG uniform integer 32 bit performance
-                   exsss:     56.5 ns    100.0%
-                    exsp:     52.3 ns     92.5%
-        {mwc59,raw_mask}:      4.0 ns      7.1%
-       {mwc59,fast_mask}:      7.8 ns     13.9%
-     {mwc59,value_shift}:      9.8 ns     17.3%
-            {exsp,shift}:     18.1 ns     32.1%
-           unique_phash2:     24.2 ns     42.7%
-             system_time:     24.8 ns     43.8%
+                   exsss:     56.0 ns    100.0%
+                    exsp:     51.8 ns     92.6%
+        {mwc59,raw_mask}:      4.2 ns      7.5%
+         {mwc59,value32}:      8.3 ns     14.8%
+     {mwc59,value_shift}:      9.1 ns     16.3%
+            {exsp,shift}:     16.9 ns     30.2%
+           unique_phash2:     23.0 ns     41.1%
+             system_time:     24.3 ns     43.4%
 ```
-In this section `{mwc59,raw_mask}`, `{mwc59,fast_mask}`,
-`{mwc59,value_mask}`, `{exsp,shift}`, and `system_time`
-use bit operations such as `X band 16#ffffffff` or `X bsr 27`
-to achieve the desired range, and now we see that this is
-about 4 to 10 ns faster than for the `rem` operation
-in the previous section.  `{mwc59,raw_*}` is now 3 times faster.
-Compared to multiply-and-shift the bit operations
-are only a few nanoseconds faster.
+In this section, to generate a number in a 32-bit range,
+`{mwc59,raw_mask}` and `system_time` use a bit mask `X band 16#ffffffff`,
+`{_,*shift}` use `bsr` to shift out the low bits,
+and `{mwc59_value32}` is already on the right range.
+Here we see that bit operations are about 4 to 10 ns faster
+than the `rem` operation in the previous section.
+`{mwc59,raw_*}` is 3 times faster.
+
+Compared to the multiply-and-shift variants in the previous section,
+the bit operations here are about 3 ns faster.
 
 `unique_phash2` still uses BIF coded integer division to achieve
 the range, which gives it about the same speed as in the previous section.
@@ -791,16 +978,17 @@ the range, which gives it about the same speed as in the previous section.
 
 ```
 RNG uniform integer full range performance
-                   exsss:     47.4 ns    100.0%
-                    exsp:     43.2 ns     91.2%
-                   dummy:     25.1 ns     52.9%
-             {mwc59,raw}:      3.7 ns      7.8%
-            {mwc59,fast}:      6.8 ns     14.4%
-           {mwc59,value}:      8.0 ns     16.8%
-             {exsp,next}:     15.8 ns     33.4%
-           unique_phash2:     20.0 ns     42.2%
-                procdict:     75.8 ns    159.9%
-        {mwc59,procdict}:     16.2 ns     34.3%
+                   exsss:     46.1 ns    100.0%
+                    exsp:     42.0 ns     91.2%
+                   dummy:     26.6 ns     57.8%
+             {mwc59,raw}:      4.9 ns     10.7%
+         {mwc59,value32}:      8.2 ns     17.7%
+           {mwc59,value}:      9.2 ns     19.9%
+             {exsp,next}:     17.4 ns     37.7%
+       {splitmix64,next}:    312.4 ns    678.1%
+           unique_phash2:     20.4 ns     44.2%
+                procdict:     72.4 ns    157.2%
+        {mwc59,procdict}:     16.6 ns     36.0%
 ```
 In this section no range capping is done.  The raw generator output is used.
 
@@ -809,17 +997,17 @@ within the `rand` plug-in framework that only does a minimal state
 update and returns a constant.  It is used here to measure
 plug-in framework overhead.
 
-The plug-in framework overhead is measured to 25.1 ns that matches
-`exsp` - `{exsp,next}` = 27.4 ns well, which is the same algorithm within
+The plug-in framework overhead is measured to 26.6 ns that matches
+`exsp` - `{exsp,next}` = 24.6 ns well, which is the same algorithm within
 and without the plug-in framework, giving another measure
 of the framework overhead.
 
 `procdict` is the default algorithm `exsss` but makes the plug-in
 framework store the generator state in the process dictionary,
-which here costs 28 ns.
+which here costs 26.3 ns.
 
 `{mwc59,procdict}` stores the generator state in the process dictionary,
-which here costs 12.5 ns. The state term that is stored is much smaller
+which here costs 11.7 ns. The state term that is stored is much smaller
 than for the plug-in framework.  Compare to `procdict`
 in the previous paragraph.
 
@@ -852,6 +1040,8 @@ the precious CPU cycles are used for.
 [Spectral score]:           #spectral-score
 [PRNG tests]:               #prng-tests
 [Storing the state]:        #storing-the-state
+
+[Designing a PRNG]:         #designing-a-prng
 [Measurement results]:      #measurement-results
 
 [Looking for a faster RNG]:
@@ -871,3 +1061,6 @@ http://pracrand.sourceforge.net/
 
 [type-based optimizations]:
 https://www.erlang.org/blog/type-based-optimizations-in-the-jit/
+
+[Sebastiano Vigna]:
+http://PRNG-shootout/
