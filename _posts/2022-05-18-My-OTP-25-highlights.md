@@ -418,7 +418,28 @@ JIT][type-based-opts].
 
 # Better support for `perf` and `gdb`
 
-**Ask John or Lukas to provide examples.**
+It is now possible to profile Erlang systems with perf and get a mapping from the JIT code to the corresponding Erlang code. This will make it easy to find bottlenecks in the code.
+
+The same goes for `gdb` which also can show which line of Erlang code a specific address in the JIT code corresponds to.
+
+An Erlang node running under `perf` can be started like this:
+```
+sudo perf record bin/erl +JPperf true --call-graph
+```
+and then the result from perf could be viewed like this:
+```
+sudo perf report
+```
+If an Erlang node is started like this:
+```
+erl +JPperf true
+```
+And the pid for the node is `4711`
+
+You can attach `perf` to the node like this:
+```
+sudo perf record --call-graph -p 4711
+```
 
 # Improved error information for failing binary construction
 
