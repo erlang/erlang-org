@@ -442,7 +442,9 @@ and the Just-In-Time compiling BEAM code loader.
 This is the Erlang code for the `mwc59` generator:
 ``` erlang
 mwc59(CX) ->
-    16#7fa6502 * (CX band ((1 bsl 32)-1)) + (CX bsr 32).
+    C = CX band ((1 bsl 32)-1),
+    X = CX bsr 32,
+    16#7fa6502 * X + C.
 ```
 which compiles to (Erlang BEAM assembler, `erlc -S rand.erl`),
 using the `no_type_opt` flag:
@@ -560,10 +562,12 @@ The Erlang code now has a first redundant mask to 59 bits:
 ``` erlang
 mwc59(CX0) ->
     CX = CX0 band ((1 bsl 59)-1),
-    16#7fa6502 * (CX band ((1 bsl 32)-1)) + (CX bsr 32).
+    C = CX band ((1 bsl 32)-1),
+    X = CX bsr 32,
+    16#7fa6502 * X + C.
 ```
-The BEAM assembler now becomes, with the default type-based optimizations
-in the compiler on the master branch (in the upcoming OTP-25.0):
+The BEAM assembler then becomes, with the default type-based optimizations
+in the compiler the OTP-25.0 release:
 ``` erlang
     {gc_bif,'band',{f,0},1,[{x,0},{integer,576460752303423487}],{x,0}}.
     {gc_bif,'bsr',
@@ -709,7 +713,7 @@ Measurement results
 -------------------
 
 Here are some selected results from the author's laptop
-from running `rand_SUITE:measure(5)`:
+from running `rand_SUITE:measure(20)`:
 
 The `{mwc59,Tag}` generator is `rand:mwc59/1`, where
 `Tag` indicates if the `raw` generator,
@@ -728,28 +732,33 @@ framework it is called `exsp` below.
 
 ```
 RNG uniform integer range 10000 performance
-                   exsss:     67.7 ns (warm-up)
-                overhead:      3.4 ns      5.0%
-                   exsss:     54.5 ns    100.0%
-                    exsp:     49.9 ns     91.6%
-         {mwc59,raw_mod}:     10.8 ns     19.7%
-        {mwc59,fast_mod}:     15.8 ns     28.9%
-       {mwc59,value_mod}:     19.8 ns     36.4%
-              {exsp,mod}:     22.2 ns     40.7%
-           unique_phash2:     24.3 ns     44.6%
-             system_time:     31.7 ns     58.1%
+                   exsss:     59.1 ns (warm-up)
+                overhead:      3.6 ns      6.1%
+                   exsss:     55.2 ns    100.0%
+                    exsp:     51.0 ns     92.4%
+         {mwc59,raw_mod}:     11.7 ns     21.2%
+        {mwc59,fast_mod}:     15.2 ns     27.5%
+       {mwc59,value_mod}:     19.6 ns     35.4%
+              {exsp,mod}:     22.4 ns     40.5%
+         {mwc59,raw_mas}:      4.9 ns      8.8%
+        {mwc59,fast_mas}:      9.5 ns     17.2%
+       {mwc59,value_mas}:     12.5 ns     22.7%
+              {exsp,mas}:     19.4 ns     35.2%
+           unique_phash2:     26.4 ns     47.8%
+             system_time:     32.2 ns     58.3%
 ```
 The first two are the warm-up and overhead measurements.
 The measured overhead is subtracted from all measurements
 after the "overhead:" line.  Note that the measured overhead
-is 3.3 ns but the warm-up run has got almost 10 ns more
-per call than than `exsss` plus `overhead`, which indicates
-that the warm-up did its thing.
+is 3.6 ns which pretty well matches that `exsss` measures 3.9 ns more
+during the warm-up run than after `overhead`.
 
-`{mwc59,raw_mod}`, `{mwc59,fast_mod}`,  `{mwc59,value_mod}`,
-`{exsp,mod}` and `system_time` all use `(X rem 10000) + 1`
+`{_,*mod}` and `system_time` all use `(X rem 10000) + 1`
 to achieve the desired range.  This operation is expensive,
 which we will see when comparing with the next section.
+
+`{_,*mas}` instead use multiply-and-shift, which is much
+faster than using `rem`.
 
 `erlang:phash2/2` has got a range argument, that performs
 the `rem 10000` operation in the BIF, which is fairly cheap,
@@ -758,21 +767,23 @@ as we also will see when comparing with the next section.
 
 ```
 RNG uniform integer 32 bit performance
-                   exsss:     55.1 ns    100.0%
-                    exsp:     49.9 ns     90.7%
-        {mwc59,raw_mask}:      3.4 ns      6.2%
-       {mwc59,fast_mask}:      6.2 ns     11.2%
-      {mwc59,value_mask}:      7.8 ns     14.1%
-            {exsp,shift}:     17.4 ns     31.5%
-           unique_phash2:     22.9 ns     41.7%
-             system_time:     23.9 ns     43.4%
+                   exsss:     56.5 ns    100.0%
+                    exsp:     52.3 ns     92.5%
+        {mwc59,raw_mask}:      4.0 ns      7.1%
+       {mwc59,fast_mask}:      7.8 ns     13.9%
+     {mwc59,value_shift}:      9.8 ns     17.3%
+            {exsp,shift}:     18.1 ns     32.1%
+           unique_phash2:     24.2 ns     42.7%
+             system_time:     24.8 ns     43.8%
 ```
 In this section `{mwc59,raw_mask}`, `{mwc59,fast_mask}`,
 `{mwc59,value_mask}`, `{exsp,shift}`, and `system_time`
-use bit operations such as `X band 16#ffffffff` or `X bsr 3`
+use bit operations such as `X band 16#ffffffff` or `X bsr 27`
 to achieve the desired range, and now we see that this is
-about 5 to 12 ns faster than for the `rem` operation
+about 4 to 10 ns faster than for the `rem` operation
 in the previous section.  `{mwc59,raw_*}` is now 3 times faster.
+Compared to multiply-and-shift the bit operations
+are only a few nanoseconds faster.
 
 `unique_phash2` still uses BIF coded integer division to achieve
 the range, which gives it about the same speed as in the previous section.
@@ -780,17 +791,16 @@ the range, which gives it about the same speed as in the previous section.
 
 ```
 RNG uniform integer full range performance
-                   exsss:     44.8 ns    100.0%
-                    exsp:     42.0 ns     93.7%
-                   dummy:     26.9 ns     60.1%
-             {mwc59,raw}:      3.9 ns      8.7%
-            {mwc59,fast}:      7.5 ns     16.7%
-           {mwc59,value}:      9.2 ns     20.4%
-             {exsp,next}:     18.9 ns     42.2%
-       splitmix64_inline:    336.6 ns    750.5%
-           unique_phash2:     22.4 ns     49.9%
-                procdict:     76.8 ns    171.2%
-        {mwc59,procdict}:     17.1 ns     38.2%
+                   exsss:     47.4 ns    100.0%
+                    exsp:     43.2 ns     91.2%
+                   dummy:     25.1 ns     52.9%
+             {mwc59,raw}:      3.7 ns      7.8%
+            {mwc59,fast}:      6.8 ns     14.4%
+           {mwc59,value}:      8.0 ns     16.8%
+             {exsp,next}:     15.8 ns     33.4%
+           unique_phash2:     20.0 ns     42.2%
+                procdict:     75.8 ns    159.9%
+        {mwc59,procdict}:     16.2 ns     34.3%
 ```
 In this section no range capping is done.  The raw generator output is used.
 
@@ -799,17 +809,19 @@ within the `rand` plug-in framework that only does a minimal state
 update and returns a constant.  It is used here to measure
 plug-in framework overhead.
 
-The plug-in framework overhead is measured to 26.9 ns that matches
-`exsp` - `{exsp,next}` = 23.1 ns well, which is the same algorithm within
-and without the plug-in framework.
+The plug-in framework overhead is measured to 25.1 ns that matches
+`exsp` - `{exsp,next}` = 27.4 ns well, which is the same algorithm within
+and without the plug-in framework, giving another measure
+of the framework overhead.
 
 `procdict` is the default algorithm `exsss` but makes the plug-in
 framework store the generator state in the process dictionary,
-which here costs 32 ns.
+which here costs 28 ns.
 
 `{mwc59,procdict}` stores the generator state in the process dictionary,
-which here costs 13.2 ns. The state term that is stored is much smaller
-than for the plug-in framework.  Compare to the above.
+which here costs 12.5 ns. The state term that is stored is much smaller
+than for the plug-in framework.  Compare to `procdict`
+in the previous paragraph.
 
 
 
