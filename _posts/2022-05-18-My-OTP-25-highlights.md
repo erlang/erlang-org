@@ -19,13 +19,12 @@ This years highlights are:
 * [Selectable features and the new `maybe_expr` feature](#selectable-features-and-the-new-maybe_expr-feature)
 * [Improvements of the JIT](#improvements-of-the-jit)
 * ETS-tables with adaptive support for write concurrency
-* Compiler news
 * Relocatable installation directory for Erlang
 * New option `short` to the functions `erlang:float_to_list/2` and `erlang:float_to_binary/2` 
-* The new module peer supersedes the slave module
+* The new module `peer` supersedes the slave module
 * global will now by default prevent overlapping partitions
 * gen_server, gen_statem and gen_event has got a new format_status/1 callback.
-* The timer module has been modernized and made more efficient
+* The `timer` module has been modernized and made more efficient
 * CA-certificates can be fetched from the OS standard place 
 
 
@@ -441,7 +440,7 @@ You can attach `perf` to the node like this:
 sudo perf record --call-graph -p 4711
 ```
 ![alt text](/blog/images/perf_callgraph.png "perf call-graph")
-
+![Hotspot dialyzer](/blog/images/hotspot-dialyzer.png "Hotspot dialyzer")
 
 ## Linux perf support
 
@@ -739,6 +738,19 @@ installation directory is unknown at compile time. This is fixed by:
   working directory can be changed so it is something different than
   `code:root_dir()`.
 
+# ETS-tables with adaptive support for write concurrency
+
+# New option `short` to the functions `erlang:float_to_list/2` and `erlang:float_to_binary/2` 
+
+# The new module `peer` supersedes the slave module
+
+# global will now by default prevent overlapping partitions
+
+# gen_server, gen_statem and gen_event has got a new format_status/1 callback.
+
+# The `timer` module has been modernized and made more efficient
+
+# CA-certificates can be fetched from the OS standard place 
 
 
 Misc #
