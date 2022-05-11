@@ -440,7 +440,151 @@ You can attach `perf` to the node like this:
 ```
 sudo perf record --call-graph -p 4711
 ```
+![alt text](/blog/images/perf_callgraph.png "perf call-graph")
 
+
+## Linux perf support
+
+perf can also be instrumented using BeamAsm symbols to provide more information. As with
+gdb, only the currently executing function will show up in the stack trace, which means
+that perf provides functionality similar to that of [eprof](https://erlang.org/doc/man/eprof.html).
+
+You can run perf on BeamAsm like this:
+
+    perf record erl +JPperf true
+
+and then look at the results using `perf report` as you normally would with
+perf.
+
+Frame pointers are enabled when the `+JPperf true` option is passed, so you can
+use `perf record --call-graph=fp` to get more context. This will give you
+accurate call graphs for pure Erlang code, but in rare cases it fails to track
+transitions from Erlang to C code and back. [`perf record --call-graph=lbr`](https://lwn.net/Articles/680985/)
+may work better in those cases, but it's worse at tracking in general.
+
+For example, you can run perf to analyze dialyzer building a PLT like this:
+
+     ERL_FLAGS="+JPperf true +S 1" perf record --call-graph=fp \
+       dialyzer --build_plt -Wunknown --apps compiler crypto erts kernel stdlib \
+       syntax_tools asn1 edoc et ftp inets mnesia observer public_key \
+       sasl runtime_tools snmp ssl tftp wx xmerl tools
+
+The above code is run using `+S 1` to make the perf output easier to understand.
+If you then run `perf report -f --no-children` you may get something similar to this:
+
+![Linux Perf report: dialyzer PLT build](figures/perf-beamasm.png)
+
+Any Erlang function in the report is prefixed with a `$` and all C functions have
+their normal names. Any Erlang function that has the prefix `$global::` refers
+to a global shared fragment.
+
+So in the above, we can see that we spend the most time doing `eq`, i.e. comparing two terms.
+By expanding it and looking at its parents we can see that it is the function
+`erl_types:t_is_equal/2` that contributes the most to this value. Go and have a look
+at it in the source code to see if you can figure out why so much time is spent there.
+
+After `eq` we see the function `erl_types:t_has_var/1` where we spend almost
+5% of the entire execution in. A while further down you can see `copy_struct_x`
+which is the function used to copy terms. If we expand it to view the parents
+we find that it is mostly `ets:lookup_element/3` that contributes to this time
+via the Erlang function `dialyzer_plt:ets_table_lookup/2`.
+
+### Flame Graph
+
+You can also create a Flame Graph from the perf output. Flame Graphs are basically
+just another way to look at the same data as the `perf report` output, but can
+be more easily shared with others and manipulated to give a graph tailor-made for
+your needs. For instance, if we run dialyzer with all schedulers:
+
+    ## Run dialyzer with multiple schedulers
+    ERL_FLAGS="+JPperf true" perf record --call-graph=fp \
+      dialyzer --build_plt -Wunknown --apps compiler crypto erts kernel stdlib \
+      syntax_tools asn1 edoc et ftp inets mnesia observer public_key \
+      sasl runtime_tools snmp ssl tftp wx xmerl tools --statistics
+
+And then use the scripts found at Brendan Gregg's [CPU Flame Graphs](http://www.brendangregg.com/FlameGraphs/cpuflamegraphs)
+web page as follows:
+
+    ## Collect the results
+    perf script > out.perf
+    ## run stackcollapse
+    stackcollapse-perf.pl out.perf > out.folded
+    ## Create the svg
+    flamegraph.pl out.folded > out.svg
+
+We get a graph that would look something like this:
+
+![Linux Perf FlameGraph: dialyzer PLT build](figures/perf-beamasm.svg)
+
+You can view a larger version [here](seefile/figures/perf-beamasm.svg). It contains
+the same information, but it is easier to share with others as it does
+not need the symbols in the executable.
+
+Using the same data we can also produce a graph where the scheduler profile data
+has been merged by using `sed`:
+
+    ## Strip [0-9]+_ from all scheduler names
+    sed -e 's/^[0-9]\+_//' out.folded > out.folded_sched
+    ## Create the svg
+    flamegraph.pl out.folded_sched > out_sched.svg
+
+![Linux Perf FlameGraph: dialyzer PLT build](figures/perf-beamasm-merged.svg)
+
+You can view a larger version [here](seefile/figures/perf-beamasm-merged.svg).
+There are many different transformations that you can do to make the graph show
+you what you want.
+
+### Annotate perf functions
+
+If you want to be able to use the `perf annotate` functionality (and in extension
+the annotate functionality in the `perf report` gui) you need to use a monotonic
+clock when calling `perf record`, i.e. `perf record -k mono`. So for a dialyzer
+run you would do this:
+
+    ERL_FLAGS="+JPperf true +S 1" perf record -k mono --call-graph=fp \
+      dialyzer --build_plt -Wunknown --apps compiler crypto erts kernel stdlib \
+      syntax_tools asn1 edoc et ftp inets mnesia observer public_key \
+      sasl runtime_tools snmp ssl tftp wx xmerl tools
+
+In order to use the `perf.data` produced by this record you need to first call
+`perf inject --jit` like this:
+
+    perf inject --jit -i perf.data -o perf.jitted.data
+
+and then you can view an annotated function like this:
+
+    perf annotate -M intel -i perf.jitted.data erl_types:t_has_var/1
+
+or by pressing `a` in the `perf report` ui. Then you get something like this:
+
+![Linux Perf FlameGraph: dialyzer PLT build](figures/beamasm-perf-annotate.png)
+
+`perf annotate` will interleave the listing with the original source code
+whenever possible. You can use the `+{source,Filename}` or `+absolute_paths`
+compiler options to tell `perf` where to find the source code.
+
+> *WARNING*: Calling `perf inject --jit` will create a lot of files in `/tmp/`
+> and in `~/.debug/tmp/`. So make sure to cleanup in those directories from time to
+> time or you may run out of inodes.
+
+### perf tips and tricks
+
+You can do a lot of neat things with `perf`. Below is a list of some of the options
+we have found useful:
+
+* `perf report --no-children`
+    Do not include the accumulation of all children in a call.
+* `perf report  --call-graph callee`
+    Show the callee rather than the caller when expanding a function call.
+* `perf archive`
+    Create an archive with all the artifacts needed to inspect the data
+    on another host. In early version of perf this command does not work,
+    instead you can use [this bash script](https://github.com/torvalds/linux/blob/master/tools/perf/perf-archive.sh).
+* `perf report` gives "failed to process sample" and/or "failed to process type: 68"
+    This probably means that you are running a bugge version of perf. We have
+    seen this when running Ubuntu 18.04 with kernel version 4. If you update
+    to Ubuntu 20.04 or use Ubuntu 18.04 with kernel version 5 the problem
+    should go away.
 # Improved error information for failing binary construction
 
 Erlang/OTP 24 introduced [improved BIF error information][ext_bif_info] to provide
