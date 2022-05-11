@@ -260,15 +260,15 @@ as large as `A`&nbsp;*&nbsp;2<sup>B</sup>, which must not become a bignum.
 To get a full sequence, that is, to use all numbers in the state range,
 there are more restrictions imposed on `A` and `B`, but we will
 not dig deeper into this field and instead consult the profession,
-in this case Prof. [Sebastiano Vigna] at the University of Milano
+in this case [Sebastiano Vigna] at the University of Milano
 that also helped develop our current 58-bit Xorshift family generators.
 
 After trying many parameters in spectral score programs and
 programs for [PRNG tests] we selected the parameters
 `A = 16#7fa6502` and `B = 32`, which I named `mwc59`.
 
-It has a 59-bit state space and an MWC "digit" size of 32 bits which
-gives the low 32 bits mathematical guarantees about their spectral score.
+It has a 59-bit state space and an MWC "digit" size of 32 bits
+which makes it plausible to use 32 bits as the output size.
 
 On the flip side, since an MWC generator corresponds to an MCG
 with a power of 2 multiplier, it gets a bad spectral score for
@@ -732,7 +732,7 @@ showed in [PRNG tests].  They failed miserably.
 
 ### MWC
 
-Prof. [Sebastiano Vigna] of the University of Milano suggested to use
+[Sebastiano Vigna] of the University of Milano suggested to use
 a Multiply With Carry generator instead:
 ``` erlang
 T  = A * X0 + C0,
