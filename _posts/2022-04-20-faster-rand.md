@@ -12,6 +12,16 @@ This blog post will dive in to new additions to the
 said module, how the Just-In-Time compiler optimizes them,
 known tricks, and tries to compare these apples and potatoes.
 
+#### Contents
+[Speed over quality?](#speed-over-quality)  
+[Suggested solutions](#suggested-solutions)  
+[Quality](#quality)  
+[Storing the state](#storing-the-state)  
+[Seeding](#seeding)
+[JIT optimizations](#jit-optimizations)  
+[Implementing a PRNG](#implementing-a-prng)  
+[`rand_SUITE:measure/1`](#rand_suitemeasure1)  
+[Measurement results](#measurement-results)
 
 
 Speed over quality?
@@ -64,7 +74,7 @@ that boasts sub-ns speed in C needs 17 ns in Erlang.
 32-bit Erlang is a sad story in this regard.  The bignum limit
 on such an Erlang system is so low, calculations would have
 to use 26-bit integers, that designing a PRNG
-that uses non-bignums must be so small in period and size
+not using bignums must be so small in period and size
 that it becomes too bad to be useful.
 The known trick `erlang:phash2(erlang:unique_integer(), Range)`
 is still fairly fast, but all `rand` generators work exactly the same
@@ -225,7 +235,7 @@ on immediate values (not bignums), and the state as well
 as the returned number also have to be immediate values.
 This seriously limits how powerful algorithms that can be used.
 
-See section [Designing a PRNG] for how this generator
+See section [Implementing a PRNG] for how this generator
 was designed and why.
 
 A Multiply With Carry generator is one of the classical PRNG:s
@@ -362,7 +372,7 @@ are tweaked just a little.  To perform well in more cases,
 and with more bits, scrambling functions are needed.
 Still, the small state space and the flaws of the base generator
 makes it hard to pass all tests with flying colors.
-With the thorough double xorshift scrambler it gets very good, though.
+With the thorough double Xorshift scrambler it gets very good, though.
 
 `erlang:phash2(N, Range)` over an incrementing sequence does not do well
 in [TestU01], which shows that a hash function has got different
@@ -672,8 +682,8 @@ from the `{x,_}` register after the operation.
 
 
 
-Designing a PRNG
-----------------
+Implementing a PRNG
+-------------------
 
 To create a really fast PRNG in Erlang there are some
 limitations coming with the language implementation:
@@ -757,14 +767,13 @@ probably be necessary to improve the quality.
 
 A search for a suitable digit size and multiplier started,
 mostly done by using programs that try multipliers for
-safe prime numbers, and estimates spectral scores.
+safe prime numbers, and estimates spectral scores, such as [CPRNG].
 
 When the generator is balanced, that is, the multiplier `A`
 has got about `Bits` bits, the spectral scores are the best,
-apart from the problem in 3 dimensions.  But since a scrambling
+apart from the known problem in 3 dimensions.  But since a scrambling
 function would be needed anyway there was an opportunity to
-try a not quite balanced 32-bit digit and a 27-bit multiplier,
-since a 32-bit digit is a comfortable unit to generate.
+try to generate a comfortable 32-bit digit using a 27-bit multiplier.
 
 With such slightly unbalanced parameters, the spectral scores
 for 2 dimensions also gets bad, but the scrambler should solve that too.
@@ -779,7 +788,7 @@ T1 = 16#7fa6502 * X + C.
 The 32-bit digits of the base generator does not perform very
 well in [PRNG tests], but actually the low 16 bits passes
 2 TB in [PractRand] and 1 TB with the bits reversed,
-which is surprisingly good.  The problems in spectral scores
+which is surprisingly good.  The problem of bad spectral scores
 for 2 and 3 dimensions lie in the higher bits of the MWC digit.
 
 #### Scrambling
@@ -864,7 +873,7 @@ This test case is a micro-benchmark of all the algorithms
 in the `rand` module, and some more.  It measures the execution
 time in nanoseconds per generated number, and presents the
 times both absolute and relative to the default algorithm
-`exsss` that is considered to be 100%.
+`exsss` that is considered to be 100%.  See [Measurement Results].
 
 `rand_SUITE:measure/1` is runnable also without a test framework.
 As long as `rand_SUITE.beam` is in the code path
@@ -1016,22 +1025,24 @@ in the previous paragraph.
 Summing up
 ----------
 
-The new fast generators functions in the `rand` module
+The [new fast] generator's functions in the `rand` module
 fills a niche for speed over quality where the type-based
-JIT optimizations have elevated the performance.
+[JIT optimizations] have elevated the performance.
 
 The combination of high speed and high quality can only
-be fulfilled with a BIF implementation, but we hope that
+be fulfilled with a [BIF implementation], but we hope that
 to be a combination we do not need to address...
 
-Recent improvements in `rand_suite:measure/1` highlights what
-the precious CPU cycles are used for.
+Recent improvements in [`rand_SUITE:measure/1`]
+highlights what the precious CPU cycles are used for.
 
 
 
 [Use `rand` anyway]:        #use-rand-anyway
+[BIF implementation]:       #write-a-bif
 [Write a BIF]:              #write-a-bif
 [Write a NIF]:              #write-a-nif
+[new fast]:                 #write-a-simple-prng
 [Use the system time]:      #use-the-system-time
 [Hash a "unique" value]:    #hash-a-unique-value
 [Write a simple PRNG]:      #write-a-simple-prng
@@ -1041,7 +1052,9 @@ the precious CPU cycles are used for.
 [PRNG tests]:               #prng-tests
 [Storing the state]:        #storing-the-state
 
-[Designing a PRNG]:         #designing-a-prng
+[JIT optimizations]:        #jit-optimizations
+[Implementing a PRNG]:      #implementing-a-prng
+[`rand_SUITE:measure/1`]:   #rand_suitemeasure1
 [Measurement results]:      #measurement-results
 
 [Looking for a faster RNG]:
@@ -1063,4 +1076,7 @@ http://pracrand.sourceforge.net/
 https://www.erlang.org/blog/type-based-optimizations-in-the-jit/
 
 [Sebastiano Vigna]:
-http://PRNG-shootout/
+https://vigna.di.unimi.it/
+
+[CPRNG]:
+https://github.com/vigna/CPRNG/
