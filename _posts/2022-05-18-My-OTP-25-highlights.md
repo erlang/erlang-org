@@ -17,6 +17,9 @@ For instance here: [Erlang/OTP 25 - Erts Release Notes - Version 13.0].
 This years highlights are:
 * [New functions in the `maps`and `lists` modules](#new-functions-in-the-mapsand-lists-modules)
 * [Selectable features and the new `maybe_expr` feature](#selectable-features-and-the-new-maybe_expr-feature)
+* Compiler News
+* Crypto and OpenSSL 3.0
+* Dialyzer
 * [Improvements of the JIT](#improvements-of-the-jit)
 * ETS-tables with adaptive support for write concurrency
 * Relocatable installation directory for Erlang
@@ -70,23 +73,16 @@ In the example above the strings from the input list are grouped according to th
 
 ## `lists:enumerate/1,2`
 
-Returns List1 with each element H replaced by a tuple of form {I, H} where I is the position of H in List1. The enumeration starts with 1 and increases by 1 in each step.
+Takes a list of elements and return a new list where each element has been associated with its position in the original list. Returns a new list with tuples of the form `{I, H}` where `I` is the position of `H` in the original list. The enumeration starts with 1 and increases by 1 in each step.
 
 That is, enumerate/1 behaves as if it had been defined as follows:
 
-```erlang
-enumerate(List) ->
-  {List1, _ } = lists:mapfoldl(fun(T, Acc) -> {{Acc, T}, Acc+1} end, 1, List),
-  List1.
-```
-
 Example:
-
 ```erlang
 > lists:enumerate([a,b,c]).
 [{1,a},{2,b},{3,c}]
 ```
-
+There is also a enumerate/2 function which can be used to set the initial number to something else than 1. See example below:
 ```erlang
 > lists:enumerate(10, [a,b,c]).
 [{10,a},{11,b},{12,c}]
@@ -94,17 +90,17 @@ Example:
 
 ## `lists:uniq/1,2`
 
-Returns a list containing the elements of List1 with duplicated elements removed (preserving the order of the elements). The first occurrence of each element is kept.
+Removes duplicates from a list while preserving the order of the elements. The first occurrence of each element is kept. 
+We already have `lists:usort` which also removes duplicates but return a sorted list.
 
 Examples:
-
 ```erlang
 > lists:uniq(fun([3,3,1,2,1,2,3]).
 [3,1,2]
 > lists:uniq([a, a, 1, b, 2, a, 3]).
 [a, 1, b, 2, 3]
 ```
-Returns a list containing the elements of List1 without the elements for which Fun returned duplicate values (preserving the order of the elements). The first occurrence of each element is kept.
+`lists:uniq/2` allows the user to specify with a fun how to determine that 2 elements in the list are equal. In the example below the provided fun is just testing the first element of the 2 tuples for equality.
 
 Examples:
 ```erlang
@@ -126,12 +122,11 @@ In module my_experiment the feature is activated and used like this:
 -export([foo/1]).
 
 %% enable the feature maybe_expr in this module only
-%% makes maybe a keyword which might be compatible 
+%% makes maybe a keyword which might be incompatible 
 %% in modules using maybe as a function name or an atom  
 -feature(maybe_expr,enable) 
 foo() ->
   maybe
-    Foo = bar(),            % normal exprs still allowed
     {ok, X} ?= f(Foo),
     [H|T] ?= g([1,2,3]),
     ...
@@ -161,7 +156,7 @@ erl -enable-feature all
 ## The new `maybe_expr` feature EEP-49
 
 The EEP-49 "Value-Based Error Handling Mechanisms", was suggested by Fred Hebèrt already 2018 and now finally
-it has been implemented as the first feature in the new feature concept.
+it has been implemented as the first feature within the new feature concept.
 
 The `maybe ... end` construct which is similar to `begin ... end` in that it is used to group multiple distinct expression as a
 single block. But there is one important difference in that the
@@ -170,23 +165,19 @@ export its variables.
 
 A new type of expressions (denoted `MatchOrReturnExprs`) are introduced, which are only valid within a
 `maybe ... end` expression:
-
 ```
 maybe
     Exprs | MatchOrReturnExprs
 end
 ```
-
 `MatchOrReturnExprs` are defined as having the following form:
-
 ```
 Pattern ?= Expr
 ```
-
 This definition means that `MatchOrReturnExprs` are only allowed at the
 top-level of `maybe ... end` expressions.
 
-The `?=` operator takes the value returned by `Expr` and pattern matches on
+The `?=` operator takes the value returned by `Expr` and pattern matches
 it against `Pattern`.
 
 If the pattern matches, all variables from `Pattern` are bound in the local
@@ -230,19 +221,6 @@ else
         {error, "unexpected wrapper"}
 end
 ```
-
-Do note that to allow easier pattern matching and more intuitive usage,
-the `?=` operator should have associativity rules lower than `=`, such that:
-
-```erlang
-maybe
-    X = [H|T] ?= exp()
-end
-```
-
-is a valid `MatchOrReturnExprs` equivalent to the non-infix form `'?='('='(X,
-[H|T]), exp())`, since reversing the priorities would give `'='('?='(X, [H|T]),
-exp())`, which would create a `MatchOrReturnExp` out of context and be invalid.
 
 ### Motivation
 
@@ -316,11 +294,11 @@ success or error paths.
 
 # Compiler news
 * Add compile attribute `-nifs()` to empower compiler and loader with information     about   which functions may be overridden as NIFs by `erlang:load_nif/2`.
-    Improved and more detailed error messages when binary construction with the binary syntax fails. This applies both for error messages in the shell and for `erl_error:format_exception/3,4`.
+* Improved and more detailed error messages when binary construction with the binary syntax fails. This applies both for error messages in the shell and for `erl_error:format_exception/3,4`.
 
 
-# Crypto
-`crypto:hash_equals/2` which is a constant time comparision of hashvalues.
+# Crypto and OpenSSL 3.0
+Text to be included.....
 
 # Dialyzer
 
@@ -374,16 +352,13 @@ down to 9.64 seconds. That is, almost but not quite twice as fast.
 Finally, we ran a benchmark for the [base64][base64] module included
 in [this Github issue][gh-5639].
 
-Without the JIT:
-
+With the JIT:
 ```
 == Testing with 1 MB ==
 fun base64:encode/1: 1000 iterations in 11846 ms: 84 it/sec
 fun base64:decode/1: 1000 iterations in 14617 ms: 68 it/sec
 ```
-
-With the JIT:
-
+Without the JIT:
 ```
 == Testing with 1 MB ==
 fun base64:encode/1: 1000 iterations in 25938 ms: 38 it/sec
@@ -423,54 +398,30 @@ The same goes for `gdb` which also can show which line of Erlang code a specific
 
 An Erlang node running under `perf` can be started like this:
 ```
-sudo perf record bin/erl +JPperf true --call-graph
+sudo perf record erl +JPperf true --call-graph
 ```
 and then the result from perf could be viewed like this:
 ```
 sudo perf report
 ```
-If an Erlang node is started like this:
+It is also possible to attach `perf` to an already running Erlang node like this:
 ```
+# start Erlang at get the Pid
 erl +JPperf true
 ```
 And the pid for the node is `4711`
 
-You can attach `perf` to the node like this:
+You can then attach `perf` to the node like this:
 ```
 sudo perf record --call-graph -p 4711
 ```
+The result from perf could then look like this:
+
 ![alt text](/blog/images/otp25/perf_callgraph.png "perf call-graph")
 
-## Linux perf support
-
-perf can also be instrumented using BeamAsm symbols to provide more information. As with
-gdb, only the currently executing function will show up in the stack trace, which means
-that perf provides functionality similar to that of [eprof](https://erlang.org/doc/man/eprof.html).
-
-You can run perf on BeamAsm like this:
-
-    perf record erl +JPperf true
-
-and then look at the results using `perf report` as you normally would with
-perf.
 
 Frame pointers are enabled when the `+JPperf true` option is passed, so you can
-use `perf record --call-graph=fp` to get more context. This will give you
-accurate call graphs for pure Erlang code, but in rare cases it fails to track
-transitions from Erlang to C code and back. [`perf record --call-graph=lbr`](https://lwn.net/Articles/680985/)
-may work better in those cases, but it's worse at tracking in general.
-
-For example, you can run perf to analyze dialyzer building a PLT like this:
-
-     ERL_FLAGS="+JPperf true +S 1" perf record --call-graph=fp \
-       dialyzer --build_plt -Wunknown --apps compiler crypto erts kernel stdlib \
-       syntax_tools asn1 edoc et ftp inets mnesia observer public_key \
-       sasl runtime_tools snmp ssl tftp wx xmerl tools
-
-The above code is run using `+S 1` to make the perf output easier to understand.
-If you then run `perf report -f --no-children` you may get something similar to this:
-
-![Linux Perf report: dialyzer PLT build](figures/perf-beamasm.png)
+use `perf record --call-graph=fp` to get more context. 
 
 Any Erlang function in the report is prefixed with a `$` and all C functions have
 their normal names. Any Erlang function that has the prefix `$global::` refers
@@ -487,83 +438,6 @@ which is the function used to copy terms. If we expand it to view the parents
 we find that it is mostly `ets:lookup_element/3` that contributes to this time
 via the Erlang function `dialyzer_plt:ets_table_lookup/2`.
 
-### Flame Graph
-
-You can also create a Flame Graph from the perf output. Flame Graphs are basically
-just another way to look at the same data as the `perf report` output, but can
-be more easily shared with others and manipulated to give a graph tailor-made for
-your needs. For instance, if we run dialyzer with all schedulers:
-
-    ## Run dialyzer with multiple schedulers
-    ERL_FLAGS="+JPperf true" perf record --call-graph=fp \
-      dialyzer --build_plt -Wunknown --apps compiler crypto erts kernel stdlib \
-      syntax_tools asn1 edoc et ftp inets mnesia observer public_key \
-      sasl runtime_tools snmp ssl tftp wx xmerl tools --statistics
-
-And then use the scripts found at Brendan Gregg's [CPU Flame Graphs](http://www.brendangregg.com/FlameGraphs/cpuflamegraphs)
-web page as follows:
-
-    ## Collect the results
-    perf script > out.perf
-    ## run stackcollapse
-    stackcollapse-perf.pl out.perf > out.folded
-    ## Create the svg
-    flamegraph.pl out.folded > out.svg
-
-We get a graph that would look something like this:
-
-![Linux Perf FlameGraph: dialyzer PLT build](figures/perf-beamasm.svg)
-
-You can view a larger version [here](seefile/figures/perf-beamasm.svg). It contains
-the same information, but it is easier to share with others as it does
-not need the symbols in the executable.
-
-Using the same data we can also produce a graph where the scheduler profile data
-has been merged by using `sed`:
-
-    ## Strip [0-9]+_ from all scheduler names
-    sed -e 's/^[0-9]\+_//' out.folded > out.folded_sched
-    ## Create the svg
-    flamegraph.pl out.folded_sched > out_sched.svg
-
-![Linux Perf FlameGraph: dialyzer PLT build](figures/perf-beamasm-merged.svg)
-
-You can view a larger version [here](seefile/figures/perf-beamasm-merged.svg).
-There are many different transformations that you can do to make the graph show
-you what you want.
-
-### Annotate perf functions
-
-If you want to be able to use the `perf annotate` functionality (and in extension
-the annotate functionality in the `perf report` gui) you need to use a monotonic
-clock when calling `perf record`, i.e. `perf record -k mono`. So for a dialyzer
-run you would do this:
-
-    ERL_FLAGS="+JPperf true +S 1" perf record -k mono --call-graph=fp \
-      dialyzer --build_plt -Wunknown --apps compiler crypto erts kernel stdlib \
-      syntax_tools asn1 edoc et ftp inets mnesia observer public_key \
-      sasl runtime_tools snmp ssl tftp wx xmerl tools
-
-In order to use the `perf.data` produced by this record you need to first call
-`perf inject --jit` like this:
-
-    perf inject --jit -i perf.data -o perf.jitted.data
-
-and then you can view an annotated function like this:
-
-    perf annotate -M intel -i perf.jitted.data erl_types:t_has_var/1
-
-or by pressing `a` in the `perf report` ui. Then you get something like this:
-
-![Linux Perf FlameGraph: dialyzer PLT build](figures/beamasm-perf-annotate.png)
-
-`perf annotate` will interleave the listing with the original source code
-whenever possible. You can use the `+{source,Filename}` or `+absolute_paths`
-compiler options to tell `perf` where to find the source code.
-
-> *WARNING*: Calling `perf inject --jit` will create a lot of files in `/tmp/`
-> and in `~/.debug/tmp/`. So make sure to cleanup in those directories from time to
-> time or you may run out of inodes.
 
 ### perf tips and tricks
 
@@ -752,7 +626,7 @@ This option forces tables to automatically change the number of locks that are u
 
 Benchmark results comparing this option with the other ETS optimization options are available here: benchmarks.
 
-# New option `short` to the functions `erlang:float_to_list/2` and `erlang:float_to_binary/2` 
+# New option `short` for `erlang:float_to_list/2` and `erlang:float_to_binary/2` 
 
 A new option called `short` has been added to the functions `erlang:float_to_list/2` and `erlang:float_to_binary/2`. This option creates the shortest correctly rounded string representation of the given float that can be converted back to the same float again.
 
