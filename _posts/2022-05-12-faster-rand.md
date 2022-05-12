@@ -13,16 +13,16 @@ said module, how the Just-In-Time compiler optimizes them,
 known tricks, and tries to compare these apples and potatoes.
 
 #### Contents
-[Speed over quality?](#speed-over-quality)  
-[Suggested solutions](#suggested-solutions)  
-[Quality](#quality)  
-[Storing the state](#storing-the-state)  
-[Seeding](#seeding)
-[JIT optimizations](#jit-optimizations)  
-[Implementing a PRNG](#implementing-a-prng)  
-[`rand_SUITE:measure/1`](#rand_suitemeasure1)  
-[Measurement results](#measurement-results)
-[Summary](#summary)
+* [Speed over quality?](#speed-over-quality)
+* [Suggested solutions](#suggested-solutions)
+* [Quality](#quality)
+* [Storing the state](#storing-the-state)
+* [Seeding](#seeding)
+* [JIT optimizations](#jit-optimizations)
+* [Implementing a PRNG](#implementing-a-prng)
+* [`rand_SUITE:measure/1`](#rand_suitemeasure1)
+* [Measurement results](#measurement-results)
+* [Summary](#summary)
 
 
 Speed over quality?
@@ -466,7 +466,7 @@ mwc59(CX) ->
 ```
 which compiles to (Erlang BEAM assembler, `erlc -S rand.erl`),
 using the `no_type_opt` flag:
-``` erlang
+``` text
     {gc_bif,'bsr',{f,0},1,[{x,0},{integer,32}],{x,1}}.
     {gc_bif,'band',{f,0},2,[{x,0},{integer,4294967295}],{x,0}}.
     {gc_bif,'*',{f,0},2,[{x,0},{integer,133850370}],{x,0}}.
@@ -474,7 +474,7 @@ using the `no_type_opt` flag:
 ```
 when loaded by the JIT (x86) (`erl +JDdump true`)
 the machine code becomes:
-```
+```nasm
 # i_bsr_ssjd
     mov rsi, qword ptr [rbx]
 # is the operand small?
@@ -488,7 +488,7 @@ the fallback at `L2271` is called to handle any term.
 
 Then follows the machine code for right shift, Erlang `bsr 32`,
 x86 `sar rax, 32`, and a skip over the fallback code:
-```
+```nasm
     mov rax, rsi
     sar rax, 32
     or rax, 15
@@ -501,7 +501,7 @@ L2272:
 # line_I
 ```
 Here is `band` with similar test and fallback code:
-```
+```nasm
 # i_band_ssjd
     mov rsi, qword ptr [rbx]
     mov rax, 68719476735
@@ -519,7 +519,7 @@ L2274:
 ```
 Below comes `*` with test, fallback code,
 and overflow check:
-```
+```nasm
 # line_I
 # i_times_jssd
     mov rsi, qword ptr [rbx]
@@ -543,7 +543,7 @@ L2275:
     mov qword ptr [rbx], rax
 ```
 The following is `+` with tests, fallback code, and overflow check:
-```
+```nasm
 # i_plus_ssjd
     mov rsi, qword ptr [rbx]
     mov rdx, qword ptr [rbx+8]
@@ -620,7 +620,7 @@ Now the JIT:ed code becomes noticeably shorter.
 
 The input mask operation knows nothing about the value so it has
 the operand test and the fallback to any term code:
-```
+```nasm
 # i_band_ssjd
     mov rsi, qword ptr [rbx]
     mov rax, 9223372036854775807
@@ -638,7 +638,7 @@ L1817:
 ```
 For all the following operations, operand tests and fallback code
 has been optimized away to become a straight sequence of machine code:
-```
+```nasm
 # line_I
 # i_bsr_ssjd
     mov rsi, qword ptr [rbx]
@@ -1079,26 +1079,18 @@ highlights what the precious CPU cycles are used for.
 [`rand_SUITE:measure/1`]:   #rand_suitemeasure1
 [Measurement results]:      #measurement-results
 
-[Looking for a faster RNG]:
-https://erlangforums.com/t/looking-for-a-faster-rng/
+[Looking for a faster RNG]: https://erlangforums.com/t/looking-for-a-faster-rng/
 
-[potatosalad]:
-https://github.com/potatosalad/
+[potatosalad]: https://github.com/potatosalad/
 
-[latrules]:
-https://www.iro.umontreal.ca/~lecuyer/myftp/papers/latrules.ps
+[latrules]: https://www.iro.umontreal.ca/~lecuyer/myftp/papers/latrules.ps
 
-[TestU01]:
-http://simul.iro.umontreal.ca/testu01/
+[TestU01]: http://simul.iro.umontreal.ca/testu01/
 
-[PractRand]:
-http://pracrand.sourceforge.net/
+[PractRand]: http://pracrand.sourceforge.net/
 
-[type-based optimizations]:
-https://www.erlang.org/blog/type-based-optimizations-in-the-jit/
+[type-based optimizations]: https://www.erlang.org/blog/type-based-optimizations-in-the-jit/
 
-[Sebastiano Vigna]:
-https://vigna.di.unimi.it/
+[Sebastiano Vigna]: https://vigna.di.unimi.it/
 
-[CPRNG]:
-https://github.com/vigna/CPRNG/
+[CPRNG]: https://github.com/vigna/CPRNG/
