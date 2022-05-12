@@ -701,7 +701,7 @@ CaCerts = public_key:cacerts_get(),
 ```
 We plan to update the http client (`httpc`) to use this soon.
 
-# Misc
+## Misc
 
 A new DEVELOPMENT HOWTO guide has been added that describes how to build and test Erlang/OTP when fixing bugs or developing new functionality.
 Testing has been added to the Github actions run for each opened PR so that more bugs are caught earlier when bug fixes and new features are proposed.
