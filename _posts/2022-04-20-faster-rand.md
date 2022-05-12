@@ -22,6 +22,7 @@ known tricks, and tries to compare these apples and potatoes.
 [Implementing a PRNG](#implementing-a-prng)  
 [`rand_SUITE:measure/1`](#rand_suitemeasure1)  
 [Measurement results](#measurement-results)
+[Summary](#summary)
 
 
 Speed over quality?
@@ -117,11 +118,12 @@ Is `rand` slow, really?  Well, perhaps not considering what it does.
 
 In the [Measurement results] at the end of this text,
 it shows that generating a good quality random number using
-the `rand` module's default algorithm is done in 43 ns.
+the `rand` module's default algorithm is done in 45 ns.
 
 Generating a number as fast as possible (`rand:mwc59/1`) can be done
-in just above 3 ns, but that algorithm has not got good
-statistical quality by today's standards.  See section [PRNG tests].
+in less than 4 ns, but that algorithm has problems with the
+statistical quality.  See section [PRNG tests] and [Implementing a PRNG].
+
 Using a good quality algorithm instead (`rand:exsp_next/1`) takes 16 ns,
 if you can store the generator's state in a loop variable.
 
@@ -130,7 +132,7 @@ there will be more overhead, see section [Storing the state].
 
 Now, if you also need a number in an awkward range, as in not much smaller
 than the generator's size, you might have to implement a reject-and-resample
-loop, or must concatenate numbers.
+loop, or even concatenate numbers.
 
 The overhead of code that has to implement this much of the features
 that the `rand` module already offers will easily approach
@@ -254,8 +256,8 @@ One criteria for statistical quality is the spectral score,
 see section [Spectral score].
 
 To get a decent spectral score `A` cannot be too small, not (much)
-smaller than 2<sup>B</sup>.  And `A * X + C` produces a number
-as large as `A`&nbsp;*&nbsp;2<sup>B</sup>, which must not become a bignum.
+smaller than 2<sup>B</sup>.  And `A`*`X`&nbsp;+&nbsp;`C` produces a number
+as large as `A`*2<sup>B</sup>, which must not become a bignum.
 
 To get a full sequence, that is, to use all numbers in the state range,
 there are more restrictions imposed on `A` and `B`, but we will
@@ -265,7 +267,8 @@ that also helped develop our current 58-bit Xorshift family generators.
 
 After trying many parameters in spectral score programs and
 programs for [PRNG tests] we selected the parameters
-`A = 16#7fa6502` and `B = 32`, which I named `mwc59`.
+`A = 16#7fa6502` and `B = 32`,
+which I named `mwc59`.
 
 It has a 59-bit state space and an MWC "digit" size of 32 bits
 which makes it plausible to use 32 bits as the output size.
@@ -467,7 +470,8 @@ using the `no_type_opt` flag:
     {gc_bif,'*',{f,0},2,[{x,0},{integer,133850370}],{x,0}}.
     {gc_bif,'+',{f,0},2,[{x,0},{x,1}],{x,0}}.
 ```
-when loaded by the JIT (x86) (`erl +JDdump true`) the machine code becomes:
+when loaded by the JIT (x86) (`erl +JDdump true`)
+the machine code becomes:
 ```
 # i_bsr_ssjd
     mov rsi, qword ptr [rbx]
@@ -670,7 +674,7 @@ L1819:
 ```
 The execution time goes down from 3.7 ns to 3.3 ns which is
 10% faster just by avoiding some more redundant checks and tests,
-even though adding a not needed initial input mask operation.
+despite adding a not needed initial input mask operation.
 
 And there is room for improvement.  The values are moved back and forth
 to BEAM `{x,_}` registers (`qword ptr [rbx]`) between operations.
@@ -714,13 +718,14 @@ And a Multiplicative Congruential Generator:
 X1 = (A * X0) rem P
 ```
 
-To avoid bignum operations the product `A * X0` must fit in 59 bits.
-The classical paper "Tables of Linear Congruential Generators of
-Different Sizes and Good Lattice Structure" by Pierre L'Ecuyer
-listed two generators that were 35 bit, that is, an LCG
-with `P` = 2<sup>35</sup> and an MCG with P being a prime number
-just below 2<sup>35</sup>.  These were the largest generators
-to be found that did not overflow 59 bits.
+To avoid bignum operations the product `A * X0`
+must fit in 59 bits. The classical paper "Tables of
+Linear Congruential Generators of Different Sizes and
+Good Lattice Structure" by Pierre L'Ecuyer lists two generators
+that are 35 bit, that is, an LCG with `P`&nbsp;=&nbsp;2<sup>35</sup>
+and an MCG with P being a prime number just below 2<sup>35</sup>.
+These were the largest generators to be found that did not
+overflow 59 bits.
 
 The speed of the LCG is very good.  The MCG less so since it has
 to do an integer division by `rem`, but thanks to `P` being
@@ -755,8 +760,8 @@ with a power of 2 multiplier, so this is an equivalent generator:
 T0 = (T1 bsl Bits) rem ((A bsl Bits) - 1)
 ```
 It updates the state in the reverse order, hence `T0` and `T1` are swapped.
-The modulus `(A bsl Bits) - 1` has to be a safe prime number
-or else the generator does not have maximum period.
+The modulus `(A bsl Bits) - 1` has to be
+a safe prime number or else the generator does not have maximum period.
 
 #### The base generator
 
@@ -878,8 +883,9 @@ times both absolute and relative to the default algorithm
 `rand_SUITE:measure/1` is runnable also without a test framework.
 As long as `rand_SUITE.beam` is in the code path
 `rand_SUITE:measure(N)` will run the benchmark with `N`
-as an effort factor.  `N = 1` is the default and e.g `N = 5`
-gives a slower and more thorough measurement.
+as an effort factor.  `N = 1` is the default and
+for example `N = 5` gives a slower
+and more thorough measurement.
 
 The test case is divided in sections where each first runs
 a warm-up with the default generator, then runs an empty
@@ -926,33 +932,34 @@ framework it is called `exsp` below.
 
 ```
 RNG uniform integer range 10000 performance
-                   exsss:     58.9 ns (warm-up)
-                overhead:      2.7 ns      4.6%
-                   exsss:     58.0 ns    100.0%
-                    exsp:     51.2 ns     88.3%
-         {mwc59,raw_mod}:     12.4 ns     21.3%
-       {mwc59,value_mod}:     20.1 ns     34.6%
-              {exsp,mod}:     24.5 ns     42.3%
-     {mwc59,value32_mas}:     11.0 ns     19.0%
-       {mwc59,value_mas}:     13.1 ns     22.5%
-              {exsp,mas}:     20.6 ns     35.5%
-           unique_phash2:     27.3 ns     47.0%
-             system_time:     32.4 ns     55.8%
+                   exsss:     57.5 ns (warm-up)
+                overhead:      3.9 ns      6.8%
+                   exsss:     53.7 ns    100.0%
+                    exsp:     49.2 ns     91.7%
+         {mwc59,raw_mod}:      9.8 ns     18.2%
+       {mwc59,value_mod}:     18.8 ns     35.0%
+              {exsp,mod}:     22.5 ns     41.9%
+          {mwc59,raw_tm}:      3.5 ns      6.5%
+      {mwc59,value32_tm}:      8.0 ns     15.0%
+        {mwc59,value_tm}:     11.7 ns     21.8%
+               {exsp,tm}:     18.1 ns     33.7%
+           unique_phash2:     23.6 ns     44.0%
+             system_time:     30.7 ns     57.2%
 ```
 The first two are the warm-up and overhead measurements.
 The measured overhead is subtracted from all measurements
 after the "overhead:" line.  The measured overhead here
-is 2.7 ns which does not match well that `exsss` measures
-only 0.9 ns more during the warm-up run than after `overhead`.
-The warm-up run is a bit unpredictable.
+is 3.9 ns which matches well that `exsss` measures
+only 3.8 ns more during the warm-up run than after `overhead`.
+The warm-up run is, however, a bit unpredictable.
 
 `{_,*mod}` and `system_time` all use `(X rem 10000) + 1`
 to achieve the desired range.  The `rem` operation is expensive,
 which we will see when comparing with the next section.
 
-`{_,*mas}` use multiply-and-shift to achieve the range,
-that is `((X * 10000) bsr X_Bits) + 1`, which is much faster
-than using `rem`.
+`{_,*tm}` use truncated multiplication to achieve the range,
+that is `((X * 10000) bsr GeneratorBits) + 1`,
+which is much faster than using `rem`.
 
 `erlang:phash2/2` has got a range argument, that performs
 the `rem 10000` operation in the BIF, which is fairly cheap,
@@ -961,25 +968,25 @@ as we also will see when comparing with the next section.
 
 ```
 RNG uniform integer 32 bit performance
-                   exsss:     56.0 ns    100.0%
-                    exsp:     51.8 ns     92.6%
-        {mwc59,raw_mask}:      4.2 ns      7.5%
-         {mwc59,value32}:      8.3 ns     14.8%
-     {mwc59,value_shift}:      9.1 ns     16.3%
-            {exsp,shift}:     16.9 ns     30.2%
-           unique_phash2:     23.0 ns     41.1%
-             system_time:     24.3 ns     43.4%
+                   exsss:     55.3 ns    100.0%
+                    exsp:     51.4 ns     93.0%
+        {mwc59,raw_mask}:      2.7 ns      4.9%
+         {mwc59,value32}:      6.6 ns     12.0%
+     {mwc59,value_shift}:      8.6 ns     15.5%
+            {exsp,shift}:     16.6 ns     30.0%
+           unique_phash2:     22.1 ns     40.0%
+             system_time:     23.5 ns     42.6%
 ```
 In this section, to generate a number in a 32-bit range,
-`{mwc59,raw_mask}` and `system_time` use a bit mask `X band 16#ffffffff`,
-`{_,*shift}` use `bsr` to shift out the low bits,
-and `{mwc59_value32}` is already on the right range.
-Here we see that bit operations are about 4 to 10 ns faster
-than the `rem` operation in the previous section.
-`{mwc59,raw_*}` is 3 times faster.
+`{mwc59,raw_mask}` and `system_time` use a bit mask
+`X band 16#ffffffff`, `{_,*shift}` use `bsr`
+to shift out the low bits, and `{mwc59_value32}` has got
+the right range in itself.  Here we see that bit operations
+are up to 10 ns faster than the `rem` operation in the previous section.
+`{mwc59,raw_*}` is more than 3 times faster.
 
-Compared to the multiply-and-shift variants in the previous section,
-the bit operations here are about 3 ns faster.
+Compared to the truncated multiplication variants in the previous section,
+the bit operations here are up to 3 ns faster.
 
 `unique_phash2` still uses BIF coded integer division to achieve
 the range, which gives it about the same speed as in the previous section.
@@ -987,17 +994,17 @@ the range, which gives it about the same speed as in the previous section.
 
 ```
 RNG uniform integer full range performance
-                   exsss:     46.1 ns    100.0%
-                    exsp:     42.0 ns     91.2%
-                   dummy:     26.6 ns     57.8%
-             {mwc59,raw}:      4.9 ns     10.7%
-         {mwc59,value32}:      8.2 ns     17.7%
-           {mwc59,value}:      9.2 ns     19.9%
-             {exsp,next}:     17.4 ns     37.7%
-       {splitmix64,next}:    312.4 ns    678.1%
-           unique_phash2:     20.4 ns     44.2%
-                procdict:     72.4 ns    157.2%
-        {mwc59,procdict}:     16.6 ns     36.0%
+                   exsss:     45.1 ns    100.0%
+                    exsp:     39.8 ns     88.3%
+                   dummy:     25.5 ns     56.6%
+             {mwc59,raw}:      3.7 ns      8.3%
+         {mwc59,value32}:      6.9 ns     15.2%
+           {mwc59,value}:      8.5 ns     18.8%
+             {exsp,next}:     16.8 ns     37.2%
+       {splitmix64,next}:    331.1 ns    734.3%
+           unique_phash2:     21.1 ns     46.8%
+                procdict:     75.2 ns    166.7%
+        {mwc59,procdict}:     16.6 ns     36.8%
 ```
 In this section no range capping is done.  The raw generator output is used.
 
@@ -1006,24 +1013,24 @@ within the `rand` plug-in framework that only does a minimal state
 update and returns a constant.  It is used here to measure
 plug-in framework overhead.
 
-The plug-in framework overhead is measured to 26.6 ns that matches
-`exsp` - `{exsp,next}` = 24.6 ns well, which is the same algorithm within
-and without the plug-in framework, giving another measure
-of the framework overhead.
+The plug-in framework overhead is measured to 25.5 ns that matches
+`exsp`&nbsp;-&nbsp;`{exsp,next}`&nbsp;=&nbsp;23.0 ns fairly well,
+which is the same algorithm within and without the plug-in framework,
+giving another measure of the framework overhead.
 
 `procdict` is the default algorithm `exsss` but makes the plug-in
 framework store the generator state in the process dictionary,
-which here costs 26.3 ns.
+which here costs 30 ns.
 
 `{mwc59,procdict}` stores the generator state in the process dictionary,
-which here costs 11.7 ns. The state term that is stored is much smaller
+which here costs 12.9 ns. The state term that is stored is much smaller
 than for the plug-in framework.  Compare to `procdict`
 in the previous paragraph.
 
 
 
-Summing up
-----------
+Summary
+-------
 
 The [new fast] generator's functions in the `rand` module
 fills a niche for speed over quality where the type-based
@@ -1032,6 +1039,8 @@ fills a niche for speed over quality where the type-based
 The combination of high speed and high quality can only
 be fulfilled with a [BIF implementation], but we hope that
 to be a combination we do not need to address...
+
+[Implementing a PRNG] is tricky business.
 
 Recent improvements in [`rand_SUITE:measure/1`]
 highlights what the precious CPU cycles are used for.
