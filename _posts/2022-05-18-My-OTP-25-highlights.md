@@ -653,7 +653,7 @@ https://github.com/ulfjack/ryu
  
  A peer node automatically terminates when it loses the control connection to the origin. This connection could be an Erlang distribution connection, or an alternative - TCP or standard I/O. The alternative connection provides a way to execute remote procedure calls even when Erlang Distribution is not available, allowing to test the distribution itself.
 
-Peer node terminal input/output is relayed through the origin. If a standard I/O alternative connection is requested, console output also goes via the origin, allowing debugging of node startup and boot script execution (see -init_debug). File I/O is not redirected, contrary to slave(3) behaviour.
+Peer node terminal input/output is relayed through the origin. If a standard I/O alternative connection is requested, console output also goes via the origin, allowing debugging of node startup and boot script execution (see -init_debug). File I/O is not redirected, contrary to `slave(3)` behavior.
 
 The peer node can start on the same or a different host (via ssh) or in a separate container (for example Docker). When the peer starts on the same host as the origin, it inherits the current directory and environment variables from the origin.
 
@@ -686,16 +686,13 @@ work. That is provided by the OTP application crypto, which interfaces
 Erlang to an external cryptolib in C using NIFs. The main example of
 such an external cryptolib is [OpenSSL](https://www.openssl.org).
 
-
 The OpenSSL cryptolib exists in many versions. OTP/crypto supports
 0.9.8c and later, although only 1.1.1 is still maintained by OpenSSL.
-
 
 OpenSSL has released its version 3.0 series, which is their future
 platform totally re-built with a new API. The APIs of previous
 versions (1.1.1 and older) are partly deprecated, although still
 available in 3.0. The support of 1.1.1 will also end in a future.
-
 
 Since it is vital to get security patches in the cryptolib, and in a
 future only the 3.0 API might be available, OTP/crypto now from
@@ -703,23 +700,24 @@ OTP-25.0 interfaces OpenSSL 3.0 using the new 3.0 API. A few functions
 from old APIs are still used, but they will be replaced as soon as
 possible.
 
-
 You as a user will hopefully not notice any difference: if you have
 OpenSSL 1.1.1 (or older - not recommended) and build OTP, that one will
 be used as previously. If you have any OpenSSL 3.0 version installed,
 that one will be used without need of doing anything special except
 for normal handling of dynamic loading paths in the OS.
 
-
 Although OTP/crypto's interface to the new API is heavily tested on many
 architectures for a long time, we do not yet recommend it for usage in
 critical applications. In such ones it is still safer to build crypto with
 the latest 1.1.1 release.
 
-
 # CA-certificates can be fetched from the OS standard place
 
-With the new functions `public_key:cacerts_load/0,1` and `public_key:cacerts_get/0` the CA certificates can be fetched from the standard place of the OS (or from a file). They will then be cached in decoded form by use of `persistent_term` which makes them available in an efficient way for the `ssl` and `httpc` modules. The intention with this is to make it possible to remove the dependency to `certifi` in many packages.
+With the new functions `public_key:cacerts_load/0,1` and `public_key:cacerts_get/0` the CA certificates can be fetched from the standard place of the OS (or from a file). 
+
+They will then be cached in decoded form by use of `persistent_term` which makes them available in an efficient way for the `ssl` and `httpc` modules. The intention with this is to make it unnecessary to depend on for example `certifi` in many packages.
+
+On Windows and MacOSx the certificate store is not an ordinary file so the information is fetched via an API using a NIF (Windows) or with an external program (MacOSx). 
 
 Example with `ssl`
 ```erlang
@@ -730,7 +728,7 @@ CaCerts = public_key:cacerts_get(),
 {ok,Socket} = ssl:connect("erlang.org",80,[{cacerts,CaCerts}, {verify,verify_peer}]), 
 ...
 ```
-We plan to update the http client (`httpc`) to use this soon.
+We also plan to update the http client (`httpc`) to use this soon.
 
 # A new fast Pseudo Random Generator
 
@@ -744,12 +742,9 @@ It is intended for applications in dire need for speed
 in PRNG numbers, but not any of the comfort features
 that `rand` otherwise offers.
 
-# More detailsMisc
+# More details
 
-A new DEVELOPMENT HOWTO guide has been added that describes how to build and test Erlang/OTP when fixing bugs or developing new functionality.
-Testing has been added to the Github actions run for each opened PR so that more bugs are caught earlier when bug fixes and new features are proposed.
-
-For more details about new features and potential incompatibilities see
+For more details about new features and potential incompatibilities in OTP 25.0 see
 
     https://erlang.org/download/otp_src_25.0.readme
 
