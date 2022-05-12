@@ -681,9 +681,40 @@ The timer module has been modernized and made more efficient, which makes the ti
 
 # Crypto and OpenSSL 3.0
 
-The crypto application is now fully adapted to OpenSSL 3.0 but is of course also still supporting the older versions of OpenSSL.
+Some applications in OTP like SSL/TLS and SSH need cryptography to
+work. That is provided by the OTP application crypto, which interfaces
+Erlang to an external cryptolib in C using NIFs. The main example of
+such an external cryptolib is [OpenSSL](https://www.openssl.org).
 
-... more text here
+
+The OpenSSL cryptolib exists in many versions. OTP/crypto supports
+0.9.8c and later, although only 1.1.1 is still maintained by OpenSSL.
+
+
+OpenSSL has released its version 3.0 series, which is their future
+platform totally re-built with a new API. The APIs of previous
+versions (1.1.1 and older) are partly deprecated, although still
+available in 3.0. The support of 1.1.1 will also end in a future.
+
+
+Since it is vital to get security patches in the cryptolib, and in a
+future only the 3.0 API might be available, OTP/crypto now from
+OTP-25.0 interfaces OpenSSL 3.0 using the new 3.0 API. A few functions
+from old APIs are still used, but they will be replaced as soon as
+possible.
+
+
+You as a user will hopefully not notice any difference: if you have
+OpenSSL 1.1.1 (or older - not recommended) and build OTP, that one will
+be used as previously. If you have any OpenSSL 3.0 version installed,
+that one will be used without need of doing anything special except
+for normal handling of dynamic loading paths in the OS.
+
+
+Although OTP/crypto's interface to the new API is heavily tested on many
+architectures for a long time, we do not yet recommend it for usage in
+critical applications. In such ones it is still safer to build crypto with
+the latest 1.1.1 release.
 
 
 # CA-certificates can be fetched from the OS standard place
@@ -701,7 +732,19 @@ CaCerts = public_key:cacerts_get(),
 ```
 We plan to update the http client (`httpc`) to use this soon.
 
-## Misc
+# A new fast Pseudo Random Generator
+
+A new custom designed Pseudo Random Generator `rand:mwc59`
+has been implemented.  It is probably the fastest possible
+generator with good quality that can be written in Erlang.
+To do this it barely avoids bignums, allocating heap data,
+and uses only a minimal number of fast operations.
+
+It is intended for applications in dire need for speed
+in PRNG numbers, but not any of the comfort features
+that `rand` otherwise offers.
+
+# More detailsMisc
 
 A new DEVELOPMENT HOWTO guide has been added that describes how to build and test Erlang/OTP when fixing bugs or developing new functionality.
 Testing has been added to the Github actions run for each opened PR so that more bugs are caught earlier when bug fixes and new features are proposed.
