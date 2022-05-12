@@ -143,15 +143,16 @@ re-implementing this wheel...
 
 ### Write a BIF
 
-There was been a discussion thread on Erlang Forums:
+There has been a discussion thread on Erlang Forums:
 [Looking for a faster RNG].  Triggered by this Andrew Bennett
 [potatosalad] wrote an experimental BIF.
 
 The suggested BIF `erlang:random_integer(Range)` offered
 no repeatability, generator state per scheduler, guaranteed
 sequence separation between schedulers, and high generator
-quality.  All this due to using one of the good generators from
-the `rand` module, but now written in C in the BIF.
+quality.  All this thanks to using one of the good generators from
+the `rand` module, but now written in its original
+programming language, C, in the BIF.
 
 The performance was a bit slower than the `mwc59` generator state update,
 but with top of the line quality. See section [Measurement results].
@@ -184,8 +185,8 @@ a list of numbers, and use that list as a cache in Erlang.
 The performance with such a cache was as fast as the BIF,
 but introduced problems such as that you would have to decide
 on a cache size, the application would have to keep the cache on the heap,
-and when generating in a range the application would have to know
-in advance the range for the whole cache.
+and when generating in a number range the application would have to know
+in generate numbers in the same range for the whole cache.
 
 A NIF could like a BIF also achieve good performance on a 32-bit system,
 with the same open question &mdash; platform independent numbers or performance?
@@ -221,7 +222,8 @@ for an integer to hash.
 It has a default return size well suited for 32-bit Erlang systems,
 and it has a `Range` argument.  The range capping is done with a simple
 `rem` in C (`%`) which is much faster than in Erlang.  This works good
- only for ranges much smaller than 32-bit.
+ only for ranges much smaller than 32-bit as in if the range is larger
+ than 16 bits the bias in the range capping starts to be noticable..
 
 Alas this solution does not perform well in [PRNG tests].
 
@@ -233,57 +235,25 @@ See section [Measurement results] for the performance for this solution.
 
 To be fast, the implementation of a PRNG algorithm cannot
 execute many operations.  The operations have to be
-on immediate values (not bignums), and the state as well
-as the returned number also have to be immediate values.
+on immediate values (not bignums), and the the return
+value from a function have to be an immediate value
+(a compound term would burden the garbage collector).
 This seriously limits how powerful algorithms that can be used.
 
+We wrote one and named it `mwc59` because it has a 59-bit
+state, and the most thorough scrambling function returns
+a 59-bit value.  There is also a faster, intermediate scrambling
+function, that returns a 32-bit value, which is the "digit" size
+of the MWC generator.  It is also possible to directly
+use the low 16 bits of the state without scrambling.
 See section [Implementing a PRNG] for how this generator
 was designed and why.
 
-A Multiply With Carry generator is one of the classical PRNG:s
-and is a special form of a Multiplicative Congruential Generator.
-It is a well researched PRNG, and can be implemented
-like this (in Erlang):
-``` erlang
-    C   = CX0 bsr B,
-    X   = CX0 band ((1 bsl B) - 1)
-    CX1 = A * X + C
-```
-For this to produce a sequence of numbers that appear random,
-there are a number of requirements on the constants `A` and `B`.
-
-One criteria for statistical quality is the spectral score,
-see section [Spectral score].
-
-To get a decent spectral score `A` cannot be too small, not (much)
-smaller than 2<sup>B</sup>.  And `A`*`X`&nbsp;+&nbsp;`C` produces a number
-as large as `A`*2<sup>B</sup>, which must not become a bignum.
-
-To get a full sequence, that is, to use all numbers in the state range,
-there are more restrictions imposed on `A` and `B`, but we will
-not dig deeper into this field and instead consult the profession,
-in this case [Sebastiano Vigna] at the University of Milano
-that also helped develop our current 58-bit Xorshift family generators.
-
-After trying many parameters in spectral score programs and
-programs for [PRNG tests] we selected the parameters
-`A = 16#7fa6502` and `B = 32`,
-which I named `mwc59`.
-
-It has a 59-bit state space and an MWC "digit" size of 32 bits
-which makes it plausible to use 32 bits as the output size.
-
-On the flip side, since an MWC generator corresponds to an MCG
-with a power of 2 multiplier, it gets a bad spectral score for
-3 dimensions.  This can be fixed with a scrambling function
-to convert the state into a generated number.  We selected
-two different scrambling functions with increasing quality.
-
 As another gap filler between really fast with low quality,
 and full featured, an internal function in `rand` has been exported:
-`rand:exsp_next/1`.  This function implements Xoroshiro116+ and exists
-in the `rand` plug-in framework as algorithm `exsp`.  It has been
-exported so it is possible to get good quality without
+`rand:exsp_next/1`.  This function implements Xoroshiro116+ that exists
+within the `rand` plug-in framework as algorithm `exsp`.
+It has been exported so it is possible to get good quality without
 the plug-in framework overhead, for applications that do not
 need any framework features.
 
@@ -303,18 +273,19 @@ Here are some.
 an infinite period, since the time it will take for it to repeat
 is assumed to be longer than the Erlang node will survive.
 
-For the new fast generators the period it is about 2<sup>35</sup>,
-and for the good ones in `rand` it is at least 2<sup>116</sup>&nbsp;-&nbsp;1,
-which is a huge difference and also much more than what can be consumed
-during an Erlang node's lifetime.
+For the new fast `mwc59` generator the period it is about 2<sup>59</sup>.
+For the regular ones in `rand` it is at least 2<sup>116</sup>&nbsp;-&nbsp;1,
+which is a huge difference.  It might be possible to consume
+2<sup>59</sup> numbers during an Erlang node's lifetime,
+but not 2<sup>116</sup>.
 
 There are also generators in `rand` with a period of
-2<sup>928</sup>&nbsp;-&nbsp;1 which is ridiculously long,
-but facilitates generating very many parallel sub-sequences
-that are guaranteed to not overlap.
+2<sup>928</sup>&nbsp;-&nbsp;1 which might seen ridiculously long,
+but that facilitates generating very many parallel sub-sequences
+guaranteed to not overlap.
 
-For example in physical simulation it is common practice to only
-use a fraction of the period, both regarding how many numbers
+In, for example, a physical simulation it is common practice to only
+use a fraction of the generator's period, both regarding how many numbers
 you generate and on how large range you generate, or it may affect
 the simulation for example that specific numbers do not reoccur.
 If you have pulled 3 aces from a deck you know there is only one left.
@@ -324,18 +295,41 @@ while others are not, and this needs to be considered.
 
 ### Size
 
-The size of the new fast generators is about 35 bits, which is both
-the generator's state size (period) and value size.
-The good quality generators in the `rand` module has got a size
-(value size) of 58 bits.
+The value size of the new fast `mwc59` generators is 59, 32, or 16 bits,
+depending on the scrambling function that is used.
+Most of the regular generators in the `rand` module has got
+a value size of 58 bits.
 
 If you need numbers in a power of 2 range then you can
-simply mask out or shift down the required number of bits,
+simply mask out
+``` erlang
+V = X band ((1 bsl RangeBits) - 1).
+```
+or shift down the required number of bits
+``` erlang
+V = X bsr (GeneratorBits - RangeBits).
+```
 depending on if the generator is known to have weak high or low bits.
 
 If the range you need is not a power of 2, but still
-much smaller than the generator's size you can use the `rem`
-operator, but it is noticeably slower than a bit-wise operation.
+much smaller than the generator's size you can use `rem`:
+``` erlang
+V = X rem Range.
+```
+The rule of thumb is that `Range` should be less than
+the square root of the generator's size.  This is much slower
+than bit-wise operations, and the operation propagates low bits,
+which can be a problem if the generator is known to have weak low bits.
+
+Another way is to use truncated multiplication:
+``` erlang
+V = (X * Range) bsr GeneratorBits
+```
+The rule of thumb here is that `Range` should be less than
+2<sup>GeneratorBits</sup>.  Also, `X * Range`
+should not create a bignum, so not more than 59 bits.
+This method propagates high bits, which can be a problem
+if the generator is known to have weak high bits.
 
 Other tricks are possible, for example if you need numbers
 in the range 0 through 999 you may use bit-wise operations to get
@@ -355,17 +349,22 @@ a lousy spectral score.
 `erlang:phash2(erlang:unique_integer(), Range)` has got unknown
 spectral score, since that is not part of the math behind a hash function.
 But a hash function is designed to distribute the hash value well
-for any input, so we can assume that the statistical
-distribution of the numbers is decent and "random".
+for any input, so one can hope that the statistical
+distribution of the numbers is decent and "random" anyway.
+Unfortunately this does not seem to hold in [PRNG tests]
 
-All PRNG generators discussed here have got good spectral scores.
+All regular PRNG:s in the `rand` module has got good spectral scores.
+The new `mwc59` generator mostly, but not in 2 and 3 dimensions,
+due to its unbalanced design and power of 2 multiplier.
+Scramblers are used to compensate those flaws.
+
 
 ### PRNG tests
 
 There are test frameworks that tests the statistical properties
 of PRNG:s, such as the [TestU01] framework, or [PractRand].
 
-The good quality generators in the `rand` module perform well
+The regular generators in the `rand` module perform well
 in such tests, and pass thorough test suites.
 
 Although the `mcg59` generator pass [PractRand] 2 TB
@@ -378,8 +377,8 @@ makes it hard to pass all tests with flying colors.
 With the thorough double Xorshift scrambler it gets very good, though.
 
 `erlang:phash2(N, Range)` over an incrementing sequence does not do well
-in [TestU01], which shows that a hash function has got different
-design criteria than PRNG:s.
+in [TestU01], which suggests that a hash functions has got different
+design criteria from PRNG:s.
 
 However, these kind of tests may be completely irrelevant
 for your application.
@@ -394,6 +393,8 @@ There is a grey-zone for "non-critical" applications where for example
 a rouge party may be able to affect input data, and if it knows the PRNG
 sequence can steer all data to a hash table slot, overload one particular
 worker process, or something similar, and in this way attack an application.
+And, an application that starts out as "non-critical" may one day
+silently have become business critical...
 
 This is an aspect that needs to be considered.
 
@@ -409,11 +410,12 @@ allocation, term building, and garbage collection.
 
 In the section [Measurement results] we see that the fastest PRNG
 can generate a new state that is also the generated integer
-in just over 3 ns.  Unfortunately, just to return both
-the value and the new state in a 2-tuple adds about 10 ns.
+in just under 4 ns.  Unfortunately, just to return both
+the value and the new state in a 2-tuple adds roughly 10 ns.
 
 The application state in which the PRNG state must be stored
-is often more complex, so the cost for updating it will be even larger.
+is often more complex, so the cost for updating it will
+probably be even larger.
 
 
 
@@ -426,7 +428,7 @@ the seed you know the generator output.
 The seed is generator dependent and how to create a good
 seed usually takes much longer than generating a number.
 Sometimes the seed and its predictability is so unimportant
-that a constant may be used.   If a generator instance
+that a constant can be used.   If a generator instance
 generates just a few numbers per seeding, then seeding
 can be the harder problem.
 
@@ -617,7 +619,7 @@ all the way down.
 Now the JIT:ed code becomes noticeably shorter.
 
 The input mask operation knows nothing about the value so it has
-the operand test and the fallback:
+the operand test and the fallback to any term code:
 ```
 # i_band_ssjd
     mov rsi, qword ptr [rbx]
@@ -673,13 +675,13 @@ L1819:
     mov qword ptr [rbx], rax
 ```
 The execution time goes down from 3.7 ns to 3.3 ns which is
-10% faster just by avoiding some more redundant checks and tests,
+10% faster just by avoiding redundant checks and tests,
 despite adding a not needed initial input mask operation.
 
 And there is room for improvement.  The values are moved back and forth
 to BEAM `{x,_}` registers (`qword ptr [rbx]`) between operations.
 Moving back from the `{x,_}` register could be avoided by the JIT
-since it could know that the value is in a process register.
+since it is possible to know that the value is in a process register.
 Moving out to the `{x,_}` register could be optimized away if the compiler
 would emit the information that the value will not be used
 from the `{x,_}` register after the operation.
@@ -697,12 +699,12 @@ limitations coming with the language implementation:
   Therefore the state should be a max 59-bit integer.
 * If an intermediate result creates a bignum, that is,
   overflows 59 bits, arithmetic operations gets much slower,
-  so intermediate results must produce values that fits in 59 bits.
+  so intermediate results must produce values that fit in 59 bits.
 * If the generator returns both a generated value
   and a new state in a compound term, then, again,
   updating heap data makes it much slower.  Therefore
-  a generator should only return an immediate state.
-* If the returned state cannot be used as a generated number,
+  a generator should only return an immediate integer state.
+* If the returned state integer cannot be used as a generated number,
   then a separate value function that operates on the state
   can be used.  Two calls, however, double the call overhead.
 
@@ -724,8 +726,8 @@ Linear Congruential Generators of Different Sizes and
 Good Lattice Structure" by Pierre L'Ecuyer lists two generators
 that are 35 bit, that is, an LCG with `P`&nbsp;=&nbsp;2<sup>35</sup>
 and an MCG with P being a prime number just below 2<sup>35</sup>.
-These were the largest generators to be found that did not
-overflow 59 bits.
+These were the largest generators to be found for which
+the muliplication did not overflow 59 bits.
 
 The speed of the LCG is very good.  The MCG less so since it has
 to do an integer division by `rem`, but thanks to `P` being
@@ -733,12 +735,15 @@ close to 2<sup>35</sup> that could be optimized so the speed
 reached only about 50% slower than the LCG.
 
 The short period and know quirks of a power of 2 LCG unfortunately
-showed in [PRNG tests].  They failed miserably.
+showed in [PRNG tests].
+
+They failed miserably.
 
 ### MWC
 
-[Sebastiano Vigna] of the University of Milano suggested to use
-a Multiply With Carry generator instead:
+[Sebastiano Vigna] of the University of Milano, who also helped
+design our current 58-bit Xorshift family generators,
+suggested to use a Multiply With Carry generator instead:
 ``` erlang
 T  = A * X0 + C0,
 X1 = T band ((1 bsl Bits)-1),
@@ -759,16 +764,17 @@ with a power of 2 multiplier, so this is an equivalent generator:
 ``` erlang
 T0 = (T1 bsl Bits) rem ((A bsl Bits) - 1)
 ```
-It updates the state in the reverse order, hence `T0` and `T1` are swapped.
-The modulus `(A bsl Bits) - 1` has to be
-a safe prime number or else the generator does not have maximum period.
+In this form the generator updates the state in the reverse order,
+hence `T0` and `T1` are swapped.  The modulus `(A bsl Bits) - 1`
+has to be a safe prime number or else the generator
+does not have maximum period.
 
 #### The base generator
 
 Because the multiplier (or its multiplicative inverse) is a power of 2,
 the MWC generator gets bad [Spectral score] in 3 dimensions,
 so using a scrambling function on the state to get a number would
-probably be necessary to improve the quality.
+be necessary to improve the quality.
 
 A search for a suitable digit size and multiplier started,
 mostly done by using programs that try multipliers for
@@ -779,11 +785,15 @@ has got about `Bits` bits, the spectral scores are the best,
 apart from the known problem in 3 dimensions.  But since a scrambling
 function would be needed anyway there was an opportunity to
 try to generate a comfortable 32-bit digit using a 27-bit multiplier.
+With these sizes the product `A * X0` does not create a bignum,
+and with a 32-bit digit it becomes possible to use standard
+[PRNG tests] to test the generator during development.
 
-With such slightly unbalanced parameters, the spectral scores
-for 2 dimensions also gets bad, but the scrambler should solve that too.
+Because of using such slightly unbalanced parameters, unfortunately
+the spectral scores for 2 dimensions also gets bad, but the scrambler
+could solve that too...
 
-The final generator is:
+The final generator, named `rand:mwc59/1` is:
 ``` erlang
 C = T0 bsr 32,
 X = T0 band ((1 bsl 32)-1),
@@ -832,6 +842,7 @@ V0 = T  band ((1 bsl 32)-1),
 V1 = V0 band ((1 bsl (32-8))-1),
 V  = V0 bxor (V1 bsl 8).
 ```
+This scrambler was named `rand:mwc59_value32/1`.
 
 A better scrambler would be a double Xorshift that can
 have both a small shift and a large shift.
@@ -859,6 +870,7 @@ V1 = T  bxor (V0 bsl 4),
 V2 = V1 band ((1 bsl (59-27))),
 V  = V1 bxor (V2 bsl 27).
 ```
+This scrambler was named `rand:mwc59_value/1`.
 
 Many thanks to [Sebastiano Vigna] that has done most of the
 parameter searching and extensive testing of the generator
@@ -950,7 +962,7 @@ The first two are the warm-up and overhead measurements.
 The measured overhead is subtracted from all measurements
 after the "overhead:" line.  The measured overhead here
 is 3.9 ns which matches well that `exsss` measures
-only 3.8 ns more during the warm-up run than after `overhead`.
+3.8 ns more during the warm-up run than after `overhead`.
 The warm-up run is, however, a bit unpredictable.
 
 `{_,*mod}` and `system_time` all use `(X rem 10000) + 1`
@@ -989,7 +1001,8 @@ Compared to the truncated multiplication variants in the previous section,
 the bit operations here are up to 3 ns faster.
 
 `unique_phash2` still uses BIF coded integer division to achieve
-the range, which gives it about the same speed as in the previous section.
+the range, which gives it about the same speed as in the previous section,
+but it seems integer division with a power of 2 is a bit faster.
 
 
 ```
