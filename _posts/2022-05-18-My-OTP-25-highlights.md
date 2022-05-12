@@ -439,8 +439,7 @@ You can attach `perf` to the node like this:
 ```
 sudo perf record --call-graph -p 4711
 ```
-![alt text](/blog/images/perf_callgraph.png "perf call-graph")
-![Hotspot dialyzer](/blog/images/hotspot-dialyzer.png "Hotspot dialyzer")
+![alt text](/blog/images/otp25/perf_callgraph.png "perf call-graph")
 
 ## Linux perf support
 
@@ -740,20 +739,95 @@ installation directory is unknown at compile time. This is fixed by:
 
 # ETS-tables with adaptive support for write concurrency
 
+It has since long been possible to optimize an ets-table for write concurrency doing like this:
+```erlang
+{write_concurrency, true}
+```
+Now we also introduce adaptive support for write concurrency which can be configured like this:
+```erlang
+{write_concurrency, auto}
+```
+
+This option forces tables to automatically change the number of locks that are used at run-time depending on how much concurrency is detected. The `{decentralized_counters, true}` option is enabled by default when `{write_concurrency, auto}` is active.
+
+Benchmark results comparing this option with the other ETS optimization options are available here: benchmarks.
+
 # New option `short` to the functions `erlang:float_to_list/2` and `erlang:float_to_binary/2` 
+
+A new option called `short` has been added to the functions `erlang:float_to_list/2` and `erlang:float_to_binary/2`. This option creates the shortest correctly rounded string representation of the given float that can be converted back to the same float again.
+
+If option `short` is specified, the float is formatted
+with the smallest number of digits that still guarantees that
+```erlang
+F =:= list_to_float(float_to_list(F, [short]))
+``` 
+When the float is inside the range (-2⁵³, 2⁵³), the notation
+that yields the smallest number of characters is used (scientific
+notation or normal decimal notation). Floats outside the range
+(-2⁵³, 2⁵³) are always formatted using scientific notation to avoid confusing 
+results when doing arithmetic operations.
+
+The implementation is contributed by Thomas Depierre and uses the Ryu algorithm.
+
+We present Ryū, a new routine to convert binary floating point numbers to their decimal representations using only fixed-size integer operations, and prove its correctness. Ryū is simpler and approximately three times faster than the previously fastest implementation.
+https://github.com/ulfjack/ryu
+
 
 # The new module `peer` supersedes the slave module
 
+ The `peer` module provides functions for starting linked Erlang nodes. The Erlang node spawning new "peer" nodes is called `origin`, and the newly started nodes are peers. 
+ 
+ A peer node automatically terminates when it loses the control connection to the origin. This connection could be an Erlang distribution connection, or an alternative - TCP or standard I/O. The alternative connection provides a way to execute remote procedure calls even when Erlang Distribution is not available, allowing to test the distribution itself.
+
+Peer node terminal input/output is relayed through the origin. If a standard I/O alternative connection is requested, console output also goes via the origin, allowing debugging of node startup and boot script execution (see -init_debug). File I/O is not redirected, contrary to slave(3) behaviour.
+
+The peer node can start on the same or a different host (via ssh) or in a separate container (for example Docker). When the peer starts on the same host as the origin, it inherits the current directory and environment variables from the origin.
+
+## Note
+
+This module is designed to facilitate multi-node testing with Common Test. Use the ?CT_PEER() macro to start a linked peer node according to Common Test conventions: crash dumps written to specific location, node name prefixed with module name, calling function, and origin OS process ID). Use `random_name/1` to create sufficiently unique node names if you need more control.
+
+A peer node started without alternative connection behaves similarly to `slave(3)`. When an alternative connection is requested, the behavior is similar to 
+`test_server:start_node(Name, peer, Args)`. 
+
 # global will now by default prevent overlapping partitions
 
-# gen_server, gen_statem and gen_event has got a new format_status/1 callback.
+# gen_xxx modules has got a new format_status/1 callback.
+
+The `format_status/2` callback for `gen_server`, `gen_statem` and `gen_event` has been deprecated in favor of the new `format_status/1` callback.
+
+The new callback adds the possibility to limit and change many more things than the just the state.
+
+The purpose with both the old and the new `format_status` callbacks are to let the user filter away sensitive information and possibly data of huge volume from the crash reports.
+
 
 # The `timer` module has been modernized and made more efficient
 
-# CA-certificates can be fetched from the OS standard place 
+The timer module has been modernized and made more efficient, which makes the timer server less susceptible to being overloaded. The `timer:sleep/1` function now accepts an arbitrarily large integer.
+
+# Crypto and OpenSSL 3.0
+
+The crypto application is now fully adapted to OpenSSL 3.0 but is of course also still supporting the older versions of OpenSSL.
+
+... more text here
 
 
-Misc #
+# CA-certificates can be fetched from the OS standard place
+
+With the new functions `public_key:cacerts_load/0,1` and `public_key:cacerts_get/0` the CA certificates can be fetched from the standard place of the OS (or from a file). They will then be cached in decoded form by use of `persistent_term` which makes them available in an efficient way for the `ssl` and `httpc` modules. The intention with this is to make it possible to remove the dependency to `certifi` in many packages.
+
+Example with `ssl`
+```erlang
+public_key:cacerts_load(), % a noop if certs are already loaded
+%% makes the certificates available without copying
+CaCerts = public_key:cacerts_get(), 
+% use the certificates when establishing a connection
+{ok,Socket} = ssl:connect("erlang.org",80,[{cacerts,CaCerts}, {verify,verify_peer}]), 
+...
+```
+We plan to update the http client (`httpc`) to use this soon.
+
+# Misc
 
 A new DEVELOPMENT HOWTO guide has been added that describes how to build and test Erlang/OTP when fixing bugs or developing new functionality.
 Testing has been added to the Github actions run for each opened PR so that more bugs are caught earlier when bug fixes and new features are proposed.
