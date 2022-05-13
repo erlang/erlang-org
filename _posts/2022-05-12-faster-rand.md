@@ -587,31 +587,16 @@ mwc59(CX0) ->
 ```
 The BEAM assembler then becomes, with the default type-based optimizations
 in the compiler the OTP-25.0 release:
-``` erlang
+``` text
     {gc_bif,'band',{f,0},1,[{x,0},{integer,576460752303423487}],{x,0}}.
-    {gc_bif,'bsr',
-            {f,0},
-            1,
-            [{tr,{x,0},{t_integer,{0,576460752303423487}}},{integer,32}],
-            {x,1}}.
-    {gc_bif,'band',
-            {f,0},
-            2,
-            [{tr,{x,0},{t_integer,{0,576460752303423487}}},
-             {integer,4294967295}],
-            {x,0}}.
-    {gc_bif,'*',
-            {f,0},
-            2,
-            [{tr,{x,0},{t_integer,{0,4294967295}}},{integer,133850370}],
-            {x,0}}.
-    {gc_bif,'+',
-            {f,0},
-            2,
-            [{tr,{x,0},{t_integer,{0,572367635452168875}}},
-             {tr,{x,1},{t_integer,{0,134217727}}}],
-            {x,0}}.
-```
+    {gc_bif,'bsr',{f,0},1,[{tr,{x,0},{t_integer,{0,576460752303423487}}},
+             {integer,32}],{x,1}}.
+    {gc_bif,'band',{f,0},2,[{tr,{x,0},{t_integer,{0,576460752303423487}}},
+             {integer,4294967295}],{x,0}}.
+    {gc_bif,'*',{f,0},2,[{tr,{x,0},{t_integer,{0,4294967295}}},
+             {integer,133850370}],{x,0}}.
+    {gc_bif,'+',{f,0},2,[{tr,{x,0},{t_integer,{0,572367635452168875}}},
+             {tr,{x,1},{t_integer,{0,134217727}}}],{x,0}}.
 Note that after the initial input `band` operation,
 type information `{tr,{x_},{t_integer,Range}}` has been propagated
 all the way down.
