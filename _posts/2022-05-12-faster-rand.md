@@ -806,7 +806,7 @@ mostly done by using programs that try multipliers for
 safe prime numbers, and estimates spectral scores, such as [CPRNG].
 
 When the generator is balanced, that is, the multiplier `A`
-has got about `Bits` bits, the spectral scores are the best,
+has got close to `Bits` bits, the spectral scores are the best,
 apart from the known problem in 3 dimensions.  But since a scrambling
 function would be needed anyway there was an opportunity to
 try to generate a comfortable 32-bit digit using a 27-bit multiplier.
@@ -827,7 +827,7 @@ mwc59(T) ->
     16#7fa6502 * X + C.
 ```
 
-The 32-bit digits of the base generator do not perform very
+The 32-bit digits of this base generator do not perform very
 well in [PRNG tests], but actually the low 16 bits pass
 2 TB in [PractRand] and 1 TB with the bits reversed,
 which is surprisingly good.  The problem of bad spectral scores
