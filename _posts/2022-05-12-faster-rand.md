@@ -145,7 +145,7 @@ re-implementing this wheel...
 
 There has been a discussion thread on Erlang Forums:
 [Looking for a faster RNG].  Triggered by this Andrew Bennett
-[potatosalad] wrote an experimental BIF.
+(aka [potatosalad]) wrote an [experimental BIF].
 
 The suggested BIF `erlang:random_integer(Range)` offered
 no repeatability, generator state per scheduler, guaranteed
@@ -171,7 +171,7 @@ generated numbers or with respect to performance?
 
 ### Write a NIF
 
-[potatosalad] also wrote a NIF, since we (The Erlang/OTP team)
+[potatosalad] also wrote [a NIF], since we (The Erlang/OTP team)
 suggested that it could have good enough performance.
 
 Measurements, however, showed that the overhead is significantly larger
@@ -869,15 +869,15 @@ the way to trust the quality of the generator.
 `rand_SUITE:measure/1`
 ----------------------
 
-The test suite for the `rand` module &mdash; `rand_SUITE`,
-in the Erlang/OTP source tree, contains a test case `measure/1`.
+The test suite for the `rand` module &mdash; [`rand_SUITE`],
+in the Erlang/OTP source tree, contains a test case [`measure/1`].
 This test case is a micro-benchmark of all the algorithms
 in the `rand` module, and some more.  It measures the execution
 time in nanoseconds per generated number, and presents the
 times both absolute and relative to the default algorithm
 `exsss` that is considered to be 100%.  See [Measurement Results].
 
-`rand_SUITE:measure/1` is runnable also without a test framework.
+[`measure/1`] is runnable also without a test framework.
 As long as `rand_SUITE.beam` is in the code path
 `rand_SUITE:measure(N)` will run the benchmark with `N`
 as an effort factor.  `N = 1` is the default and
@@ -1065,17 +1065,14 @@ highlights what the precious CPU cycles are used for.
 [Measurement results]:      #measurement-results
 
 [Looking for a faster RNG]: https://erlangforums.com/t/looking-for-a-faster-rng/
-
-[potatosalad]: https://github.com/potatosalad/
-
-[latrules]: https://www.iro.umontreal.ca/~lecuyer/myftp/papers/latrules.ps
-
-[TestU01]: http://simul.iro.umontreal.ca/testu01/
-
-[PractRand]: http://pracrand.sourceforge.net/
-
+[potatosalad]:              https://github.com/potatosalad/
+[experimental BIF]:         https://erlangforums.com/t/looking-for-a-faster-rng/1163/17
+[a NIF]:                    https://erlangforums.com/t/looking-for-a-faster-rng/1163/23
+[latrules]:                 https://www.iro.umontreal.ca/~lecuyer/myftp/papers/latrules.ps
+[TestU01]:                  http://simul.iro.umontreal.ca/testu01/
+[PractRand]:                http://pracrand.sourceforge.net/
 [type-based optimizations]: https://www.erlang.org/blog/type-based-optimizations-in-the-jit/
-
-[Sebastiano Vigna]: https://vigna.di.unimi.it/
-
-[CPRNG]: https://github.com/vigna/CPRNG/
+[Sebastiano Vigna]:         https://vigna.di.unimi.it/
+[CPRNG]:                    https://github.com/vigna/CPRNG/
+[`rand_SUITE`]:             https://github.com/erlang/otp/blob/master/lib/stdlib/test/rand_SUITE.erl
+[`measure/1`]:              https://github.com/erlang/otp/blob/08f343bed4f75bf345b04b4c1fac7e1026a50ab3/lib/stdlib/test/rand_SUITE.erl#L1064
