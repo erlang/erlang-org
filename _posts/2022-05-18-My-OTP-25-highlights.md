@@ -22,7 +22,7 @@ This years highlights are:
 * [ETS-tables with adaptive support for write concurrency](#ets-tables-with-adaptive-support-for-write-concurrency)
 * [Relocatable installation directory](#relocatable-installation-directory)
 * [New option `short` to the functions `erlang:float_to_list/2` and `erlang:float_to_binary/2`](#new-option-short-for-erlangfloattolist2-and-erlangfloattobinary2) 
-* [The new module `peer` supersedes the slave module](#the-new-module-peer-supersedes-the-slave-module(#new-option-short-for-erlangfloattolist2-and-erlangfloattobinary2)
+* [The new module `peer` supersedes the slave module](#the-new-module-peer-supersedes-the-slave-module)
 * [`gen_XXX` modules has got a new `format_status/1` callback](#genxxx-modules-has-got-a-new-formatstatus1-callback)
 * [The `timer` module has been modernized and made more efficient](#the-timer-module-has-been-modernized-and-made-more-efficient)
 * [Crypto and OpenSSL 3.0](#crypto-and-openssl-30)
@@ -658,7 +658,7 @@ This module is designed to facilitate multi-node testing with Common Test. Use t
 
 A peer node started without alternative connection behaves similarly to `slave(3)`.
 
-# gen_xxx modules has got a new format_status/1 callback.
+# `gen_XXX` modules has got a new `format_status/1` callback.
 
 The `format_status/2` callback for `gen_server`, `gen_statem` and `gen_event` has been deprecated in favor of the new `format_status/1` callback.
 
