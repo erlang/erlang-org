@@ -23,7 +23,7 @@ This years highlights are:
 * [Relocatable installation directory](#relocatable-installation-directory)
 * [New option `short` for `erlang:float_to_list/2` and `erlang:float_to_binary/2`](#new-option-short-for-erlangfloattolist2-and-erlangfloattobinary2) 
 * [The new module `peer` supersedes the slave module](#the-new-module-peer-supersedes-the-slave-module)
-* [`gen_XXX` modules has got a new `format_status/1` callback](#gen_xxx-modules-has-got-a-new-formatstatus1-callback)
+* [`gen_xxx` modules has got a new `format_status/1` callback](#genxxx-modules-has-got-a-new-formatstatus1-callback)
 * [The `timer` module has been modernized and made more efficient](#the-timer-module-has-been-modernized-and-made-more-efficient)
 * [Crypto and OpenSSL 3.0](#crypto-and-openssl-30)
 * [CA-certificates can be fetched from the OS standard place](#ca-certificates-can-be-fetched-from-the-os-standard-place) 
@@ -621,7 +621,7 @@ This option forces tables to automatically change the number of locks that are u
 
 Benchmark results comparing this option with the other ETS optimization options are available here: benchmarks.
 
-# New option `short` for `erlang:float_to_list/2` and `erlang:float_to_binary/2` 
+# New option `short` for `erlang:float_to_list/2` and `erlang:float_to_binary/2`
 
 A new option called `short` has been added to the functions `erlang:float_to_list/2` and `erlang:float_to_binary/2`. This option creates the shortest correctly rounded string representation of the given float that can be converted back to the same float again.
 
