@@ -280,8 +280,8 @@ which is a huge difference.  It might be possible to consume
 but not 2<sup>116</sup>.
 
 There are also generators in `rand` with a period of
-2<sup>928</sup>&nbsp;-&nbsp;1 which might seen ridiculously long,
-but that facilitates generating very many parallel sub-sequences
+2<sup>928</sup>&nbsp;-&nbsp;1 which might seem ridiculously long,
+but this facilitates generating very many parallel sub-sequences
 guaranteed to not overlap.
 
 In, for example, a physical simulation it is common practice to only
@@ -342,7 +342,10 @@ if the generator is known to have weak high bits.
 Other tricks are possible, for example if you need numbers
 in the range 0 through 999 you may use bit-wise operations to get
 a number 0 through 1023, and if too high re-try, which actually
-may be faster on average than using `rem`.
+may be faster on average than using `rem`.  This method is also
+completely free from bias in the generated numbers.  The previous
+methods have the rules of thumb to get a so small bias
+that it becomes hard to notice.
 
 ### Spectral score
 
@@ -364,7 +367,7 @@ Unfortunately this does not seem to hold in [PRNG tests]
 All regular PRNG:s in the `rand` module has got good spectral scores.
 The new `mwc59` generator mostly, but not in 2 and 3 dimensions,
 due to its unbalanced design and power of 2 multiplier.
-Scramblers are used to compensate those flaws.
+Scramblers are used to compensate for those flaws.
 
 
 ### PRNG tests
@@ -838,7 +841,8 @@ Xorshift is a suitable scrambler.  We looked at single
 Xorshift, double Xorshift and double XorRot.  Double XorRot
 was slower than double Xorshift but not better,
 probably since the generator has got good low bits, so they
-need to be shifted up and rotation is no improvement.
+need to be shifted up to improve the high bits.
+Rotating down high bits to the low is no improvement.
 
 This is a single Xorshift scrambler:
 
@@ -894,8 +898,8 @@ V1 = T bxor (T bsl 4),
 V  = V1 bxor (V1 bsl 27).
 ```
 
-Which, to avoid bignum operations and produce a 59-bit value,
-became the final scrambler:
+Which, avoiding bignum operations and producing a 59-bit value,
+becomes the final scrambler:
 
 ``` erlang
 mwc59_value(T) ->
