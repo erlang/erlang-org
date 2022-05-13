@@ -17,12 +17,12 @@ For instance here: [Erlang/OTP 25 - Erts Release Notes - Version 13.0].
 This years highlights are:
 * [New functions in the `maps`and `lists` modules](#new-functions-in-the-maps-and-lists-modules)
 * [Selectable features and the new `maybe_expr` feature](#selectable-features-and-the-new-maybe_expr-feature)
-* Dialyzer
+* [Dialyzer](#dialyzer)
 * [Improvements of the JIT](#improvements-of-the-jit)
 * [ETS-tables with adaptive support for write concurrency](#ets-tables-with-adaptive-support-for-write-concurrency)
 * [Relocatable installation directory](#relocatable-installation-directory)
 * [New option `short` to the functions `erlang:float_to_list/2` and `erlang:float_to_binary/2`](#new-option-short-for-erlangfloattolist2-and-erlangfloattobinary2) 
-* [The new module `peer` supersedes the slave module](#new-option-short-for-erlangfloattolist2-and-erlangfloattobinary2)
+* [The new module `peer` supersedes the slave module](#the-new-module-peer-supersedes-the-slave-module(#new-option-short-for-erlangfloattolist2-and-erlangfloattobinary2)
 * [`gen_XXX` modules has got a new `format_status/1` callback](#genxxx-modules-has-got-a-new-formatstatus1-callback)
 * [The `timer` module has been modernized and made more efficient](#the-timer-module-has-been-modernized-and-made-more-efficient)
 * [Crypto and OpenSSL 3.0](#crypto-and-openssl-30)
