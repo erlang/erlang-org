@@ -708,11 +708,10 @@ On Windows and MacOSx the certificate store is not an ordinary file so the infor
 
 Example with `ssl`
 ```erlang
-public_key:cacerts_load(), % a noop if certs are already loaded
 %% makes the certificates available without copying
 CaCerts = public_key:cacerts_get(), 
 % use the certificates when establishing a connection
-{ok,Socket} = ssl:connect("erlang.org",80,[{cacerts,CaCerts}, {verify,verify_peer}]), 
+{ok,Socket} = ssl:connect("erlang.org",443,[{cacerts,CaCerts}, {verify,verify_peer}]), 
 ...
 ```
 We also plan to update the http client (`httpc`) to use this soon.
