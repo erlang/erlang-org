@@ -19,14 +19,14 @@ This years highlights are:
 * [Selectable features and the new `maybe_expr` feature](#selectable-features-and-the-new-maybe_expr-feature)
 * Dialyzer
 * [Improvements of the JIT](#improvements-of-the-jit)
-* ETS-tables with adaptive support for write concurrency
-* Relocatable installation directory for Erlang
-* New option `short` to the functions `erlang:float_to_list/2` and `erlang:float_to_binary/2` 
-* The new module `peer` supersedes the slave module
-* `gen_server`, `gen_statem` and `gen_event` has got a new `format_status/1` callback.
-* The `timer` module has been modernized and made more efficient
-* Crypto and OpenSSL 3.0
-* CA-certificates can be fetched from the OS standard place 
+* [ETS-tables with adaptive support for write concurrency](#ets-tables-with-adaptive-support-for-write-concurrency)
+* [Relocatable installation directory](#relocatable-installation-directory)
+* [New option `short` to the functions `erlang:float_to_list/2` and `erlang:float_to_binary/2`](#new-option-short-for-erlangfloattolist2-and-erlangfloattobinary2) 
+* [The new module `peer` supersedes the slave module](#new-option-short-for-erlangfloattolist2-and-erlangfloattobinary2)
+* [`gen_XXX` modules has got a new `format_status/1` callback](#genxxx-modules-has-got-a-new-formatstatus1-callback)
+* [The `timer` module has been modernized and made more efficient](#the-timer-module-has-been-modernized-and-made-more-efficient)
+* [Crypto and OpenSSL 3.0](#crypto-and-openssl-30)
+* [CA-certificates can be fetched from the OS standard place](#ca-certificates-can-be-fetched-from-the-os-standard-place) 
 
 
 # New functions in the `maps` and `lists` modules
