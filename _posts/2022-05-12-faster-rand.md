@@ -301,30 +301,38 @@ Most of the regular generators in the `rand` module has got
 a value size of 58 bits.
 
 If you need numbers in a power of 2 range then you can
-simply mask out
+simply mask out the low bits:
+
 ``` erlang
 V = X band ((1 bsl RangeBits) - 1).
 ```
-or shift down the required number of bits
+
+Or shift down the required number of bits:
+
 ``` erlang
 V = X bsr (GeneratorBits - RangeBits).
 ```
-depending on if the generator is known to have weak high or low bits.
+
+This, depending on if the generator is known to have weak high or low bits.
 
 If the range you need is not a power of 2, but still
 much smaller than the generator's size you can use `rem`:
+
 ``` erlang
 V = X rem Range.
 ```
+
 The rule of thumb is that `Range` should be less than
 the square root of the generator's size.  This is much slower
 than bit-wise operations, and the operation propagates low bits,
 which can be a problem if the generator is known to have weak low bits.
 
 Another way is to use truncated multiplication:
+
 ``` erlang
 V = (X * Range) bsr GeneratorBits
 ```
+
 The rule of thumb here is that `Range` should be less than
 2<sup>GeneratorBits</sup>.  Also, `X * Range`
 should not create a bignum, so not more than 59 bits.
@@ -458,22 +466,27 @@ and the Just-In-Time compiling BEAM code loader.
 ### With no type-based optimization
 
 This is the Erlang code for the `mwc59` generator:
+
 ``` erlang
 mwc59(CX) ->
     C = CX band ((1 bsl 32)-1),
     X = CX bsr 32,
     16#7fa6502 * X + C.
 ```
-which compiles to (Erlang BEAM assembler, `erlc -S rand.erl`),
-using the `no_type_opt` flag:
+
+The code compiles to this Erlang BEAM assembler, (`erlc -S rand.erl`),
+using the `no_type_opt` flag to disable type-based optimizations:
+
 ``` text
     {gc_bif,'bsr',{f,0},1,[{x,0},{integer,32}],{x,1}}.
     {gc_bif,'band',{f,0},2,[{x,0},{integer,4294967295}],{x,0}}.
     {gc_bif,'*',{f,0},2,[{x,0},{integer,133850370}],{x,0}}.
     {gc_bif,'+',{f,0},2,[{x,0},{x,1}],{x,0}}.
 ```
-when loaded by the JIT (x86) (`erl +JDdump true`)
+
+When loaded by the JIT (x86) (`erl +JDdump true`)
 the machine code becomes:
+
 ```nasm
 # i_bsr_ssjd
     mov rsi, qword ptr [rbx]
@@ -483,11 +496,13 @@ the machine code becomes:
     cmp edi, 15
     short jne L2271
 ```
+
 Above was a test if `{x,0}` is a small integer and if not
 the fallback at `L2271` is called to handle any term.
 
 Then follows the machine code for right shift, Erlang `bsr 32`,
 x86 `sar rax, 32`, and a skip over the fallback code:
+
 ```nasm
     mov rax, rsi
     sar rax, 32
@@ -500,7 +515,9 @@ L2272:
     mov qword ptr [rbx+8], rax
 # line_I
 ```
-Here is `band` with similar test and fallback code:
+
+Here follows `band` with similar test and fallback code:
+
 ```nasm
 # i_band_ssjd
     mov rsi, qword ptr [rbx]
@@ -517,8 +534,9 @@ L2273:
 L2274:
     mov qword ptr [rbx], rax
 ```
-Below comes `*` with test, fallback code,
-and overflow check:
+
+Below comes `*` with test, fallback code, and overflow check:
+
 ```nasm
 # line_I
 # i_times_jssd
@@ -542,7 +560,9 @@ L2276:
 L2275:
     mov qword ptr [rbx], rax
 ```
+
 The following is `+` with tests, fallback code, and overflow check:
+
 ```nasm
 # i_plus_ssjd
     mov rsi, qword ptr [rbx]
@@ -578,6 +598,7 @@ until the compiler has been improved to deduce the same information
 from a guard instead.
 
 The Erlang code now has a first redundant mask to 59 bits:
+
 ``` erlang
 mwc59(CX0) ->
     CX = CX0 band ((1 bsl 59)-1),
@@ -585,8 +606,10 @@ mwc59(CX0) ->
     X = CX bsr 32,
     16#7fa6502 * X + C.
 ```
+
 The BEAM assembler then becomes, with the default type-based optimizations
 in the compiler the OTP-25.0 release:
+
 ``` text
     {gc_bif,'band',{f,0},1,[{x,0},{integer,576460752303423487}],{x,0}}.
     {gc_bif,'bsr',{f,0},1,[{tr,{x,0},{t_integer,{0,576460752303423487}}},
@@ -597,6 +620,8 @@ in the compiler the OTP-25.0 release:
              {integer,133850370}],{x,0}}.
     {gc_bif,'+',{f,0},2,[{tr,{x,0},{t_integer,{0,572367635452168875}}},
              {tr,{x,1},{t_integer,{0,134217727}}}],{x,0}}.
+```
+
 Note that after the initial input `band` operation,
 type information `{tr,{x_},{t_integer,Range}}` has been propagated
 all the way down.
@@ -605,6 +630,7 @@ Now the JIT:ed code becomes noticeably shorter.
 
 The input mask operation knows nothing about the value so it has
 the operand test and the fallback to any term code:
+
 ```nasm
 # i_band_ssjd
     mov rsi, qword ptr [rbx]
@@ -621,8 +647,10 @@ L1816:
 L1817:
     mov qword ptr [rbx], rax
 ```
+
 For all the following operations, operand tests and fallback code
 has been optimized away to become a straight sequence of machine code:
+
 ```nasm
 # line_I
 # i_bsr_ssjd
@@ -659,6 +687,7 @@ L1819:
     add rax, rsi
     mov qword ptr [rbx], rax
 ```
+
 The execution time goes down from 3.7 ns to 3.3 ns which is
 10% faster just by avoiding redundant checks and tests,
 despite adding a not needed initial input mask operation.
@@ -697,10 +726,13 @@ limitations coming with the language implementation:
 
 The first attempt was to try a classical power of 2
 Linear Congruential Generator:
+
 ``` erlang
 X1 = (A * X0 + C) band (P-1)
 ```
+
 And a Multiplicative Congruential Generator:
+
 ``` erlang
 X1 = (A * X0) rem P
 ```
@@ -729,15 +761,18 @@ They failed miserably.
 [Sebastiano Vigna] of the University of Milano, who also helped
 design our current 58-bit Xorshift family generators,
 suggested to use a Multiply With Carry generator instead:
+
 ``` erlang
 T  = A * X0 + C0,
 X1 = T band ((1 bsl Bits)-1),
 C0 = T bsr Bits.
 ```
+
 This generator operates on "digits" of size `Bits`, and if a digit
 is half a machine word then the multiplication does not overflow.
 Instead of having the state as a digit `X` and a carry `C` these
 can be merged to have `T` as the state instead.  We get:
+
 ``` erlang
 X  = T0 band ((1 bsl Bits)-1),
 C  = T0 bsr Bits,
@@ -746,9 +781,11 @@ T1 = A * X + C
 
 An MWC generator is actually a different form of a MCG generator
 with a power of 2 multiplier, so this is an equivalent generator:
+
 ``` erlang
 T0 = (T1 bsl Bits) rem ((A bsl Bits) - 1)
 ```
+
 In this form the generator updates the state in the reverse order,
 hence `T0` and `T1` are swapped.  The modulus `(A bsl Bits) - 1`
 has to be a safe prime number or else the generator
@@ -778,15 +815,17 @@ Because of using such slightly unbalanced parameters, unfortunately
 the spectral scores for 2 dimensions also gets bad, but the scrambler
 could solve that too...
 
-The final generator, named `rand:mwc59/1` is:
+The final generator is:
+
 ``` erlang
-C = T0 bsr 32,
-X = T0 band ((1 bsl 32)-1),
-T1 = 16#7fa6502 * X + C.
+mwc59(T) ->
+    C = T bsr 32,
+    X = T band ((1 bsl 32)-1),
+    16#7fa6502 * X + C.
 ```
 
-The 32-bit digits of the base generator does not perform very
-well in [PRNG tests], but actually the low 16 bits passes
+The 32-bit digits of the base generator do not perform very
+well in [PRNG tests], but actually the low 16 bits pass
 2 TB in [PractRand] and 1 TB with the bits reversed,
 which is surprisingly good.  The problem of bad spectral scores
 for 2 and 3 dimensions lie in the higher bits of the MWC digit.
@@ -801,15 +840,17 @@ was slower than double Xorshift but not better,
 probably since the generator has got good low bits, so they
 need to be shifted up and rotation is no improvement.
 
-When trying `Shift` constants for single Xorshift:
+This is a single Xorshift scrambler:
+
 ``` erlang
 V = T bxor (T bsl Shift)
 ```
-it showed that with a large shift constant the generator
-performed better in [PractRand], and with a small shift constant
-it performed better in birthday spacing tests (such as in [TestU01]
-BigCrush) and collision tests, and it was not possible to find
-a constant good for both.
+
+When trying `Shift` constants it showed that with a large
+shift constant the generator performed better in [PractRand],
+and with a small one it performed better in birthday spacing tests
+(such as in [TestU01] BigCrush) and collision tests.
+Alas, it was not possible to find a constant good for both.
 
 The choosen single Xorshift constant is `8` that passes
 4 TB in [PractRand] and BigCrush in [TestU01] but fails
@@ -820,21 +861,22 @@ This is something unlikely to affect most applications,
 and if using the high bits of the 32 generated,
 these imperfections should stay under the rug.
 
-The actual Xorshift code has to avoid bignum operations
+The final scrambler has to avoid bignum operations
 and masks the value to 32 bits so it looks like this:
+
 ``` erlang
-V0 = T  band ((1 bsl 32)-1),
-V1 = V0 band ((1 bsl (32-8))-1),
-V  = V0 bxor (V1 bsl 8).
+mwc59_value32(T) ->
+    V0 = T  band ((1 bsl 32)-1),
+    V1 = V0 band ((1 bsl (32-8))-1),
+    V0 bxor (V1 bsl 8).
 ```
-This scrambler was named `rand:mwc59_value32/1`.
 
 A better scrambler would be a double Xorshift that can
 have both a small shift and a large shift.
 Using the small shift `4` makes the combined generator
 do very well in birthday spacings and collision tests,
 and following up with a large shift `27` shifts the
-whole now improved 32-bit MWC digit all the way up
+whole improved 32-bit MWC digit all the way up
 to the top bit of the generator's 59-bit state.
 That was the idea, and it turned out work fine.
 
@@ -843,23 +885,29 @@ number where the low, the high, reversed low,
 reversed high, etc... all perform very well in [PractRand],
 [TestU01] BigCrush, and in exhaustive birthday spacing
 and collision tests.  It is also not terribly much slower
-than the single Xorshift scrambler.  Simplified code:
+than the single Xorshift scrambler.
+
+Here is a double Xorshift scrambler 4 then 27:
+
 ``` erlang
 V1 = T bxor (T bsl 4),
 V  = V1 bxor (V1 bsl 27).
 ```
-Which, to avoid bignum operations and produce a 59-bit value, becomes:
-``` erlang
-V0 = T  band ((1 bsl (59-4))),
-V1 = T  bxor (V0 bsl 4),
-V2 = V1 band ((1 bsl (59-27))),
-V  = V1 bxor (V2 bsl 27).
-```
-This scrambler was named `rand:mwc59_value/1`.
 
-Many thanks to [Sebastiano Vigna] that has done most of the
-parameter searching and extensive testing of the generator
-and scramblers, backed by knowledge of what could work.
+Which, to avoid bignum operations and produce a 59-bit value,
+became the final scrambler:
+
+``` erlang
+mwc59_value(T) ->
+    V0 = T  band ((1 bsl (59-4))),
+    V1 = T  bxor (V0 bsl 4),
+    V2 = V1 band ((1 bsl (59-27))),
+    V1 bxor (V2 bsl 27).
+```
+
+Many thanks to [Sebastiano Vigna] that has done most of
+(practically all) the parameter searching and extensive testing
+of the generator and scramblers, backed by knowledge of what could work.
 Using an MWC generator in this particular way is rather uncharted
 territory regarding the math, so extensive testing is
 the way to trust the quality of the generator.
@@ -927,7 +975,7 @@ framework it is called `exsp` below.
 `system_time` is `os:system_time(microsecond)`.
 
 
-```
+``` text
 RNG uniform integer range 10000 performance
                    exsss:     57.5 ns (warm-up)
                 overhead:      3.9 ns      6.8%
@@ -943,6 +991,7 @@ RNG uniform integer range 10000 performance
            unique_phash2:     23.6 ns     44.0%
              system_time:     30.7 ns     57.2%
 ```
+
 The first two are the warm-up and overhead measurements.
 The measured overhead is subtracted from all measurements
 after the "overhead:" line.  The measured overhead here
@@ -963,7 +1012,7 @@ the `rem 10000` operation in the BIF, which is fairly cheap,
 as we also will see when comparing with the next section.
 
 
-```
+``` text
 RNG uniform integer 32 bit performance
                    exsss:     55.3 ns    100.0%
                     exsp:     51.4 ns     93.0%
@@ -974,6 +1023,7 @@ RNG uniform integer 32 bit performance
            unique_phash2:     22.1 ns     40.0%
              system_time:     23.5 ns     42.6%
 ```
+
 In this section, to generate a number in a 32-bit range,
 `{mwc59,raw_mask}` and `system_time` use a bit mask
 `X band 16#ffffffff`, `{_,*shift}` use `bsr`
@@ -990,7 +1040,7 @@ the range, which gives it about the same speed as in the previous section,
 but it seems integer division with a power of 2 is a bit faster.
 
 
-```
+``` text
 RNG uniform integer full range performance
                    exsss:     45.1 ns    100.0%
                     exsp:     39.8 ns     88.3%
@@ -1004,6 +1054,7 @@ RNG uniform integer full range performance
                 procdict:     75.2 ns    166.7%
         {mwc59,procdict}:     16.6 ns     36.8%
 ```
+
 In this section no range capping is done.  The raw generator output is used.
 
 Here we have the `dummy` generator, which is an undocumented generator
