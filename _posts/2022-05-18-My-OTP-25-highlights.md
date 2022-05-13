@@ -15,25 +15,23 @@ Or, as always, look at the release notes of the application you are interested i
 For instance here: [Erlang/OTP 25 - Erts Release Notes - Version 13.0].
 
 This years highlights are:
-* [New functions in the `maps`and `lists` modules](#new-functions-in-the-mapsand-lists-modules)
+* [New functions in the `maps`and `lists` modules](#new-functions-in-the-maps-and-lists-modules)
 * [Selectable features and the new `maybe_expr` feature](#selectable-features-and-the-new-maybe_expr-feature)
-* Compiler News
-* Crypto and OpenSSL 3.0
 * Dialyzer
 * [Improvements of the JIT](#improvements-of-the-jit)
 * ETS-tables with adaptive support for write concurrency
 * Relocatable installation directory for Erlang
 * New option `short` to the functions `erlang:float_to_list/2` and `erlang:float_to_binary/2` 
 * The new module `peer` supersedes the slave module
-* global will now by default prevent overlapping partitions
-* gen_server, gen_statem and gen_event has got a new format_status/1 callback.
+* `gen_server`, `gen_statem` and `gen_event` has got a new `format_status/1` callback.
 * The `timer` module has been modernized and made more efficient
+* Crypto and OpenSSL 3.0
 * CA-certificates can be fetched from the OS standard place 
 
 
-# New functions in the `maps`and `lists` modules
+# New functions in the `maps` and `lists` modules
 
-Triggered by suggestions from the users we have introduced new functions in the `maps` and `lists` modules in `stdlib.
+Triggered by suggestions from the users we have introduced new functions in the [`maps`](/doc/man/maps.html) and [`lists`](/doc/man/lists.html) modules in `stdlib`.
 
 ## `maps:groups_from_list/2,3`
 
@@ -45,7 +43,7 @@ Let us look at some examples from the shell:
 > maps:groups_from_list(fun(X) -> X rem 2 end, [1,2,3]).
 #{0 => [2], 1 => [1, 3]}
 ```
-The provided fun calculates X rem 2 for every element X in the input list and then group the elements in a map with the result of X rem 2 as key and the corresponding elements as a list for that key.
+The provided fun calculates `X rem 2` for every element `X` in the input list and then group the elements in a map with the result of `X rem 2` as key and the corresponding elements as a list value for that key.
 
 ```erlang
 > maps:groups_from_list(fun erlang:length/1, ["ant", "buffalo", "cat", "dingo"]).
@@ -54,15 +52,13 @@ The provided fun calculates X rem 2 for every element X in the input list and th
 
 In the example above the strings in the input list are grouped into a map based on their length.
 
-## `maps:groups_from_list/3`
-
-There is also a variant of groups_from_list with an additional fun by which the values can be converted or changed before they are put into their groups.
+There is also a variant of `groups_from_list` with an additional fun by which the values can be converted before they are put into their groups.
 
 ```erlang
 > maps:groups_from_list(fun(X) -> X rem 2 end, fun(X) -> X*X end, [1,2,3]).
 #{0 => [4], 1 => [1, 9]}
 ```
-In the example above the elements X in the list are grouped according the X rem 2 calculation but the values stored in the groups are the elements multiplied by them selves (X*X).  
+In the example above the elements `X` in the list are grouped according the `X rem 2` calculation but the values stored in the groups are the elements multiplied by themselves (`X * X`).  
 
 ```erlang
 > maps:groups_from_list(fun erlang:length/1, fun lists:reverse/1, ["ant", "buffalo", "cat", "dingo"]).
@@ -71,27 +67,28 @@ In the example above the elements X in the list are grouped according the X rem 
 
 In the example above the strings from the input list are grouped according to their length and they are reversed before they are stored in the groups.
 
+For more details see the [`maps:groups_from_list/2`](/doc/man/maps.html#groups_from_list-2) documentation.
+
 ## `lists:enumerate/1,2`
 
-Takes a list of elements and return a new list where each element has been associated with its position in the original list. Returns a new list with tuples of the form `{I, H}` where `I` is the position of `H` in the original list. The enumeration starts with 1 and increases by 1 in each step.
-
-That is, enumerate/1 behaves as if it had been defined as follows:
+Takes a list of elements and returns a new list where each element has been associated with its position in the original list. Returns a new list with tuples of the form `{I, H}` where `I` is the position of `H` in the original list. The enumeration starts with 1 and increases by 1 in each step.
 
 Example:
 ```erlang
 > lists:enumerate([a,b,c]).
 [{1,a},{2,b},{3,c}]
 ```
-There is also a enumerate/2 function which can be used to set the initial number to something else than 1. See example below:
+There is also a `enumerate/2` function which can be used to set the initial number to something else than 1. See example below:
 ```erlang
 > lists:enumerate(10, [a,b,c]).
 [{10,a},{11,b},{12,c}]
 ```
+For more details see the [`lists:enumerate/1`](/doc/man/lists.html#enumerate-1) documentation.
 
 ## `lists:uniq/1,2`
 
 Removes duplicates from a list while preserving the order of the elements. The first occurrence of each element is kept. 
-We already have `lists:usort` which also removes duplicates but return a sorted list.
+We already have `lists:usort` which also removes duplicates but returns a sorted list.
 
 Examples:
 ```erlang
@@ -107,6 +104,8 @@ Examples:
 > lists:uniq(fun({X, _}) -> X end, [{b, 2}, {a, 1}, {c, 3}, {a, 2}]).
 [{b, 2}, {a, 1}, {c, 3}]
 ```
+For more details see the [`lists:uniq/1`](/doc/man/lists.html#uniq-1) documentation.
+
 # Selectable features and the new `maybe_expr` feature
 
 Selectable features is a new mechanism and concept where a new potentially incompatible feature (language or runtime), can be introduced and tested without causing troubles for those that don't use it.
@@ -115,16 +114,16 @@ When it comes to language features the intention is that they can be activated p
 
 Let's use the new `maybe_expr` feature as an example.
 
-In module my_experiment the feature is activated and used like this:
+In module `my_experiment` the feature is activated and used like this:
 
 ```erlang
 -module(my_experiment).
 -export([foo/1]).
 
-%% enable the feature maybe_expr in this module only
-%% makes maybe a keyword which might be incompatible 
+%% Enable the feature maybe_expr in this module only
+%% Makes maybe a keyword which might be incompatible 
 %% in modules using maybe as a function name or an atom  
--feature(maybe_expr,enable) 
+-feature(maybe_expr,enable). 
 foo() ->
   maybe
     {ok, X} ?= f(Foo),
@@ -135,7 +134,7 @@ foo() ->
         {ok, "default"};
     {ok, _Term} ->
         {error, "unexpected wrapper"}
-end
+  end.
 ```
 
 The compiler will note that the feature `maybe_expr` is enabled and will handle the maybe construct correctly. In the generated `.beam` file it will also be noted that
@@ -152,11 +151,11 @@ Or
 ```
 erl -enable-feature all
 ```
+For more details see the [feature section](/doc/reference_manual/feature.html) in the Erlang Reference Manual.
 
 ## The new `maybe_expr` feature EEP-49
 
-The EEP-49 "Value-Based Error Handling Mechanisms", was suggested by Fred Hebèrt already 2018 and now finally
-it has been implemented as the first feature within the new feature concept.
+The EEP-49 "Value-Based Error Handling Mechanisms", was suggested by Fred Hebèrt already 2018 and now it has finally been implemented as the first feature within the new feature concept.
 
 The `maybe ... end` construct which is similar to `begin ... end` in that it is used to group multiple distinct expression as a
 single block. But there is one important difference in that the
@@ -221,6 +220,7 @@ else
         {error, "unexpected wrapper"}
 end
 ```
+For more details see the [maybe section](/doc/reference_manual/expressions.html#maybe) in the Erlang Reference Manual.
 
 ### Motivation
 
@@ -292,19 +292,11 @@ The semantics of these calls are identical, except that it is now
 much easier to focus on the flow of individual operations and either
 success or error paths.
 
-# Compiler news
-* Add compile attribute `-nifs()` to empower compiler and loader with information     about   which functions may be overridden as NIFs by `erlang:load_nif/2`.
-* Improved and more detailed error messages when binary construction with the binary syntax fails. This applies both for error messages in the shell and for `erl_error:format_exception/3,4`.
-
-
-# Crypto and OpenSSL 3.0
-Text to be included.....
-
 # Dialyzer
 
-Optimize operations in the erl_types module. Parallelize the Dialyzer pass remote.
-Added the missing_return and extra_return options to raise warnings when specifications differ from inferred types. These are similar to, but not quite as verbose as overspecs and underspecs.
-Dialyzer now better understands the types for min/2, max/2, and erlang:raise/3. Because of that, Dialyzer can potentially generate new warnings. In particular, functions that use erlang:raise/3 could now need a spec with a no_return() return type to avoid an unwanted warning.
+* Dialyzer now supports the `missing_return` and `extra_return` options to raise warnings when specifications differ from inferred types. These are similar to, but not quite as verbose, as `overspecs` and `underspecs`.
+
+* Dialyzer now better understands the types for `min/2`, `max/2`, and `erlang:raise/3`. Because of that, Dialyzer can potentially generate new warnings. In particular, functions that use `erlang:raise/3` could now need a spec with a `no_return()` return type to avoid an unwanted warning.
 
 
 # Improvements of the JIT
@@ -396,6 +388,8 @@ It is now possible to profile Erlang systems with perf and get a mapping from th
 
 The same goes for `gdb` which also can show which line of Erlang code a specific address in the JIT code corresponds to.
 
+Perf is a Linux command-line tool for lightweight CPU profiling; it checks CPU performance counters, tracepoints, upprobes, and kprobes, monitors program events, and creates reports.
+
 An Erlang node running under `perf` can be started like this:
 ```
 sudo perf record erl +JPperf true --call-graph
@@ -453,10 +447,11 @@ we have found useful:
     on another host. In early version of perf this command does not work,
     instead you can use [this bash script](https://github.com/torvalds/linux/blob/master/tools/perf/perf-archive.sh).
 * `perf report` gives "failed to process sample" and/or "failed to process type: 68"
-    This probably means that you are running a bugge version of perf. We have
+    This probably means that you are running a buggy version of perf. We have
     seen this when running Ubuntu 18.04 with kernel version 4. If you update
     to Ubuntu 20.04 or use Ubuntu 18.04 with kernel version 5 the problem
     should go away.
+
 # Improved error information for failing binary construction
 
 Erlang/OTP 24 introduced [improved BIF error information][ext_bif_info] to provide
@@ -469,7 +464,7 @@ creation of a binary using the [bit syntax][bit_syntax] fails.
 
 Consider this function:
 
-```
+```erlang
 bin(A, B, C, D) ->
     <<A/float,B:4/binary,C:16,D/binary>>.
 ```
@@ -606,14 +601,14 @@ installation directory is unknown at compile time. This is fixed by:
   functionality is used by the scripts to get the root dir dynamically.
 
 * Changing the release_handler module that reads and writes to the
-  RELEASES file so that it prepends code:root_dir() whenever it
+  `RELEASES` file so that it prepends `code:root_dir()` whenever it
   encounters relative paths. This is necessary since the current
   working directory can be changed so it is something different than
   `code:root_dir()`.
 
 # ETS-tables with adaptive support for write concurrency
 
-It has since long been possible to optimize an ets-table for write concurrency doing like this:
+It has since long been possible to optimize an ETS table for write concurrency doing like this:
 ```erlang
 {write_concurrency, true}
 ```
@@ -641,7 +636,7 @@ notation or normal decimal notation). Floats outside the range
 (-2⁵³, 2⁵³) are always formatted using scientific notation to avoid confusing 
 results when doing arithmetic operations.
 
-The implementation is contributed by Thomas Depierre and uses the Ryu algorithm.
+The implementation is contributed by Thomas Depierre and uses the Ryū algorithm.
 
 We present Ryū, a new routine to convert binary floating point numbers to their decimal representations using only fixed-size integer operations, and prove its correctness. Ryū is simpler and approximately three times faster than the previously fastest implementation.
 https://github.com/ulfjack/ryu
@@ -661,10 +656,7 @@ The peer node can start on the same or a different host (via ssh) or in a separa
 
 This module is designed to facilitate multi-node testing with Common Test. Use the ?CT_PEER() macro to start a linked peer node according to Common Test conventions: crash dumps written to specific location, node name prefixed with module name, calling function, and origin OS process ID). Use `random_name/1` to create sufficiently unique node names if you need more control.
 
-A peer node started without alternative connection behaves similarly to `slave(3)`. When an alternative connection is requested, the behavior is similar to 
-`test_server:start_node(Name, peer, Args)`. 
-
-# global will now by default prevent overlapping partitions
+A peer node started without alternative connection behaves similarly to `slave(3)`.
 
 # gen_xxx modules has got a new format_status/1 callback.
 
@@ -706,11 +698,6 @@ be used as previously. If you have any OpenSSL 3.0 version installed,
 that one will be used without need of doing anything special except
 for normal handling of dynamic loading paths in the OS.
 
-Although OTP/crypto's interface to the new API is heavily tested on many
-architectures for a long time, we do not yet recommend it for usage in
-critical applications. In such ones it is still safer to build crypto with
-the latest 1.1.1 release.
-
 # CA-certificates can be fetched from the OS standard place
 
 With the new functions `public_key:cacerts_load/0,1` and `public_key:cacerts_get/0` the CA certificates can be fetched from the standard place of the OS (or from a file). 
@@ -737,6 +724,9 @@ has been implemented.  It is probably the fastest possible
 generator with good quality that can be written in Erlang.
 To do this it barely avoids bignums, allocating heap data,
 and uses only a minimal number of fast operations.
+
+Under the "right" circumstances: A number that takes 60 ns to generate
+with the default generator can be generated in 4 ns with `rand:mwc59`.
 
 It is intended for applications in dire need for speed
 in PRNG numbers, but not any of the comfort features
