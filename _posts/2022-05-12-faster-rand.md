@@ -334,7 +334,8 @@ V = (X * Range) bsr GeneratorBits
 ```
 
 The rule of thumb here is that `Range` should be less than
-2<sup>GeneratorBits</sup>.  Also, `X * Range`
+the square root of 2<sup>GeneratorBits</sup>, that is,
+2<sup>GeneratorBits/2</sup>.  Also, `X * Range`
 should not create a bignum, so not more than 59 bits.
 This method propagates high bits, which can be a problem
 if the generator is known to have weak high bits.
