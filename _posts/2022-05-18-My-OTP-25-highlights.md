@@ -22,9 +22,9 @@ This years highlights are:
 * [Improvements of the JIT](#improvements-of-the-jit)
 * [ETS-tables with adaptive support for write concurrency](#ets-tables-with-adaptive-support-for-write-concurrency)
 * [Relocatable installation directory](#relocatable-installation-directory)
-* [New option `short` for `erlang:float_to_list/2` and `erlang:float_to_binary/2`](#new-option-short-for-erlangfloattolist2-and-erlangfloattobinary2)
+* [New option `short` for `erlang:float_to_list/2` and `erlang:float_to_binary/2`](#new-option-short-for-erlangfloat_to_list2-and-erlangfloat_to_binary2)
 * [The new module `peer` supersedes the slave module](#the-new-module-peer-supersedes-the-slave-module)
-* [`gen_xxx` modules has got a new `format_status/1` callback](#genxxx-modules-has-got-a-new-formatstatus1-callback)
+* [`gen_xxx` modules has got a new `format_status/1` callback](#gen_xxx-modules-has-got-a-new-format_status1-callback)
 * [The `timer` module has been modernized and made more efficient](#the-timer-module-has-been-modernized-and-made-more-efficient)
 * [Crypto and OpenSSL 3.0](#crypto-and-openssl-30)
 * [CA-certificates can be fetched from the OS standard place](#ca-certificates-can-be-fetched-from-the-os-standard-place)
@@ -166,7 +166,7 @@ For more details see the [feature section](/doc/reference_manual/feature.html) i
 
 The [EEP-49 "Value-Based Error Handling Mechanisms"](/eeps/eep-0049), was suggested by Fred Hebert already 2018 and now it has finally been implemented as the first feature within the new feature concept.
 
-The `maybe ... end` construct which is similar to `begin ... end` in that it is used to group multiple distinct expression as a
+The `maybe ... end` construct which is similar to `begin ... end` in that it is used to group multiple distinct expressions as a
 single block. But there is one important difference in that the
 `maybe` block does not export its variables while `begin` does
 export its variables.
