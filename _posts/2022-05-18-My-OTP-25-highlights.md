@@ -7,9 +7,6 @@ author: Kenneth Lundin
 
 OTP 25 is finally here. This post will introduce the new features that I am most excited about.
 
-Erlang/OTP 25 includes contributions from ??+ external contributors totaling
-??+ commits, ??+ PRs.
-
 You can download the readme describing all the changes here:
 [Erlang/OTP 25 Readme](/patches/otp-25.0).
 Or, as always, look at the release notes of the application you are interested in.
@@ -20,14 +17,15 @@ This years highlights are:
 * [Selectable features and the new `maybe_expr` feature](#selectable-features-and-the-new-maybe_expr-feature)
 * [Dialyzer](#dialyzer)
 * [Improvements of the JIT](#improvements-of-the-jit)
-* [ETS-tables with adaptive support for write concurrency](#ets-tables-with-adaptive-support-for-write-concurrency)
 * [Relocatable installation directory](#relocatable-installation-directory)
+* [ETS-tables with adaptive support for write concurrency](#ets-tables-with-adaptive-support-for-write-concurrency)
 * [New option `short` for `erlang:float_to_list/2` and `erlang:float_to_binary/2`](#new-option-short-for-erlangfloat_to_list2-and-erlangfloat_to_binary2)
 * [The new module `peer` supersedes the slave module](#the-new-module-peer-supersedes-the-slave-module)
 * [`gen_xxx` modules has got a new `format_status/1` callback](#gen_xxx-modules-has-got-a-new-format_status1-callback)
 * [The `timer` module has been modernized and made more efficient](#the-timer-module-has-been-modernized-and-made-more-efficient)
 * [Crypto and OpenSSL 3.0](#crypto-and-openssl-30)
 * [CA-certificates can be fetched from the OS standard place](#ca-certificates-can-be-fetched-from-the-os-standard-place)
+* [A new fast Pseudo Random Generator](#a-new-fast-pseudo-random-generator)
 
 # New functions in the `maps` and `lists` modules
 
@@ -99,7 +97,7 @@ We already have `lists:usort` which also removes duplicates but returns a sorted
 Examples:
 
 ```erlang
-> lists:uniq(fun([3,3,1,2,1,2,3]).
+> lists:uniq([3,3,1,2,1,2,3]).
 [3,1,2]
 > lists:uniq([a, a, 1, b, 2, a, 3]).
 [a, 1, b, 2, 3]
@@ -166,7 +164,7 @@ For more details see the [feature section](/doc/reference_manual/feature.html) i
 
 The [EEP-49 "Value-Based Error Handling Mechanisms"](/eeps/eep-0049), was suggested by Fred Hebert already 2018 and now it has finally been implemented as the first feature within the new feature concept.
 
-The `maybe ... end` construct which is similar to `begin ... end` in that it is used to group multiple distinct expressions as a
+The `maybe ... end` construct is similar to `begin ... end` in that it is used to group multiple distinct expressions as a
 single block. But there is one important difference in that the
 `maybe` block does not export its variables while `begin` does
 export its variables.
@@ -411,8 +409,7 @@ An Erlang node running under `perf` can be started like this:
 ```text
 perf record --call-graph fp -- erl +JPperf true
 ```
-
-and then the result from perf could be viewed like this:
+The result from perf could then be viewed like this:
 
 ```text
 perf report
@@ -664,7 +661,7 @@ results when doing arithmetic operations.
 
 The implementation is contributed by Thomas Depierre and uses the Ryū algorithm.
 
-We present Ryū, a new routine to convert binary floating point numbers to their decimal representations using only fixed-size integer operations, and prove its correctness. Ryū is simpler and approximately three times faster than the previously fastest implementation.
+Ryū, is a new algorithm to convert binary floating point numbers to their decimal representations using only fixed-size integer operations. Ryū is simpler and approximately three times faster than the previously fastest implementation.
 <https://github.com/ulfjack/ryu>
 
 
@@ -757,10 +754,4 @@ with the default generator can be generated in 4 ns with `rand:mwc59`.
 It is intended for applications in dire need for speed
 in PRNG numbers, but not any of the comfort features
 that [`rand`](/doc/man/rand.html) otherwise offers.
-
-# More details
-
-For more details about new features and potential incompatibilities in OTP 25.0 see
-<https://erlang.org/download/otp_src_25.0.readme>
-
 
