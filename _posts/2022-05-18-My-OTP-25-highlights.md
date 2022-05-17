@@ -429,10 +429,19 @@ You can then attach `perf` to the node like this:
 ```text
 sudo perf record --call-graph fp -p 4711
 ```
-The result from perf could then look like this:
+Below is an example where `perf` is run to analyze `dialyzer` building a PLT like this:
+
+```text
+ ERL_FLAGS="+JPperf true +S 1" perf record --call-graph=fp \
+   dialyzer --build_plt -Wunknown --apps compiler crypto erts kernel stdlib \
+   syntax_tools asn1 edoc et ftp inets mnesia observer public_key \
+   sasl runtime_tools snmp ssl tftp wx xmerl tools
+```
+
+The above code is run using +S 1 to make the perf output easier to understand. 
+If you then run `perf report -f --no-children` you may get something similar to this:
 
 ![alt text](/blog/images/otp25/perf_callgraph.png "perf call-graph")
-
 
 Frame pointers are enabled when the `+JPperf true` option is passed, so you can
 use `perf record --call-graph=fp` to get more context.
