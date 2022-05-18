@@ -88,7 +88,7 @@ In Erlang/OTP 24 we can get the same result without having to pay the pretty
 steep cost of profiling with eprof. When running the same analysis as above
 using [perf] it takes roughly 1.3 seconds to run.
 
-```sh
+```bash
 $ ERL_FLAGS="+JPperf true" perf record dialyzer --build_plt \
     --apps erts
 ```
@@ -96,7 +96,7 @@ $ ERL_FLAGS="+JPperf true" perf record dialyzer --build_plt \
 Then we can use tools such as [perf report], [hotspot] or [speedscope] to
 analyze the results.
 
-```sh
+```bash
 $ hotspot perf.data
 ```
 
@@ -290,7 +290,7 @@ That all changes with Erlang/OTP 24! Many more complex scenarios are now
 covered by the optimization and a new compiler flag has been added to tell the
 user if an optimization is done.
 
-```sh
+```bash
 $ erlc +recv_opt_info test.erl
 test.erl:6: Warning: OPTIMIZED: reference used to mark
                                 a message queue position

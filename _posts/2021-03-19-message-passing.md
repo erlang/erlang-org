@@ -179,10 +179,10 @@ guaranteed that it will work due to some annoying limitations:
 We've addressed these shortcomings in the upcoming OTP 24 release, and have
 added a compiler option to help you spot where it's applied:
 
-```sh
+```bash
 $ erlc +recv_opt_info example.erl
 ```
-.
+<!-- ignore me -->
 ```erlang
 -module(example).
 -export([t/2]).

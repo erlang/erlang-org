@@ -100,7 +100,7 @@ update:
 setup: setup_gems setup_npm _patches docs _eeps eeps faq
 
 serve: setup
-	bundle exec jekyll serve --incremental --trace --livereload --host 0.0.0.0
+	bundle exec jekyll serve --future --incremental --trace --livereload --host 0.0.0.0
 
 test:
 	DEPLOY=true $(MAKE) setup
