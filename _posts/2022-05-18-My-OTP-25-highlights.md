@@ -8,11 +8,12 @@ author: Kenneth Lundin
 OTP 25 is finally here. This post will introduce the new features that I am most excited about.
 
 You can download the readme describing all the changes here:
-[Erlang/OTP 25 Readme](/patches/otp-25.0).
+[Erlang/OTP 25 Readme](/patches/OTP-25.0).
 Or, as always, look at the release notes of the application you are interested in.
 For instance here: [Erlang/OTP 25 - Erts Release Notes - Version 13.0](https://www.erlang.org/doc/apps/erts/notes.html#erts-13.0).
 
 This years highlights are:
+
 * [New functions in the `maps`and `lists` modules](#new-functions-in-the-maps-and-lists-modules)
 * [Selectable features and the new `maybe_expr` feature](#selectable-features-and-the-new-maybe_expr-feature)
 * [Dialyzer](#dialyzer)
