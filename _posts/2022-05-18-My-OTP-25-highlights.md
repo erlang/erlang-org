@@ -159,7 +159,7 @@ Or
 erl -enable-feature all
 ```
 
-For more details see the [feature section](/doc/reference_manual/feature.html) in the Erlang Reference Manual.
+For more details see the [feature section](/doc/reference_manual/features.html) in the Erlang Reference Manual.
 
 ## The new `maybe_expr` feature EEP-49
 
