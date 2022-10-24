@@ -139,6 +139,22 @@ Most likely earlier versions of these tools will work, but they have not been te
 If you want to be sure that you use the correct version of the dependencies you can either
 use the [devcontainer](#devcontainer--gitpodio) or [asdf](https://asdf-vm.com/).
 
+### Using asdf
+
+To install and use asdf follow their [Getting started guide](https://asdf-vm.com/guide/getting-started.html). On Linux using bash in a nutshell you do this:
+
+```shell
+git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.10.2
+echo ". $HOME/.asdf/asdf.sh" >> ~/.bashrc
+echo ". $HOME/.asdf/completions/asdf.bash" >> ~/.bashrc
+. ~/.bashrc
+asdf plugin add erlang
+asdf plugin add nodejs
+asdf plugin add ruby
+```
+
+If you have any issues please refer to the asdf documentation.
+
 ## Development
 
 ### Layout
