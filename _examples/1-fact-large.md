@@ -4,7 +4,7 @@ display: large
 ---
 <!-- This file has to be 15 lines long -->
 ```erlang
-fact(1) -> 1;              %% Pattern matching for control-flow
+fact(0) -> 1;              %% Pattern matching for control-flow
 fact(N) -> N * fact(N-1).  %% Recursion to create loops
 
 > example:fact(10).        %% Interactive shell for fast iterations
