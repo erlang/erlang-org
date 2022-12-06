@@ -34,6 +34,7 @@ Most OS package managers provide pre-built binary packages.
 * For MacPorts on macOS: `port install erlang`
 * For Ubuntu and Debian: `apt-get install erlang`
 * For Fedora: `yum install erlang`
+* For ArchLinux and Manjaro: `pacman -S erlang`
 * For FreeBSD: `pkg install erlang`
 
 The OS provided packages tend to not contain the latest version of Erlang/OTP.
