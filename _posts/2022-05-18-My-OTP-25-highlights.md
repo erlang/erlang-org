@@ -18,6 +18,7 @@ This years highlights are:
 * [Selectable features and the new `maybe_expr` feature](#selectable-features-and-the-new-maybe_expr-feature)
 * [Dialyzer](#dialyzer)
 * [Improvements of the JIT](#improvements-of-the-jit)
+* [Better support for perf and gdb](#better-support-for-perf-and-gdb)
 * [Relocatable installation directory](#relocatable-installation-directory)
 * [ETS-tables with adaptive support for write concurrency](#ets-tables-with-adaptive-support-for-write-concurrency)
 * [New option `short` for `erlang:float_to_list/2` and `erlang:float_to_binary/2`](#new-option-short-for-erlangfloat_to_list2-and-erlangfloat_to_binary2)
