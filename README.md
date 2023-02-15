@@ -19,7 +19,7 @@ You can view the deployed version here: <https://www.erlang.org>
 
 The makefile supports these targets
 
-* build (default) - depeds on setup
+* build (default) - depends on setup
   * Builds the entire site under `_site` for exporting
 * serve - depends on setup
   * start jekyll to serve the erlang.org site at http://localhost:4000
