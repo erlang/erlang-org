@@ -4,7 +4,7 @@
 
 This is the repository for the erlang.org website.
 
-We use [ruby] /w [jekyll], [nodejs] /w [bootstrap 5] and Erlang to build this website.
+We use [ruby] w/ [jekyll], [nodejs] w/ [bootstrap 5], and Erlang to build this website.
 
 To launch a local copy, install the correct [prerequisites](#Prerequisites) and do `make serve` and navigate to http://localhost:4000.
 
