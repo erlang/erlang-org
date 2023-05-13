@@ -8,7 +8,7 @@ The erlang.org mailing lists are:
 The main Erlang/OTP discussion list. This list is mirrored by the (searchable) Google Group [Erlang Programming](http://groups.google.com/group/erlang-programming).
 * [erlang-announce](https://erlang.org/pipermail/erlang-announce/)  
 The announcements are also sent to erlang-questions.
-* [eeps](https://erlang.org/pipermail/eep/)  
+* [eeps](https://erlang.org/pipermail/eeps/)
 Discussions regarding specific [EEPs](../eep) (Erlang Extension Proposals). See [Erlang Enhancement Process](../eep).
 
 ## Forums
