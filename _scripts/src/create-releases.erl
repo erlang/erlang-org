@@ -61,8 +61,8 @@ parse_erlang_org_downloads() ->
 
 download_erlang_org_downloads() ->
     {ok,{{_,200,_},Hdrs,Body}} = httpc:request(
-        get,{"https://erlang.org/download",[]},
-        ssl_opts("https://erlang.org/download"),[]),
+        get,{"https://erlang.org/download/",[]},
+        ssl_opts("https://erlang.org/download/"),[]),
     case lists:member({"content-encoding","gzip"}, Hdrs) of
         true ->
             zlib:gunzip(Body);

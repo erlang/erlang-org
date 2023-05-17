@@ -208,6 +208,6 @@ await_result(Mref) ->
     end.
 ```
 
-[defined order]: https://erlang.org/doc/apps/erts/communication.html#passing-of-signals
-[message_queue_data]: https://erlang.org/doc/man/erlang.html#process_flag_message_queue_data
+[defined order]: /doc/apps/erts/communication.html#passing-of-signals
+[message_queue_data]: /doc/man/erlang.html#process_flag_message_queue_data
 [these scenarios]: https://en.wikipedia.org/wiki/Network_partition

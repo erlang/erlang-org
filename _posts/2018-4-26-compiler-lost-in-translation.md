@@ -151,7 +151,7 @@ a comment, it would have been lost too.
 
 To read more details about tokens, see [erl_scan:string/1].
 
-[erl_scan:string/1]: https://erlang.org/doc/man/erl_scan.html#string-1
+[erl_scan:string/1]: /doc/man/erl_scan.html#string-1
 
 ### Preprocessing the tokens ###
 
@@ -183,7 +183,7 @@ makes the evaluation order unambiguous.
 
 See [The Abstract Format] for more details about the abstract format.
 
-[The Abstract Format]: https://erlang.org/doc/apps/erts/absform.html
+[The Abstract Format]: /doc/apps/erts/absform.html
 [parse tree]: ../images/compiler-2018-04-26.svg
 
 ### Pretty-printing using erl_pp ###
@@ -202,7 +202,7 @@ Here the pretty printer has inserted one pair of parentheses, but the
 redundant pair of parentheses in the original expression has been lost.
 The whitespace is also different from the original.
 
-[erl_pp]: https://erlang.org/doc/man/erl_pp.html
+[erl_pp]: /doc/man/erl_pp.html
 
 ### A quick look at the preprocessor ###
 
@@ -220,7 +220,7 @@ replace those tokens with the token:
 
     [{atom,1,trivial}]
 
-[epp]: https://erlang.org/doc/man/epp.html
+[epp]: /doc/man/epp.html
 
 
 ## The other passes operating on the abstract format ##
@@ -233,8 +233,8 @@ other passes in the front end.
 The `transform_module` pass runs parse transforms, for example
 for [QLC] or [ms_transform].
 
-[QLC]: https://erlang.org/doc/man/qlc.html
-[ms_transform]: https://erlang.org/doc/man/ms_transform.html
+[QLC]: /doc/man/qlc.html
+[ms_transform]: /doc/man/ms_transform.html
 
 ### The lint_module pass ###
 
@@ -266,7 +266,7 @@ bug.erl:5: variable 'B' is unbound
 $
 ```
 
-[erl_lint]: https://erlang.org/doc/man/erl_lint.html
+[erl_lint]: /doc/man/erl_lint.html
 
 ### Translating records ###
 
@@ -303,7 +303,7 @@ The `-record()` declaration is still there, but the construction of
 the record has been replaced with construction of a tuple. Similarly,
 matching of records will be translated to matching of tuples.
 
-[erl_expand_records]: https://erlang.org/doc/man/erl_expand_records.html
+[erl_expand_records]: /doc/man/erl_expand_records.html
 
 ## Tip: Producing a single source file using -P ##
 

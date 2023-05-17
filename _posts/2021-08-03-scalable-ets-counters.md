@@ -6,11 +6,11 @@ author: Kjell Winblad
 ---
 
 A shared [Erlang Term Storage
-(ETS)](https://erlang.org/doc/man/ets.html) table is often an
+(ETS)](/doc/man/ets.html) table is often an
 excellent place to store data that is updated and read from
 multiple Erlang processes frequently. ETS provides key-value stores to
 Erlang processes. When the
-[write_concurrency](https://erlang.org/doc/man/ets.html#new-2) option
+[write_concurrency](/doc/man/ets.html#new-2) option
 is activated, ETS tables use fine-grained locking
 internally. Therefore, a scenario where multiple processes insert and
 remove different items in an ETS table should scale well with the
@@ -20,7 +20,7 @@ how the `decentralized_counters` option brings us one step closer to
 perfect scalability.
 
 The ETS table option
-[`decentralized_counters`](https://erlang.org/doc/man/ets.html#new-2)
+[`decentralized_counters`](/doc/man/ets.html#new-2)
 (introduced in Erlang/OTP 22 for `ordered_set` tables and in
 Erlang/OTP 23 for the other table types) has made the scalability much
 better. A table with `decentralized_counters` activated uses
@@ -29,9 +29,9 @@ number of items in the table and the memory
 consumption. Unfortunately, tables with `decentralized_counters`
 activated will have slow operations to get the table size and
 memory usage ([`ets:info(Table,
-size)`](https://erlang.org/doc/man/ets.html#info-2) and
+size)`](/doc/man/ets.html#info-2) and
 [`ets:info(Table,
-memory)`](https://erlang.org/doc/man/ets.html#info-2)), so whether it
+memory)`](/doc/man/ets.html#info-2)), so whether it
 is beneficial to turn `decentralized_counters` on or off depends on
 your use case. This blog post will give you a better understanding of
 when one should activate the `decentralized_counters` option and how
@@ -96,9 +96,9 @@ When designing the decentralized counters for ETS, we have tried to
 optimize for update performance and scalability as most applications
 need to get the size of an ETS table relatively rarely. However, since
 there may be applications out in the wild that frequently call
-[`ets:info(Table, size)`](https://erlang.org/doc/man/ets.html#info-2)
+[`ets:info(Table, size)`](/doc/man/ets.html#info-2)
 and [`ets:info(Table,
-memory)`](https://erlang.org/doc/man/ets.html#info-2), we have chosen
+memory)`](/doc/man/ets.html#info-2), we have chosen
 to make decentralized counters optional.
 
 Another thing that might be worth keeping in mind is that the
@@ -134,7 +134,7 @@ not need to do anything else, so they are very efficient and can scale
 perfectly with the number of cores as long as there are as many slots
 as schedulers. One can configure the maximum number of slots in the
 array of counters with the
-[`+dcg`](https://erlang.org/doc/man/erl.html) option.
+[`+dcg`](/doc/man/erl.html) option.
 
 To implement the `ets:info(Table, size)` and `ets:info(Table, memory)`
 operations, one also needs to read the current counter value. Reading

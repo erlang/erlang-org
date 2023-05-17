@@ -404,9 +404,9 @@ contention is low as it is only activated when its contention
 detection mechanism indicates that the contention is high.
 
 
-[sig_ord]: https://erlang.org/doc/reference_manual/processes.html#signal-delivery
+[sig_ord]: /doc/reference_manual/processes.html#signal-delivery
 [parallel_sig_pr]: https://github.com/erlang/otp/pull/5020
 [sig_q_bench_page]: http://winsh.me/bench/erlang_sig_q/sigq_bench_result.html
-[erl_com]: https://erlang.org/doc/apps/erts/communication.html
+[erl_com]: /doc/apps/erts/communication.html
 [hamt]: https://en.wikipedia.org/wiki/Hash_array_mapped_trie
-[off_heap_setting]: https://erlang.org/doc/man/erlang.html#spawn_opt-4
+[off_heap_setting]: /doc/man/erlang.html#spawn_opt-4

@@ -9,7 +9,7 @@ Erlang is a programming language originally developed at the Ericsson Computer S
 
 ### erlang.org
 
-The source code for this webpage is available on [GitHub](https://github.com/erlang/erlang-org). It is built using [Erlang](https://erlang.org), [Jekyll](https://jekyllrb.com/), [Bootstrap 5](https://getbootstrap.com/docs/5.0/) and [Node.js](https://nodejs.org/).
+The source code for this webpage is available on [GitHub](https://github.com/erlang/erlang-org). It is built using [Erlang](https://www.erlang.org), [Jekyll](https://jekyllrb.com/), [Bootstrap 5](https://getbootstrap.com/docs/5.0/) and [Node.js](https://nodejs.org/).
  
 ### License
 Since OTP 18.0, Erlang/OTP is released under Apache License 2.0. The older releases were released under Erlang Public License (EPL), a derivative work of the Mozilla Public License (MPL).

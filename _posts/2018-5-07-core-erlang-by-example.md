@@ -444,7 +444,7 @@ Core Erlang is less complicated than Erlang, and is therefore more
 suited than the abstract format for code analyzing tools (such as
 [Dialyzer][dialyzer]) and optimizers.
 
-[dialyzer]: https://erlang.org/doc/apps/dialyzer/dialyzer_chapter.html
+[dialyzer]: /doc/apps/dialyzer/dialyzer_chapter.html
 
 ## To learn more about Core Erlang
 
