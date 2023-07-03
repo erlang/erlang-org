@@ -17,7 +17,7 @@ works and show you benchmark results comparing the performance of ETS
 
 ## Try it Out!
 
-[This escript]{% link /blog/code/insert_disjoint_ranges.erl %}) makes it convenient for you
+[This escript]({% link /blog/code/insert_disjoint_ranges.erl %}) makes it convenient for you
 to try the new `ordered_set` implementation on your own machine with
 Erlang/OTP 22+ installed.
 
