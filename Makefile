@@ -1,4 +1,4 @@
-.PHONY: setup clean build update serve test algolia setup_gems setup_npm format-eeps patches
+.PHONY: setup clean build update serve test algolia setup_gems setup_npm format-eeps patches assets/img/favicon.ico
 
 ## For netlify the BUNDLE_PATH is different so we need to check it
 BUNDLE_PATH?=vendor/bundle
@@ -30,6 +30,10 @@ assets/webfonts/fontawesome-free: | assets/webfonts
 	ln -s ../../node_modules/@fortawesome/fontawesome-free/webfonts assets/webfonts/fontawesome-free
 assets/js/prismjs: | assets/js
 	ln -s ../../node_modules/prismjs assets/js/prismjs
+
+## Use imagemagic to create a favico from the svg logo
+assets/img/favicon.ico: assets/img/erlang-logo.svg
+	convert assets/img/erlang-logo.svg -delete 1--1 \( -clone 0 -resize 16x16\! \) \( -clone 0 -resize 48x48\! \) \( -clone 0 -resize 96x96\! \) \( -clone 0 -resize 144x144\! \) -delete 0 -background none assets/img/favicon.ico
 
 setup_npm: node_modules | assets/js/bootstrap assets/js/fontawesome-free assets/webfonts/fontawesome-free assets/js/prismjs
 
