@@ -8,17 +8,17 @@ build: setup
 	npx purgecss --css _site/assets/css/*.css --content `find _site -name "*.html" -o -name "*.js" | grep -v _site/doc/ | grep -v _site/docs/`  -o _site/assets/css/
 
 netlify: clean
-	$(MAKE) -j $(shell nproc) BUNDLE_PATH=/opt/build/cache/bundle JEKYLL_ENV=production
+	$(MAKE) -j $(shell nproc) --debug=basic BUNDLE_PATH=/opt/build/cache/bundle JEKYLL_ENV=production
 
 clean:
-	rm -rf _patches docs _eeps faq _clones eeps
+	rm -rf _patches docs _eeps faq _clones eeps assets/js
 
 $(BUNDLE_PATH):
 	bundler install --jobs 4 --retry 3 --path $(BUNDLE_PATH)
 
 setup_gems: $(BUNDLE_PATH)
 
-node_modules: package-lock.json
+node_modules: package-lock.json | assets/js
 	npm install
 	npm run build
 
