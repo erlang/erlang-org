@@ -31,11 +31,14 @@ assets/webfonts/fontawesome-free: | assets/webfonts
 assets/js/prismjs: | assets/js
 	ln -s ../../node_modules/prismjs assets/js/prismjs
 
+assets/js/doc-search.bundle.js: | assets/js
+	npm run build
+
 ## Use imagemagic to create a favico from the svg logo
 assets/img/favicon.ico: assets/img/erlang-logo.svg
 	convert assets/img/erlang-logo.svg -delete 1--1 \( -clone 0 -resize 16x16\! \) \( -clone 0 -resize 48x48\! \) \( -clone 0 -resize 96x96\! \) \( -clone 0 -resize 144x144\! \) -delete 0 -background none assets/img/favicon.ico
 
-setup_npm: node_modules | assets/js/bootstrap assets/js/fontawesome-free assets/webfonts/fontawesome-free assets/js/prismjs
+setup_npm: node_modules assets/js/doc-search.bundle.js | assets/js/bootstrap assets/js/fontawesome-free assets/webfonts/fontawesome-free assets/js/prismjs
 
 otp_versions.table:
 	curl https://raw.githubusercontent.com/erlang/otp/master/otp_versions.table > $@
