@@ -81,7 +81,7 @@ format-eeps: _scripts/_build/default/bin/erlang-org _clones/eep
 	$< format-eeps _eeps _clones/eep/eeps/eep-0000.html _clones/eep/eeps/*.md
 	touch _eeps/$(shell cd _clones/eep && git rev-parse --short HEAD)-$(EEPS_HASH)
 
-docs: otp_versions.table _scripts/otp_flatten_docs _scripts/otp_doc_sitemap.sh
+docs: otp_versions.table _scripts/download-docs.sh _scripts/otp_flatten_docs _scripts/otp_flatten_ex_docs _scripts/otp_doc_sitemap.sh
 	if [ ! -d $@ ]; then git clone --single-branch -b $@ https://github.com/erlang/erlang-org $@; fi
 	_scripts/download-docs.sh $<
 	@touch docs
@@ -104,7 +104,11 @@ patches: _scripts/_build/default/bin/erlang-org otp_versions.table
 update:
 	npm update
 
-setup: setup_gems setup_npm _patches docs _eeps eeps faq
+_redirects: _redirects.in _scripts/redirects.sh docs
+	cp _redirects.in "$@"
+	_scripts/redirects.sh >> "$@"
+
+setup: setup_gems setup_npm _patches docs _eeps eeps faq _redirects
 
 serve: setup
 	bundle exec jekyll serve --future --incremental --trace --livereload --host 0.0.0.0
