@@ -51,6 +51,16 @@ for VSN in ${MAJOR_VSNs}; do
     fi
 done
 
+POSSIBLE_RC_VER=$(( LATEST_MAJOR_VSN + 1 ))
+for rc_ver in 5 4 3 2 1; do
+    LATEST_VSN="${POSSIBLE_RC_VER}.0-rc${rc_ver}"
+    ARCHIVE="docs/otp_doc_html_${LATEST_VSN}.tar.gz"
+    echo "Checking for ${LATEST_VSN} on github"
+    if curl --silent --location --fail --show-error "${HDR[@]}" "https://github.com/erlang/otp/releases/download/OTP-${LATEST_VSN}/otp_doc_html_${LATEST_VSN}.tar.gz" > "${ARCHIVE}"; then
+        break;
+    fi
+    rm "${ARCHIVE}"
+done
 
 if [ ! "${RINCLUDE[0]}" = "" ]; then
     set -x
