@@ -32,8 +32,8 @@ parse_erlang_org_downloads() ->
     {match,Downloads} = re:run(download_erlang_org_downloads(),
                                <<"<a href=\"([^\"/]+)\"">>,
                                [global,{capture,all_but_first,binary}]),
-    Matches = #{ readme => "^(?:otp_src_|OTP-)(.*)\\.(?:readme|README)$",
-                 erlang_download_readme => "^(?:otp_src_|OTP-)(.*)\\.(?:readme|README)$",
+    Matches = #{ readme => "^(?:otp_src_|OTP-)(.*)\\.(?:readme|README|readme.md|README.md)$",
+                 erlang_download_readme => "^(?:otp_src_|OTP-)(.*)\\.(?:readme|README|readme.md|README.md)$",
                  html => "^otp_(?:doc_)?html_(.*)\\.tar\\.gz$",
                  man => "^otp_(?:doc_)?man_(.*)\\.tar\\.gz$",
                  win32 => "^otp_win32_(.*)\\.exe$",
@@ -84,7 +84,7 @@ parse_github_tags() ->
        end || Tag <- Json]).
 
 process_patches(Major, Patches, Downloads, Tags, Releases) ->
-    NewPatches = pmap(fun(Patch) ->  process_patch(Patch, Releases, Downloads, Tags) end, Patches),
+    NewPatches = pmap(fun(Patch) -> process_patch(Patch, Releases, Downloads, Tags) end, Patches),
     %% Filter out if we did not get a readme. We are in the middle of doing a patch
     %% and thus we do not want to show the patch for now.
     CompletePatches = lists:filter(fun(Patch) -> maps:is_key(readme, Patch) end, NewPatches),
@@ -93,6 +93,7 @@ process_patches(Major, Patches, Downloads, Tags, Releases) ->
        release => Major }.
 
 process_patch(PatchVsn, Releases, Downloads, Tags) ->
+    io:format("ProcessPatch: ~ts~n",[PatchVsn]),
     ErlangOrgDownload = maps:get(PatchVsn, Downloads, #{}),
     case lists:search(
            fun(Release) ->
@@ -113,7 +114,7 @@ process_patch(PatchVsn, Releases, Downloads, Tags) ->
     end.
 
 fetch_assets(Assets) ->
-    Matches = #{ readme => "^OTP-.*\\.README$",
+    Matches = #{ readme => "^OTP-.*\\.(?:README|readme|README.md|readme.md)$",
                  html => "^otp_doc_html.*",
                  man => "^otp_doc_man.*",
                  win32 => "^otp_win32.*",
@@ -152,7 +153,7 @@ strip_ids(Patch) ->
 
 create_patches(Dir, Releases) ->
     TmpDir = string:trim(os:cmd("mktemp -d")),
-    os:cmd("rsync --archive --verbose --compress --include='*.readme' --include='*.README' --exclude='*' erlang.org::erlang-download "++TmpDir ++ "/"),
+    os:cmd("rsync --archive --verbose --compress --include='*.readme' --include='*.README' --include='*.readme.md' --include='*.README.md' --exclude='*' erlang.org::erlang-download "++TmpDir ++ "/"),
     maps:map(
       fun(Release, #{ patches := Patches }) ->
               pmap(
