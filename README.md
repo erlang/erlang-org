@@ -128,9 +128,9 @@ have to do for now.
 You need to have the following tools installed to build the erlang.org site:
 
 * GNU make 4.1 or later
-* ruby 2.6.5 or later
-* bundler 2.2.27 or later
-* nodejs 16.9.1 or later
+* ruby 3.3.0 or later
+* bundler 2.5.6 or later
+* nodejs 20.11.1 or later
 * erlang 26 or later
 * xsltproc
 
