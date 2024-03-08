@@ -18,12 +18,22 @@ SCRIPT_FILES="_scripts/otp_flatten_docs _scripts/otp_doc_sitemap.sh"
 _get_vsns() {
     grep "${1}" "${OTP_VERSIONS_TABLE}" | awk '{print $1}' | sed 's/OTP-\(.*\)/\1/g'
 }
+
 _get_latest_vsn() {
     _get_vsns "${1}" | head -1
 }
+
 _get_doc_hash() {
     # shellcheck disable=SC2086
     (echo "${1}" && cat ${SCRIPT_FILES}) | sha256sum | awk '{print $1}'
+}
+
+_flatten_docs() {
+    if [ "$3" -ge "27" ]; then
+        (cd docs && ../_scripts/otp_flatten_ex_docs "doc-$1" "$2")
+    else
+        (cd docs && ../_scripts/otp_flatten_docs "doc-$1" "$2")
+    fi
 }
 
 MAJOR_VSNs=$(_get_vsns "OTP-[0-9]\+\.0 " | sed 's/^\([0-9]\+\).*/\1/g')
@@ -51,6 +61,16 @@ for VSN in ${MAJOR_VSNs}; do
     fi
 done
 
+POSSIBLE_RC_VER=$(( LATEST_MAJOR_VSN + 1 ))
+for rc_ver in 5 4 3 2 1; do
+    LATEST_VSN="${POSSIBLE_RC_VER}.0-rc${rc_ver}"
+    ARCHIVE="docs/otp_doc_html_${LATEST_VSN}.tar.gz"
+    echo "Checking for ${LATEST_VSN} on github"
+    if curl --silent --location --fail --show-error "${HDR[@]}" "https://github.com/erlang/otp/releases/download/OTP-${LATEST_VSN}/otp_doc_html_${LATEST_VSN}.tar.gz" > "${ARCHIVE}"; then
+        break;
+    fi
+    rm "${ARCHIVE}"
+done
 
 if [ ! "${RINCLUDE[0]}" = "" ]; then
     set -x
@@ -69,7 +89,7 @@ for ARCHIVE in docs/*.tar.gz; do
     MAJOR_VSN=$(echo "${VSN}" | awk -F. '{ print $1 }')
     mv "docs/tmp" "docs/doc-${ERTS_VSN}"
     if [ "${MAJOR_VSN}" = "${LATEST_MAJOR_VSN}" ]; then
-        (cd docs && ../_scripts/otp_flatten_docs "doc-${ERTS_VSN}" true)
+        _flatten_docs "${ERTS_VSN}" true "${MAJOR_VSN}"
         rm -rf "docs/doc" || true
         mv docs/doc-1 docs/doc
         URL=$(grep "^url: " _config.yml | sed 's@url: "\([^"]*\)".*@\1@')
@@ -77,7 +97,7 @@ for ARCHIVE in docs/*.tar.gz; do
         _scripts/otp_doc_sitemap.sh doc/ "${URL}${BASEURL}/" > doc/sitemap_algolia.xml
         ln -s ../../search.html docs/doc/search.html
     fi
-    (cd docs && ../_scripts/otp_flatten_docs "doc-${ERTS_VSN}" false)
+    _flatten_docs "${ERTS_VSN}" false "${MAJOR_VSN}"
     touch "docs/doc-1/$(_get_doc_hash "${VSN}")"
     rm -rf "docs/${MAJOR_VSN}" || true
     mv docs/doc-1 "docs/${MAJOR_VSN}"

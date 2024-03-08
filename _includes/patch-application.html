@@ -2,46 +2,70 @@
 
 {% endcapture %}
 {% if include.app %}
+{% assign mode=include.app.mode %}
 <div class="card">
     <div class="card-header">
         <h4>{{ include.title }} <a name="{{ include.name }}" href="#{{ include.name }}">#</a></h4>
     </div>
     <div class="card-body">
         {% if include.app.pre %}
-        <p>
-            {{ include.app.pre }}
-        </p>
+            {% if mode == "markdown" %}
+              {{ include.app.pre | markdownify }}
+            {% else %}
+            <p>
+              {{ include.app.pre }}
+            </p>
+            {% endif %}
         {% endif %}
         <dl class="px-4">
             {% for ticket in include.app.tickets %}
-            <dt id="{{ticket[0]}}" class="border-bottom">{{ ticket[0] }}</dt>
+            <dt id="{{ ticket[0] }}" class="border-bottom">{{ ticket[0] }}</dt>
             <dd>
-                <dl class="dl-single">
+                {% if ticket[1].Applications or ticket[1].Tags or ticket[1].RelatedIds %}
+                <dl class="dl-single ps-4 pt-2">
+                    {% if ticket[1].Applications %}
                     <dt>Application(s): </dt>
                     <dd>{{ ticket[1].Applications }}</dd>
+                    {% endif %}
+                    {% if ticket[1].Tags %}
+                    <dt>{{ ticket[1].Tags }}</dt><dd>&nbsp;</dd>
+                    {% endif %}
                     {% if ticket[1].RelatedIds %}
                     <dt>Related Id(s): </dt>
                     <dd>
-                        {% assign ids = ticket[1].RelatedIds | split: ", " %}
-                        {% for id in ids %}
-                        {% include patch-related-links.html id=id %}{% if forloop.last == false %}, {% endif %}
-                        {% endfor %}
+                        {% if mode == "markdown" %}
+                            {{ ticket[1].RelatedIds | markdownify }}
+                        {% else %}
+                            {% assign ids = ticket[1].RelatedIds | split: ", " %}
+                            {% for id in ids %}
+                            {% include patch-related-links.html id=id %}{% if forloop.last == false %}, {% endif %}
+                            {% endfor %}
+                        {% endif %}
                     </dd>
                     {% endif %}
                 </dl>
+                {% endif %}
+                {% if mode == "markdown" %}
+                {{ ticket[1].release_note | markdownify }}
+                {% else %}
                 {% assign ps = ticket[1].release_note | split: nlnl %}
                 {% for p in ps %}
                 <p>
                     {{ p | escape | newline_to_br }}
                 </p>
                 {% endfor %}
-                {% endfor %}
+                {% endif %}
+            {% endfor %}
             </dd>
         </dl>
         {% if include.app.post %}
-        <p>
+          {% if mode == "markdown" %}
+            {{ include.app.post | markdownify }}
+          {% else %}
+          <p>
             {{ include.app.post }}
-        </p>
+          </p>
+          {% endif %}
         {% endif %}
     </div>
 </div>

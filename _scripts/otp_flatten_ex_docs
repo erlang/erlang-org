@@ -1,0 +1,76 @@
+#!/bin/bash
+
+# This script takes an ex_doc documentation which looks like this
+#  - doc/index.html
+#  - doc/system/index.html
+#  - erts-$VSN/doc/html/index.html
+#  - lib/$APP/doc/html/index.html
+#
+# and moves things around to create this structure
+#
+#  - index.html
+#  - system/index.html
+#  - apps/erts/index.html
+#  - apps/$APP/index.html
+#
+# It will also fix things so that algolia search works as it should.
+
+set -e
+set -o pipefail
+
+SOURCE_DIR="$1"
+TARGET_DIR="$(dirname $1)/doc-1"
+INCLUDE_SEARCH="$1"
+
+APP_VSNS=$(cd "${SOURCE_DIR}/lib/" && ls -d -1 * && cd .. && ls -d -1 erts-*)
+
+_app_name() {
+    echo ${APP_VSN} | awk -F- '{print $1}'
+}
+
+_fixup_doc_links() {
+
+    local ADJUST_PATH="\\.\\./\\.\\./"
+    local FIXUP=""
+    local APP_NAME=$(basename $(dirname "$1"))
+
+    case "$APP_NAME" in
+        "doc-1"|"system"|"erts")
+            ADJUST_PATH="\\.\\./";;
+    esac
+
+    FIXUP="${FIXUP} -e s:${ADJUST_PATH}doc/system:system:g"
+    FIXUP="${FIXUP} -e s:${ADJUST_PATH}doc/::g"
+
+    for APP_VSN in ${APP_VSNS}; do
+        local APP=$(_app_name "${APP_VSN}")
+        if [ $APP = "erts" ]; then
+            FIXUP="${FIXUP} -e s:${ADJUST_PATH}${APP_VSN}/doc/html/:apps/${APP}/:g"
+        else
+            FIXUP="${FIXUP} -e s:${ADJUST_PATH}lib/${APP_VSN}/doc/html/:apps/${APP}/:g"
+        fi
+    done
+
+    sed $FIXUP -i -- "$@"
+}
+
+mkdir "${TARGET_DIR}"
+
+cp -r "${SOURCE_DIR}/doc/"* "${TARGET_DIR}/"
+_fixup_doc_links "${TARGET_DIR}/"*.html
+cp -r "${SOURCE_DIR}/doc/system" "${TARGET_DIR}/system"
+_fixup_doc_links "${TARGET_DIR}/system/"*.html
+
+mkdir "${TARGET_DIR}/apps"
+
+for APP_VSN in ${APP_VSNS}; do
+    APP=$(_app_name "${APP_VSN}")
+    if [ $APP = "erts" ]; then
+        cp -r "${SOURCE_DIR}/${APP_VSN}/doc/html" "${TARGET_DIR}/apps/${APP}"
+    else
+        cp -r "${SOURCE_DIR}/lib/${APP_VSN}/doc/html" "${TARGET_DIR}/apps/${APP}"
+    fi
+    _fixup_doc_links "${TARGET_DIR}/apps/${APP}/"*.html
+done
+
+exit 0
