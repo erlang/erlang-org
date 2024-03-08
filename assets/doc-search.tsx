@@ -39,14 +39,15 @@ function Footer({ state }: {
 }
 
 interface HitProps {
-  hit: InternalDocSearchHit & { isModule: boolean } | StoredDocSearchHit & { isModule: boolean };
+  hit: InternalDocSearchHit | StoredDocSearchHit;
   children: React.ReactNode;
 }
 
 function Hit({ hit }: HitProps): JSX.Element {
+  let myHit = hit as InternalDocSearchHit & { isModule: boolean} | StoredDocSearchHit & { isModule: boolean};
   let path = hit.hierarchy.lvl1;
   if (hit.hierarchy.lvl2) {
-    path += hit.isModule ? ':' : ' → ';
+    path += myHit.isModule ? ':' : ' → ';
     path += hit.hierarchy.lvl2;
   }
   return <a href={hit.url}>
