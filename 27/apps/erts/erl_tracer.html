@@ -1,0 +1,1734 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="erts v14.3">
+
+
+    <title>erl_tracer — erts v14.3</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-218663D5.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="modules" class="page-behaviour">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="erts" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+erts
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v14.3
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of erts</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/erts/erl_tracer.erl#L1" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+  <span translate="no">erl_tracer</span> <small>behaviour</small>
+  <small class="app-vsn" translate="no">(erts v14.3)</small>
+
+</h1>
+
+
+  <section id="moduledoc">
+<p>Erlang tracer behavior.</p><p>This behavior module implements the back end of the Erlang tracing system. The
+functions in this module are called whenever a trace probe is triggered. Both
+the <code class="inline">enabled</code> and <code class="inline">trace</code> functions are called in the context of the entity that
+triggered the trace probe. This means that the overhead by having the tracing
+enabled is greatly effected by how much time is spent in these functions. So, do
+as little work as possible in these functions.</p><blockquote><h4 class="info">Note</h4><p>All functions in this behavior must be implemented as NIFs. This limitation
+can be removed in a future releases. An
+<a href="erl_tracer.html#example">example tracer module NIF</a> implementation is provided
+below.</p></blockquote><blockquote><h4 class="warning">Warning</h4><p>Do not send messages or issue port commands to the <code class="inline">Tracee</code> in any of the
+callbacks. This is not allowed and can cause all sorts of strange behavior,
+including, but not limited to, infinite recursions.</p></blockquote><p><a href="" id="example"></a></p><h2 id="module-erl-tracer-module-example" class="section-heading">
+  <a href="#module-erl-tracer-module-example" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Erl Tracer Module Example</span>
+</h2>
+<p>In this example, a tracer module with a NIF back end sends a message for each
+<code class="inline">send</code> trace tag containing only the sender and receiver. Using this tracer
+module, a much more lightweight message tracer is used, which only records who
+sent messages to who.</p><p>The following is an example session using it on Linux:</p><pre><code class="makeup erlang" translate="no"><span class="sc">$ </span><span class="ss">gcc</span><span class="w"> </span><span class="o">-</span><span class="n">I</span><span class="w"> </span><span class="ss">erts</span><span class="o">-</span><span class="mf">8.0</span><span class="o">/</span><span class="ss">include</span><span class="o">/</span><span class="w"> </span><span class="o">-</span><span class="ss">fPIC</span><span class="w"> </span><span class="o">-</span><span class="ss">shared</span><span class="w"> </span><span class="o">-</span><span class="ss">o</span><span class="w"> </span><span class="ss">erl_msg_tracer</span><span class="p">.</span><span class="ss">so</span><span class="w"> </span><span class="ss">erl_msg_tracer</span><span class="p">.</span><span class="ss">c</span><span class="w">
+</span><span class="sc">$ </span><span class="ss">erl</span><span class="w">
+</span><span class="n">Erlang</span><span class="o">/</span><span class="n">OTP</span><span class="w"> </span><span class="mi">19</span><span class="w"> </span><span class="p" data-group-id="6717009354-1">[</span><span class="n">DEVELOPMENT</span><span class="p" data-group-id="6717009354-1">]</span><span class="w"> </span><span class="p" data-group-id="6717009354-2">[</span><span class="ss">erts</span><span class="o">-</span><span class="mf">8.0</span><span class="p" data-group-id="6717009354-2">]</span><span class="w"> </span><span class="p" data-group-id="6717009354-3">[</span><span class="ss">source</span><span class="o">-</span><span class="ss">ed2b56b</span><span class="p" data-group-id="6717009354-3">]</span><span class="w"> </span><span class="p" data-group-id="6717009354-4">[</span><span class="mi">64</span><span class="o">-</span><span class="ss">bit</span><span class="p" data-group-id="6717009354-4">]</span><span class="w"> </span><span class="p" data-group-id="6717009354-5">[</span><span class="nc">smp</span><span class="p">:</span><span class="mi">8</span><span class="p">:</span><span class="mi">8</span><span class="p" data-group-id="6717009354-5">]</span><span class="w"> </span><span class="p" data-group-id="6717009354-6">[</span><span class="ss">async</span><span class="o">-</span><span class="nc">threads</span><span class="p">:</span><span class="mi">10</span><span class="p" data-group-id="6717009354-6">]</span><span class="w"> </span><span class="p" data-group-id="6717009354-7">[</span><span class="ss">hipe</span><span class="p" data-group-id="6717009354-7">]</span><span class="w"> </span><span class="p" data-group-id="6717009354-8">[</span><span class="ss">kernel</span><span class="o">-</span><span class="nc">poll</span><span class="p">:</span><span class="ss">false</span><span class="p" data-group-id="6717009354-8">]</span><span class="w">
+
+</span><span class="n">Eshell</span><span class="w"> </span><span class="n">V8</span><span class="p">.</span><span class="mi">0</span><span class="w">  </span><span class="p" data-group-id="6717009354-9">(</span><span class="ss">abort</span><span class="w"> </span><span class="ss">with</span><span class="w"> </span><span class="err">^</span><span class="n">G</span><span class="p" data-group-id="6717009354-9">)</span><span class="gp unselectable">
+1&gt; </span><span class="nf">c</span><span class="p" data-group-id="6717009354-10">(</span><span class="ss">erl_msg_tracer</span><span class="p" data-group-id="6717009354-10">)</span><span class="p">,</span><span class="w"> </span><span class="nc">erl_msg_tracer</span><span class="p">:</span><span class="nf">load</span><span class="p" data-group-id="6717009354-11">(</span><span class="p" data-group-id="6717009354-11">)</span><span class="p">.</span><span class="w">
+</span><span class="ss">ok</span><span class="gp unselectable">
+2&gt; </span><span class="n">Tracer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">spawn</span><span class="p" data-group-id="6717009354-12">(</span><span class="k">fun</span><span class="w"> </span><span class="n">F</span><span class="p" data-group-id="6717009354-13">(</span><span class="p" data-group-id="6717009354-13">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="k">receive</span><span class="w"> </span><span class="n">M</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">io</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="6717009354-14">(</span><span class="s">&quot;</span><span class="si">~p</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="p" data-group-id="6717009354-15">[</span><span class="n">M</span><span class="p" data-group-id="6717009354-15">]</span><span class="p" data-group-id="6717009354-14">)</span><span class="p">,</span><span class="w"> </span><span class="n">F</span><span class="p" data-group-id="6717009354-16">(</span><span class="p" data-group-id="6717009354-16">)</span><span class="w"> </span><span class="k">end</span><span class="w"> </span><span class="k">end</span><span class="p" data-group-id="6717009354-12">)</span><span class="p">.</span><span class="w">
+</span><span class="o">&lt;</span><span class="mf">0.37</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="gp unselectable">
+3&gt; </span><span class="nc">erlang</span><span class="p">:</span><span class="nf">trace</span><span class="p" data-group-id="6717009354-17">(</span><span class="ss">new</span><span class="p">,</span><span class="w"> </span><span class="ss">true</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6717009354-18">[</span><span class="nb">send</span><span class="p">,</span><span class="p" data-group-id="6717009354-19">{</span><span class="ss">tracer</span><span class="p">,</span><span class="w"> </span><span class="ss">erl_msg_tracer</span><span class="p">,</span><span class="w"> </span><span class="n">Tracer</span><span class="p" data-group-id="6717009354-19">}</span><span class="p" data-group-id="6717009354-18">]</span><span class="p" data-group-id="6717009354-17">)</span><span class="p">.</span><span class="w">
+</span><span class="mi">0</span><span class="w">
+</span><span class="p" data-group-id="6717009354-20">{</span><span class="nb">trace</span><span class="p">,</span><span class="o">&lt;</span><span class="mf">0.39</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="p">,</span><span class="o">&lt;</span><span class="mf">0.27</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="p" data-group-id="6717009354-20">}</span><span class="gp unselectable">
+4&gt; </span><span class="p" data-group-id="6717009354-21">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">D</span><span class="p" data-group-id="6717009354-21">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">file</span><span class="p">:</span><span class="nf">open</span><span class="p" data-group-id="6717009354-22">(</span><span class="s">&quot;/tmp/tmp.data&quot;</span><span class="p">,</span><span class="p" data-group-id="6717009354-23">[</span><span class="ss">write</span><span class="p" data-group-id="6717009354-23">]</span><span class="p" data-group-id="6717009354-22">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="6717009354-24">{</span><span class="nb">trace</span><span class="p">,</span><span class="p">#</span><span class="n">Port</span><span class="o">&lt;</span><span class="mf">0.486</span><span class="o">&gt;</span><span class="p">,</span><span class="o">&lt;</span><span class="mf">0.40</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="p" data-group-id="6717009354-24">}</span><span class="w">
+</span><span class="p" data-group-id="6717009354-25">{</span><span class="nb">trace</span><span class="p">,</span><span class="o">&lt;</span><span class="mf">0.40</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="p">,</span><span class="o">&lt;</span><span class="mf">0.21</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="p" data-group-id="6717009354-25">}</span><span class="w">
+</span><span class="p" data-group-id="6717009354-26">{</span><span class="nb">trace</span><span class="p">,</span><span class="p">#</span><span class="n">Port</span><span class="o">&lt;</span><span class="mf">0.487</span><span class="o">&gt;</span><span class="p">,</span><span class="o">&lt;</span><span class="mf">0.4</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="p" data-group-id="6717009354-26">}</span><span class="w">
+</span><span class="p" data-group-id="6717009354-27">{</span><span class="nb">trace</span><span class="p">,</span><span class="p">#</span><span class="n">Port</span><span class="o">&lt;</span><span class="mf">0.488</span><span class="o">&gt;</span><span class="p">,</span><span class="o">&lt;</span><span class="mf">0.4</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="p" data-group-id="6717009354-27">}</span><span class="w">
+</span><span class="p" data-group-id="6717009354-28">{</span><span class="nb">trace</span><span class="p">,</span><span class="p">#</span><span class="n">Port</span><span class="o">&lt;</span><span class="mf">0.489</span><span class="o">&gt;</span><span class="p">,</span><span class="o">&lt;</span><span class="mf">0.4</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="p" data-group-id="6717009354-28">}</span><span class="w">
+</span><span class="p" data-group-id="6717009354-29">{</span><span class="nb">trace</span><span class="p">,</span><span class="p">#</span><span class="n">Port</span><span class="o">&lt;</span><span class="mf">0.490</span><span class="o">&gt;</span><span class="p">,</span><span class="o">&lt;</span><span class="mf">0.4</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="p" data-group-id="6717009354-29">}</span><span class="w">
+</span><span class="p" data-group-id="6717009354-30">{</span><span class="ss">ok</span><span class="p">,</span><span class="o">&lt;</span><span class="mf">0.40</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="p" data-group-id="6717009354-30">}</span><span class="w">
+</span><span class="p" data-group-id="6717009354-31">{</span><span class="nb">trace</span><span class="p">,</span><span class="o">&lt;</span><span class="mf">0.41</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="p">,</span><span class="o">&lt;</span><span class="mf">0.27</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="p" data-group-id="6717009354-31">}</span><span class="w">
+</span><span class="mi">5</span><span class="o">&gt;</span></code></pre><p><code class="inline">erl_msg_tracer.erl</code>:</p><pre><code class="makeup erlang" translate="no"><span class="p">-</span><span class="na">module</span><span class="p" data-group-id="0339585140-1">(</span><span class="ss">erl_msg_tracer</span><span class="p" data-group-id="0339585140-1">)</span><span class="p">.</span><span class="w">
+</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="0339585140-2">(</span><span class="p" data-group-id="0339585140-3">[</span><span class="ss">enabled</span><span class="p">/</span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="nb">trace</span><span class="p">/</span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="ss">load</span><span class="p">/</span><span class="mi">0</span><span class="p" data-group-id="0339585140-3">]</span><span class="p" data-group-id="0339585140-2">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">load</span><span class="p" data-group-id="0339585140-4">(</span><span class="p" data-group-id="0339585140-4">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">erlang</span><span class="p">:</span><span class="nf">load_nif</span><span class="p" data-group-id="0339585140-5">(</span><span class="s">&quot;erl_msg_tracer&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0339585140-6">[</span><span class="p" data-group-id="0339585140-6">]</span><span class="p" data-group-id="0339585140-5">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">enabled</span><span class="p" data-group-id="0339585140-7">(</span><span class="p">_</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="p" data-group-id="0339585140-7">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="ss">error</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">trace</span><span class="p" data-group-id="0339585140-8">(</span><span class="p">_</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="p" data-group-id="0339585140-8">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="ss">error</span><span class="p">.</span></code></pre><p><code class="inline">erl_msg_tracer.c</code>:</p><pre><code class="makeup c" translate="no"><span class="kp">#include</span><span class="w"> </span><span class="o">&lt;</span><span class="n">erl_nif</span><span class="p">.</span><span class="n">h</span><span class="o">&gt;</span><span class="w">
+
+</span><span class="cm">/* NIF interface declarations */</span><span class="w">
+</span><span class="k">static</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">load</span><span class="p" data-group-id="0374343362-1">(</span><span class="no">ErlNifEnv</span><span class="o">*</span><span class="w"> </span><span class="n">env</span><span class="p">,</span><span class="w"> </span><span class="kc">void</span><span class="o">*</span><span class="o">*</span><span class="w"> </span><span class="n">priv_data</span><span class="p">,</span><span class="w"> </span><span class="no">ERL_NIF_TERM</span><span class="w"> </span><span class="n">load_info</span><span class="p" data-group-id="0374343362-1">)</span><span class="p">;</span><span class="w">
+</span><span class="k">static</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">upgrade</span><span class="p" data-group-id="0374343362-2">(</span><span class="no">ErlNifEnv</span><span class="o">*</span><span class="w"> </span><span class="n">env</span><span class="p">,</span><span class="w"> </span><span class="kc">void</span><span class="o">*</span><span class="o">*</span><span class="w"> </span><span class="n">priv_data</span><span class="p">,</span><span class="w"> </span><span class="kc">void</span><span class="o">*</span><span class="o">*</span><span class="w"> </span><span class="n">old_priv_data</span><span class="p">,</span><span class="w"> </span><span class="no">ERL_NIF_TERM</span><span class="w"> </span><span class="n">load_info</span><span class="p" data-group-id="0374343362-2">)</span><span class="p">;</span><span class="w">
+</span><span class="k">static</span><span class="w"> </span><span class="kc">void</span><span class="w"> </span><span class="nf">unload</span><span class="p" data-group-id="0374343362-3">(</span><span class="no">ErlNifEnv</span><span class="o">*</span><span class="w"> </span><span class="n">env</span><span class="p">,</span><span class="w"> </span><span class="kc">void</span><span class="o">*</span><span class="w"> </span><span class="n">priv_data</span><span class="p" data-group-id="0374343362-3">)</span><span class="p">;</span><span class="w">
+
+</span><span class="cm">/* The NIFs: */</span><span class="w">
+</span><span class="k">static</span><span class="w"> </span><span class="no">ERL_NIF_TERM</span><span class="w"> </span><span class="nf">enabled</span><span class="p" data-group-id="0374343362-4">(</span><span class="no">ErlNifEnv</span><span class="o">*</span><span class="w"> </span><span class="n">env</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="no">ERL_NIF_TERM</span><span class="w"> </span><span class="n">argv</span><span class="p" data-group-id="0374343362-5">[</span><span class="p" data-group-id="0374343362-5">]</span><span class="p" data-group-id="0374343362-4">)</span><span class="p">;</span><span class="w">
+</span><span class="k">static</span><span class="w"> </span><span class="no">ERL_NIF_TERM</span><span class="w"> </span><span class="nf">trace</span><span class="p" data-group-id="0374343362-6">(</span><span class="no">ErlNifEnv</span><span class="o">*</span><span class="w"> </span><span class="n">env</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="no">ERL_NIF_TERM</span><span class="w"> </span><span class="n">argv</span><span class="p" data-group-id="0374343362-7">[</span><span class="p" data-group-id="0374343362-7">]</span><span class="p" data-group-id="0374343362-6">)</span><span class="p">;</span><span class="w">
+
+</span><span class="k">static</span><span class="w"> </span><span class="no">ErlNifFunc</span><span class="w"> </span><span class="n">nif_funcs</span><span class="p" data-group-id="0374343362-8">[</span><span class="p" data-group-id="0374343362-8">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="0374343362-9">{</span><span class="w">
+    </span><span class="p" data-group-id="0374343362-10">{</span><span class="s">&quot;enabled&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="n">enabled</span><span class="p" data-group-id="0374343362-10">}</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="0374343362-11">{</span><span class="s">&quot;trace&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="n">trace</span><span class="p" data-group-id="0374343362-11">}</span><span class="w">
+</span><span class="p" data-group-id="0374343362-9">}</span><span class="p">;</span><span class="w">
+
+</span><span class="no">ERL_NIF_INIT</span><span class="p" data-group-id="0374343362-12">(</span><span class="n">erl_msg_tracer</span><span class="p">,</span><span class="w"> </span><span class="n">nif_funcs</span><span class="p">,</span><span class="w"> </span><span class="n">load</span><span class="p">,</span><span class="w"> </span><span class="no">NULL</span><span class="p">,</span><span class="w"> </span><span class="n">upgrade</span><span class="p">,</span><span class="w"> </span><span class="n">unload</span><span class="p" data-group-id="0374343362-12">)</span><span class="w">
+
+</span><span class="k">static</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">load</span><span class="p" data-group-id="0374343362-13">(</span><span class="no">ErlNifEnv</span><span class="o">*</span><span class="w"> </span><span class="n">env</span><span class="p">,</span><span class="w"> </span><span class="kc">void</span><span class="o">*</span><span class="o">*</span><span class="w"> </span><span class="n">priv_data</span><span class="p">,</span><span class="w"> </span><span class="no">ERL_NIF_TERM</span><span class="w"> </span><span class="n">load_info</span><span class="p" data-group-id="0374343362-13">)</span><span class="w">
+</span><span class="p" data-group-id="0374343362-14">{</span><span class="w">
+    </span><span class="o">*</span><span class="n">priv_data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="no">NULL</span><span class="p">;</span><span class="w">
+    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w">
+</span><span class="p" data-group-id="0374343362-14">}</span><span class="w">
+
+</span><span class="k">static</span><span class="w"> </span><span class="kc">void</span><span class="w"> </span><span class="nf">unload</span><span class="p" data-group-id="0374343362-15">(</span><span class="no">ErlNifEnv</span><span class="o">*</span><span class="w"> </span><span class="n">env</span><span class="p">,</span><span class="w"> </span><span class="kc">void</span><span class="o">*</span><span class="w"> </span><span class="n">priv_data</span><span class="p" data-group-id="0374343362-15">)</span><span class="w">
+</span><span class="p" data-group-id="0374343362-16">{</span><span class="w">
+
+</span><span class="p" data-group-id="0374343362-16">}</span><span class="w">
+
+</span><span class="k">static</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">upgrade</span><span class="p" data-group-id="0374343362-17">(</span><span class="no">ErlNifEnv</span><span class="o">*</span><span class="w"> </span><span class="n">env</span><span class="p">,</span><span class="w"> </span><span class="kc">void</span><span class="o">*</span><span class="o">*</span><span class="w"> </span><span class="n">priv_data</span><span class="p">,</span><span class="w"> </span><span class="kc">void</span><span class="o">*</span><span class="o">*</span><span class="w"> </span><span class="n">old_priv_data</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">   </span><span class="no">ERL_NIF_TERM</span><span class="w"> </span><span class="n">load_info</span><span class="p" data-group-id="0374343362-17">)</span><span class="w">
+</span><span class="p" data-group-id="0374343362-18">{</span><span class="w">
+    </span><span class="k">if</span><span class="w"> </span><span class="p" data-group-id="0374343362-19">(</span><span class="o">*</span><span class="n">old_priv_data</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="no">NULL</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="o">*</span><span class="n">priv_data</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="no">NULL</span><span class="p" data-group-id="0374343362-19">)</span><span class="w"> </span><span class="p" data-group-id="0374343362-20">{</span><span class="w">
+</span><span class="err">	</span><span class="k">return</span><span class="w"> </span><span class="o">-</span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="cm">/* Don&#39;t know how to do that */</span><span class="w">
+    </span><span class="p" data-group-id="0374343362-20">}</span><span class="w">
+    </span><span class="k">if</span><span class="w"> </span><span class="p" data-group-id="0374343362-21">(</span><span class="nf">load</span><span class="p" data-group-id="0374343362-22">(</span><span class="n">env</span><span class="p">,</span><span class="w"> </span><span class="n">priv_data</span><span class="p">,</span><span class="w"> </span><span class="n">load_info</span><span class="p" data-group-id="0374343362-22">)</span><span class="p" data-group-id="0374343362-21">)</span><span class="w"> </span><span class="p" data-group-id="0374343362-23">{</span><span class="w">
+</span><span class="err">	</span><span class="k">return</span><span class="w"> </span><span class="o">-</span><span class="mi">1</span><span class="p">;</span><span class="w">
+    </span><span class="p" data-group-id="0374343362-23">}</span><span class="w">
+    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w">
+</span><span class="p" data-group-id="0374343362-18">}</span><span class="w">
+
+</span><span class="cm">/*
+ * argv[0]: TraceTag
+ * argv[1]: TracerState
+ * argv[2]: Tracee
+ */</span><span class="w">
+</span><span class="k">static</span><span class="w"> </span><span class="no">ERL_NIF_TERM</span><span class="w"> </span><span class="nf">enabled</span><span class="p" data-group-id="0374343362-24">(</span><span class="no">ErlNifEnv</span><span class="o">*</span><span class="w"> </span><span class="n">env</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="no">ERL_NIF_TERM</span><span class="w"> </span><span class="n">argv</span><span class="p" data-group-id="0374343362-25">[</span><span class="p" data-group-id="0374343362-25">]</span><span class="p" data-group-id="0374343362-24">)</span><span class="w">
+</span><span class="p" data-group-id="0374343362-26">{</span><span class="w">
+    </span><span class="no">ErlNifPid</span><span class="w"> </span><span class="n">to_pid</span><span class="p">;</span><span class="w">
+    </span><span class="k">if</span><span class="w"> </span><span class="p" data-group-id="0374343362-27">(</span><span class="nf">enif_get_local_pid</span><span class="p" data-group-id="0374343362-28">(</span><span class="n">env</span><span class="p">,</span><span class="w"> </span><span class="n">argv</span><span class="p" data-group-id="0374343362-29">[</span><span class="mi">1</span><span class="p" data-group-id="0374343362-29">]</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">to_pid</span><span class="p" data-group-id="0374343362-28">)</span><span class="p" data-group-id="0374343362-27">)</span><span class="w">
+        </span><span class="k">if</span><span class="w"> </span><span class="p" data-group-id="0374343362-30">(</span><span class="o">!</span><span class="nf">enif_is_process_alive</span><span class="p" data-group-id="0374343362-31">(</span><span class="n">env</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">to_pid</span><span class="p" data-group-id="0374343362-31">)</span><span class="p" data-group-id="0374343362-30">)</span><span class="w">
+            </span><span class="k">if</span><span class="w"> </span><span class="p" data-group-id="0374343362-32">(</span><span class="nf">enif_is_identical</span><span class="p" data-group-id="0374343362-33">(</span><span class="nf">enif_make_atom</span><span class="p" data-group-id="0374343362-34">(</span><span class="n">env</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;trace_status&quot;</span><span class="p" data-group-id="0374343362-34">)</span><span class="p">,</span><span class="w"> </span><span class="n">argv</span><span class="p" data-group-id="0374343362-35">[</span><span class="mi">0</span><span class="p" data-group-id="0374343362-35">]</span><span class="p" data-group-id="0374343362-33">)</span><span class="p" data-group-id="0374343362-32">)</span><span class="w">
+                </span><span class="cm">/* tracer is dead so we should remove this tracepoint */</span><span class="w">
+                </span><span class="k">return</span><span class="w"> </span><span class="nf">enif_make_atom</span><span class="p" data-group-id="0374343362-36">(</span><span class="n">env</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;remove&quot;</span><span class="p" data-group-id="0374343362-36">)</span><span class="p">;</span><span class="w">
+            </span><span class="k">else</span><span class="w">
+                </span><span class="k">return</span><span class="w"> </span><span class="nf">enif_make_atom</span><span class="p" data-group-id="0374343362-37">(</span><span class="n">env</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;discard&quot;</span><span class="p" data-group-id="0374343362-37">)</span><span class="p">;</span><span class="w">
+
+    </span><span class="cm">/* Only generate trace for when tracer != tracee */</span><span class="w">
+    </span><span class="k">if</span><span class="w"> </span><span class="p" data-group-id="0374343362-38">(</span><span class="nf">enif_is_identical</span><span class="p" data-group-id="0374343362-39">(</span><span class="n">argv</span><span class="p" data-group-id="0374343362-40">[</span><span class="mi">1</span><span class="p" data-group-id="0374343362-40">]</span><span class="p">,</span><span class="w"> </span><span class="n">argv</span><span class="p" data-group-id="0374343362-41">[</span><span class="mi">2</span><span class="p" data-group-id="0374343362-41">]</span><span class="p" data-group-id="0374343362-39">)</span><span class="p" data-group-id="0374343362-38">)</span><span class="w">
+        </span><span class="k">return</span><span class="w"> </span><span class="nf">enif_make_atom</span><span class="p" data-group-id="0374343362-42">(</span><span class="n">env</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;discard&quot;</span><span class="p" data-group-id="0374343362-42">)</span><span class="p">;</span><span class="w">
+
+    </span><span class="cm">/* Only trigger trace messages on &#39;send&#39; */</span><span class="w">
+    </span><span class="k">if</span><span class="w"> </span><span class="p" data-group-id="0374343362-43">(</span><span class="nf">enif_is_identical</span><span class="p" data-group-id="0374343362-44">(</span><span class="nf">enif_make_atom</span><span class="p" data-group-id="0374343362-45">(</span><span class="n">env</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;send&quot;</span><span class="p" data-group-id="0374343362-45">)</span><span class="p">,</span><span class="w"> </span><span class="n">argv</span><span class="p" data-group-id="0374343362-46">[</span><span class="mi">0</span><span class="p" data-group-id="0374343362-46">]</span><span class="p" data-group-id="0374343362-44">)</span><span class="p" data-group-id="0374343362-43">)</span><span class="w">
+        </span><span class="k">return</span><span class="w"> </span><span class="nf">enif_make_atom</span><span class="p" data-group-id="0374343362-47">(</span><span class="n">env</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;trace&quot;</span><span class="p" data-group-id="0374343362-47">)</span><span class="p">;</span><span class="w">
+
+    </span><span class="cm">/* Have to answer trace_status */</span><span class="w">
+    </span><span class="k">if</span><span class="w"> </span><span class="p" data-group-id="0374343362-48">(</span><span class="nf">enif_is_identical</span><span class="p" data-group-id="0374343362-49">(</span><span class="nf">enif_make_atom</span><span class="p" data-group-id="0374343362-50">(</span><span class="n">env</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;trace_status&quot;</span><span class="p" data-group-id="0374343362-50">)</span><span class="p">,</span><span class="w"> </span><span class="n">argv</span><span class="p" data-group-id="0374343362-51">[</span><span class="mi">0</span><span class="p" data-group-id="0374343362-51">]</span><span class="p" data-group-id="0374343362-49">)</span><span class="p" data-group-id="0374343362-48">)</span><span class="w">
+        </span><span class="k">return</span><span class="w"> </span><span class="nf">enif_make_atom</span><span class="p" data-group-id="0374343362-52">(</span><span class="n">env</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;trace&quot;</span><span class="p" data-group-id="0374343362-52">)</span><span class="p">;</span><span class="w">
+
+    </span><span class="k">return</span><span class="w"> </span><span class="nf">enif_make_atom</span><span class="p" data-group-id="0374343362-53">(</span><span class="n">env</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;discard&quot;</span><span class="p" data-group-id="0374343362-53">)</span><span class="p">;</span><span class="w">
+</span><span class="p" data-group-id="0374343362-26">}</span><span class="w">
+
+</span><span class="cm">/*
+ * argv[0]: TraceTag, should only be &#39;send&#39;
+ * argv[1]: TracerState, process to send {Tracee, Recipient} to
+ * argv[2]: Tracee
+ * argv[3]: Message
+ * argv[4]: Options, map containing Recipient
+ */</span><span class="w">
+</span><span class="k">static</span><span class="w"> </span><span class="no">ERL_NIF_TERM</span><span class="w"> </span><span class="nf">trace</span><span class="p" data-group-id="0374343362-54">(</span><span class="no">ErlNifEnv</span><span class="o">*</span><span class="w"> </span><span class="n">env</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="no">ERL_NIF_TERM</span><span class="w"> </span><span class="n">argv</span><span class="p" data-group-id="0374343362-55">[</span><span class="p" data-group-id="0374343362-55">]</span><span class="p" data-group-id="0374343362-54">)</span><span class="w">
+</span><span class="p" data-group-id="0374343362-56">{</span><span class="w">
+    </span><span class="no">ErlNifPid</span><span class="w"> </span><span class="n">to_pid</span><span class="p">;</span><span class="w">
+    </span><span class="no">ERL_NIF_TERM</span><span class="w"> </span><span class="n">recipient</span><span class="p">,</span><span class="w"> </span><span class="n">msg</span><span class="p">;</span><span class="w">
+
+    </span><span class="k">if</span><span class="w"> </span><span class="p" data-group-id="0374343362-57">(</span><span class="nf">enif_get_local_pid</span><span class="p" data-group-id="0374343362-58">(</span><span class="n">env</span><span class="p">,</span><span class="w"> </span><span class="n">argv</span><span class="p" data-group-id="0374343362-59">[</span><span class="mi">1</span><span class="p" data-group-id="0374343362-59">]</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">to_pid</span><span class="p" data-group-id="0374343362-58">)</span><span class="p" data-group-id="0374343362-57">)</span><span class="w"> </span><span class="p" data-group-id="0374343362-60">{</span><span class="w">
+      </span><span class="k">if</span><span class="w"> </span><span class="p" data-group-id="0374343362-61">(</span><span class="nf">enif_get_map_value</span><span class="p" data-group-id="0374343362-62">(</span><span class="n">env</span><span class="p">,</span><span class="w"> </span><span class="n">argv</span><span class="p" data-group-id="0374343362-63">[</span><span class="mi">4</span><span class="p" data-group-id="0374343362-63">]</span><span class="p">,</span><span class="w"> </span><span class="nf">enif_make_atom</span><span class="p" data-group-id="0374343362-64">(</span><span class="n">env</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;extra&quot;</span><span class="p" data-group-id="0374343362-64">)</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">recipient</span><span class="p" data-group-id="0374343362-62">)</span><span class="p" data-group-id="0374343362-61">)</span><span class="w"> </span><span class="p" data-group-id="0374343362-65">{</span><span class="w">
+        </span><span class="n">msg</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">enif_make_tuple3</span><span class="p" data-group-id="0374343362-66">(</span><span class="n">env</span><span class="p">,</span><span class="w"> </span><span class="nf">enif_make_atom</span><span class="p" data-group-id="0374343362-67">(</span><span class="n">env</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;trace&quot;</span><span class="p" data-group-id="0374343362-67">)</span><span class="p">,</span><span class="w"> </span><span class="n">argv</span><span class="p" data-group-id="0374343362-68">[</span><span class="mi">2</span><span class="p" data-group-id="0374343362-68">]</span><span class="p">,</span><span class="w"> </span><span class="n">recipient</span><span class="p" data-group-id="0374343362-66">)</span><span class="p">;</span><span class="w">
+        </span><span class="nf">enif_send</span><span class="p" data-group-id="0374343362-69">(</span><span class="n">env</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">to_pid</span><span class="p">,</span><span class="w"> </span><span class="no">NULL</span><span class="p">,</span><span class="w"> </span><span class="n">msg</span><span class="p" data-group-id="0374343362-69">)</span><span class="p">;</span><span class="w">
+      </span><span class="p" data-group-id="0374343362-65">}</span><span class="w">
+    </span><span class="p" data-group-id="0374343362-60">}</span><span class="w">
+
+    </span><span class="k">return</span><span class="w"> </span><span class="nf">enif_make_atom</span><span class="p" data-group-id="0374343362-70">(</span><span class="n">env</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;ok&quot;</span><span class="p" data-group-id="0374343362-70">)</span><span class="p">;</span><span class="w">
+</span><span class="p" data-group-id="0374343362-56">}</span></code></pre>
+  </section>
+
+
+  <section id="summary" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#summary">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Summary</span>
+    </h1>
+<div class="summary-types summary">
+  <h2>
+    <a href="#types">Types</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:trace_opts/0" translate="no">trace_opts()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>The options for the tracee</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:trace_tag/0" translate="no">trace_tag()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>The different trace tags that the tracer is called with.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:trace_tag_call/0" translate="no">trace_tag_call()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:trace_tag_gc/0" translate="no">trace_tag_gc()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:trace_tag_ports/0" translate="no">trace_tag_ports()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:trace_tag_procs/0" translate="no">trace_tag_procs()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:trace_tag_receive/0" translate="no">trace_tag_receive()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:trace_tag_running_ports/0" translate="no">trace_tag_running_ports()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:trace_tag_running_procs/0" translate="no">trace_tag_running_procs()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:trace_tag_send/0" translate="no">trace_tag_send()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:tracee/0" translate="no">tracee()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>The process or port that the trace belongs to.</p></div>
+
+    </div>
+
+</div>
+<div class="summary-callbacks summary">
+  <h2>
+    <a href="#callbacks">Callbacks</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#c:enabled/3" translate="no">enabled(TraceTag, TracerState, Tracee)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>This callback is called whenever a tracepoint is triggered.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#c:enabled_call/3" translate="no">enabled_call(TraceTag, TracerState, Tracee)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>This callback is called whenever a tracepoint with trace flag
+<a href="erlang.html#trace/3"><code class="inline">call | return_to</code></a> is triggered.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#c:enabled_garbage_collection/3" translate="no">enabled_garbage_collection(TraceTag, TracerState, Tracee)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>This callback is called whenever a tracepoint with trace flag
+<a href="erlang.html#trace/3"><code class="inline">garbage_collection</code></a> is triggered.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#c:enabled_ports/3" translate="no">enabled_ports(TraceTag, TracerState, Tracee)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>This callback is called whenever a tracepoint with trace flag
+<a href="erlang.html#trace/3"><code class="inline">ports</code></a> is triggered.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#c:enabled_procs/3" translate="no">enabled_procs(TraceTag, TracerState, Tracee)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>This callback is called whenever a tracepoint with trace flag
+<a href="erlang.html#trace/3"><code class="inline">procs</code></a> is triggered.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#c:enabled_receive/3" translate="no">enabled_receive(TraceTag, TracerState, Tracee)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>This callback is called whenever a tracepoint with trace flag
+<a href="erlang.html#trace/3"><code class="inline">'receive'</code></a> is triggered.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#c:enabled_running_ports/3" translate="no">enabled_running_ports(TraceTag, TracerState, Tracee)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>This callback is called whenever a tracepoint with trace flag
+<a href="erlang.html#trace/3"><code class="inline">running_ports</code></a> is triggered.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#c:enabled_running_procs/3" translate="no">enabled_running_procs(TraceTag, TracerState, Tracee)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>This callback is called whenever a tracepoint with trace flag
+<a href="erlang.html#trace/3"><code class="inline">running_procs | running</code></a> is triggered.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#c:enabled_send/3" translate="no">enabled_send(TraceTag, TracerState, Tracee)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>This callback is called whenever a tracepoint with trace flag
+<a href="erlang.html#trace/3"><code class="inline">send</code></a> is triggered.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#c:trace/5" translate="no">trace(Tag, TracerState, Tracee, Msg, Opts)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>This callback is called when a tracepoint is triggered and the
+<a href="#c:enabled/3"><code class="inline">Module:enabled/3</code></a> callback returned <code class="inline">trace</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#c:trace_call/5" translate="no">trace_call(TraceTag, TracerState, Tracee, TraceTerm, Opts)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>This callback is called when a tracepoint is triggered and the
+<a href="#c:enabled_call/3"><code class="inline">Module:enabled_call/3</code></a> callback returned <code class="inline">trace</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#c:trace_garbage_collection/5" translate="no">trace_garbage_collection(TraceTag, TracerState, Tracee, TraceTerm, Opts)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>This callback is called when a tracepoint is triggered and the
+<a href="#c:enabled_garbage_collection/3"><code class="inline">Module:enabled_garbage_collection/3</code></a>
+callback returned <code class="inline">trace</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#c:trace_ports/5" translate="no">trace_ports(TraceTag, TracerState, Tracee, TraceTerm, Opts)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>This callback is called when a tracepoint is triggered and the
+<a href="#c:enabled_ports/3"><code class="inline">Module:enabled_ports/3</code></a> callback returned <code class="inline">trace</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#c:trace_procs/5" translate="no">trace_procs(TraceTag, TracerState, Tracee, TraceTerm, Opts)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>This callback is called when a tracepoint is triggered and the
+<a href="#c:enabled_procs/3"><code class="inline">Module:enabled_procs/3</code></a> callback returned <code class="inline">trace</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#c:trace_receive/5" translate="no">trace_receive(TraceTag, TracerState, Tracee, TraceTerm, Opts)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>This callback is called when a tracepoint is triggered and the
+<a href="#c:enabled_receive/3"><code class="inline">Module:enabled_receive/3</code></a> callback returned <code class="inline">trace</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#c:trace_running_ports/5" translate="no">trace_running_ports(TraceTag, TracerState, Tracee, TraceTerm, Opts)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>This callback is called when a tracepoint is triggered and the
+<a href="#c:enabled_running_ports/3"><code class="inline">Module:enabled_running_ports/3</code></a> callback
+returned <code class="inline">trace</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#c:trace_running_procs/5" translate="no">trace_running_procs(TraceTag, TracerState, Tracee, TraceTerm, Opts)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>This callback is called when a tracepoint is triggered and the
+<a href="#c:enabled_running_procs/3"><code class="inline">Module:enabled_running_procs/3</code></a> callback
+returned <code class="inline">trace</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#c:trace_send/5" translate="no">trace_send(TraceTag, TracerState, Tracee, TraceTerm, Opts)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>This callback is called when a tracepoint is triggered and the
+<a href="#c:enabled_send/3"><code class="inline">Module:enabled_send/3</code></a> callback returned <code class="inline">trace</code>.</p></div>
+
+    </div>
+
+</div>
+
+  </section>
+
+
+  <section id="types" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#types">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Types</span>
+    </h1>
+    <div class="types-list">
+<section class="detail" id="t:trace_opts/0">
+
+  <div class="detail-header">
+    <a href="#t:trace_opts/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">trace_opts()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/erts/erl_tracer.erl#L229" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 19.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> trace_opts() ::
+    #{extra => <a href="erlang.html#t:term/0">term</a>(),
+      match_spec_result => <a href="erlang.html#t:term/0">term</a>(),
+      scheduler_id => <a href="erlang.html#t:non_neg_integer/0">non_neg_integer</a>(),
+      timestamp => timestamp | cpu_timestamp | monotonic | strict_monotonic}.</pre>
+
+      </div>
+
+<p>The options for the tracee:</p><ul><li><p><strong><code class="inline">timestamp</code></strong> - If set the tracer has been requested to include a time
+stamp.</p></li><li><p><strong><code class="inline">extra</code></strong> - If set the tracepoint has included additional data about the
+trace event. What the additional data is depends on which <code class="inline">TraceTag</code> has been
+triggered. The <code class="inline">extra</code> trace data corresponds to the fifth element in the
+trace tuples described in <a href="erlang.html#trace_3_trace_messages">erlang:trace/3</a>.</p></li><li><p><strong><code class="inline">match_spec_result</code></strong> - If set the tracer has been requested to include the
+output of a match specification that was run.</p></li><li><p><strong><code class="inline">scheduler_id</code></strong> - If set the scheduler id is to be included by the tracer.</p></li></ul>
+  </section>
+</section>
+<section class="detail" id="t:trace_tag/0">
+
+  <div class="detail-header">
+    <a href="#t:trace_tag/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">trace_tag()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/erts/erl_tracer.erl#L204" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 19.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> trace_tag() ::
+    <a href="#t:trace_tag_send/0">trace_tag_send</a>() |
+    <a href="#t:trace_tag_receive/0">trace_tag_receive</a>() |
+    <a href="#t:trace_tag_call/0">trace_tag_call</a>() |
+    <a href="#t:trace_tag_procs/0">trace_tag_procs</a>() |
+    <a href="#t:trace_tag_ports/0">trace_tag_ports</a>() |
+    <a href="#t:trace_tag_running_procs/0">trace_tag_running_procs</a>() |
+    <a href="#t:trace_tag_running_ports/0">trace_tag_running_ports</a>() |
+    <a href="#t:trace_tag_gc/0">trace_tag_gc</a>().</pre>
+
+      </div>
+
+<p>The different trace tags that the tracer is called with.</p><p>Each trace tag is described in detail in <a href="#c:trace/5"><code class="inline">Module:trace/5</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="t:trace_tag_call/0">
+
+  <div class="detail-header">
+    <a href="#t:trace_tag_call/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">trace_tag_call()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/erts/erl_tracer.erl#L190" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 19.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> trace_tag_call() :: call | return_to | return_from | exception_from.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:trace_tag_gc/0">
+
+  <div class="detail-header">
+    <a href="#t:trace_tag_gc/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">trace_tag_gc()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/erts/erl_tracer.erl#L196" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 19.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> trace_tag_gc() :: gc_minor_start | gc_minor_end | gc_major_start | gc_major_end.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:trace_tag_ports/0">
+
+  <div class="detail-header">
+    <a href="#t:trace_tag_ports/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">trace_tag_ports()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/erts/erl_tracer.erl#L194" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 19.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> trace_tag_ports() :: open | closed | link | unlink | getting_linked | getting_unlinked.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:trace_tag_procs/0">
+
+  <div class="detail-header">
+    <a href="#t:trace_tag_procs/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">trace_tag_procs()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/erts/erl_tracer.erl#L191" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 19.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> trace_tag_procs() ::
+    spawn | spawned | exit | link | unlink | getting_linked | getting_unlinked | register |
+    unregister.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:trace_tag_receive/0">
+
+  <div class="detail-header">
+    <a href="#t:trace_tag_receive/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">trace_tag_receive()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/erts/erl_tracer.erl#L189" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 19.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> trace_tag_receive() :: 'receive'.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:trace_tag_running_ports/0">
+
+  <div class="detail-header">
+    <a href="#t:trace_tag_running_ports/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">trace_tag_running_ports()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/erts/erl_tracer.erl#L186" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 19.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> trace_tag_running_ports() :: in | out | in_exiting | out_exiting | out_exited.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:trace_tag_running_procs/0">
+
+  <div class="detail-header">
+    <a href="#t:trace_tag_running_procs/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">trace_tag_running_procs()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/erts/erl_tracer.erl#L187" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 19.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> trace_tag_running_procs() :: in | out | in_exiting | out_exiting | out_exited.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:trace_tag_send/0">
+
+  <div class="detail-header">
+    <a href="#t:trace_tag_send/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">trace_tag_send()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/erts/erl_tracer.erl#L188" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 19.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> trace_tag_send() :: send | send_to_non_existing_process.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:tracee/0">
+
+  <div class="detail-header">
+    <a href="#t:tracee/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">tracee()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/erts/erl_tracer.erl#L184" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 19.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> tracee() :: <a href="erlang.html#t:port/0">port</a>() | <a href="erlang.html#t:pid/0">pid</a>() | undefined.</pre>
+
+      </div>
+
+<p>The process or port that the trace belongs to.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+  <section id="callbacks" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#callbacks">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Callbacks</span>
+    </h1>
+    <div class="callbacks-list">
+<section class="detail" id="c:enabled/3">
+
+  <div class="detail-header">
+    <a href="#c:enabled/3" class="detail-link" title="Link to this callback">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this callback</span>
+    </a>
+    <h1 class="signature" translate="no">enabled(TraceTag, TracerState, Tracee)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/erts/erl_tracer.erl#L260" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 19.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-callback</span> enabled(TraceTag, TracerState, Tracee) -> Result
+           when
+               TraceTag :: <a href="#t:trace_tag/0">trace_tag</a>() | trace_status,
+               TracerState :: <a href="erlang.html#t:term/0">term</a>(),
+               Tracee :: <a href="#t:tracee/0">tracee</a>(),
+               Result :: trace | discard | remove.</pre>
+
+      </div>
+
+<p>This callback is called whenever a tracepoint is triggered.</p><p>It allows the tracer to decide whether a trace is to be generated or not. This
+check is made as early as possible to limit the amount of overhead associated
+with tracing. If <code class="inline">trace</code> is returned, the necessary trace data is created and
+the trace callback of the tracer is called. If <code class="inline">discard</code> is returned, this trace
+call is discarded and no call to trace is done.</p><p><code class="inline">trace_status</code> is a special type of <code class="inline">TraceTag</code>, which is used to check if the
+tracer is still to be active. It is called in multiple scenarios, but most
+significantly it is used when tracing is started using this tracer. If <code class="inline">remove</code>
+is returned when the <code class="inline">trace_status</code> is checked, the tracer is removed from the
+tracee.</p><p>This function can be called multiple times per tracepoint, so it is important
+that it is both fast and without side effects.</p>
+  </section>
+</section>
+<section class="detail" id="c:enabled_call/3">
+
+  <div class="detail-header">
+    <a href="#c:enabled_call/3" class="detail-link" title="Link to this callback">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this callback</span>
+    </a>
+    <h1 class="signature" translate="no">enabled_call(TraceTag, TracerState, Tracee)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/erts/erl_tracer.erl#L273" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(optional)</span>
+
+      <span class="note">(since OTP 19.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-callback</span> enabled_call(TraceTag, TracerState, Tracee) -> Result
+                when
+                    TraceTag :: <a href="#t:trace_tag_call/0">trace_tag_call</a>(),
+                    TracerState :: <a href="erlang.html#t:term/0">term</a>(),
+                    Tracee :: <a href="#t:tracee/0">tracee</a>(),
+                    Result :: trace | discard | remove.</pre>
+
+      </div>
+
+<p>This callback is called whenever a tracepoint with trace flag
+<a href="erlang.html#trace/3"><code class="inline">call | return_to</code></a> is triggered.</p><p>If <a href="#c:enabled_call/3"><code class="inline">enabled_call/3</code></a> is undefined,
+<a href="#c:enabled/3"><code class="inline">Module:enabled/3</code></a> is called instead.</p>
+  </section>
+</section>
+<section class="detail" id="c:enabled_garbage_collection/3">
+
+  <div class="detail-header">
+    <a href="#c:enabled_garbage_collection/3" class="detail-link" title="Link to this callback">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this callback</span>
+    </a>
+    <h1 class="signature" translate="no">enabled_garbage_collection(TraceTag, TracerState, Tracee)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/erts/erl_tracer.erl#L286" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(optional)</span>
+
+      <span class="note">(since OTP 19.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-callback</span> enabled_garbage_collection(TraceTag, TracerState, Tracee) -> Result
+                              when
+                                  TraceTag :: <a href="#t:trace_tag_gc/0">trace_tag_gc</a>(),
+                                  TracerState :: <a href="erlang.html#t:term/0">term</a>(),
+                                  Tracee :: <a href="#t:tracee/0">tracee</a>(),
+                                  Result :: trace | discard | remove.</pre>
+
+      </div>
+
+<p>This callback is called whenever a tracepoint with trace flag
+<a href="erlang.html#trace/3"><code class="inline">garbage_collection</code></a> is triggered.</p><p>If <a href="#c:enabled_garbage_collection/3"><code class="inline">enabled_garbage_collection/3</code></a> is
+undefined, <a href="#c:enabled/3"><code class="inline">Module:enabled/3</code></a> is called instead.</p>
+  </section>
+</section>
+<section class="detail" id="c:enabled_ports/3">
+
+  <div class="detail-header">
+    <a href="#c:enabled_ports/3" class="detail-link" title="Link to this callback">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this callback</span>
+    </a>
+    <h1 class="signature" translate="no">enabled_ports(TraceTag, TracerState, Tracee)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/erts/erl_tracer.erl#L299" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(optional)</span>
+
+      <span class="note">(since OTP 19.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-callback</span> enabled_ports(TraceTag, TracerState, Tracee) -> Result
+                 when
+                     TraceTag :: <a href="#t:trace_tag_ports/0">trace_tag_ports</a>(),
+                     TracerState :: <a href="erlang.html#t:term/0">term</a>(),
+                     Tracee :: <a href="#t:tracee/0">tracee</a>(),
+                     Result :: trace | discard | remove.</pre>
+
+      </div>
+
+<p>This callback is called whenever a tracepoint with trace flag
+<a href="erlang.html#trace/3"><code class="inline">ports</code></a> is triggered.</p><p>If <a href="#c:enabled_ports/3"><code class="inline">enabled_ports/3</code></a> is undefined,
+<a href="#c:enabled/3"><code class="inline">Module:enabled/3</code></a> is called instead.</p>
+  </section>
+</section>
+<section class="detail" id="c:enabled_procs/3">
+
+  <div class="detail-header">
+    <a href="#c:enabled_procs/3" class="detail-link" title="Link to this callback">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this callback</span>
+    </a>
+    <h1 class="signature" translate="no">enabled_procs(TraceTag, TracerState, Tracee)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/erts/erl_tracer.erl#L312" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(optional)</span>
+
+      <span class="note">(since OTP 19.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-callback</span> enabled_procs(TraceTag, TracerState, Tracee) -> Result
+                 when
+                     TraceTag :: <a href="#t:trace_tag_procs/0">trace_tag_procs</a>(),
+                     TracerState :: <a href="erlang.html#t:term/0">term</a>(),
+                     Tracee :: <a href="#t:tracee/0">tracee</a>(),
+                     Result :: trace | discard | remove.</pre>
+
+      </div>
+
+<p>This callback is called whenever a tracepoint with trace flag
+<a href="erlang.html#trace/3"><code class="inline">procs</code></a> is triggered.</p><p>If <a href="#c:enabled_procs/3"><code class="inline">enabled_procs/3</code></a> is undefined,
+<a href="#c:enabled/3"><code class="inline">Module:enabled/3</code></a> is called instead.</p>
+  </section>
+</section>
+<section class="detail" id="c:enabled_receive/3">
+
+  <div class="detail-header">
+    <a href="#c:enabled_receive/3" class="detail-link" title="Link to this callback">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this callback</span>
+    </a>
+    <h1 class="signature" translate="no">enabled_receive(TraceTag, TracerState, Tracee)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/erts/erl_tracer.erl#L325" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(optional)</span>
+
+      <span class="note">(since OTP 19.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-callback</span> enabled_receive(TraceTag, TracerState, Tracee) -> Result
+                   when
+                       TraceTag :: <a href="#t:trace_tag_receive/0">trace_tag_receive</a>(),
+                       TracerState :: <a href="erlang.html#t:term/0">term</a>(),
+                       Tracee :: <a href="#t:tracee/0">tracee</a>(),
+                       Result :: trace | discard | remove.</pre>
+
+      </div>
+
+<p>This callback is called whenever a tracepoint with trace flag
+<a href="erlang.html#trace/3"><code class="inline">'receive'</code></a> is triggered.</p><p>If <a href="#c:enabled_receive/3"><code class="inline">enabled_receive/3</code></a> is undefined,
+<a href="#c:enabled/3"><code class="inline">Module:enabled/3</code></a> is called instead.</p>
+  </section>
+</section>
+<section class="detail" id="c:enabled_running_ports/3">
+
+  <div class="detail-header">
+    <a href="#c:enabled_running_ports/3" class="detail-link" title="Link to this callback">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this callback</span>
+    </a>
+    <h1 class="signature" translate="no">enabled_running_ports(TraceTag, TracerState, Tracee)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/erts/erl_tracer.erl#L338" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(optional)</span>
+
+      <span class="note">(since OTP 19.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-callback</span> enabled_running_ports(TraceTag, TracerState, Tracee) -> Result
+                         when
+                             TraceTag :: <a href="#t:trace_tag_running_ports/0">trace_tag_running_ports</a>(),
+                             TracerState :: <a href="erlang.html#t:term/0">term</a>(),
+                             Tracee :: <a href="#t:tracee/0">tracee</a>(),
+                             Result :: trace | discard | remove.</pre>
+
+      </div>
+
+<p>This callback is called whenever a tracepoint with trace flag
+<a href="erlang.html#trace/3"><code class="inline">running_ports</code></a> is triggered.</p><p>If <a href="#c:enabled_running_ports/3"><code class="inline">enabled_running_ports/3</code></a> is undefined,
+<a href="#c:enabled/3"><code class="inline">Module:enabled/3</code></a> is called instead.</p>
+  </section>
+</section>
+<section class="detail" id="c:enabled_running_procs/3">
+
+  <div class="detail-header">
+    <a href="#c:enabled_running_procs/3" class="detail-link" title="Link to this callback">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this callback</span>
+    </a>
+    <h1 class="signature" translate="no">enabled_running_procs(TraceTag, TracerState, Tracee)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/erts/erl_tracer.erl#L351" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 19.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-callback</span> enabled_running_procs(TraceTag, TracerState, Tracee) -> Result
+                         when
+                             TraceTag :: <a href="#t:trace_tag_running_procs/0">trace_tag_running_procs</a>(),
+                             TracerState :: <a href="erlang.html#t:term/0">term</a>(),
+                             Tracee :: <a href="#t:tracee/0">tracee</a>(),
+                             Result :: trace | discard | remove.</pre>
+
+      </div>
+
+<p>This callback is called whenever a tracepoint with trace flag
+<a href="erlang.html#trace/3"><code class="inline">running_procs | running</code></a> is triggered.</p><p>If <a href="#c:enabled_running_procs/3"><code class="inline">enabled_running_procs/3</code></a> is undefined,
+<a href="#c:enabled/3"><code class="inline">Module:enabled/3</code></a> is called instead.</p>
+  </section>
+</section>
+<section class="detail" id="c:enabled_send/3">
+
+  <div class="detail-header">
+    <a href="#c:enabled_send/3" class="detail-link" title="Link to this callback">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this callback</span>
+    </a>
+    <h1 class="signature" translate="no">enabled_send(TraceTag, TracerState, Tracee)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/erts/erl_tracer.erl#L364" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(optional)</span>
+
+      <span class="note">(since OTP 19.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-callback</span> enabled_send(TraceTag, TracerState, Tracee) -> Result
+                when
+                    TraceTag :: <a href="#t:trace_tag_send/0">trace_tag_send</a>(),
+                    TracerState :: <a href="erlang.html#t:term/0">term</a>(),
+                    Tracee :: <a href="#t:tracee/0">tracee</a>(),
+                    Result :: trace | discard | remove.</pre>
+
+      </div>
+
+<p>This callback is called whenever a tracepoint with trace flag
+<a href="erlang.html#trace/3"><code class="inline">send</code></a> is triggered.</p><p>If <a href="#c:enabled_send/3"><code class="inline">enabled_send/3</code></a> is undefined,
+<a href="#c:enabled/3"><code class="inline">Module:enabled/3</code></a> is called instead.</p>
+  </section>
+</section>
+<section class="detail" id="c:trace/5">
+
+  <div class="detail-header">
+    <a href="#c:trace/5" class="detail-link" title="Link to this callback">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this callback</span>
+    </a>
+    <h1 class="signature" translate="no">trace(Tag, TracerState, Tracee, Msg, Opts)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/erts/erl_tracer.erl#L390" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 19.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-callback</span> trace(seq_trace, TracerState, Label, SeqTraceInfo, Opts) -> Result
+         when
+             TracerState :: <a href="erlang.html#t:term/0">term</a>(),
+             Label :: <a href="erlang.html#t:term/0">term</a>(),
+             SeqTraceInfo :: <a href="erlang.html#t:term/0">term</a>(),
+             Opts :: <a href="#t:trace_opts/0">trace_opts</a>(),
+             Result :: ok;
+     (TraceTag, TracerState, Tracee, TraceTerm, Opts) -> Result
+         when
+             TraceTag :: <a href="#t:trace_tag/0">trace_tag</a>(),
+             TracerState :: <a href="erlang.html#t:term/0">term</a>(),
+             Tracee :: <a href="#t:tracee/0">tracee</a>(),
+             TraceTerm :: <a href="erlang.html#t:term/0">term</a>(),
+             Opts :: <a href="#t:trace_opts/0">trace_opts</a>(),
+             Result :: ok.</pre>
+
+      </div>
+
+<p>This callback is called when a tracepoint is triggered and the
+<a href="#c:enabled/3"><code class="inline">Module:enabled/3</code></a> callback returned <code class="inline">trace</code>.</p><p>In it any side effects needed by the tracer are to be done. The tracepoint
+payload is located in the <code class="inline">TraceTerm</code>. The content of the <code class="inline">TraceTerm</code> depends on
+which <code class="inline">TraceTag</code> is triggered. <code class="inline">TraceTerm</code> corresponds to the fourth element in
+the trace tuples described in <a href="erlang.html#trace_3_trace_messages"><code class="inline">erlang:trace/3</code></a>.</p><p>If the trace tuple has five elements, the fifth element will be sent as the
+<code class="inline">extra</code> value in the <code class="inline">Opts</code> maps.</p><p>The <code class="inline">TraceTag</code> <code class="inline">seq_trace</code> is handled slightly differently. There is no <code class="inline">Tracee</code>
+for <code class="inline">seq_trace</code>, instead the <code class="inline">Label</code> associated with the <code class="inline">seq_trace</code> event is
+specified.</p><p>For more information on what <code class="inline">Label</code> and <code class="inline">SeqTraceInfo</code> can be, see
+<a href="../../apps/kernel/seq_trace.html"><code class="inline">seq_trace</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="c:trace_call/5">
+
+  <div class="detail-header">
+    <a href="#c:trace_call/5" class="detail-link" title="Link to this callback">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this callback</span>
+    </a>
+    <h1 class="signature" translate="no">trace_call(TraceTag, TracerState, Tracee, TraceTerm, Opts)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/erts/erl_tracer.erl#L411" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(optional)</span>
+
+      <span class="note">(since OTP 19.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-callback</span> trace_call(TraceTag, TracerState, Tracee, TraceTerm, Opts) -> Result
+              when
+                  TraceTag :: <a href="#t:trace_tag_call/0">trace_tag_call</a>(),
+                  TracerState :: <a href="erlang.html#t:term/0">term</a>(),
+                  Tracee :: <a href="#t:tracee/0">tracee</a>(),
+                  TraceTerm :: <a href="erlang.html#t:term/0">term</a>(),
+                  Opts :: <a href="#t:trace_opts/0">trace_opts</a>(),
+                  Result :: ok.</pre>
+
+      </div>
+
+<p>This callback is called when a tracepoint is triggered and the
+<a href="#c:enabled_call/3"><code class="inline">Module:enabled_call/3</code></a> callback returned <code class="inline">trace</code>.</p><p>If <a href="#c:trace_call/5"><code class="inline">trace_call/5</code></a> is undefined,
+<a href="#c:trace/5"><code class="inline">Module:trace/5</code></a> is called instead.</p>
+  </section>
+</section>
+<section class="detail" id="c:trace_garbage_collection/5">
+
+  <div class="detail-header">
+    <a href="#c:trace_garbage_collection/5" class="detail-link" title="Link to this callback">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this callback</span>
+    </a>
+    <h1 class="signature" translate="no">trace_garbage_collection(TraceTag, TracerState, Tracee, TraceTerm, Opts)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/erts/erl_tracer.erl#L427" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(optional)</span>
+
+      <span class="note">(since OTP 19.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-callback</span> trace_garbage_collection(TraceTag, TracerState, Tracee, TraceTerm, Opts) -> Result
+                            when
+                                TraceTag :: <a href="#t:trace_tag_gc/0">trace_tag_gc</a>(),
+                                TracerState :: <a href="erlang.html#t:term/0">term</a>(),
+                                Tracee :: <a href="#t:tracee/0">tracee</a>(),
+                                TraceTerm :: <a href="erlang.html#t:term/0">term</a>(),
+                                Opts :: <a href="#t:trace_opts/0">trace_opts</a>(),
+                                Result :: ok.</pre>
+
+      </div>
+
+<p>This callback is called when a tracepoint is triggered and the
+<a href="#c:enabled_garbage_collection/3"><code class="inline">Module:enabled_garbage_collection/3</code></a>
+callback returned <code class="inline">trace</code>.</p><p>If <a href="#c:trace_garbage_collection/5"><code class="inline">trace_garbage_collection/5</code></a> is undefined,
+<a href="#c:trace/5"><code class="inline">Module:trace/5</code></a> is called instead.</p>
+  </section>
+</section>
+<section class="detail" id="c:trace_ports/5">
+
+  <div class="detail-header">
+    <a href="#c:trace_ports/5" class="detail-link" title="Link to this callback">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this callback</span>
+    </a>
+    <h1 class="signature" translate="no">trace_ports(TraceTag, TracerState, Tracee, TraceTerm, Opts)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/erts/erl_tracer.erl#L442" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(optional)</span>
+
+      <span class="note">(since OTP 19.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-callback</span> trace_ports(TraceTag, TracerState, Tracee, TraceTerm, Opts) -> Result
+               when
+                   TraceTag :: <a href="#t:trace_tag/0">trace_tag</a>(),
+                   TracerState :: <a href="erlang.html#t:term/0">term</a>(),
+                   Tracee :: <a href="#t:tracee/0">tracee</a>(),
+                   TraceTerm :: <a href="erlang.html#t:term/0">term</a>(),
+                   Opts :: <a href="#t:trace_opts/0">trace_opts</a>(),
+                   Result :: ok.</pre>
+
+      </div>
+
+<p>This callback is called when a tracepoint is triggered and the
+<a href="#c:enabled_ports/3"><code class="inline">Module:enabled_ports/3</code></a> callback returned <code class="inline">trace</code>.</p><p>If <a href="#c:trace_ports/5"><code class="inline">trace_ports/5</code></a> is undefined,
+<a href="#c:trace/5"><code class="inline">Module:trace/5</code></a> is called instead.</p>
+  </section>
+</section>
+<section class="detail" id="c:trace_procs/5">
+
+  <div class="detail-header">
+    <a href="#c:trace_procs/5" class="detail-link" title="Link to this callback">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this callback</span>
+    </a>
+    <h1 class="signature" translate="no">trace_procs(TraceTag, TracerState, Tracee, TraceTerm, Opts)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/erts/erl_tracer.erl#L457" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(optional)</span>
+
+      <span class="note">(since OTP 19.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-callback</span> trace_procs(TraceTag, TracerState, Tracee, TraceTerm, Opts) -> Result
+               when
+                   TraceTag :: <a href="#t:trace_tag/0">trace_tag</a>(),
+                   TracerState :: <a href="erlang.html#t:term/0">term</a>(),
+                   Tracee :: <a href="#t:tracee/0">tracee</a>(),
+                   TraceTerm :: <a href="erlang.html#t:term/0">term</a>(),
+                   Opts :: <a href="#t:trace_opts/0">trace_opts</a>(),
+                   Result :: ok.</pre>
+
+      </div>
+
+<p>This callback is called when a tracepoint is triggered and the
+<a href="#c:enabled_procs/3"><code class="inline">Module:enabled_procs/3</code></a> callback returned <code class="inline">trace</code>.</p><p>If <a href="#c:trace_procs/5"><code class="inline">trace_procs/5</code></a> is undefined,
+<a href="#c:trace/5"><code class="inline">Module:trace/5</code></a> is called instead.</p>
+  </section>
+</section>
+<section class="detail" id="c:trace_receive/5">
+
+  <div class="detail-header">
+    <a href="#c:trace_receive/5" class="detail-link" title="Link to this callback">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this callback</span>
+    </a>
+    <h1 class="signature" translate="no">trace_receive(TraceTag, TracerState, Tracee, TraceTerm, Opts)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/erts/erl_tracer.erl#L472" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(optional)</span>
+
+      <span class="note">(since OTP 19.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-callback</span> trace_receive(TraceTag, TracerState, Tracee, TraceTerm, Opts) -> Result
+                 when
+                     TraceTag :: <a href="#t:trace_tag_receive/0">trace_tag_receive</a>(),
+                     TracerState :: <a href="erlang.html#t:term/0">term</a>(),
+                     Tracee :: <a href="#t:tracee/0">tracee</a>(),
+                     TraceTerm :: <a href="erlang.html#t:term/0">term</a>(),
+                     Opts :: <a href="#t:trace_opts/0">trace_opts</a>(),
+                     Result :: ok.</pre>
+
+      </div>
+
+<p>This callback is called when a tracepoint is triggered and the
+<a href="#c:enabled_receive/3"><code class="inline">Module:enabled_receive/3</code></a> callback returned <code class="inline">trace</code>.</p><p>If <a href="#c:trace_receive/5"><code class="inline">trace_receive/5</code></a> is undefined,
+<a href="#c:trace/5"><code class="inline">Module:trace/5</code></a> is called instead.</p>
+  </section>
+</section>
+<section class="detail" id="c:trace_running_ports/5">
+
+  <div class="detail-header">
+    <a href="#c:trace_running_ports/5" class="detail-link" title="Link to this callback">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this callback</span>
+    </a>
+    <h1 class="signature" translate="no">trace_running_ports(TraceTag, TracerState, Tracee, TraceTerm, Opts)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/erts/erl_tracer.erl#L488" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(optional)</span>
+
+      <span class="note">(since OTP 19.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-callback</span> trace_running_ports(TraceTag, TracerState, Tracee, TraceTerm, Opts) -> Result
+                       when
+                           TraceTag :: <a href="#t:trace_tag_running_ports/0">trace_tag_running_ports</a>(),
+                           TracerState :: <a href="erlang.html#t:term/0">term</a>(),
+                           Tracee :: <a href="#t:tracee/0">tracee</a>(),
+                           TraceTerm :: <a href="erlang.html#t:term/0">term</a>(),
+                           Opts :: <a href="#t:trace_opts/0">trace_opts</a>(),
+                           Result :: ok.</pre>
+
+      </div>
+
+<p>This callback is called when a tracepoint is triggered and the
+<a href="#c:enabled_running_ports/3"><code class="inline">Module:enabled_running_ports/3</code></a> callback
+returned <code class="inline">trace</code>.</p><p>If <a href="#c:trace_running_ports/5"><code class="inline">trace_running_ports/5</code></a> is undefined,
+<a href="#c:trace/5"><code class="inline">Module:trace/5</code></a> is called instead.</p>
+  </section>
+</section>
+<section class="detail" id="c:trace_running_procs/5">
+
+  <div class="detail-header">
+    <a href="#c:trace_running_procs/5" class="detail-link" title="Link to this callback">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this callback</span>
+    </a>
+    <h1 class="signature" translate="no">trace_running_procs(TraceTag, TracerState, Tracee, TraceTerm, Opts)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/erts/erl_tracer.erl#L504" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 19.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-callback</span> trace_running_procs(TraceTag, TracerState, Tracee, TraceTerm, Opts) -> Result
+                       when
+                           TraceTag :: <a href="#t:trace_tag_running_procs/0">trace_tag_running_procs</a>(),
+                           TracerState :: <a href="erlang.html#t:term/0">term</a>(),
+                           Tracee :: <a href="#t:tracee/0">tracee</a>(),
+                           TraceTerm :: <a href="erlang.html#t:term/0">term</a>(),
+                           Opts :: <a href="#t:trace_opts/0">trace_opts</a>(),
+                           Result :: ok.</pre>
+
+      </div>
+
+<p>This callback is called when a tracepoint is triggered and the
+<a href="#c:enabled_running_procs/3"><code class="inline">Module:enabled_running_procs/3</code></a> callback
+returned <code class="inline">trace</code>.</p><p>If <a href="#c:trace_running_procs/5"><code class="inline">trace_running_procs/5</code></a> is undefined,
+<a href="#c:trace/5"><code class="inline">Module:trace/5</code></a> is called instead.</p>
+  </section>
+</section>
+<section class="detail" id="c:trace_send/5">
+
+  <div class="detail-header">
+    <a href="#c:trace_send/5" class="detail-link" title="Link to this callback">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this callback</span>
+    </a>
+    <h1 class="signature" translate="no">trace_send(TraceTag, TracerState, Tracee, TraceTerm, Opts)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/erts/erl_tracer.erl#L519" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(optional)</span>
+
+      <span class="note">(since OTP 19.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-callback</span> trace_send(TraceTag, TracerState, Tracee, TraceTerm, Opts) -> Result
+              when
+                  TraceTag :: <a href="#t:trace_tag_send/0">trace_tag_send</a>(),
+                  TracerState :: <a href="erlang.html#t:term/0">term</a>(),
+                  Tracee :: <a href="#t:tracee/0">tracee</a>(),
+                  TraceTerm :: <a href="erlang.html#t:term/0">term</a>(),
+                  Opts :: <a href="#t:trace_opts/0">trace_opts</a>(),
+                  Result :: ok.</pre>
+
+      </div>
+
+<p>This callback is called when a tracepoint is triggered and the
+<a href="#c:enabled_send/3"><code class="inline">Module:enabled_send/3</code></a> callback returned <code class="inline">trace</code>.</p><p>If <a href="#c:trace_send/5"><code class="inline">trace_send/5</code></a> is undefined,
+<a href="#c:trace/5"><code class="inline">Module:trace/5</code></a> is called instead.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

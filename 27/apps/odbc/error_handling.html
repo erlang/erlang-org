@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="odbc v2.14.3">
+
+
+    <title>Error handling — odbc v2.14.3</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-DB06E8B2.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="odbc" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+odbc
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v2.14.3
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of odbc</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/lib/odbc/doc/guides/error_handling.md#L1" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+
+  <span>Error handling</span>
+</h1>
+
+<h2 id="strategy" class="section-heading">
+  <a href="#strategy" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Strategy</span>
+</h2>
+<p>On a conceptual level starting a database connection using the Erlang ODBC API
+is a basic client server application. The client process uses the API to start
+and communicate with the server process that manages the connection. The
+strategy of the Erlang ODBC application is that programming faults in the
+application itself will cause the connection process to terminate
+abnormally.(When a process terminates abnormally its supervisor will log
+relevant error reports.) Calls to API functions during or after termination of
+the connection process, will return <code class="inline">{error, connection_closed}</code>. Contextual
+errors on the other hand will not terminate the connection it will only return
+<code class="inline">{error, Reason}</code>to the client, where <code class="inline">Reason</code> may be any erlang term.</p><h3 id="clients" class="section-heading">
+  <a href="#clients" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Clients</span>
+</h3>
+<p>The connection is associated with the process that created it and can only be
+accessed through it. The reason for this is to preserve the semantics of result
+sets and transactions when select_count/[2,3] is called or auto_commit is
+turned off. Attempts to use the connection from another process will fail. This
+will not effect the connection. On the other hand, if the client process dies
+the connection will be terminated.</p><h3 id="timeouts" class="section-heading">
+  <a href="#timeouts" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Timeouts</span>
+</h3>
+<p>All request made by the client to the connection are synchronous. If the timeout
+is used and expires the client process will exit with reason timeout. Probably
+the right thing to do is let the client die and perhaps be restarted by its
+supervisor. But if the client chooses to catch this timeout, it is a good idea
+to wait a little while before trying again. If there are too many consecutive
+timeouts that are caught the connection process will conclude that there is
+something radically wrong and terminate the connection.</p><h3 id="guards" class="section-heading">
+  <a href="#guards" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Guards</span>
+</h3>
+<p>All API-functions are guarded and if you pass an argument of the wrong type a
+runtime error will occur. All input parameters to internal functions are trusted
+to be correct. It is a good programming practise to only distrust input from
+truly external sources. You are not supposed to catch these errors, it will only
+make the code very messy and much more complex, which introduces more bugs and
+in the worst case also covers up the actual faults. Put your effort on testing
+instead, you should trust your own input.</p><h2 id="the-whole-picture" class="section-heading">
+  <a href="#the-whole-picture" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">The whole picture</span>
+</h2>
+<p>As the Erlang ODBC application relies on third party products and communicates
+with a database that probably runs on another computer in the network there are
+plenty of things that might go wrong. To fully understand the things that might
+happen it facilitate to know the design of the Erlang ODBC application, hence
+here follows a short description of the current design.</p><blockquote><h4 class="info">Note</h4><p>Please note that design is something, that not necessarily will, but might
+change in future releases. While the semantics of the API will not change as
+it is independent of the implementation.</p></blockquote><p><img src="assets/odbc_app_arc.gif" alt="Architecture of the Erlang odbc application" title="Architecture of the Erlang odbc application"/></p><p>When you do application:start(odbc) the only thing that happens is that a
+supervisor process is started. For each call to the API function connect/2 a
+process is spawned and added as a child to the Erlang ODBC supervisor. The
+supervisors only tasks are to provide error-log reports, if a child process
+should die abnormally, and the possibility to do a code change. Only the client
+process has the knowledge to decide if this connection managing process should
+be restarted.</p><p>The erlang connection process spawned by connect/2, will open a port to a
+c-process that handles the communication with the database through Microsoft's
+ODBC API. The erlang port will be kept open for exit signal propagation, if
+something goes wrong in the c-process and it exits we want know as mush as
+possible about the reason. The main communication with the c-process is done
+through sockets. The C-process consists of two threads, the supervisor thread
+and the database handler thread. The supervisor thread checks for shutdown
+messages on the supervisor socket and the database handler thread receives
+requests and sends answers on the database socket. If the database thread seems
+to hang on some database call, the erlang control process will send a shutdown
+message on the supervisor socket, in this case the c-process will exit. If the
+c-process crashes/exits it will bring the erlang-process down too and vice versa
+i.e. the connection is terminated.</p><h3 id="error-types" class="section-heading">
+  <a href="#error-types" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Error types</span>
+</h3>
+<p>The types of errors that may occur can be divide into the following categories.</p><ul><li>Configuration problems - Everything from that the database was not set up
+right to that the c-program that should be run through the erlang port was not
+compiled for your platform.</li><li>Errors discovered by the ODBC driver - If calls to the ODBC-driver fails due
+to circumstances that cannot be controlled by the Erlang ODBC application
+programmer, an error string will be dug up from the driver. This string will
+be the <code class="inline">Reason</code> in the <code class="inline">{error, Reason}</code>return value. How good this error
+message is will of course be driver dependent. Examples of such circumstances
+are trying to insert the same key twice, invalid SQL-queries and that the
+database has gone off line.</li><li>Connection termination - If a connection is terminated in an abnormal way, or
+if you try to use a connection that you have already terminated in a normal
+way by calling disconnect/1, the return value will
+be<code class="inline">{error, connection_closed}</code>. A connection could end abnormally because of
+an programming error in the Erlang ODBC application, but also if the ODBC
+driver crashes.</li><li>Contextual errors - If API functions are used in the wrong context, the
+<code class="inline">Reason</code> in the error tuple will be a descriptive atom. For instance if you
+try to call the function <code class="inline">last/[1,2]</code>without first calling
+<code class="inline">select_count/[2,3]</code>to associate a result set with the connection. If the
+ODBC-driver does not support some functions, or if you disabled some
+functionality for a connection and then try to use it.</li></ul>
+<div class="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="databases.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Databases
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+  </div>
+</div>
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+              <a href="odbc.epub" title="ePub version">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="mnesia v4.23.1">
+
+
+    <title>Appendix B: Activity Access Callback Interface — mnesia v4.23.1</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-1AFE0CAA.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="mnesia" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+mnesia
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v4.23.1
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of mnesia</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/lib/mnesia/doc/guides/mnesia_app_b.md#L1" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+
+  <span>Appendix B: Activity Access Callback Interface</span>
+</h1>
+
+<h2 id="mnesia_access-callback-behavior" class="section-heading">
+  <a href="#mnesia_access-callback-behavior" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">mnesia_access Callback Behavior</span>
+</h2>
+<pre><code class="makeup erlang" translate="no"><span class="w">
+
+</span><span class="p">-</span><span class="na">module</span><span class="p" data-group-id="2788717447-1">(</span><span class="ss">mnesia_frag</span><span class="p" data-group-id="2788717447-1">)</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%% Callback functions when accessed within an activity</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="2788717447-2">(</span><span class="p" data-group-id="2788717447-3">[</span><span class="w">
+</span><span class="err">	</span><span class="w"> </span><span class="ss">lock</span><span class="p">/</span><span class="mi">4</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w"> </span><span class="ss">write</span><span class="p">/</span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="ss">delete</span><span class="p">/</span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="ss">delete_object</span><span class="p">/</span><span class="mi">5</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w"> </span><span class="ss">read</span><span class="p">/</span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="ss">match_object</span><span class="p">/</span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="ss">all_keys</span><span class="p">/</span><span class="mi">4</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w"> </span><span class="ss">select</span><span class="p">/</span><span class="mi">5</span><span class="p">,</span><span class="ss">select</span><span class="p">/</span><span class="mi">6</span><span class="p">,</span><span class="ss">select_cont</span><span class="p">/</span><span class="mi">3</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w"> </span><span class="ss">index_match_object</span><span class="p">/</span><span class="mi">6</span><span class="p">,</span><span class="w"> </span><span class="ss">index_read</span><span class="p">/</span><span class="mi">6</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w"> </span><span class="ss">foldl</span><span class="p">/</span><span class="mi">6</span><span class="p">,</span><span class="w"> </span><span class="ss">foldr</span><span class="p">/</span><span class="mi">6</span><span class="p">,</span><span class="w"> </span><span class="ss">table_info</span><span class="p">/</span><span class="mi">4</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w"> </span><span class="ss">first</span><span class="p">/</span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="ss">next</span><span class="p">/</span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="ss">prev</span><span class="p">/</span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="ss">last</span><span class="p">/</span><span class="mi">3</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w"> </span><span class="ss">clear_table</span><span class="p">/</span><span class="mi">4</span><span class="w">
+       </span><span class="p" data-group-id="2788717447-3">]</span><span class="p" data-group-id="2788717447-2">)</span><span class="p">.</span></code></pre><pre><code class="makeup erlang" translate="no"><span class="w">
+
+</span><span class="c1">%% Callback functions which provides transparent</span><span class="w">
+</span><span class="c1">%% access of fragmented tables from any activity</span><span class="w">
+</span><span class="c1">%% access context.</span><span class="w">
+
+</span><span class="nf">lock</span><span class="p" data-group-id="5673153681-1">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="5673153681-2">{</span><span class="ss">table</span><span class="w"> </span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p" data-group-id="5673153681-2">}</span><span class="p">,</span><span class="w"> </span><span class="n">LockKind</span><span class="p" data-group-id="5673153681-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="nf">frag_names</span><span class="p" data-group-id="5673153681-3">(</span><span class="n">Tab</span><span class="p" data-group-id="5673153681-3">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+</span><span class="err">	</span><span class="p" data-group-id="5673153681-4">[</span><span class="n">Tab</span><span class="p" data-group-id="5673153681-4">]</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">lock</span><span class="p" data-group-id="5673153681-5">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="5673153681-6">{</span><span class="ss">table</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p" data-group-id="5673153681-6">}</span><span class="p">,</span><span class="w"> </span><span class="n">LockKind</span><span class="p" data-group-id="5673153681-5">)</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="n">Frags</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="n">DeepNs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="5673153681-7">[</span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">lock</span><span class="p" data-group-id="5673153681-8">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="5673153681-9">{</span><span class="ss">table</span><span class="p">,</span><span class="w"> </span><span class="n">F</span><span class="p" data-group-id="5673153681-9">}</span><span class="p">,</span><span class="w"> </span><span class="n">LockKind</span><span class="p" data-group-id="5673153681-8">)</span><span class="w"> </span><span class="p">||</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="w"> </span><span class="n">F</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="n">Frags</span><span class="p" data-group-id="5673153681-7">]</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="nc">mnesia_lib</span><span class="p">:</span><span class="nf">uniq</span><span class="p" data-group-id="5673153681-10">(</span><span class="nc">lists</span><span class="p">:</span><span class="nf">append</span><span class="p" data-group-id="5673153681-11">(</span><span class="n">DeepNs</span><span class="p" data-group-id="5673153681-11">)</span><span class="p" data-group-id="5673153681-10">)</span><span class="w">
+    </span><span class="k">end</span><span class="p">;</span><span class="w">
+
+</span><span class="nf">lock</span><span class="p" data-group-id="5673153681-12">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">LockItem</span><span class="p">,</span><span class="w"> </span><span class="n">LockKind</span><span class="p" data-group-id="5673153681-12">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">lock</span><span class="p" data-group-id="5673153681-13">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">LockItem</span><span class="p">,</span><span class="w"> </span><span class="n">LockKind</span><span class="p" data-group-id="5673153681-13">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">write</span><span class="p" data-group-id="5673153681-14">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Rec</span><span class="p">,</span><span class="w"> </span><span class="n">LockKind</span><span class="p" data-group-id="5673153681-14">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">Frag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">record_to_frag_name</span><span class="p" data-group-id="5673153681-15">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Rec</span><span class="p" data-group-id="5673153681-15">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">write</span><span class="p" data-group-id="5673153681-16">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Frag</span><span class="p">,</span><span class="w"> </span><span class="n">Rec</span><span class="p">,</span><span class="w"> </span><span class="n">LockKind</span><span class="p" data-group-id="5673153681-16">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">delete</span><span class="p" data-group-id="5673153681-17">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p">,</span><span class="w"> </span><span class="n">LockKind</span><span class="p" data-group-id="5673153681-17">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">Frag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">key_to_frag_name</span><span class="p" data-group-id="5673153681-18">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p" data-group-id="5673153681-18">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">delete</span><span class="p" data-group-id="5673153681-19">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Frag</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p">,</span><span class="w"> </span><span class="n">LockKind</span><span class="p" data-group-id="5673153681-19">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">delete_object</span><span class="p" data-group-id="5673153681-20">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Rec</span><span class="p">,</span><span class="w"> </span><span class="n">LockKind</span><span class="p" data-group-id="5673153681-20">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">Frag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">record_to_frag_name</span><span class="p" data-group-id="5673153681-21">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Rec</span><span class="p" data-group-id="5673153681-21">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">delete_object</span><span class="p" data-group-id="5673153681-22">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Frag</span><span class="p">,</span><span class="w"> </span><span class="n">Rec</span><span class="p">,</span><span class="w"> </span><span class="n">LockKind</span><span class="p" data-group-id="5673153681-22">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">read</span><span class="p" data-group-id="5673153681-23">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p">,</span><span class="w"> </span><span class="n">LockKind</span><span class="p" data-group-id="5673153681-23">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">Frag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">key_to_frag_name</span><span class="p" data-group-id="5673153681-24">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p" data-group-id="5673153681-24">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">read</span><span class="p" data-group-id="5673153681-25">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Frag</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p">,</span><span class="w"> </span><span class="n">LockKind</span><span class="p" data-group-id="5673153681-25">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">match_object</span><span class="p" data-group-id="5673153681-26">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">HeadPat</span><span class="p">,</span><span class="w"> </span><span class="n">LockKind</span><span class="p" data-group-id="5673153681-26">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">MatchSpec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="5673153681-27">[</span><span class="p" data-group-id="5673153681-28">{</span><span class="n">HeadPat</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="5673153681-29">[</span><span class="p" data-group-id="5673153681-29">]</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="5673153681-30">[</span><span class="ss">&#39;$_&#39;</span><span class="p" data-group-id="5673153681-30">]</span><span class="p" data-group-id="5673153681-28">}</span><span class="p" data-group-id="5673153681-27">]</span><span class="p">,</span><span class="w">
+    </span><span class="nf">select</span><span class="p" data-group-id="5673153681-31">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">MatchSpec</span><span class="p">,</span><span class="w"> </span><span class="n">LockKind</span><span class="p" data-group-id="5673153681-31">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">select</span><span class="p" data-group-id="5673153681-32">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">MatchSpec</span><span class="p">,</span><span class="w"> </span><span class="n">LockKind</span><span class="p" data-group-id="5673153681-32">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">do_select</span><span class="p" data-group-id="5673153681-33">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">MatchSpec</span><span class="p">,</span><span class="w"> </span><span class="n">LockKind</span><span class="p" data-group-id="5673153681-33">)</span><span class="p">.</span><span class="w">
+
+
+</span><span class="nf">select</span><span class="p" data-group-id="5673153681-34">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">MatchSpec</span><span class="p">,</span><span class="w"> </span><span class="n">Limit</span><span class="p">,</span><span class="w"> </span><span class="n">LockKind</span><span class="p" data-group-id="5673153681-34">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">init_select</span><span class="p" data-group-id="5673153681-35">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">MatchSpec</span><span class="p">,</span><span class="w"> </span><span class="n">Limit</span><span class="p">,</span><span class="w"> </span><span class="n">LockKind</span><span class="p" data-group-id="5673153681-35">)</span><span class="p">.</span><span class="w">
+
+
+</span><span class="nf">all_keys</span><span class="p" data-group-id="5673153681-36">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">LockKind</span><span class="p" data-group-id="5673153681-36">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">Match</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="5673153681-37">[</span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">all_keys</span><span class="p" data-group-id="5673153681-38">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Frag</span><span class="p">,</span><span class="w"> </span><span class="n">LockKind</span><span class="p" data-group-id="5673153681-38">)</span><span class="w">
+</span><span class="err">	</span><span class="w">     </span><span class="p">||</span><span class="w"> </span><span class="n">Frag</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="nf">frag_names</span><span class="p" data-group-id="5673153681-39">(</span><span class="n">Tab</span><span class="p" data-group-id="5673153681-39">)</span><span class="p" data-group-id="5673153681-37">]</span><span class="p">,</span><span class="w">
+    </span><span class="nc">lists</span><span class="p">:</span><span class="nf">append</span><span class="p" data-group-id="5673153681-40">(</span><span class="n">Match</span><span class="p" data-group-id="5673153681-40">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">clear_table</span><span class="p" data-group-id="5673153681-41">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Obj</span><span class="p" data-group-id="5673153681-41">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="5673153681-42">[</span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">clear_table</span><span class="p" data-group-id="5673153681-43">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Frag</span><span class="p">,</span><span class="w"> </span><span class="n">Obj</span><span class="p" data-group-id="5673153681-43">)</span><span class="w">  </span><span class="p">||</span><span class="w"> </span><span class="n">Frag</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="nf">frag_names</span><span class="p" data-group-id="5673153681-44">(</span><span class="n">Tab</span><span class="p" data-group-id="5673153681-44">)</span><span class="p" data-group-id="5673153681-42">]</span><span class="p">,</span><span class="w">
+    </span><span class="ss">ok</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">index_match_object</span><span class="p" data-group-id="5673153681-45">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Pat</span><span class="p">,</span><span class="w"> </span><span class="n">Attr</span><span class="p">,</span><span class="w"> </span><span class="n">LockKind</span><span class="p" data-group-id="5673153681-45">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">Match</span><span class="w"> </span><span class="o">=</span><span class="w">
+</span><span class="err">	</span><span class="p" data-group-id="5673153681-46">[</span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">index_match_object</span><span class="p" data-group-id="5673153681-47">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Frag</span><span class="p">,</span><span class="w"> </span><span class="n">Pat</span><span class="p">,</span><span class="w"> </span><span class="n">Attr</span><span class="p">,</span><span class="w"> </span><span class="n">LockKind</span><span class="p" data-group-id="5673153681-47">)</span><span class="w">
+</span><span class="err">	</span><span class="w"> </span><span class="p">||</span><span class="w"> </span><span class="n">Frag</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="nf">frag_names</span><span class="p" data-group-id="5673153681-48">(</span><span class="n">Tab</span><span class="p" data-group-id="5673153681-48">)</span><span class="p" data-group-id="5673153681-46">]</span><span class="p">,</span><span class="w">
+    </span><span class="nc">lists</span><span class="p">:</span><span class="nf">append</span><span class="p" data-group-id="5673153681-49">(</span><span class="n">Match</span><span class="p" data-group-id="5673153681-49">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">index_read</span><span class="p" data-group-id="5673153681-50">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p">,</span><span class="w"> </span><span class="n">Attr</span><span class="p">,</span><span class="w"> </span><span class="n">LockKind</span><span class="p" data-group-id="5673153681-50">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">Match</span><span class="w"> </span><span class="o">=</span><span class="w">
+</span><span class="err">	</span><span class="p" data-group-id="5673153681-51">[</span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">index_read</span><span class="p" data-group-id="5673153681-52">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Frag</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p">,</span><span class="w"> </span><span class="n">Attr</span><span class="p">,</span><span class="w"> </span><span class="n">LockKind</span><span class="p" data-group-id="5673153681-52">)</span><span class="w">
+</span><span class="err">	</span><span class="w">     </span><span class="p">||</span><span class="w"> </span><span class="n">Frag</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="nf">frag_names</span><span class="p" data-group-id="5673153681-53">(</span><span class="n">Tab</span><span class="p" data-group-id="5673153681-53">)</span><span class="p" data-group-id="5673153681-51">]</span><span class="p">,</span><span class="w">
+    </span><span class="nc">lists</span><span class="p">:</span><span class="nf">append</span><span class="p" data-group-id="5673153681-54">(</span><span class="n">Match</span><span class="p" data-group-id="5673153681-54">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">foldl</span><span class="p" data-group-id="5673153681-55">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Fun</span><span class="p">,</span><span class="w"> </span><span class="n">Acc</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">LockKind</span><span class="p" data-group-id="5673153681-55">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">Fun2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">fun</span><span class="p" data-group-id="5673153681-56">(</span><span class="n">Frag</span><span class="p">,</span><span class="w"> </span><span class="n">A</span><span class="p" data-group-id="5673153681-56">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">   </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">foldl</span><span class="p" data-group-id="5673153681-57">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Fun</span><span class="p">,</span><span class="w"> </span><span class="n">A</span><span class="p">,</span><span class="w"> </span><span class="n">Frag</span><span class="p">,</span><span class="w"> </span><span class="n">LockKind</span><span class="p" data-group-id="5673153681-57">)</span><span class="w">
+</span><span class="err">	</span><span class="w">   </span><span class="k">end</span><span class="p">,</span><span class="w">
+    </span><span class="nc">lists</span><span class="p">:</span><span class="nf">foldl</span><span class="p" data-group-id="5673153681-58">(</span><span class="n">Fun2</span><span class="p">,</span><span class="w"> </span><span class="n">Acc</span><span class="p">,</span><span class="w"> </span><span class="nf">frag_names</span><span class="p" data-group-id="5673153681-59">(</span><span class="n">Tab</span><span class="p" data-group-id="5673153681-59">)</span><span class="p" data-group-id="5673153681-58">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">foldr</span><span class="p" data-group-id="5673153681-60">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Fun</span><span class="p">,</span><span class="w"> </span><span class="n">Acc</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">LockKind</span><span class="p" data-group-id="5673153681-60">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">Fun2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">fun</span><span class="p" data-group-id="5673153681-61">(</span><span class="n">Frag</span><span class="p">,</span><span class="w"> </span><span class="n">A</span><span class="p" data-group-id="5673153681-61">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">   </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">foldr</span><span class="p" data-group-id="5673153681-62">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Fun</span><span class="p">,</span><span class="w"> </span><span class="n">A</span><span class="p">,</span><span class="w"> </span><span class="n">Frag</span><span class="p">,</span><span class="w"> </span><span class="n">LockKind</span><span class="p" data-group-id="5673153681-62">)</span><span class="w">
+</span><span class="err">	</span><span class="w">   </span><span class="k">end</span><span class="p">,</span><span class="w">
+    </span><span class="nc">lists</span><span class="p">:</span><span class="nf">foldr</span><span class="p" data-group-id="5673153681-63">(</span><span class="n">Fun2</span><span class="p">,</span><span class="w"> </span><span class="n">Acc</span><span class="p">,</span><span class="w"> </span><span class="nf">frag_names</span><span class="p" data-group-id="5673153681-64">(</span><span class="n">Tab</span><span class="p" data-group-id="5673153681-64">)</span><span class="p" data-group-id="5673153681-63">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">table_info</span><span class="p" data-group-id="5673153681-65">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="5673153681-66">{</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p" data-group-id="5673153681-66">}</span><span class="p">,</span><span class="w"> </span><span class="n">Item</span><span class="p" data-group-id="5673153681-65">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">Frag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">key_to_frag_name</span><span class="p" data-group-id="5673153681-67">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p" data-group-id="5673153681-67">)</span><span class="p">,</span><span class="w">
+    </span><span class="nf">table_info2</span><span class="p" data-group-id="5673153681-68">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Frag</span><span class="p">,</span><span class="w"> </span><span class="n">Item</span><span class="p" data-group-id="5673153681-68">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">table_info</span><span class="p" data-group-id="5673153681-69">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Item</span><span class="p" data-group-id="5673153681-69">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">table_info2</span><span class="p" data-group-id="5673153681-70">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Item</span><span class="p" data-group-id="5673153681-70">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">table_info2</span><span class="p" data-group-id="5673153681-71">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Frag</span><span class="p">,</span><span class="w"> </span><span class="n">Item</span><span class="p" data-group-id="5673153681-71">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="n">Item</span><span class="w"> </span><span class="k">of</span><span class="w">
+</span><span class="err">	</span><span class="nb">size</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="n">SumFun</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">fun</span><span class="p" data-group-id="5673153681-72">(</span><span class="p" data-group-id="5673153681-73">{</span><span class="p">_</span><span class="p">,</span><span class="w"> </span><span class="n">Size</span><span class="p" data-group-id="5673153681-73">}</span><span class="p">,</span><span class="w"> </span><span class="n">Acc</span><span class="p" data-group-id="5673153681-72">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="n">Acc</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">Size</span><span class="w"> </span><span class="k">end</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="nc">lists</span><span class="p">:</span><span class="nf">foldl</span><span class="p" data-group-id="5673153681-74">(</span><span class="n">SumFun</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nf">frag_size</span><span class="p" data-group-id="5673153681-75">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p" data-group-id="5673153681-75">)</span><span class="p" data-group-id="5673153681-74">)</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="nb">memory</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="n">SumFun</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">fun</span><span class="p" data-group-id="5673153681-76">(</span><span class="p" data-group-id="5673153681-77">{</span><span class="p">_</span><span class="p">,</span><span class="w"> </span><span class="n">Size</span><span class="p" data-group-id="5673153681-77">}</span><span class="p">,</span><span class="w"> </span><span class="n">Acc</span><span class="p" data-group-id="5673153681-76">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="n">Acc</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">Size</span><span class="w"> </span><span class="k">end</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="nc">lists</span><span class="p">:</span><span class="nf">foldl</span><span class="p" data-group-id="5673153681-78">(</span><span class="n">SumFun</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nf">frag_memory</span><span class="p" data-group-id="5673153681-79">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p" data-group-id="5673153681-79">)</span><span class="p" data-group-id="5673153681-78">)</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="ss">base_table</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="nf">lookup_prop</span><span class="p" data-group-id="5673153681-80">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="ss">base_table</span><span class="p" data-group-id="5673153681-80">)</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="ss">node_pool</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="nf">lookup_prop</span><span class="p" data-group-id="5673153681-81">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="ss">node_pool</span><span class="p" data-group-id="5673153681-81">)</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="ss">n_fragments</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="n">FH</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">lookup_frag_hash</span><span class="p" data-group-id="5673153681-82">(</span><span class="n">Tab</span><span class="p" data-group-id="5673153681-82">)</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="n">FH</span><span class="o">#</span><span class="ss">frag_state</span><span class="p">.</span><span class="ss">n_fragments</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="ss">foreign_key</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="n">FH</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">lookup_frag_hash</span><span class="p" data-group-id="5673153681-83">(</span><span class="n">Tab</span><span class="p" data-group-id="5673153681-83">)</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="n">FH</span><span class="o">#</span><span class="ss">frag_state</span><span class="p">.</span><span class="ss">foreign_key</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="ss">foreigners</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="nf">lookup_foreigners</span><span class="p" data-group-id="5673153681-84">(</span><span class="n">Tab</span><span class="p" data-group-id="5673153681-84">)</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="ss">n_ram_copies</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="nf">length</span><span class="p" data-group-id="5673153681-85">(</span><span class="nf">val</span><span class="p" data-group-id="5673153681-86">(</span><span class="p" data-group-id="5673153681-87">{</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="ss">ram_copies</span><span class="p" data-group-id="5673153681-87">}</span><span class="p" data-group-id="5673153681-86">)</span><span class="p" data-group-id="5673153681-85">)</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="ss">n_disc_copies</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="nf">length</span><span class="p" data-group-id="5673153681-88">(</span><span class="nf">val</span><span class="p" data-group-id="5673153681-89">(</span><span class="p" data-group-id="5673153681-90">{</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="ss">disc_copies</span><span class="p" data-group-id="5673153681-90">}</span><span class="p" data-group-id="5673153681-89">)</span><span class="p" data-group-id="5673153681-88">)</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="ss">n_disc_only_copies</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="nf">length</span><span class="p" data-group-id="5673153681-91">(</span><span class="nf">val</span><span class="p" data-group-id="5673153681-92">(</span><span class="p" data-group-id="5673153681-93">{</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="ss">disc_only_copies</span><span class="p" data-group-id="5673153681-93">}</span><span class="p" data-group-id="5673153681-92">)</span><span class="p" data-group-id="5673153681-91">)</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="ss">n_external_copies</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="nf">length</span><span class="p" data-group-id="5673153681-94">(</span><span class="nf">val</span><span class="p" data-group-id="5673153681-95">(</span><span class="p" data-group-id="5673153681-96">{</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="ss">external_copies</span><span class="p" data-group-id="5673153681-96">}</span><span class="p" data-group-id="5673153681-95">)</span><span class="p" data-group-id="5673153681-94">)</span><span class="p">;</span><span class="w">
+
+</span><span class="err">	</span><span class="ss">frag_names</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="nf">frag_names</span><span class="p" data-group-id="5673153681-97">(</span><span class="n">Tab</span><span class="p" data-group-id="5673153681-97">)</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="ss">frag_dist</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="nf">frag_dist</span><span class="p" data-group-id="5673153681-98">(</span><span class="n">Tab</span><span class="p" data-group-id="5673153681-98">)</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="ss">frag_size</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="nf">frag_size</span><span class="p" data-group-id="5673153681-99">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p" data-group-id="5673153681-99">)</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="ss">frag_memory</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="nf">frag_memory</span><span class="p" data-group-id="5673153681-100">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p" data-group-id="5673153681-100">)</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="p">_</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">table_info</span><span class="p" data-group-id="5673153681-101">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Frag</span><span class="p">,</span><span class="w"> </span><span class="n">Item</span><span class="p" data-group-id="5673153681-101">)</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">first</span><span class="p" data-group-id="5673153681-102">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p" data-group-id="5673153681-102">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="o">?</span><span class="nf">catch_val</span><span class="p" data-group-id="5673153681-103">(</span><span class="p" data-group-id="5673153681-104">{</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="ss">frag_hash</span><span class="p" data-group-id="5673153681-104">}</span><span class="p" data-group-id="5673153681-103">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+</span><span class="err">	</span><span class="p" data-group-id="5673153681-105">{</span><span class="ss">&#39;EXIT&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="p" data-group-id="5673153681-105">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">first</span><span class="p" data-group-id="5673153681-106">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p" data-group-id="5673153681-106">)</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="n">FH</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="n">FirstFrag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">first</span><span class="p" data-group-id="5673153681-107">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">FirstFrag</span><span class="p" data-group-id="5673153681-107">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="ss">&#39;$end_of_table&#39;</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">    </span><span class="nf">search_first</span><span class="p" data-group-id="5673153681-108">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">FH</span><span class="p" data-group-id="5673153681-108">)</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="n">Next</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">    </span><span class="n">Next</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="k">end</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">search_first</span><span class="p" data-group-id="5673153681-109">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">N</span><span class="p">,</span><span class="w"> </span><span class="n">FH</span><span class="p" data-group-id="5673153681-109">)</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="n">N</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">FH</span><span class="o">#</span><span class="ss">frag_state</span><span class="p">.</span><span class="ss">n_fragments</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">NextN</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">N</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w">
+    </span><span class="n">NextFrag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">n_to_frag_name</span><span class="p" data-group-id="5673153681-110">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">NextN</span><span class="p" data-group-id="5673153681-110">)</span><span class="p">,</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">first</span><span class="p" data-group-id="5673153681-111">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">NextFrag</span><span class="p" data-group-id="5673153681-111">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+</span><span class="err">	</span><span class="ss">&#39;$end_of_table&#39;</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="nf">search_first</span><span class="p" data-group-id="5673153681-112">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">NextN</span><span class="p">,</span><span class="w"> </span><span class="n">FH</span><span class="p" data-group-id="5673153681-112">)</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="n">Next</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="n">Next</span><span class="w">
+    </span><span class="k">end</span><span class="p">;</span><span class="w">
+</span><span class="nf">search_first</span><span class="p" data-group-id="5673153681-113">(</span><span class="p">_</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">N</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">FH</span><span class="p" data-group-id="5673153681-113">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="ss">&#39;$end_of_table&#39;</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">last</span><span class="p" data-group-id="5673153681-114">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p" data-group-id="5673153681-114">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="o">?</span><span class="nf">catch_val</span><span class="p" data-group-id="5673153681-115">(</span><span class="p" data-group-id="5673153681-116">{</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="ss">frag_hash</span><span class="p" data-group-id="5673153681-116">}</span><span class="p" data-group-id="5673153681-115">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+</span><span class="err">	</span><span class="p" data-group-id="5673153681-117">{</span><span class="ss">&#39;EXIT&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="p" data-group-id="5673153681-117">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">last</span><span class="p" data-group-id="5673153681-118">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p" data-group-id="5673153681-118">)</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="n">FH</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="n">LastN</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">FH</span><span class="o">#</span><span class="ss">frag_state</span><span class="p">.</span><span class="ss">n_fragments</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="nf">search_last</span><span class="p" data-group-id="5673153681-119">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">LastN</span><span class="p">,</span><span class="w"> </span><span class="n">FH</span><span class="p" data-group-id="5673153681-119">)</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">search_last</span><span class="p" data-group-id="5673153681-120">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">N</span><span class="p">,</span><span class="w"> </span><span class="n">FH</span><span class="p" data-group-id="5673153681-120">)</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="n">N</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">Frag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">n_to_frag_name</span><span class="p" data-group-id="5673153681-121">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">N</span><span class="p" data-group-id="5673153681-121">)</span><span class="p">,</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">last</span><span class="p" data-group-id="5673153681-122">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Frag</span><span class="p" data-group-id="5673153681-122">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+</span><span class="err">	</span><span class="ss">&#39;$end_of_table&#39;</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="n">PrevN</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">N</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="nf">search_last</span><span class="p" data-group-id="5673153681-123">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">PrevN</span><span class="p">,</span><span class="w"> </span><span class="n">FH</span><span class="p" data-group-id="5673153681-123">)</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="n">Prev</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="n">Prev</span><span class="w">
+    </span><span class="k">end</span><span class="p">;</span><span class="w">
+</span><span class="nf">search_last</span><span class="p" data-group-id="5673153681-124">(</span><span class="p">_</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">N</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">FH</span><span class="p" data-group-id="5673153681-124">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="ss">&#39;$end_of_table&#39;</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">prev</span><span class="p" data-group-id="5673153681-125">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p" data-group-id="5673153681-125">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="o">?</span><span class="nf">catch_val</span><span class="p" data-group-id="5673153681-126">(</span><span class="p" data-group-id="5673153681-127">{</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="ss">frag_hash</span><span class="p" data-group-id="5673153681-127">}</span><span class="p" data-group-id="5673153681-126">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+</span><span class="err">	</span><span class="p" data-group-id="5673153681-128">{</span><span class="ss">&#39;EXIT&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="p" data-group-id="5673153681-128">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">prev</span><span class="p" data-group-id="5673153681-129">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p" data-group-id="5673153681-129">)</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="n">FH</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="n">N</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">key_to_n</span><span class="p" data-group-id="5673153681-130">(</span><span class="n">FH</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p" data-group-id="5673153681-130">)</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="n">Frag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">n_to_frag_name</span><span class="p" data-group-id="5673153681-131">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">N</span><span class="p" data-group-id="5673153681-131">)</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">prev</span><span class="p" data-group-id="5673153681-132">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Frag</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p" data-group-id="5673153681-132">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="ss">&#39;$end_of_table&#39;</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">    </span><span class="nf">search_prev</span><span class="p" data-group-id="5673153681-133">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">N</span><span class="p" data-group-id="5673153681-133">)</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="n">Prev</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">    </span><span class="n">Prev</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="k">end</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">search_prev</span><span class="p" data-group-id="5673153681-134">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">N</span><span class="p" data-group-id="5673153681-134">)</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="n">N</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">PrevN</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">N</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w">
+    </span><span class="n">PrevFrag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">n_to_frag_name</span><span class="p" data-group-id="5673153681-135">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">PrevN</span><span class="p" data-group-id="5673153681-135">)</span><span class="p">,</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">last</span><span class="p" data-group-id="5673153681-136">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">PrevFrag</span><span class="p" data-group-id="5673153681-136">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+</span><span class="err">	</span><span class="ss">&#39;$end_of_table&#39;</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="nf">search_prev</span><span class="p" data-group-id="5673153681-137">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">PrevN</span><span class="p" data-group-id="5673153681-137">)</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="n">Prev</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="n">Prev</span><span class="w">
+    </span><span class="k">end</span><span class="p">;</span><span class="w">
+</span><span class="nf">search_prev</span><span class="p" data-group-id="5673153681-138">(</span><span class="p">_</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">N</span><span class="p" data-group-id="5673153681-138">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="ss">&#39;$end_of_table&#39;</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">next</span><span class="p" data-group-id="5673153681-139">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p" data-group-id="5673153681-139">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="o">?</span><span class="nf">catch_val</span><span class="p" data-group-id="5673153681-140">(</span><span class="p" data-group-id="5673153681-141">{</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="ss">frag_hash</span><span class="p" data-group-id="5673153681-141">}</span><span class="p" data-group-id="5673153681-140">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+</span><span class="err">	</span><span class="p" data-group-id="5673153681-142">{</span><span class="ss">&#39;EXIT&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="p" data-group-id="5673153681-142">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">next</span><span class="p" data-group-id="5673153681-143">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p" data-group-id="5673153681-143">)</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="n">FH</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="n">N</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">key_to_n</span><span class="p" data-group-id="5673153681-144">(</span><span class="n">FH</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p" data-group-id="5673153681-144">)</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="n">Frag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">n_to_frag_name</span><span class="p" data-group-id="5673153681-145">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">N</span><span class="p" data-group-id="5673153681-145">)</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">next</span><span class="p" data-group-id="5673153681-146">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Frag</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p" data-group-id="5673153681-146">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="ss">&#39;$end_of_table&#39;</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">    </span><span class="nf">search_next</span><span class="p" data-group-id="5673153681-147">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">N</span><span class="p">,</span><span class="w"> </span><span class="n">FH</span><span class="p" data-group-id="5673153681-147">)</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="n">Prev</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">    </span><span class="n">Prev</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="k">end</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">search_next</span><span class="p" data-group-id="5673153681-148">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">N</span><span class="p">,</span><span class="w"> </span><span class="n">FH</span><span class="p" data-group-id="5673153681-148">)</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="n">N</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">FH</span><span class="o">#</span><span class="ss">frag_state</span><span class="p">.</span><span class="ss">n_fragments</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">NextN</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">N</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w">
+    </span><span class="n">NextFrag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">n_to_frag_name</span><span class="p" data-group-id="5673153681-149">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">NextN</span><span class="p" data-group-id="5673153681-149">)</span><span class="p">,</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">first</span><span class="p" data-group-id="5673153681-150">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">NextFrag</span><span class="p" data-group-id="5673153681-150">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+</span><span class="err">	</span><span class="ss">&#39;$end_of_table&#39;</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="nf">search_next</span><span class="p" data-group-id="5673153681-151">(</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">NextN</span><span class="p">,</span><span class="w"> </span><span class="n">FH</span><span class="p" data-group-id="5673153681-151">)</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="n">Next</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="n">Next</span><span class="w">
+    </span><span class="k">end</span><span class="p">;</span><span class="w">
+</span><span class="nf">search_next</span><span class="p" data-group-id="5673153681-152">(</span><span class="p">_</span><span class="n">ActivityId</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">Opaque</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">N</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">FH</span><span class="p" data-group-id="5673153681-152">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="ss">&#39;$end_of_table&#39;</span><span class="p">.</span></code></pre>
+<div class="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="mnesia_app_a.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Appendix A: Backup Callback Interface
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="mnesia_app_c.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+Appendix C: Fragmented Table Hashing Callback Interface
+        </span>
+      </a>
+
+  </div>
+</div>
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+              <a href="mnesia.epub" title="ePub version">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

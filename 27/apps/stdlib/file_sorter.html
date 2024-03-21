@@ -1,0 +1,1929 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="stdlib v6.0">
+
+
+    <title>file_sorter — stdlib v6.0</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-C7A0AB26.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="modules" class="page-module">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="stdlib" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+stdlib
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v6.0
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of stdlib</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L20" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+  <span translate="no">file_sorter</span> 
+  <small class="app-vsn" translate="no">(stdlib v6.0)</small>
+
+</h1>
+
+
+  <section id="moduledoc">
+<p>File sorter.</p><p>This module contains functions for sorting terms on files, merging already
+sorted files, and checking files for sortedness. Chunks containing binary terms
+are read from a sequence of files, sorted internally in memory and written on
+temporary files, which are merged producing one sorted file as output. Merging
+is provided as an optimization; it is faster when the files are already sorted,
+but it always works to sort instead of merge.</p><p>On a file, a term is represented by a header and a binary. Two options define
+the format of terms on files:</p><ul><li><p><strong><code class="inline">{header, HeaderLength}</code></strong> - <code class="inline">HeaderLength</code> determines the number of bytes
+preceding each binary and containing the length of the binary in bytes.
+Defaults to 4. The order of the header bytes is defined as follows: if <code class="inline">B</code> is
+a binary containing a header only, size <code class="inline">Size</code> of the binary is calculated as
+<code class="inline">&lt;&lt;Size:HeaderLength/unit:8&gt;&gt; = B</code>.</p></li><li><p><strong><code class="inline">{format, Format}</code></strong> - Option <code class="inline">Format</code> determines the function that is
+applied to binaries to create the terms to be sorted. Defaults to
+<code class="inline">binary_term</code>, which is equivalent to <code class="inline">fun binary_to_term/1</code>. Value <code class="inline">binary</code>
+is equivalent to <code class="inline">fun(X) -&gt; X end</code>, which means that the binaries are sorted
+as they are. This is the fastest format. If <code class="inline">Format</code> is <code class="inline">term</code>, <a href="io.html#read/2"><code class="inline">io:read/2</code></a> is
+called to read terms. In that case, only the default value of option <code class="inline">header</code>
+is allowed.</p><p>Option <code class="inline">format</code> also determines what is written to the sorted output file: if
+<code class="inline">Format</code> is <code class="inline">term</code>, then <a href="io.html#format/3"><code class="inline">io:format/3</code></a> is called to write each term, otherwise
+the binary prefixed by a header is written. Notice that the binary written is
+the same binary that was read; the results of applying function <code class="inline">Format</code> are
+thrown away when the terms have been sorted. Reading and writing terms using
+the <code class="inline">io</code> module is much slower than reading and writing binaries.</p></li></ul><p>Other options are:</p><ul><li><p><strong><code class="inline">{order, Order}</code></strong> - The default is to sort terms in ascending order, but
+that can be changed by value <code class="inline">descending</code> or by specifying an ordering
+function <code class="inline">Fun</code>. An ordering function is antisymmetric, transitive, and total.
+<code class="inline">Fun(A, B)</code> is to return <code class="inline">true</code> if <code class="inline">A</code> comes before <code class="inline">B</code> in the ordering,
+otherwise <code class="inline">false</code>. An example of a typical ordering function is less than or
+equal to, <code class="inline">=&lt;/2</code>. Using an ordering function slows down the sort considerably.
+Functions <code class="inline">keysort</code>, <code class="inline">keymerge</code> and <code class="inline">keycheck</code> do not accept ordering
+functions.</p></li><li><p><strong><code class="inline">{unique, boolean()}</code></strong> - When sorting or merging files, only the first of a
+sequence of terms that compare equal (<code class="inline">==</code>) is output if this option is set to
+<code class="inline">true</code>. Defaults to <code class="inline">false</code>, which implies that all terms that compare equal
+are output. When checking files for sortedness, a check that no pair of
+consecutive terms compares equal is done if this option is set to <code class="inline">true</code>.</p></li><li><p><strong><code class="inline">{tmpdir, TempDirectory}</code></strong> - The directory where temporary files are put
+can be chosen explicitly. The default, implied by value <code class="inline">&quot;&quot;</code>, is to put
+temporary files on the same directory as the sorted output file. If output is
+a function (see below), the directory returned by <code class="inline">file:get_cwd()</code> is used
+instead. The names of temporary files are derived from the Erlang nodename
+(<a href="../../apps/erts/erlang.html#node/0"><code class="inline">node/0</code></a>), the process identifier of the current Erlang emulator
+(<code class="inline">os:getpid()</code>), and a unique integer (<code class="inline">erlang:unique_integer([positive])</code>). A
+typical name is <code class="inline">fs_mynode@myhost_1763_4711.17</code>, where <code class="inline">17</code> is a sequence
+number. Existing files are overwritten. Temporary files are deleted unless
+some uncaught <code class="inline">EXIT</code> signal occurs.</p></li><li><p><strong><code class="inline">{compressed, boolean()}</code></strong> - Temporary files and the output file can be
+compressed. Defaults <code class="inline">false</code>, which implies that written files are not
+compressed. Regardless of the value of option <code class="inline">compressed</code>, compressed files
+can always be read. Notice that reading and writing compressed files are
+significantly slower than reading and writing uncompressed files.</p></li><li><p><strong><code class="inline">{size, Size}</code></strong> - By default about 512*1024 bytes read from files are
+sorted internally. This option is rarely needed.</p></li><li><p><strong><code class="inline">{no_files, NoFiles}</code></strong> - By default 16 files are merged at a time. This
+option is rarely needed.</p></li></ul><p>As an alternative to sorting files, a function of one argument can be specified
+as input. When called with argument <code class="inline">read</code>, the function is assumed to return
+either of the following:</p><ul><li><code class="inline">end_of_input</code> or <code class="inline">{end_of_input, Value}}</code> when there is no more input
+(<code class="inline">Value</code> is explained below).</li><li><code class="inline">{Objects, Fun}</code>, where <code class="inline">Objects</code> is a list of binaries or terms depending on
+the format, and <code class="inline">Fun</code> is a new input function.</li></ul><p>Any other value is immediately returned as value of the current call to <code class="inline">sort</code>
+or <code class="inline">keysort</code>. Each input function is called exactly once. If an error occurs,
+the last function is called with argument <code class="inline">close</code>, the reply of which is
+ignored.</p><p>A function of one argument can be specified as output. The results of sorting or
+merging the input is collected in a non-empty sequence of variable length lists
+of binaries or terms depending on the format. The output function is called with
+one list at a time, and is assumed to return a new output function. Any other
+return value is immediately returned as value of the current call to the sort or
+merge function. Each output function is called exactly once. When some output
+function has been applied to all of the results or an error occurs, the last
+function is called with argument <code class="inline">close</code>, and the reply is returned as value of
+the current call to the sort or merge function.</p><p>If a function is specified as input and the last input function returns
+<code class="inline">{end_of_input, Value}</code>, the function specified as output is called with
+argument <code class="inline">{value, Value}</code>. This makes it easy to initiate the sequence of output
+functions with a value calculated by the input functions.</p><p>As an example, consider sorting the terms on a disk log file. A function that
+reads chunks from the disk log and returns a list of binaries is used as input.
+The results are collected in a list of terms.</p><pre><code class="makeup erlang" translate="no"><span class="nf">sort</span><span class="p" data-group-id="3728985464-1">(</span><span class="n">Log</span><span class="p" data-group-id="3728985464-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="3728985464-2">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="p" data-group-id="3728985464-2">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">disk_log</span><span class="p">:</span><span class="nf">open</span><span class="p" data-group-id="3728985464-3">(</span><span class="p" data-group-id="3728985464-4">[</span><span class="p" data-group-id="3728985464-5">{</span><span class="ss">name</span><span class="p">,</span><span class="n">Log</span><span class="p" data-group-id="3728985464-5">}</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="3728985464-6">{</span><span class="ss">mode</span><span class="p">,</span><span class="ss">read_only</span><span class="p" data-group-id="3728985464-6">}</span><span class="p" data-group-id="3728985464-4">]</span><span class="p" data-group-id="3728985464-3">)</span><span class="p">,</span><span class="w">
+    </span><span class="n">Input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">input</span><span class="p" data-group-id="3728985464-7">(</span><span class="n">Log</span><span class="p">,</span><span class="w"> </span><span class="ss">start</span><span class="p" data-group-id="3728985464-7">)</span><span class="p">,</span><span class="w">
+    </span><span class="n">Output</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">output</span><span class="p" data-group-id="3728985464-8">(</span><span class="p" data-group-id="3728985464-9">[</span><span class="p" data-group-id="3728985464-9">]</span><span class="p" data-group-id="3728985464-8">)</span><span class="p">,</span><span class="w">
+    </span><span class="n">Reply</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">file_sorter</span><span class="p">:</span><span class="nf">sort</span><span class="p" data-group-id="3728985464-10">(</span><span class="n">Input</span><span class="p">,</span><span class="w"> </span><span class="n">Output</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="3728985464-11">{</span><span class="ss">format</span><span class="p">,</span><span class="ss">term</span><span class="p" data-group-id="3728985464-11">}</span><span class="p" data-group-id="3728985464-10">)</span><span class="p">,</span><span class="w">
+    </span><span class="ss">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">disk_log</span><span class="p">:</span><span class="nf">close</span><span class="p" data-group-id="3728985464-12">(</span><span class="n">Log</span><span class="p" data-group-id="3728985464-12">)</span><span class="p">,</span><span class="w">
+    </span><span class="n">Reply</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">input</span><span class="p" data-group-id="3728985464-13">(</span><span class="n">Log</span><span class="p">,</span><span class="w"> </span><span class="n">Cont</span><span class="p" data-group-id="3728985464-13">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">fun</span><span class="p" data-group-id="3728985464-14">(</span><span class="ss">close</span><span class="p" data-group-id="3728985464-14">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="ss">ok</span><span class="p">;</span><span class="w">
+       </span><span class="p" data-group-id="3728985464-15">(</span><span class="ss">read</span><span class="p" data-group-id="3728985464-15">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="k">case</span><span class="w"> </span><span class="nc">disk_log</span><span class="p">:</span><span class="nf">chunk</span><span class="p" data-group-id="3728985464-16">(</span><span class="n">Log</span><span class="p">,</span><span class="w"> </span><span class="n">Cont</span><span class="p" data-group-id="3728985464-16">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+                </span><span class="p" data-group-id="3728985464-17">{</span><span class="ss">error</span><span class="p">,</span><span class="w"> </span><span class="n">Reason</span><span class="p" data-group-id="3728985464-17">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                    </span><span class="p" data-group-id="3728985464-18">{</span><span class="ss">error</span><span class="p">,</span><span class="w"> </span><span class="n">Reason</span><span class="p" data-group-id="3728985464-18">}</span><span class="p">;</span><span class="w">
+                </span><span class="p" data-group-id="3728985464-19">{</span><span class="n">Cont2</span><span class="p">,</span><span class="w"> </span><span class="n">Terms</span><span class="p" data-group-id="3728985464-19">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                    </span><span class="p" data-group-id="3728985464-20">{</span><span class="n">Terms</span><span class="p">,</span><span class="w"> </span><span class="nf">input</span><span class="p" data-group-id="3728985464-21">(</span><span class="n">Log</span><span class="p">,</span><span class="w"> </span><span class="n">Cont2</span><span class="p" data-group-id="3728985464-21">)</span><span class="p" data-group-id="3728985464-20">}</span><span class="p">;</span><span class="w">
+                </span><span class="p" data-group-id="3728985464-22">{</span><span class="n">Cont2</span><span class="p">,</span><span class="w"> </span><span class="n">Terms</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">Badbytes</span><span class="p" data-group-id="3728985464-22">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                    </span><span class="p" data-group-id="3728985464-23">{</span><span class="n">Terms</span><span class="p">,</span><span class="w"> </span><span class="nf">input</span><span class="p" data-group-id="3728985464-24">(</span><span class="n">Log</span><span class="p">,</span><span class="w"> </span><span class="n">Cont2</span><span class="p" data-group-id="3728985464-24">)</span><span class="p" data-group-id="3728985464-23">}</span><span class="p">;</span><span class="w">
+                </span><span class="ss">eof</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                    </span><span class="ss">end_of_input</span><span class="w">
+            </span><span class="k">end</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">output</span><span class="p" data-group-id="3728985464-25">(</span><span class="n">L</span><span class="p" data-group-id="3728985464-25">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">fun</span><span class="p" data-group-id="3728985464-26">(</span><span class="ss">close</span><span class="p" data-group-id="3728985464-26">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="nc">lists</span><span class="p">:</span><span class="nf">append</span><span class="p" data-group-id="3728985464-27">(</span><span class="nc">lists</span><span class="p">:</span><span class="nf">reverse</span><span class="p" data-group-id="3728985464-28">(</span><span class="n">L</span><span class="p" data-group-id="3728985464-28">)</span><span class="p" data-group-id="3728985464-27">)</span><span class="p">;</span><span class="w">
+       </span><span class="p" data-group-id="3728985464-29">(</span><span class="n">Terms</span><span class="p" data-group-id="3728985464-29">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="nf">output</span><span class="p" data-group-id="3728985464-30">(</span><span class="p" data-group-id="3728985464-31">[</span><span class="n">Terms</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="n">L</span><span class="p" data-group-id="3728985464-31">]</span><span class="p" data-group-id="3728985464-30">)</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span></code></pre><p>For more examples of functions as input and output, see the end of the
+<code class="inline">file_sorter</code> module; the <code class="inline">term</code> format is implemented with functions.</p><p>The possible values of <code class="inline">Reason</code> returned when an error occurs are:</p><ul><li><code class="inline">bad_object</code>, <code class="inline">{bad_object, FileName}</code> - Applying the format function failed
+for some binary, or the key(s) could not be extracted from some term.</li><li><code class="inline">{bad_term, FileName}</code> - <a href="io.html#read/2"><code class="inline">io:read/2</code></a> failed to read some term.</li><li><code class="inline">{file_error, FileName, file:posix()}</code> - For an explanation of
+<a href="../../apps/kernel/file.html#t:posix/0"><code class="inline">file:posix()</code></a>, see <a href="../../apps/kernel/file.html"><code class="inline">file</code></a>.</li><li><code class="inline">{premature_eof, FileName}</code> - End-of-file was encountered inside some binary
+term.</li></ul>
+  </section>
+
+
+  <section id="summary" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#summary">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Summary</span>
+    </h1>
+<div class="summary-types summary">
+  <h2>
+    <a href="#types">Types</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:file_name/0" translate="no">file_name()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:file_names/0" translate="no">file_names()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:format/0" translate="no">format()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:format_fun/0" translate="no">format_fun()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:header_length/0" translate="no">header_length()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:i_command/0" translate="no">i_command()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:i_reply/0" translate="no">i_reply()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:infun/0" translate="no">infun()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:input/0" translate="no">input()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:input_reply/0" translate="no">input_reply()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:key_pos/0" translate="no">key_pos()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:no_files/0" translate="no">no_files()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:o_command/0" translate="no">o_command()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:o_reply/0" translate="no">o_reply()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:object/0" translate="no">object()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:option/0" translate="no">option()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:options/0" translate="no">options()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:order/0" translate="no">order()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:order_fun/0" translate="no">order_fun()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:outfun/0" translate="no">outfun()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:output/0" translate="no">output()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:output_reply/0" translate="no">output_reply()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:reason/0" translate="no">reason()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:size/0" translate="no">size()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:tmp_directory/0" translate="no">tmp_directory()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:value/0" translate="no">value()</a>
+
+      </div>
+
+    </div>
+
+</div>
+<div class="summary-functions summary">
+  <h2>
+    <a href="#functions">Functions</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#check/1" translate="no">check(FileName)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#check/2"><code class="inline">check([FileName], [])</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#check/2" translate="no">check(FileNames, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Checks files for sortedness. If a file is not sorted, the first out-of-order
+element is returned. The first term on a file has position 1.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#keycheck/2" translate="no">keycheck(KeyPos, FileName)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#keycheck/3"><code class="inline">keycheck(KeyPos, [Filename], [])</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#keycheck/3" translate="no">keycheck(KeyPos, FileNames, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Checks files for sortedness. If a file is not sorted, the first out-of-order
+element is returned. The first term on a file has position 1.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#keymerge/3" translate="no">keymerge(KeyPos, FileNames, Output)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#keymerge/4"><code class="inline">keymerge(KeyPos, FileNames, Output, [])</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#keymerge/4" translate="no">keymerge(KeyPos, FileNames, Output, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Merges tuples on files. Each input file is assumed to be sorted on key(s).</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#keysort/2" translate="no">keysort(KeyPos, FileName)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Sorts tuples on files.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#keysort/3" translate="no">keysort(KeyPos, Input, Output)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#keysort/4"><code class="inline">keysort(KeyPos, Input, Output, [])</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#keysort/4" translate="no">keysort(KeyPos, Input, Output, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Sorts tuples on files. The sort is performed on the element(s) mentioned in
+<code class="inline">KeyPos</code>. If two tuples compare equal (<code class="inline">==</code>) on one element, the next element
+according to <code class="inline">KeyPos</code> is compared. The sort is stable.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#merge/2" translate="no">merge(FileNames, Output)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#merge/3"><code class="inline">merge(FileNames, Output, [])</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#merge/3" translate="no">merge(FileNames, Output, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Merges terms on files. Each input file is assumed to be sorted.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#sort/1" translate="no">sort(FileName)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Sorts terms on files.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#sort/2" translate="no">sort(Input, Output)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#sort/3"><code class="inline">sort(Input, Output, [])</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#sort/3" translate="no">sort(Input, Output, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Sorts terms on files.</p></div>
+
+    </div>
+
+</div>
+
+  </section>
+
+
+  <section id="types" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#types">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Types</span>
+    </h1>
+    <div class="types-list">
+<section class="detail" id="t:file_name/0">
+
+  <div class="detail-header">
+    <a href="#t:file_name/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">file_name()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L211" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> file_name() :: <a href="../../apps/kernel/file.html#t:name/0">file:name</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:file_names/0">
+
+  <div class="detail-header">
+    <a href="#t:file_names/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">file_names()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L212" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> file_names() :: [<a href="../../apps/kernel/file.html#t:name/0">file:name</a>()].</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:format/0">
+
+  <div class="detail-header">
+    <a href="#t:format/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">format()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L236" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> format() :: binary_term | term | binary | <a href="#t:format_fun/0">format_fun</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:format_fun/0">
+
+  <div class="detail-header">
+    <a href="#t:format_fun/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">format_fun()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L237" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> format_fun() :: fun((<a href="../../apps/erts/erlang.html#t:binary/0">binary</a>()) -> <a href="../../apps/erts/erlang.html#t:term/0">term</a>()).</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:header_length/0">
+
+  <div class="detail-header">
+    <a href="#t:header_length/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">header_length()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L238" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> header_length() :: <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:i_command/0">
+
+  <div class="detail-header">
+    <a href="#t:i_command/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">i_command()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L213" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> i_command() :: read | close.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:i_reply/0">
+
+  <div class="detail-header">
+    <a href="#t:i_reply/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">i_reply()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L214" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> i_reply() :: end_of_input | {end_of_input, <a href="#t:value/0">value</a>()} | {[<a href="#t:object/0">object</a>()], <a href="#t:infun/0">infun</a>()} | <a href="#t:input_reply/0">input_reply</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:infun/0">
+
+  <div class="detail-header">
+    <a href="#t:infun/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">infun()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L216" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> infun() :: fun((<a href="#t:i_command/0">i_command</a>()) -> <a href="#t:i_reply/0">i_reply</a>()).</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:input/0">
+
+  <div class="detail-header">
+    <a href="#t:input/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">input()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L217" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> input() :: <a href="#t:file_names/0">file_names</a>() | <a href="#t:infun/0">infun</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:input_reply/0">
+
+  <div class="detail-header">
+    <a href="#t:input_reply/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">input_reply()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L218" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> input_reply() :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:key_pos/0">
+
+  <div class="detail-header">
+    <a href="#t:key_pos/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">key_pos()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L239" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> key_pos() :: <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer</a>() | [<a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer</a>()].</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:no_files/0">
+
+  <div class="detail-header">
+    <a href="#t:no_files/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">no_files()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L240" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> no_files() :: <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:o_command/0">
+
+  <div class="detail-header">
+    <a href="#t:o_command/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">o_command()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L219" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> o_command() :: {value, <a href="#t:value/0">value</a>()} | [<a href="#t:object/0">object</a>()] | close.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:o_reply/0">
+
+  <div class="detail-header">
+    <a href="#t:o_reply/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">o_reply()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L220" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> o_reply() :: <a href="#t:outfun/0">outfun</a>() | <a href="#t:output_reply/0">output_reply</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:object/0">
+
+  <div class="detail-header">
+    <a href="#t:object/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">object()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L221" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> object() :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>() | <a href="../../apps/erts/erlang.html#t:binary/0">binary</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:option/0">
+
+  <div class="detail-header">
+    <a href="#t:option/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">option()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L228" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> option() ::
+    {compressed, <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>()} |
+    {header, <a href="#t:header_length/0">header_length</a>()} |
+    {format, <a href="#t:format/0">format</a>()} |
+    {no_files, <a href="#t:no_files/0">no_files</a>()} |
+    {order, <a href="#t:order/0">order</a>()} |
+    {size, <a href="#t:size/0">size</a>()} |
+    {tmpdir, <a href="#t:tmp_directory/0">tmp_directory</a>()} |
+    {unique, <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:options/0">
+
+  <div class="detail-header">
+    <a href="#t:options/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">options()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L227" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> options() :: [<a href="#t:option/0">option</a>()] | <a href="#t:option/0">option</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:order/0">
+
+  <div class="detail-header">
+    <a href="#t:order/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">order()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L241" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> order() :: ascending | descending | <a href="#t:order_fun/0">order_fun</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:order_fun/0">
+
+  <div class="detail-header">
+    <a href="#t:order_fun/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">order_fun()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L242" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> order_fun() :: fun((<a href="../../apps/erts/erlang.html#t:term/0">term</a>(), <a href="../../apps/erts/erlang.html#t:term/0">term</a>()) -> <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>()).</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:outfun/0">
+
+  <div class="detail-header">
+    <a href="#t:outfun/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">outfun()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L222" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> outfun() :: fun((<a href="#t:o_command/0">o_command</a>()) -> <a href="#t:o_reply/0">o_reply</a>()).</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:output/0">
+
+  <div class="detail-header">
+    <a href="#t:output/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">output()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L223" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> output() :: <a href="#t:file_name/0">file_name</a>() | <a href="#t:outfun/0">outfun</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:output_reply/0">
+
+  <div class="detail-header">
+    <a href="#t:output_reply/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">output_reply()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L224" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> output_reply() :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:reason/0">
+
+  <div class="detail-header">
+    <a href="#t:reason/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">reason()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L246" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> reason() ::
+    bad_object |
+    {bad_object, <a href="#t:file_name/0">file_name</a>()} |
+    {bad_term, <a href="#t:file_name/0">file_name</a>()} |
+    {file_error, <a href="#t:file_name/0">file_name</a>(), <a href="../../apps/kernel/file.html#t:posix/0">file:posix</a>() | badarg | system_limit} |
+    {premature_eof, <a href="#t:file_name/0">file_name</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:size/0">
+
+  <div class="detail-header">
+    <a href="#t:size/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">size()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L243" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> size() :: <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:tmp_directory/0">
+
+  <div class="detail-header">
+    <a href="#t:tmp_directory/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">tmp_directory()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L244" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> tmp_directory() :: [] | <a href="../../apps/kernel/file.html#t:name/0">file:name</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:value/0">
+
+  <div class="detail-header">
+    <a href="#t:value/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">value()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L225" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> value() :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+
+    </div>
+  </section>
+
+  <section id="functions" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#functions">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Functions</span>
+    </h1>
+    <div class="functions-list">
+<section class="detail" id="check/1">
+
+  <div class="detail-header">
+    <a href="#check/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">check(FileName)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L403" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> check(FileName) -> Reply
+         when
+             FileName :: <a href="#t:file_name/0">file_name</a>(),
+             Reply :: {ok, [Result]} | {error, <a href="#t:reason/0">reason</a>()},
+             Result :: {FileName, TermPosition, <a href="../../apps/erts/erlang.html#t:term/0">term</a>()},
+             TermPosition :: <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#check/2"><code class="inline">check([FileName], [])</code></a></p>
+  </section>
+</section>
+<section class="detail" id="check/2">
+
+  <div class="detail-header">
+    <a href="#check/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">check(FileNames, Options)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L417" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> check(FileNames, Options) -> Reply
+         when
+             FileNames :: <a href="#t:file_names/0">file_names</a>(),
+             Options :: <a href="#t:options/0">options</a>(),
+             Reply :: {ok, [Result]} | {error, <a href="#t:reason/0">reason</a>()},
+             Result :: {FileName, TermPosition, <a href="../../apps/erts/erlang.html#t:term/0">term</a>()},
+             FileName :: <a href="#t:file_name/0">file_name</a>(),
+             TermPosition :: <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer</a>().</pre>
+
+      </div>
+
+<p>Checks files for sortedness. If a file is not sorted, the first out-of-order
+element is returned. The first term on a file has position 1.</p>
+  </section>
+</section>
+<section class="detail" id="keycheck/2">
+
+  <div class="detail-header">
+    <a href="#keycheck/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">keycheck(KeyPos, FileName)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L432" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> keycheck(KeyPos, FileName) -> Reply
+            when
+                KeyPos :: <a href="#t:key_pos/0">key_pos</a>(),
+                FileName :: <a href="#t:file_name/0">file_name</a>(),
+                Reply :: {ok, [Result]} | {error, <a href="#t:reason/0">reason</a>()},
+                Result :: {FileName, TermPosition, <a href="../../apps/erts/erlang.html#t:term/0">term</a>()},
+                TermPosition :: <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#keycheck/3"><code class="inline">keycheck(KeyPos, [Filename], [])</code></a></p>
+  </section>
+</section>
+<section class="detail" id="keycheck/3">
+
+  <div class="detail-header">
+    <a href="#keycheck/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">keycheck(KeyPos, FileNames, Options)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L447" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> keycheck(KeyPos, FileNames, Options) -> Reply
+            when
+                KeyPos :: <a href="#t:key_pos/0">key_pos</a>(),
+                FileNames :: <a href="#t:file_names/0">file_names</a>(),
+                Options :: <a href="#t:options/0">options</a>(),
+                Reply :: {ok, [Result]} | {error, <a href="#t:reason/0">reason</a>()},
+                Result :: {FileName, TermPosition, <a href="../../apps/erts/erlang.html#t:term/0">term</a>()},
+                FileName :: <a href="#t:file_name/0">file_name</a>(),
+                TermPosition :: <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer</a>().</pre>
+
+      </div>
+
+<p>Checks files for sortedness. If a file is not sorted, the first out-of-order
+element is returned. The first term on a file has position 1.</p>
+  </section>
+</section>
+<section class="detail" id="keymerge/3">
+
+  <div class="detail-header">
+    <a href="#keymerge/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">keymerge(KeyPos, FileNames, Output)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L366" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> keymerge(KeyPos, FileNames, Output) -> Reply
+            when
+                KeyPos :: <a href="#t:key_pos/0">key_pos</a>(),
+                FileNames :: <a href="#t:file_names/0">file_names</a>(),
+                Output :: <a href="#t:output/0">output</a>(),
+                Reply :: ok | {error, <a href="#t:reason/0">reason</a>()} | <a href="#t:output_reply/0">output_reply</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#keymerge/4"><code class="inline">keymerge(KeyPos, FileNames, Output, [])</code></a></p>
+  </section>
+</section>
+<section class="detail" id="keymerge/4">
+
+  <div class="detail-header">
+    <a href="#keymerge/4" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">keymerge(KeyPos, FileNames, Output, Options)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L378" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> keymerge(KeyPos, FileNames, Output, Options) -> Reply
+            when
+                KeyPos :: <a href="#t:key_pos/0">key_pos</a>(),
+                FileNames :: <a href="#t:file_names/0">file_names</a>(),
+                Output :: <a href="#t:output/0">output</a>(),
+                Options :: <a href="#t:options/0">options</a>(),
+                Reply :: ok | {error, <a href="#t:reason/0">reason</a>()} | <a href="#t:output_reply/0">output_reply</a>().</pre>
+
+      </div>
+
+<p>Merges tuples on files. Each input file is assumed to be sorted on key(s).</p>
+  </section>
+</section>
+<section class="detail" id="keysort/2">
+
+  <div class="detail-header">
+    <a href="#keysort/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">keysort(KeyPos, FileName)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L293" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> keysort(KeyPos, FileName) -> Reply
+           when
+               KeyPos :: <a href="#t:key_pos/0">key_pos</a>(),
+               FileName :: <a href="#t:file_name/0">file_name</a>(),
+               Reply :: ok | {error, <a href="#t:reason/0">reason</a>()} | <a href="#t:input_reply/0">input_reply</a>() | <a href="#t:output_reply/0">output_reply</a>().</pre>
+
+      </div>
+
+<p>Sorts tuples on files.</p>
+  </section>
+</section>
+<section class="detail" id="keysort/3">
+
+  <div class="detail-header">
+    <a href="#keysort/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">keysort(KeyPos, Input, Output)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L302" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> keysort(KeyPos, Input, Output) -> Reply
+           when
+               KeyPos :: <a href="#t:key_pos/0">key_pos</a>(),
+               Input :: <a href="#t:input/0">input</a>(),
+               Output :: <a href="#t:output/0">output</a>(),
+               Reply :: ok | {error, <a href="#t:reason/0">reason</a>()} | <a href="#t:input_reply/0">input_reply</a>() | <a href="#t:output_reply/0">output_reply</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#keysort/4"><code class="inline">keysort(KeyPos, Input, Output, [])</code></a></p>
+  </section>
+</section>
+<section class="detail" id="keysort/4">
+
+  <div class="detail-header">
+    <a href="#keysort/4" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">keysort(KeyPos, Input, Output, Options)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L316" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> keysort(KeyPos, Input, Output, Options) -> Reply
+           when
+               KeyPos :: <a href="#t:key_pos/0">key_pos</a>(),
+               Input :: <a href="#t:input/0">input</a>(),
+               Output :: <a href="#t:output/0">output</a>(),
+               Options :: <a href="#t:options/0">options</a>(),
+               Reply :: ok | {error, <a href="#t:reason/0">reason</a>()} | <a href="#t:input_reply/0">input_reply</a>() | <a href="#t:output_reply/0">output_reply</a>().</pre>
+
+      </div>
+
+<p>Sorts tuples on files. The sort is performed on the element(s) mentioned in
+<code class="inline">KeyPos</code>. If two tuples compare equal (<code class="inline">==</code>) on one element, the next element
+according to <code class="inline">KeyPos</code> is compared. The sort is stable.</p>
+  </section>
+</section>
+<section class="detail" id="merge/2">
+
+  <div class="detail-header">
+    <a href="#merge/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">merge(FileNames, Output)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L340" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> merge(FileNames, Output) -> Reply
+         when
+             FileNames :: <a href="#t:file_names/0">file_names</a>(),
+             Output :: <a href="#t:output/0">output</a>(),
+             Reply :: ok | {error, <a href="#t:reason/0">reason</a>()} | <a href="#t:output_reply/0">output_reply</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#merge/3"><code class="inline">merge(FileNames, Output, [])</code></a></p>
+  </section>
+</section>
+<section class="detail" id="merge/3">
+
+  <div class="detail-header">
+    <a href="#merge/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">merge(FileNames, Output, Options)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L351" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> merge(FileNames, Output, Options) -> Reply
+         when
+             FileNames :: <a href="#t:file_names/0">file_names</a>(),
+             Output :: <a href="#t:output/0">output</a>(),
+             Options :: <a href="#t:options/0">options</a>(),
+             Reply :: ok | {error, <a href="#t:reason/0">reason</a>()} | <a href="#t:output_reply/0">output_reply</a>().</pre>
+
+      </div>
+
+<p>Merges terms on files. Each input file is assumed to be sorted.</p>
+  </section>
+</section>
+<section class="detail" id="sort/1">
+
+  <div class="detail-header">
+    <a href="#sort/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">sort(FileName)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L259" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> sort(FileName) -> Reply
+        when
+            FileName :: <a href="#t:file_name/0">file_name</a>(),
+            Reply :: ok | {error, <a href="#t:reason/0">reason</a>()} | <a href="#t:input_reply/0">input_reply</a>() | <a href="#t:output_reply/0">output_reply</a>().</pre>
+
+      </div>
+
+<p>Sorts terms on files.</p>
+  </section>
+</section>
+<section class="detail" id="sort/2">
+
+  <div class="detail-header">
+    <a href="#sort/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">sort(Input, Output)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L267" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> sort(Input, Output) -> Reply
+        when
+            Input :: <a href="#t:input/0">input</a>(),
+            Output :: <a href="#t:output/0">output</a>(),
+            Reply :: ok | {error, <a href="#t:reason/0">reason</a>()} | <a href="#t:input_reply/0">input_reply</a>() | <a href="#t:output_reply/0">output_reply</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#sort/3"><code class="inline">sort(Input, Output, [])</code></a></p>
+  </section>
+</section>
+<section class="detail" id="sort/3">
+
+  <div class="detail-header">
+    <a href="#sort/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">sort(Input, Output, Options)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/file_sorter.erl#L278" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> sort(Input, Output, Options) -> Reply
+        when
+            Input :: <a href="#t:input/0">input</a>(),
+            Output :: <a href="#t:output/0">output</a>(),
+            Options :: <a href="#t:options/0">options</a>(),
+            Reply :: ok | {error, <a href="#t:reason/0">reason</a>()} | <a href="#t:input_reply/0">input_reply</a>() | <a href="#t:output_reply/0">output_reply</a>().</pre>
+
+      </div>
+
+<p>Sorts terms on files.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+              <a href="stdlib.epub" title="ePub version">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

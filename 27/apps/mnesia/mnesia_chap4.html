@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="mnesia v4.23.1">
+
+
+    <title>Transactions and Other Access Contexts — mnesia v4.23.1</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-1AFE0CAA.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="mnesia" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+mnesia
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v4.23.1
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of mnesia</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/lib/mnesia/doc/guides/mnesia_chap4.md#L1" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+
+  <span>Transactions and Other Access Contexts</span>
+</h1>
+
+<p>This section describes the <code class="inline">Mnesia</code> transaction system and the transaction
+properties that make <code class="inline">Mnesia</code> a fault-tolerant, distributed Database Management
+System (DBMS).</p><p>This section also describes the locking functions, including table locks and
+sticky locks, as well as alternative functions that bypass the transaction
+system in favor of improved speed and reduced overhead. These functions are
+called &quot;dirty operations&quot;. The use of nested transactions is also described. The
+following topics are included:</p><ul><li>Transaction properties, which include atomicity, consistency, isolation, and
+durability</li><li>Locking</li><li>Dirty operations</li><li>Record names versus table names</li><li>Activity concept and various access contexts</li><li>Nested transactions</li><li>Pattern matching</li><li>Iteration</li></ul><p><a href="" id="trans_prop"></a></p><h2 id="transaction-properties" class="section-heading">
+  <a href="#transaction-properties" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Transaction Properties</span>
+</h2>
+<p>Transactions are important when designing fault-tolerant, distributed systems. A
+<code class="inline">Mnesia</code> transaction is a mechanism by which a series of database operations can
+be executed as one functional block. The functional block that is run as a
+transaction is called a Functional Object (Fun), and this code can read, write,
+and delete <code class="inline">Mnesia</code> records. The Fun is evaluated as a transaction that either
+commits or terminates. If a transaction succeeds in executing the Fun, it
+replicates the action on all nodes involved, or terminates if an error occurs.</p><p>The following example shows a transaction that raises the salary of certain
+employee numbers:</p><pre><code class="makeup erlang" translate="no"><span class="w">
+</span><span class="nf">raise</span><span class="p" data-group-id="7575138824-1">(</span><span class="n">Eno</span><span class="p">,</span><span class="w"> </span><span class="n">Raise</span><span class="p" data-group-id="7575138824-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">F</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">fun</span><span class="p" data-group-id="7575138824-2">(</span><span class="p" data-group-id="7575138824-2">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                </span><span class="p" data-group-id="7575138824-3">[</span><span class="n">E</span><span class="p" data-group-id="7575138824-3">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">read</span><span class="p" data-group-id="7575138824-4">(</span><span class="ss">employee</span><span class="p">,</span><span class="w"> </span><span class="n">Eno</span><span class="p">,</span><span class="w"> </span><span class="ss">write</span><span class="p" data-group-id="7575138824-4">)</span><span class="p">,</span><span class="w">
+                </span><span class="n">Salary</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">E</span><span class="o">#</span><span class="ss">employee</span><span class="p">.</span><span class="ss">salary</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">Raise</span><span class="p">,</span><span class="w">
+                </span><span class="n">New</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">E</span><span class="o">#</span><span class="ss">employee</span><span class="p" data-group-id="7575138824-5">{</span><span class="ss">salary</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Salary</span><span class="p" data-group-id="7575138824-5">}</span><span class="p">,</span><span class="w">
+                </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">write</span><span class="p" data-group-id="7575138824-6">(</span><span class="n">New</span><span class="p" data-group-id="7575138824-6">)</span><span class="w">
+        </span><span class="k">end</span><span class="p">,</span><span class="w">
+    </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">transaction</span><span class="p" data-group-id="7575138824-7">(</span><span class="n">F</span><span class="p" data-group-id="7575138824-7">)</span><span class="p">.</span></code></pre><p>The function <code class="inline">raise/2</code> contains a Fun made up of four code lines. This Fun is
+called by the statement <code class="inline">mnesia:transaction(F)</code> and returns a value.</p><p>The <code class="inline">Mnesia</code> transaction system facilitates the construction of reliable,
+distributed systems by providing the following important properties:</p><ul><li>The transaction handler ensures that a Fun, which is placed inside a
+transaction, does not interfere with operations embedded in other transactions
+when it executes a series of operations on tables.</li><li>The transaction handler ensures that either all operations in the transaction
+are performed successfully on all nodes atomically, or the transaction fails
+without permanent effect on any node.</li><li>The <code class="inline">Mnesia</code> transactions have four important properties, called <em>A</em>tomicity,
+<em>C</em>onsistency, <em>I</em>solation, and <em>D</em>urability (ACID). These properties are
+described in the following sections.</li></ul><h3 id="atomicity" class="section-heading">
+  <a href="#atomicity" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Atomicity</span>
+</h3>
+<p>Atomicity means that database changes that are executed by a transaction take
+effect on all nodes involved, or on none of the nodes. That is, the transaction
+either succeeds entirely, or it fails entirely.</p><p>Atomicity is important when it is needed to write atomically more than one
+record in the same transaction. The function <code class="inline">raise/2</code>, shown in the previous
+example, writes one record only. The function <code class="inline">insert_emp/3</code>, shown in the
+program listing in <a href="mnesia_chap2.html#getting_started">Getting Started</a>, writes
+the record <code class="inline">employee</code> as well as employee relations, such as <code class="inline">at_dep</code> and
+<code class="inline">in_proj</code>, into the database. If this latter code is run inside a transaction,
+the transaction handler ensures that the transaction either succeeds completely,
+or not at all.</p><p><code class="inline">Mnesia</code> is a distributed DBMS where data can be replicated on several nodes. In
+many applications, it is important that a series of write operations are
+performed atomically inside a transaction. The atomicity property ensures that a
+transaction takes effect on all nodes, or none.</p><h3 id="consistency" class="section-heading">
+  <a href="#consistency" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Consistency</span>
+</h3>
+<p>The consistency property ensures that a transaction always leaves the DBMS in a
+consistent state. For example, <code class="inline">Mnesia</code> ensures that no inconsistencies occur if
+Erlang, <code class="inline">Mnesia</code>, or the computer crashes while a write operation is in
+progress.</p><h3 id="isolation" class="section-heading">
+  <a href="#isolation" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Isolation</span>
+</h3>
+<p>The isolation property ensures that transactions that execute on different nodes
+in a network, and access and manipulate the same data records, do not interfere
+with each other. The isolation property makes it possible to execute the
+function <code class="inline">raise/2</code> concurrently. A classical problem in concurrency control
+theory is the &quot;lost update problem&quot;.</p><p>The isolation property is in particular useful if the following circumstances
+occur where an employee (with employee number 123) and two processes (P1 and P2)
+are concurrently trying to raise the salary for the employee:</p><ul><li><em>Step 1:</em> The initial value of the employees salary is, for example, 5.
+Process P1 starts to execute, reads the employee record, and adds 2 to the
+salary.</li><li><em>Step 2:</em> Process P1 is for some reason pre-empted and process P2 has the
+opportunity to run.</li><li><em>Step 3:</em> Process P2 reads the record, adds 3 to the salary, and finally
+writes a new employee record with the salary set to 8.</li><li><em>Step 4:</em> Process P1 starts to run again and writes its employee record with
+salary set to 7, thus effectively overwriting and undoing the work performed
+by process P2. The update performed by P2 is lost.</li></ul><p>A transaction system makes it possible to execute two or more processes
+concurrently that manipulate the same record. The programmer does not need to
+check that the updates are synchronous; this is overseen by the transaction
+handler. All programs accessing the database through the transaction system can
+be written as if they had sole access to the data.</p><h3 id="durability" class="section-heading">
+  <a href="#durability" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Durability</span>
+</h3>
+<p>The durability property ensures that changes made to the DBMS by a transaction
+are permanent. Once a transaction is committed, all changes made to the database
+are durable, that is, they are written safely to disc and do not become
+corrupted and do not disappear.</p><blockquote><h4 class="info">Note</h4><p>The described durability feature does not entirely apply to situations where
+<code class="inline">Mnesia</code> is configured as a &quot;pure&quot; primary memory database.</p></blockquote><h2 id="locking" class="section-heading">
+  <a href="#locking" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Locking</span>
+</h2>
+<p>Different transaction managers employ different strategies to satisfy the
+isolation property. <code class="inline">Mnesia</code> uses the standard technique of two phase locking.
+That is, locks are set on records before they are read or written. <code class="inline">Mnesia</code> uses
+the following lock types:</p><ul><li><em>Read locks</em>. A read lock is set on one replica of a record before it can be
+read.</li><li><em>Write locks</em>. Whenever a transaction writes to a record, write locks are
+first set on all replicas of that particular record.</li><li><em>Read table locks</em>. If a transaction traverses an entire table in search for a
+record that satisfies some particular property, it is most inefficient to set
+read locks on the records one by one. It is also memory consuming, as the read
+locks themselves can take up considerable space if the table is large.
+Therefore, <code class="inline">Mnesia</code> can set a read lock on an entire table.</li><li><em>Write table locks</em>. If a transaction writes many records to one table, a
+write lock can be set on the entire table.</li><li><em>Sticky locks</em>. These are write locks that stay in place at a node after the
+transaction that initiated the lock has terminated.</li></ul><p><code class="inline">Mnesia</code> employs a strategy whereby functions, such as <a href="mnesia.html#read/1"><code class="inline">mnesia:read/1</code></a> acquire
+the necessary locks dynamically as the transactions execute. <code class="inline">Mnesia</code>
+automatically sets and releases the locks and the programmer does not need to
+code these operations.</p><p>Deadlocks can occur when concurrent processes set and release locks on the same
+records. <code class="inline">Mnesia</code> employs a &quot;wait-die&quot; strategy to resolve these situations. If
+<code class="inline">Mnesia</code> suspects that a deadlock can occur when a transaction tries to set a
+lock, the transaction is forced to release all its locks and sleep for a while.
+The Fun in the transaction is evaluated once more.</p><p>It is therefore important that the code inside the Fun given to
+<a href="mnesia.html#transaction/1"><code class="inline">mnesia:transaction/1</code></a> is pure. Some strange results can occur if, for example,
+messages are sent by the transaction Fun. The following example illustrates this
+situation:</p><pre><code class="makeup erlang" translate="no"><span class="w">
+</span><span class="nf">bad_raise</span><span class="p" data-group-id="0013246340-1">(</span><span class="n">Eno</span><span class="p">,</span><span class="w"> </span><span class="n">Raise</span><span class="p" data-group-id="0013246340-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">F</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">fun</span><span class="p" data-group-id="0013246340-2">(</span><span class="p" data-group-id="0013246340-2">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                </span><span class="p" data-group-id="0013246340-3">[</span><span class="n">E</span><span class="p" data-group-id="0013246340-3">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">read</span><span class="p" data-group-id="0013246340-4">(</span><span class="p" data-group-id="0013246340-5">{</span><span class="ss">employee</span><span class="p">,</span><span class="w"> </span><span class="n">Eno</span><span class="p" data-group-id="0013246340-5">}</span><span class="p" data-group-id="0013246340-4">)</span><span class="p">,</span><span class="w">
+                </span><span class="n">Salary</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">E</span><span class="o">#</span><span class="ss">employee</span><span class="p">.</span><span class="ss">salary</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">Raise</span><span class="p">,</span><span class="w">
+                </span><span class="n">New</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">E</span><span class="o">#</span><span class="ss">employee</span><span class="p" data-group-id="0013246340-6">{</span><span class="ss">salary</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Salary</span><span class="p" data-group-id="0013246340-6">}</span><span class="p">,</span><span class="w">
+                </span><span class="nc">io</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="0013246340-7">(</span><span class="s">&quot;Trying to write ... </span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0013246340-8">[</span><span class="p" data-group-id="0013246340-8">]</span><span class="p" data-group-id="0013246340-7">)</span><span class="p">,</span><span class="w">
+                </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">write</span><span class="p" data-group-id="0013246340-9">(</span><span class="n">New</span><span class="p" data-group-id="0013246340-9">)</span><span class="w">
+        </span><span class="k">end</span><span class="p">,</span><span class="w">
+    </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">transaction</span><span class="p" data-group-id="0013246340-10">(</span><span class="n">F</span><span class="p" data-group-id="0013246340-10">)</span><span class="p">.</span></code></pre><p>This transaction can write the text <code class="inline">&quot;Trying to write ... &quot;</code> 1000 times to the
+terminal. However, <code class="inline">Mnesia</code> guarantees that each transaction will eventually
+run. As a result, <code class="inline">Mnesia</code> is not only deadlock free, but also livelock free.</p><p>The <code class="inline">Mnesia</code> programmer cannot prioritize one particular transaction to execute
+before other transactions that are waiting to execute. As a result, the <code class="inline">Mnesia</code>
+DBMS transaction system is not suitable for hard real-time applications.
+However, <code class="inline">Mnesia</code> contains other features that have real-time properties.</p><p><code class="inline">Mnesia</code> dynamically sets and releases locks as transactions execute. It is
+therefore dangerous to execute code with transaction side-effects. In
+particular, a <code class="inline">receive</code> statement inside a transaction can lead to a situation
+where the transaction hangs and never returns, which in turn can cause locks not
+to release. This situation can bring the whole system to a standstill, as other
+transactions that execute in other processes, or on other nodes, are forced to
+wait for the defective transaction.</p><p>If a transaction terminates abnormally, <code class="inline">Mnesia</code> automatically releases the
+locks held by the transaction.</p><p>Up to now, examples of a number of functions that can be used inside a
+transaction have been shown. The following list shows the <em>simplest</em> <code class="inline">Mnesia</code>
+functions that work with transactions. Notice that these functions must be
+embedded in a transaction. If no enclosing transaction (or other enclosing
+<code class="inline">Mnesia</code> activity) exists, they all fail.</p><ul><li><a href="mnesia.html#transaction/1">mnesia:transaction(Fun) -&gt; {aborted, Reason} |{atomic, Value}</a>
+executes one transaction with the functional object <code class="inline">Fun</code> as the single
+parameter.</li><li><p><a href="mnesia.html#read/1">mnesia:read({Tab, Key}) -&gt; transaction abort | RecordList</a>
+reads all records with <code class="inline">Key</code> as key from table <code class="inline">Tab</code>. This function has the
+same semantics regardless of the location of <code class="inline">Table</code>. If the table is of type
+<code class="inline">bag</code>, <code class="inline">read({Tab, Key})</code> can return an arbitrarily long list. If the table is
+of type <code class="inline">set</code>, the list is either of length one or <code class="inline">[]</code>.</p></li><li><p><a href="mnesia.html#wread/1">mnesia:wread({Tab, Key}) -&gt; transaction abort | RecordList</a>
+behaves the same way as the previously listed function <code class="inline">read/1</code>, except that
+it acquires a write lock instead of a read lock. To execute a transaction that
+reads a record, modifies the record, and then writes the record, it is
+slightly more efficient to set the write lock immediately. When a
+<a href="mnesia.html#read/1"><code class="inline">mnesia:read/1</code></a> is issued, followed by a <a href="mnesia.html#write/1"><code class="inline">mnesia:write/1</code></a> the first read lock
+must be upgraded to a write lock when the write operation is executed.</p></li><li><p><a href="mnesia.html#write/1">mnesia:write(Record) -&gt; transaction abort | ok</a> writes a
+record into the database. Argument <code class="inline">Record</code> is an instance of a record. The
+function returns <code class="inline">ok</code>, or terminates the transaction if an error occurs.</p></li><li><p><a href="mnesia.html#delete/1">mnesia:delete({Tab, Key}) -&gt; transaction abort | ok</a>
+deletes all records with the given key.</p></li><li><p><a href="mnesia.html#delete_object/1">mnesia:delete_object(Record) -&gt; transaction abort | ok</a>
+deletes records with the OID <code class="inline">Record</code>. Use this function to delete only some
+records in a table of type <code class="inline">bag</code>.</p></li></ul><h3 id="sticky-locks" class="section-heading">
+  <a href="#sticky-locks" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Sticky Locks</span>
+</h3>
+<p>As previously stated, the locking strategy used by <code class="inline">Mnesia</code> is to lock one
+record when reading a record, and lock all replicas of a record when writing a
+record. However, some applications use <code class="inline">Mnesia</code> mainly for its fault-tolerant
+qualities. These applications can be configured with one node doing all the
+heavy work, and a standby node that is ready to take over if the main node
+fails. Such applications can benefit from using sticky locks instead of the
+normal locking scheme.</p><p>A sticky lock is a lock that stays in place at a node, after the transaction
+that first acquired the lock has terminated. To illustrate this, assume that the
+following transaction is executed:</p><pre><code class="makeup erlang" translate="no"><span class="w">        </span><span class="n">F</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">fun</span><span class="p" data-group-id="7781110791-1">(</span><span class="p" data-group-id="7781110791-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+              </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">write</span><span class="p" data-group-id="7781110791-2">(</span><span class="o">#</span><span class="ss">foo</span><span class="p" data-group-id="7781110791-3">{</span><span class="ss">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">kalle</span><span class="p" data-group-id="7781110791-3">}</span><span class="p" data-group-id="7781110791-2">)</span><span class="w">
+            </span><span class="k">end</span><span class="p">,</span><span class="w">
+        </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">transaction</span><span class="p" data-group-id="7781110791-4">(</span><span class="n">F</span><span class="p" data-group-id="7781110791-4">)</span><span class="p">.</span></code></pre><p>The <code class="inline">foo</code> table is replicated on the two nodes <code class="inline">N1</code> and <code class="inline">N2</code>.</p><p>Normal locking requires the following:</p><ul><li>One network RPC (two messages) to acquire the write lock</li><li>Three network messages to execute the two-phase commit protocol</li></ul><p>If sticky locks are used, the code must first be changed as follows:</p><pre><code class="makeup erlang" translate="no"><span class="w">        </span><span class="n">F</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">fun</span><span class="p" data-group-id="0271525166-1">(</span><span class="p" data-group-id="0271525166-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+              </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">s_write</span><span class="p" data-group-id="0271525166-2">(</span><span class="o">#</span><span class="ss">foo</span><span class="p" data-group-id="0271525166-3">{</span><span class="ss">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">kalle</span><span class="p" data-group-id="0271525166-3">}</span><span class="p" data-group-id="0271525166-2">)</span><span class="w">
+            </span><span class="k">end</span><span class="p">,</span><span class="w">
+        </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">transaction</span><span class="p" data-group-id="0271525166-4">(</span><span class="n">F</span><span class="p" data-group-id="0271525166-4">)</span><span class="p">.</span></code></pre><p>This code uses the function <a href="mnesia.html#s_write/1">s_write/1</a> instead of the
+function <a href="mnesia.html#write/1">write/1</a> The function <code class="inline">s_write/1</code> sets a sticky lock
+instead of a normal lock. If the table is not replicated, sticky locks have no
+special effect. If the table is replicated, and a sticky lock is set on node
+<code class="inline">N1</code>, this lock then sticks to node <code class="inline">N1</code>. The next time you try to set a sticky
+lock on the same record at node <code class="inline">N1</code>, <code class="inline">Mnesia</code> detects that the lock is already
+set and do no network operation to acquire the lock.</p><p>It is more efficient to set a local lock than it is to set a networked lock.
+Sticky locks can therefore benefit an application that uses a replicated table
+and perform most of the work on only one of the nodes.</p><p>If a record is stuck at node <code class="inline">N1</code> and you try to set a sticky lock for the
+record on node <code class="inline">N2</code>, the record must be unstuck. This operation is expensive and
+reduces performance. The unsticking is done automatically if you issue
+<code class="inline">s_write/1</code> requests at <code class="inline">N2</code>.</p><h3 id="table-locks" class="section-heading">
+  <a href="#table-locks" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Table Locks</span>
+</h3>
+<p><code class="inline">Mnesia</code> supports read and write locks on whole tables as a complement to the
+normal locks on single records. As previously stated, <code class="inline">Mnesia</code> sets and releases
+locks automatically, and the programmer does not need to code these operations.
+However, transactions that read and write many records in a specific table
+execute more efficiently if the transaction is started by setting a table lock
+on this table. This blocks other concurrent transactions from the table. The
+following two functions are used to set explicit table locks for read and write
+operations:</p><ul><li><a href="mnesia.html#read_lock_table/1">mnesia:read_lock_table(Tab)</a> sets a read lock on
+table <code class="inline">Tab</code>.</li><li><a href="mnesia.html#write_lock_table/1">mnesia:write_lock_table(Tab)</a> sets a write lock
+on table <code class="inline">Tab</code>.</li></ul><p>Alternative syntax for acquisition of table locks is as follows:</p><pre><code class="makeup erlang" translate="no"><span class="w">        </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">lock</span><span class="p" data-group-id="1790675472-1">(</span><span class="p" data-group-id="1790675472-2">{</span><span class="ss">table</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p" data-group-id="1790675472-2">}</span><span class="p">,</span><span class="w"> </span><span class="ss">read</span><span class="p" data-group-id="1790675472-1">)</span><span class="w">
+        </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">lock</span><span class="p" data-group-id="1790675472-3">(</span><span class="p" data-group-id="1790675472-4">{</span><span class="ss">table</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p" data-group-id="1790675472-4">}</span><span class="p">,</span><span class="w"> </span><span class="ss">write</span><span class="p" data-group-id="1790675472-3">)</span></code></pre><p>The matching operations in <code class="inline">Mnesia</code> can either lock the entire table or only a
+single record (when the key is bound in the pattern).</p><h3 id="global-locks" class="section-heading">
+  <a href="#global-locks" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Global Locks</span>
+</h3>
+<p>Write locks are normally acquired on all nodes where a replica of the table
+resides (and is active). Read locks are acquired on one node (the local one if a
+local replica exists).</p><p>The function <a href="mnesia.html#lock/2"><code class="inline">mnesia:lock/2</code></a> is intended to support table locks (as mentioned
+previously) but also for situations when locks need to be acquired regardless of
+how tables have been replicated:</p><pre><code class="text">        mnesia:lock({global, GlobalKey, Nodes}, LockKind)
+
+        LockKind ::= read | write | ...</code></pre><p>The lock is acquired on <code class="inline">LockItem</code> on all nodes in the node list.</p><h2 id="dirty-operations" class="section-heading">
+  <a href="#dirty-operations" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Dirty Operations</span>
+</h2>
+<p>In many applications, the overhead of processing a transaction can result in a
+loss of performance. Dirty operation are short cuts that bypass much of the
+processing and increase the speed of the transaction.</p><p>Dirty operation are often useful, for example, in a datagram routing application
+where <code class="inline">Mnesia</code> stores the routing table, and it is time consuming to start a
+whole transaction every time a packet is received. <code class="inline">Mnesia</code> has therefore
+functions that manipulate tables without using transactions. This alternative to
+processing is known as a dirty operation. However, notice the trade-off in
+avoiding the overhead of transaction processing:</p><ul><li>The atomicity and the isolation properties of <code class="inline">Mnesia</code> are lost.</li><li>The isolation property is compromised, because other Erlang processes, which
+use transaction to manipulate the data, do not get the benefit of isolation if
+dirty operations simultaneously are used to read and write records from the
+same table.</li></ul><p>The major advantage of dirty operations is that they execute much faster than
+equivalent operations that are processed as functional objects within a
+transaction.</p><p>Dirty operations are written to disc if they are performed on a table of type
+<code class="inline">disc_copies</code> or type <code class="inline">disc_only_copies</code>. <code class="inline">Mnesia</code> also ensures that all
+replicas of a table are updated if a dirty write operation is performed on a
+table.</p><p>A dirty operation ensures a certain level of consistency. For example, dirty
+operations cannot return garbled records. Hence, each individual read or write
+operation is performed in an atomic manner.</p><p>All dirty functions execute a call to <a href="../../apps/erts/erlang.html#exit/1"><code class="inline">exit({aborted, Reason})</code></a> on
+failure. Even if the following functions are executed inside a transaction no
+locks are acquired. The following functions are available:</p><ul><li><p><a href="mnesia.html#dirty_read/1">mnesia:dirty_read({Tab, Key})</a> reads one or more
+records from <code class="inline">Mnesia</code>.</p></li><li><p><a href="mnesia.html#dirty_write/1">mnesia:dirty_write(Record)</a> writes the record
+<code class="inline">Record</code>.</p></li><li><p><a href="mnesia.html#dirty_delete/1">mnesia:dirty_delete({Tab, Key})</a> deletes one or
+more records with key <code class="inline">Key</code>.</p></li><li><p><a href="mnesia.html#dirty_delete_object/1">mnesia:dirty_delete_object(Record)</a> is the
+dirty operation alternative to the function
+<a href="mnesia.html#delete_object/1">delete_object/1</a>.</p></li><li><p><a href="mnesia.html#dirty_first/1">mnesia:dirty_first(Tab)</a> returns the &quot;first&quot; key in
+table <code class="inline">Tab</code>.</p><p>Records in <code class="inline">set</code> or <code class="inline">bag</code> tables are not sorted. However, there is a record
+order that is unknown to the user. This means that a table can be traversed by
+this function with the function <a href="mnesia.html#dirty_next/2"><code class="inline">mnesia:dirty_next/2</code></a>.</p><p>If there are no records in the table, this function returns the atom
+<code class="inline">'$end_of_table'</code>. It is not recommended to use this atom as the key for any
+user records.</p></li><li><p><a href="mnesia.html#dirty_next/2">mnesia:dirty_next(Tab, Key)</a> returns the &quot;next&quot; key in
+table <code class="inline">Tab</code>. This function makes it possible to traverse a table and perform
+some operation on all records in the table. When the end of the table is
+reached, the special key <code class="inline">'$end_of_table'</code> is returned. Otherwise, the
+function returns a key that can be used to read the actual record.</p><p>The behavior is undefined if any process performs a write operation on the
+table while traversing the table with the function
+<a href="mnesia.html#dirty_next/2">dirty_next/2</a> This is because <code class="inline">write</code> operations on a
+<code class="inline">Mnesia</code> table can lead to internal reorganizations of the table itself. This
+is an implementation detail, but remember that the dirty functions are
+low-level functions.</p></li><li><p><a href="mnesia.html#dirty_last/1">mnesia:dirty_last(Tab)</a> works exactly like
+<a href="mnesia.html#dirty_first/1"><code class="inline">mnesia:dirty_first/1</code></a> but returns the last object in Erlang term order for
+the table type <code class="inline">ordered_set</code>. For all other table types,
+<a href="mnesia.html#dirty_first/1"><code class="inline">mnesia:dirty_first/1</code></a> and <a href="mnesia.html#dirty_last/1"><code class="inline">mnesia:dirty_last/1</code></a> are synonyms.</p></li><li><p><a href="mnesia.html#dirty_prev/2">mnesia:dirty_prev(Tab, Key)</a> works exactly like
+<a href="mnesia.html#dirty_next/2"><code class="inline">mnesia:dirty_next/2</code></a> but returns the previous object in Erlang term order for
+the table type <code class="inline">ordered_set</code>. For all other table types, <a href="mnesia.html#dirty_next/2"><code class="inline">mnesia:dirty_next/2</code></a>
+and <a href="mnesia.html#dirty_prev/2"><code class="inline">mnesia:dirty_prev/2</code></a> are synonyms.</p></li><li><p>The behavior of this function is undefined if the table is written on while
+being traversed. The function
+<a href="mnesia.html#read_lock_table/1">mnesia:read_lock_table(Tab)</a> can be used to
+ensure that no transaction-protected writes are performed during the
+iteration.</p></li><li><p><a href="mnesia.html#dirty_update_counter/2">mnesia:dirty_update_counter({Tab,Key}, Val)</a>.
+Counters are positive integers with a value greater than or equal to zero.
+Updating a counter adds <code class="inline">Val</code> and the counter where <code class="inline">Val</code> is a positive or
+negative integer.</p><p><code class="inline">Mnesia</code> has no special counter records. However, records of the form
+<code class="inline">{TabName, Key, Integer}</code> can be used as counters, and can be persistent.</p><p>Transaction-protected updates of counter records are not possible.</p><p>There are two significant differences when using this function instead of
+reading the record, performing the arithmetic, and writing the record:</p><ol><li>It is much more efficient.</li><li>The function <a href="mnesia.html#dirty_update_counter/2">dirty_update_counter/2</a> is
+performed as an atomic operation although it is not protected by a
+transaction. Therefore no table update is lost if two processes
+simultaneously execute the function <code class="inline">dirty_update_counter/2</code>.</li></ol></li><li><p><a href="mnesia.html#dirty_match_object/2">mnesia:dirty_match_object(Pat)</a> is the dirty
+equivalent of <a href="mnesia.html#match_object/1"><code class="inline">mnesia:match_object/1</code></a>.</p></li><li><p><a href="mnesia.html#dirty_select/2">mnesia:dirty_select(Tab, Pat)</a> is the dirty
+equivalent of <a href="mnesia.html#select/2"><code class="inline">mnesia:select/2</code></a>.</p></li><li><p><a href="mnesia.html#dirty_index_match_object/2">mnesia:dirty_index_match_object(Pat, Pos)</a>
+is the dirty equivalent of <a href="mnesia.html#index_match_object/2"><code class="inline">mnesia:index_match_object/2</code></a>.</p></li><li><p><a href="mnesia.html#dirty_index_read/3">mnesia:dirty_index_read(Tab, SecondaryKey, Pos)</a>
+is the dirty equivalent of <a href="mnesia.html#index_read/3"><code class="inline">mnesia:index_read/3</code></a>.</p></li><li><p><a href="mnesia.html#dirty_all_keys/1">mnesia:dirty_all_keys(Tab)</a> is the dirty
+equivalent of <a href="mnesia.html#all_keys/1"><code class="inline">mnesia:all_keys/1</code></a>.</p></li></ul><p><a href="" id="recordnames_tablenames"></a></p><h2 id="record-names-versus-table-names" class="section-heading">
+  <a href="#record-names-versus-table-names" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Record Names versus Table Names</span>
+</h2>
+<p>In <code class="inline">Mnesia</code>, all records in a table must have the same name. All the records
+must be instances of the same record type. The record name, however, does not
+necessarily have to be the same as the table name, although this is the case in
+most of the examples in this User's Guide. If a table is created without
+property <code class="inline">record_name</code>, the following code ensures that all records in the
+tables have the same name as the table:</p><pre><code class="makeup erlang" translate="no"><span class="w">      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">create_table</span><span class="p" data-group-id="6236728571-1">(</span><span class="ss">subscriber</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6236728571-2">[</span><span class="p" data-group-id="6236728571-2">]</span><span class="p" data-group-id="6236728571-1">)</span></code></pre><p>However, if the table is created with an explicit record name as argument, as
+shown in the following example, subscriber records can be stored in both of the
+tables regardless of the table names:</p><pre><code class="makeup erlang" translate="no"><span class="w">      </span><span class="n">TabDef</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="2150850943-1">[</span><span class="p" data-group-id="2150850943-2">{</span><span class="ss">record_name</span><span class="p">,</span><span class="w"> </span><span class="ss">subscriber</span><span class="p" data-group-id="2150850943-2">}</span><span class="p" data-group-id="2150850943-1">]</span><span class="p">,</span><span class="w">
+      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">create_table</span><span class="p" data-group-id="2150850943-3">(</span><span class="ss">my_subscriber</span><span class="p">,</span><span class="w"> </span><span class="n">TabDef</span><span class="p" data-group-id="2150850943-3">)</span><span class="p">,</span><span class="w">
+      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">create_table</span><span class="p" data-group-id="2150850943-4">(</span><span class="ss">your_subscriber</span><span class="p">,</span><span class="w"> </span><span class="n">TabDef</span><span class="p" data-group-id="2150850943-4">)</span><span class="p">.</span></code></pre><p>To access such tables, simplified access functions (as described earlier) cannot
+be used. For example, writing a subscriber record into a table requires the
+function <a href="mnesia.html#write/3"><code class="inline">mnesia:write/3</code></a> instead of the simplified functions <a href="mnesia.html#write/1"><code class="inline">mnesia:write/1</code></a>
+and <a href="mnesia.html#s_write/1"><code class="inline">mnesia:s_write/1</code></a>:</p><pre><code class="makeup erlang" translate="no"><span class="w">      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">write</span><span class="p" data-group-id="5382602670-1">(</span><span class="ss">subscriber</span><span class="p">,</span><span class="w"> </span><span class="o">#</span><span class="ss">subscriber</span><span class="p" data-group-id="5382602670-2">{</span><span class="p" data-group-id="5382602670-2">}</span><span class="p">,</span><span class="w"> </span><span class="ss">write</span><span class="p" data-group-id="5382602670-1">)</span><span class="w">
+      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">write</span><span class="p" data-group-id="5382602670-3">(</span><span class="ss">my_subscriber</span><span class="p">,</span><span class="w"> </span><span class="o">#</span><span class="ss">subscriber</span><span class="p" data-group-id="5382602670-4">{</span><span class="p" data-group-id="5382602670-4">}</span><span class="p">,</span><span class="w"> </span><span class="ss">sticky_write</span><span class="p" data-group-id="5382602670-3">)</span><span class="w">
+      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">write</span><span class="p" data-group-id="5382602670-5">(</span><span class="ss">your_subscriber</span><span class="p">,</span><span class="w"> </span><span class="o">#</span><span class="ss">subscriber</span><span class="p" data-group-id="5382602670-6">{</span><span class="p" data-group-id="5382602670-6">}</span><span class="p">,</span><span class="w"> </span><span class="ss">write</span><span class="p" data-group-id="5382602670-5">)</span></code></pre><p>The following simple code illustrates the relationship between the simplified
+access functions used in most of the examples and their more flexible
+counterparts:</p><pre><code class="makeup erlang" translate="no"><span class="w">      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">dirty_write</span><span class="p" data-group-id="2281333602-1">(</span><span class="n">Record</span><span class="p" data-group-id="2281333602-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+        </span><span class="n">Tab</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">element</span><span class="p" data-group-id="2281333602-2">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">Record</span><span class="p" data-group-id="2281333602-2">)</span><span class="p">,</span><span class="w">
+        </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">dirty_write</span><span class="p" data-group-id="2281333602-3">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Record</span><span class="p" data-group-id="2281333602-3">)</span><span class="p">.</span><span class="w">
+
+      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">dirty_delete</span><span class="p" data-group-id="2281333602-4">(</span><span class="p" data-group-id="2281333602-5">{</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p" data-group-id="2281333602-5">}</span><span class="p" data-group-id="2281333602-4">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+        </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">dirty_delete</span><span class="p" data-group-id="2281333602-6">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p" data-group-id="2281333602-6">)</span><span class="p">.</span><span class="w">
+
+      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">dirty_delete_object</span><span class="p" data-group-id="2281333602-7">(</span><span class="n">Record</span><span class="p" data-group-id="2281333602-7">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+        </span><span class="n">Tab</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">element</span><span class="p" data-group-id="2281333602-8">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">Record</span><span class="p" data-group-id="2281333602-8">)</span><span class="p">,</span><span class="w">
+        </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">dirty_delete_object</span><span class="p" data-group-id="2281333602-9">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Record</span><span class="p" data-group-id="2281333602-9">)</span><span class="w">
+
+      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">dirty_update_counter</span><span class="p" data-group-id="2281333602-10">(</span><span class="p" data-group-id="2281333602-11">{</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p" data-group-id="2281333602-11">}</span><span class="p">,</span><span class="w"> </span><span class="n">Incr</span><span class="p" data-group-id="2281333602-10">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+        </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">dirty_update_counter</span><span class="p" data-group-id="2281333602-12">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p">,</span><span class="w"> </span><span class="n">Incr</span><span class="p" data-group-id="2281333602-12">)</span><span class="p">.</span><span class="w">
+
+      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">dirty_read</span><span class="p" data-group-id="2281333602-13">(</span><span class="p" data-group-id="2281333602-14">{</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p" data-group-id="2281333602-14">}</span><span class="p" data-group-id="2281333602-13">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+        </span><span class="n">Tab</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">element</span><span class="p" data-group-id="2281333602-15">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">Record</span><span class="p" data-group-id="2281333602-15">)</span><span class="p">,</span><span class="w">
+        </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">dirty_read</span><span class="p" data-group-id="2281333602-16">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p" data-group-id="2281333602-16">)</span><span class="p">.</span><span class="w">
+
+      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">dirty_match_object</span><span class="p" data-group-id="2281333602-17">(</span><span class="n">Pattern</span><span class="p" data-group-id="2281333602-17">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+        </span><span class="n">Tab</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">element</span><span class="p" data-group-id="2281333602-18">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">Pattern</span><span class="p" data-group-id="2281333602-18">)</span><span class="p">,</span><span class="w">
+        </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">dirty_match_object</span><span class="p" data-group-id="2281333602-19">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Pattern</span><span class="p" data-group-id="2281333602-19">)</span><span class="p">.</span><span class="w">
+
+      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">dirty_index_match_object</span><span class="p" data-group-id="2281333602-20">(</span><span class="n">Pattern</span><span class="p">,</span><span class="w"> </span><span class="n">Attr</span><span class="p" data-group-id="2281333602-20">)</span><span class="w">
+        </span><span class="n">Tab</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">element</span><span class="p" data-group-id="2281333602-21">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">Pattern</span><span class="p" data-group-id="2281333602-21">)</span><span class="p">,</span><span class="w">
+        </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">dirty_index_match_object</span><span class="p" data-group-id="2281333602-22">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Pattern</span><span class="p">,</span><span class="w"> </span><span class="n">Attr</span><span class="p" data-group-id="2281333602-22">)</span><span class="p">.</span><span class="w">
+
+      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">write</span><span class="p" data-group-id="2281333602-23">(</span><span class="n">Record</span><span class="p" data-group-id="2281333602-23">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+        </span><span class="n">Tab</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">element</span><span class="p" data-group-id="2281333602-24">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">Record</span><span class="p" data-group-id="2281333602-24">)</span><span class="p">,</span><span class="w">
+        </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">write</span><span class="p" data-group-id="2281333602-25">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Record</span><span class="p">,</span><span class="w"> </span><span class="ss">write</span><span class="p" data-group-id="2281333602-25">)</span><span class="p">.</span><span class="w">
+
+      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">s_write</span><span class="p" data-group-id="2281333602-26">(</span><span class="n">Record</span><span class="p" data-group-id="2281333602-26">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+        </span><span class="n">Tab</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">element</span><span class="p" data-group-id="2281333602-27">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">Record</span><span class="p" data-group-id="2281333602-27">)</span><span class="p">,</span><span class="w">
+        </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">write</span><span class="p" data-group-id="2281333602-28">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Record</span><span class="p">,</span><span class="w"> </span><span class="ss">sticky_write</span><span class="p" data-group-id="2281333602-28">)</span><span class="p">.</span><span class="w">
+
+      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">delete</span><span class="p" data-group-id="2281333602-29">(</span><span class="p" data-group-id="2281333602-30">{</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p" data-group-id="2281333602-30">}</span><span class="p" data-group-id="2281333602-29">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+        </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">delete</span><span class="p" data-group-id="2281333602-31">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p">,</span><span class="w"> </span><span class="ss">write</span><span class="p" data-group-id="2281333602-31">)</span><span class="p">.</span><span class="w">
+
+      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">s_delete</span><span class="p" data-group-id="2281333602-32">(</span><span class="p" data-group-id="2281333602-33">{</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p" data-group-id="2281333602-33">}</span><span class="p" data-group-id="2281333602-32">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+        </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">delete</span><span class="p" data-group-id="2281333602-34">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p">,</span><span class="w"> </span><span class="ss">sticky_write</span><span class="p" data-group-id="2281333602-34">)</span><span class="p">.</span><span class="w">
+
+      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">delete_object</span><span class="p" data-group-id="2281333602-35">(</span><span class="n">Record</span><span class="p" data-group-id="2281333602-35">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+        </span><span class="n">Tab</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">element</span><span class="p" data-group-id="2281333602-36">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">Record</span><span class="p" data-group-id="2281333602-36">)</span><span class="p">,</span><span class="w">
+        </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">delete_object</span><span class="p" data-group-id="2281333602-37">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Record</span><span class="p">,</span><span class="w"> </span><span class="ss">write</span><span class="p" data-group-id="2281333602-37">)</span><span class="p">.</span><span class="w">
+
+      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">s_delete_object</span><span class="p" data-group-id="2281333602-38">(</span><span class="n">Record</span><span class="p" data-group-id="2281333602-38">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+        </span><span class="n">Tab</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">element</span><span class="p" data-group-id="2281333602-39">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">Record</span><span class="p" data-group-id="2281333602-39">)</span><span class="p">,</span><span class="w">
+        </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">delete_object</span><span class="p" data-group-id="2281333602-40">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Record</span><span class="p">,</span><span class="w"> </span><span class="ss">sticky_write</span><span class="p" data-group-id="2281333602-40">)</span><span class="p">.</span><span class="w">
+
+      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">read</span><span class="p" data-group-id="2281333602-41">(</span><span class="p" data-group-id="2281333602-42">{</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p" data-group-id="2281333602-42">}</span><span class="p" data-group-id="2281333602-41">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+        </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">read</span><span class="p" data-group-id="2281333602-43">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p">,</span><span class="w"> </span><span class="ss">read</span><span class="p" data-group-id="2281333602-43">)</span><span class="p">.</span><span class="w">
+
+      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">wread</span><span class="p" data-group-id="2281333602-44">(</span><span class="p" data-group-id="2281333602-45">{</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p" data-group-id="2281333602-45">}</span><span class="p" data-group-id="2281333602-44">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+        </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">read</span><span class="p" data-group-id="2281333602-46">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p">,</span><span class="w"> </span><span class="ss">write</span><span class="p" data-group-id="2281333602-46">)</span><span class="p">.</span><span class="w">
+
+      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">match_object</span><span class="p" data-group-id="2281333602-47">(</span><span class="n">Pattern</span><span class="p" data-group-id="2281333602-47">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+        </span><span class="n">Tab</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">element</span><span class="p" data-group-id="2281333602-48">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">Pattern</span><span class="p" data-group-id="2281333602-48">)</span><span class="p">,</span><span class="w">
+        </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">match_object</span><span class="p" data-group-id="2281333602-49">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Pattern</span><span class="p">,</span><span class="w"> </span><span class="ss">read</span><span class="p" data-group-id="2281333602-49">)</span><span class="p">.</span><span class="w">
+
+      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">index_match_object</span><span class="p" data-group-id="2281333602-50">(</span><span class="n">Pattern</span><span class="p">,</span><span class="w"> </span><span class="n">Attr</span><span class="p" data-group-id="2281333602-50">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+        </span><span class="n">Tab</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">element</span><span class="p" data-group-id="2281333602-51">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">Pattern</span><span class="p" data-group-id="2281333602-51">)</span><span class="p">,</span><span class="w">
+        </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">index_match_object</span><span class="p" data-group-id="2281333602-52">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Pattern</span><span class="p">,</span><span class="w"> </span><span class="n">Attr</span><span class="p">,</span><span class="w"> </span><span class="ss">read</span><span class="p" data-group-id="2281333602-52">)</span><span class="p">.</span></code></pre><h2 id="activity-concept-and-various-access-contexts" class="section-heading">
+  <a href="#activity-concept-and-various-access-contexts" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Activity Concept and Various Access Contexts</span>
+</h2>
+<p>As previously described, a Functional Object (Fun) performing table access
+operations, as listed here, can be passed on as arguments to the function
+<a href="mnesia.html#transaction/1">mnesia:transaction/1,2,3</a>:</p><ul><li><a href="mnesia.html#write/3">mnesia:write/3 (write/1, s_write/1)</a></li><li><a href="mnesia.html#delete/3"><code class="inline">mnesia:delete/3</code></a> (<a href="mnesia.html#delete/1"><code class="inline">mnesia:delete/1</code></a>, <a href="mnesia.html#s_delete/1"><code class="inline">mnesia:s_delete/1</code></a>)</li><li><a href="mnesia.html#delete_object/3"><code class="inline">mnesia:delete_object/3</code></a> (<a href="mnesia.html#delete_object/1"><code class="inline">mnesia:delete_object/1</code></a>,
+<a href="mnesia.html#s_delete_object/1"><code class="inline">mnesia:s_delete_object/1</code></a>)</li><li><a href="mnesia.html#read/3"><code class="inline">mnesia:read/3</code></a> (<a href="mnesia.html#read/1"><code class="inline">mnesia:read/1</code></a>, <a href="mnesia.html#wread/1"><code class="inline">mnesia:wread/1</code></a>)</li><li><a href="mnesia.html#match_object/3">mnesia:match_object/2</a> (<a href="mnesia.html#match_object/1"><code class="inline">mnesia:match_object/1</code></a>)</li><li><a href="mnesia.html#select/2">mnesia:select/3</a> (<a href="mnesia.html#select/2"><code class="inline">mnesia:select/2</code></a>)</li><li><a href="mnesia.html#foldl/3"><code class="inline">mnesia:foldl/3</code></a> (<a href="mnesia.html#foldl/4"><code class="inline">mnesia:foldl/4</code></a>, <a href="mnesia.html#foldr/3"><code class="inline">mnesia:foldr/3</code></a>, <a href="mnesia.html#foldr/4"><code class="inline">mnesia:foldr/4</code></a>)</li><li><a href="mnesia.html#all_keys/1"><code class="inline">mnesia:all_keys/1</code></a></li><li><a href="mnesia.html#index_match_object/4"><code class="inline">mnesia:index_match_object/4</code></a> (<a href="mnesia.html#index_match_object/2"><code class="inline">mnesia:index_match_object/2</code></a>)</li><li><a href="mnesia.html#index_read/3"><code class="inline">mnesia:index_read/3</code></a></li><li><a href="mnesia.html#lock/2"><code class="inline">mnesia:lock/2</code></a> (<a href="mnesia.html#read_lock_table/1"><code class="inline">mnesia:read_lock_table/1</code></a>, <a href="mnesia.html#write_lock_table/1"><code class="inline">mnesia:write_lock_table/1</code></a>)</li><li><a href="mnesia.html#table_info/2"><code class="inline">mnesia:table_info/2</code></a></li></ul><p>These functions are performed in a transaction context involving mechanisms,
+such as locking, logging, replication, checkpoints, subscriptions, and commit
+protocols. However, the same function can also be evaluated in other activity
+contexts.</p><p>The following activity access contexts are currently supported:</p><ul><li><code class="inline">transaction</code></li><li><code class="inline">sync_transaction</code></li><li><code class="inline">async_dirty</code></li><li><code class="inline">sync_dirty</code></li><li><code class="inline">ets</code></li></ul><p>By passing the same &quot;fun&quot; as argument to the function
+[mnesia:sync_transaction(Fun [, Args])](<a href="mnesia.html#sync_transaction/1"><code class="inline">mnesia:sync_transaction/1</code></a>) it is
+performed in synced transaction context. Synced transactions wait until all
+active replicas has committed the transaction (to disc) before returning from
+the <code class="inline">mnesia:sync_transaction</code> call. Using <code class="inline">sync_transaction</code> is useful in the
+following cases:</p><ul><li>When an application executes on several nodes and wants to be sure that the
+update is performed on the remote nodes before a remote process is spawned or
+a message is sent to a remote process.</li><li>When a combining transaction writes with &quot;dirty_reads&quot;, that is, the functions
+<code class="inline">dirty_match_object</code>, <code class="inline">dirty_read</code>, <code class="inline">dirty_index_read</code>, <code class="inline">dirty_select</code>, and so
+on.</li><li>When an application performs frequent or voluminous updates that can overload
+<code class="inline">Mnesia</code> on other nodes.</li></ul><p>By passing the same &quot;fun&quot; as argument to the function [mnesia:async_dirty(Fun
+[, Args])](<a href="mnesia.html#async_dirty/1"><code class="inline">mnesia:async_dirty/1</code></a>), it is performed in dirty context. The
+function calls are mapped to the corresponding dirty functions. This still
+involves logging, replication, and subscriptions but no locking, local
+transaction storage, or commit protocols are involved. Checkpoint retainers are
+updated but updated &quot;dirty&quot;. Thus, they are updated asynchronously. The
+functions wait for the operation to be performed on one node but not the others.
+If the table resides locally, no waiting occurs.</p><p>By passing the same &quot;fun&quot; as an argument to the function [mnesia:sync_dirty(Fun
+[, Args])](<a href="mnesia.html#sync_dirty/1"><code class="inline">mnesia:sync_dirty/1</code></a>), it is performed in almost the same context
+as the function <a href="mnesia.html#async_dirty/1">mnesia:async_dirty/1,2</a>. The difference
+is that the operations are performed synchronously. The caller waits for the
+updates to be performed on all active replicas. Using <code class="inline">mnesia:sync_dirty/1,2</code> is
+useful in the following cases:</p><ul><li>When an application executes on several nodes and wants to be sure that the
+update is performed on the remote nodes before a remote process is spawned or
+a message is sent to a remote process.</li><li>When an application performs frequent or voluminous updates that can overload
+<code class="inline">Mnesia</code> on the nodes.</li></ul><p>To check if your code is executed within a transaction, use the function
+<a href="mnesia.html#is_transaction/0"><code class="inline">mnesia:is_transaction/0</code></a>. It returns <code class="inline">true</code> when called inside a transaction
+context, otherwise <code class="inline">false</code>.</p><p><code class="inline">Mnesia</code> tables with storage type <code class="inline">RAM_copies</code> and <code class="inline">disc_copies</code> are implemented
+internally as <code class="inline">ets</code> tables. Applications can access the these tables directly.
+This is only recommended if all options have been weighed and the possible
+outcomes are understood. By passing the earlier mentioned &quot;fun&quot; to the function
+[mnesia:ets(Fun [, Args])](<a href="mnesia.html#ets/1"><code class="inline">mnesia:ets/1</code></a>), it is performed but in a raw
+context. The operations are performed directly on the local <code class="inline">ets</code> tables,
+assuming that the local storage type is <code class="inline">RAM_copies</code> and that the table is not
+replicated on other nodes.</p><p>Subscriptions are not triggered and no checkpoints are updated, but this
+operation is blindingly fast. Disc resident tables are not to be updated with
+the <code class="inline">ets</code> function, as the disc is not updated.</p><p>The Fun can also be passed as an argument to the function
+<a href="mnesia.html#activity/2">mnesia:activity/2,3,4</a>, which enables use of customized
+activity access callback modules. It can either be obtained directly by stating
+the module name as argument, or implicitly by use of configuration parameter
+<code class="inline">access_module</code>. A customized callback module can be used for several purposes,
+such as providing triggers, integrity constraints, runtime statistics, or
+virtual tables.</p><p>The callback module does not have to access real <code class="inline">Mnesia</code> tables, it is free to
+do whatever it wants as long as the callback interface is fulfilled.</p><p><a href="mnesia_app_b.html">Appendix B, Activity Access Callback Interface</a> provides the
+source code, <code class="inline">mnesia_frag.erl</code>, for one alternative implementation. The
+context-sensitive function <a href="mnesia.html#table_info/2"><code class="inline">mnesia:table_info/2</code></a> can be used to provide virtual
+information about a table. One use of this is to perform <code class="inline">QLC</code> queries within an
+activity context with a customized callback module. By providing table
+information about table indexes and other <code class="inline">QLC</code> requirements, <code class="inline">QLC</code> can be used
+as a generic query language to access virtual tables.</p><p>QLC queries can be performed in all these activity contexts (<code class="inline">transaction</code>,
+<code class="inline">sync_transaction</code>, <code class="inline">async_dirty</code>, <code class="inline">sync_dirty</code>, and <code class="inline">ets</code>). The <code class="inline">ets</code> activity
+only works if the table has no indexes.</p><blockquote><h4 class="info">Note</h4><p>The function <code class="inline">mnesia:dirty_*</code> always executes with <code class="inline">async_dirty</code> semantics
+regardless of which activity access contexts that are started. It can even
+start contexts without any enclosing activity access context.</p></blockquote><h2 id="nested-transactions" class="section-heading">
+  <a href="#nested-transactions" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Nested Transactions</span>
+</h2>
+<p>Transactions can be nested in an arbitrary fashion. A child transaction must run
+in the same process as its parent. When a child transaction terminates, the
+caller of the child transaction gets return value <code class="inline">{aborted, Reason}</code> and any
+work performed by the child is erased. If a child transaction commits, the
+records written by the child are propagated to the parent.</p><p>No locks are released when child transactions terminate. Locks created by a
+sequence of nested transactions are kept until the topmost transaction
+terminates. Furthermore, any update performed by a nested transaction is only
+propagated in such a manner so that the parent of the nested transaction sees
+the updates. No final commitment is done until the top-level transaction
+terminates. So, although a nested transaction returns <code class="inline">{atomic, Val}</code>, if the
+enclosing parent transaction terminates, the entire nested operation terminates.</p><p>The ability to have nested transaction with identical semantics as top-level
+transaction makes it easier to write library functions that manipulate <code class="inline">Mnesia</code>
+tables.</p><p>Consider a function that adds a subscriber to a telephony system:</p><pre><code class="makeup erlang" translate="no"><span class="w">      </span><span class="nf">add_subscriber</span><span class="p" data-group-id="9923519445-1">(</span><span class="n">S</span><span class="p" data-group-id="9923519445-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+          </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">transaction</span><span class="p" data-group-id="9923519445-2">(</span><span class="nf">fun</span><span class="p" data-group-id="9923519445-3">(</span><span class="p" data-group-id="9923519445-3">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+              </span><span class="k">case</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">read</span><span class="p" data-group-id="9923519445-4">(</span><span class="w"> </span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p">.</span></code></pre><p>This function needs to be called as a transaction. Assume that you wish to write
+a function that both calls the function <code class="inline">add_subscriber/1</code> and is in itself
+protected by the context of a transaction. By calling <code class="inline">add_subscriber/1</code> from
+within another transaction, a nested transaction is created.</p><p>Also, different activity access contexts can be mixed while nesting. However,
+the dirty ones (<code class="inline">async_dirty</code>, <code class="inline">sync_dirty</code>, and <code class="inline">ets</code>) inherit the transaction
+semantics if they are called inside a transaction and thus grab locks and use
+two or three phase commit.</p><p><em>Example:</em></p><pre><code class="makeup erlang" translate="no"><span class="w">      </span><span class="nf">add_subscriber</span><span class="p" data-group-id="2449071799-1">(</span><span class="n">S</span><span class="p" data-group-id="2449071799-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+          </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">transaction</span><span class="p" data-group-id="2449071799-2">(</span><span class="nf">fun</span><span class="p" data-group-id="2449071799-3">(</span><span class="p" data-group-id="2449071799-3">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+             </span><span class="c1">%% Transaction context</span><span class="w">
+             </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">read</span><span class="p" data-group-id="2449071799-4">(</span><span class="p" data-group-id="2449071799-5">{</span><span class="ss">some_tab</span><span class="p">,</span><span class="w"> </span><span class="ss">some_data</span><span class="p" data-group-id="2449071799-5">}</span><span class="p" data-group-id="2449071799-4">)</span><span class="p">,</span><span class="w">
+             </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">sync_dirty</span><span class="p" data-group-id="2449071799-6">(</span><span class="nf">fun</span><span class="p" data-group-id="2449071799-7">(</span><span class="p" data-group-id="2449071799-7">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                 </span><span class="c1">%% Still in a transaction context.</span><span class="w">
+                 </span><span class="k">case</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">read</span><span class="p" data-group-id="2449071799-8">(</span><span class="w"> </span><span class="p">.</span><span class="p">.</span><span class="p" data-group-id="2449071799-8">)</span><span class="w"> </span><span class="p">.</span><span class="p">.</span><span class="k">end</span><span class="p" data-group-id="2449071799-6">)</span><span class="p">,</span><span class="w"> </span><span class="k">end</span><span class="p" data-group-id="2449071799-2">)</span><span class="p">.</span><span class="w">
+      </span><span class="nf">add_subscriber2</span><span class="p" data-group-id="2449071799-9">(</span><span class="n">S</span><span class="p" data-group-id="2449071799-9">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+          </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">sync_dirty</span><span class="p" data-group-id="2449071799-10">(</span><span class="nf">fun</span><span class="p" data-group-id="2449071799-11">(</span><span class="p" data-group-id="2449071799-11">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+             </span><span class="c1">%% In dirty context</span><span class="w">
+             </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">read</span><span class="p" data-group-id="2449071799-12">(</span><span class="p" data-group-id="2449071799-13">{</span><span class="ss">some_tab</span><span class="p">,</span><span class="w"> </span><span class="ss">some_data</span><span class="p" data-group-id="2449071799-13">}</span><span class="p" data-group-id="2449071799-12">)</span><span class="p">,</span><span class="w">
+             </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">transaction</span><span class="p" data-group-id="2449071799-14">(</span><span class="nf">fun</span><span class="p" data-group-id="2449071799-15">(</span><span class="p" data-group-id="2449071799-15">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                 </span><span class="c1">%% In a transaction context.</span><span class="w">
+                 </span><span class="k">case</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">read</span><span class="p" data-group-id="2449071799-16">(</span><span class="w"> </span><span class="p">.</span><span class="p">.</span><span class="p" data-group-id="2449071799-16">)</span><span class="w"> </span><span class="p">.</span><span class="p">.</span><span class="k">end</span><span class="p" data-group-id="2449071799-14">)</span><span class="p">,</span><span class="w"> </span><span class="k">end</span><span class="p" data-group-id="2449071799-10">)</span><span class="p">.</span></code></pre><h2 id="pattern-matching" class="section-heading">
+  <a href="#pattern-matching" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Pattern Matching</span>
+</h2>
+<p><a href="" id="matching"></a></p><p>When the function <a href="mnesia.html#read/3"><code class="inline">mnesia:read/3</code></a> cannot be used, <code class="inline">Mnesia</code> provides the
+programmer with several functions for matching records against a pattern. The
+most useful ones are the following:</p><pre><code class="makeup erlang" translate="no"><span class="w">      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">select</span><span class="p" data-group-id="4304708387-1">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">MatchSpecification</span><span class="p">,</span><span class="w"> </span><span class="n">LockKind</span><span class="p" data-group-id="4304708387-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+          </span><span class="ss">transaction</span><span class="w"> </span><span class="ss">abort</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="4304708387-2">[</span><span class="n">ObjectList</span><span class="p" data-group-id="4304708387-2">]</span><span class="w">
+      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">select</span><span class="p" data-group-id="4304708387-3">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">MatchSpecification</span><span class="p">,</span><span class="w"> </span><span class="n">NObjects</span><span class="p">,</span><span class="w"> </span><span class="n">Lock</span><span class="p" data-group-id="4304708387-3">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+          </span><span class="ss">transaction</span><span class="w"> </span><span class="ss">abort</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="4304708387-4">{</span><span class="p" data-group-id="4304708387-5">[</span><span class="n">Object</span><span class="p" data-group-id="4304708387-5">]</span><span class="p">,</span><span class="n">Continuation</span><span class="p" data-group-id="4304708387-4">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="ss">&#39;$end_of_table&#39;</span><span class="w">
+      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">select</span><span class="p" data-group-id="4304708387-6">(</span><span class="n">Cont</span><span class="p" data-group-id="4304708387-6">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+          </span><span class="ss">transaction</span><span class="w"> </span><span class="ss">abort</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="4304708387-7">{</span><span class="p" data-group-id="4304708387-8">[</span><span class="n">Object</span><span class="p" data-group-id="4304708387-8">]</span><span class="p">,</span><span class="n">Continuation</span><span class="p" data-group-id="4304708387-7">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="ss">&#39;$end_of_table&#39;</span><span class="w">
+      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">match_object</span><span class="p" data-group-id="4304708387-9">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Pattern</span><span class="p">,</span><span class="w"> </span><span class="n">LockKind</span><span class="p" data-group-id="4304708387-9">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+          </span><span class="ss">transaction</span><span class="w"> </span><span class="ss">abort</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="n">RecordList</span></code></pre><p>These functions match a <code class="inline">Pattern</code> against all records in table <code class="inline">Tab</code>. In a
+<a href="mnesia.html#select/2">mnesia:select</a> call, <code class="inline">Pattern</code> is a part of
+<code class="inline">MatchSpecification</code> described in the following. It is not necessarily performed
+as an exhaustive search of the entire table. By using indexes and bound values
+in the key of the pattern, the actual work done by the function can be condensed
+into a few hash lookups. Using <code class="inline">ordered_set</code> tables can reduce the search space
+if the keys are partially bound.</p><p>The pattern provided to the functions must be a valid record, and the first
+element of the provided tuple must be the <code class="inline">record_name</code> of the table. The
+special element <code class="inline">'_'</code> matches any data structure in Erlang (also known as an
+Erlang term). The special elements <code class="inline">'$&lt;number&gt;'</code> behave as Erlang variables,
+that is, they match anything, bind the first occurrence, and match the coming
+occurrences of that variable against the bound value.</p><p>Use function <a href="mnesia.html#table_info/2">mnesia:table_info(Tab, wild_pattern)</a> to
+obtain a basic pattern, which matches all records in a table, or use the default
+value in record creation. Do not make the pattern hard-coded, as this makes the
+code more vulnerable to future changes of the record definition.</p><p><em>Example:</em></p><pre><code class="makeup erlang" translate="no"><span class="w">      </span><span class="n">Wildpattern</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">table_info</span><span class="p" data-group-id="4796944315-1">(</span><span class="ss">employee</span><span class="p">,</span><span class="w"> </span><span class="ss">wild_pattern</span><span class="p" data-group-id="4796944315-1">)</span><span class="p">,</span><span class="w">
+      </span><span class="c1">%% Or use</span><span class="w">
+      </span><span class="n">Wildpattern</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">#</span><span class="ss">employee</span><span class="p" data-group-id="4796944315-2">{</span><span class="p">_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">&#39;_&#39;</span><span class="p" data-group-id="4796944315-2">}</span><span class="p">,</span></code></pre><p>For the employee table, the wild pattern looks as follows:</p><pre><code class="text">      {employee, '_', '_', '_', '_', '_',' _'}.</code></pre><p>To constrain the match, it is needed to replace some of the <code class="inline">'_'</code> elements. The
+code for matching out all female employees looks as follows:</p><pre><code class="makeup erlang" translate="no"><span class="w">      </span><span class="n">Pat</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">#</span><span class="ss">employee</span><span class="p" data-group-id="9187046800-1">{</span><span class="ss">sex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">female</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">&#39;_&#39;</span><span class="p" data-group-id="9187046800-1">}</span><span class="p">,</span><span class="w">
+      </span><span class="n">F</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">fun</span><span class="p" data-group-id="9187046800-2">(</span><span class="p" data-group-id="9187046800-2">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">match_object</span><span class="p" data-group-id="9187046800-3">(</span><span class="n">Pat</span><span class="p" data-group-id="9187046800-3">)</span><span class="w"> </span><span class="k">end</span><span class="p">,</span><span class="w">
+      </span><span class="n">Females</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">transaction</span><span class="p" data-group-id="9187046800-4">(</span><span class="n">F</span><span class="p" data-group-id="9187046800-4">)</span><span class="p">.</span></code></pre><p>The match function can also be used to check the equality of different
+attributes. For example, to find all employees with an employee number equal to
+their room number:</p><pre><code class="makeup erlang" translate="no"><span class="w">      </span><span class="n">Pat</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">#</span><span class="ss">employee</span><span class="p" data-group-id="4474996250-1">{</span><span class="ss">emp_no</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">&#39;$1&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">room_no</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">&#39;$1&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">&#39;_&#39;</span><span class="p" data-group-id="4474996250-1">}</span><span class="p">,</span><span class="w">
+      </span><span class="n">F</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">fun</span><span class="p" data-group-id="4474996250-2">(</span><span class="p" data-group-id="4474996250-2">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">match_object</span><span class="p" data-group-id="4474996250-3">(</span><span class="n">Pat</span><span class="p" data-group-id="4474996250-3">)</span><span class="w"> </span><span class="k">end</span><span class="p">,</span><span class="w">
+      </span><span class="n">Odd</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">transaction</span><span class="p" data-group-id="4474996250-4">(</span><span class="n">F</span><span class="p" data-group-id="4474996250-4">)</span><span class="p">.</span></code></pre><p>The function <a href="mnesia.html#match_object/3"><code class="inline">mnesia:match_object/3</code></a> lacks some important features that
+<a href="mnesia.html#select/2">mnesia:select/3</a> have. For example, <a href="mnesia.html#match_object/3"><code class="inline">mnesia:match_object/3</code></a>
+can only return the matching records, and it cannot express constraints other
+than equality. To find the names of the male employees on the second floor:</p><pre><code class="makeup erlang" translate="no"><span class="w">
+      </span><span class="n">MatchHead</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">#</span><span class="ss">employee</span><span class="p" data-group-id="9843147028-1">{</span><span class="ss">name</span><span class="o">=</span><span class="ss">&#39;$1&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">sex</span><span class="o">=</span><span class="ss">male</span><span class="p">,</span><span class="w"> </span><span class="ss">room_no</span><span class="o">=</span><span class="p" data-group-id="9843147028-2">{</span><span class="ss">&#39;$2&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;_&#39;</span><span class="p" data-group-id="9843147028-2">}</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="o">=</span><span class="ss">&#39;_&#39;</span><span class="p" data-group-id="9843147028-1">}</span><span class="p">,</span><span class="w">
+      </span><span class="n">Guard</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="9843147028-3">[</span><span class="p" data-group-id="9843147028-4">{</span><span class="ss">&#39;&gt;=&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;$2&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">220</span><span class="p" data-group-id="9843147028-4">}</span><span class="p">,</span><span class="p" data-group-id="9843147028-5">{</span><span class="ss">&#39;&lt;&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;$2&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">230</span><span class="p" data-group-id="9843147028-5">}</span><span class="p" data-group-id="9843147028-3">]</span><span class="p">,</span><span class="w">
+      </span><span class="n">Result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">&#39;$1&#39;</span><span class="p">,</span><span class="w">
+      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">select</span><span class="p" data-group-id="9843147028-6">(</span><span class="ss">employee</span><span class="p">,</span><span class="p" data-group-id="9843147028-7">[</span><span class="p" data-group-id="9843147028-8">{</span><span class="n">MatchHead</span><span class="p">,</span><span class="w"> </span><span class="n">Guard</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="9843147028-9">[</span><span class="n">Result</span><span class="p" data-group-id="9843147028-9">]</span><span class="p" data-group-id="9843147028-8">}</span><span class="p" data-group-id="9843147028-7">]</span><span class="p" data-group-id="9843147028-6">)</span></code></pre><p>The function <code class="inline">select</code> can be used to add more constraints and create output that
+cannot be done with <a href="mnesia.html#match_object/3"><code class="inline">mnesia:match_object/3</code></a>.</p><p>The second argument to <code class="inline">select</code> is a <code class="inline">MatchSpecification</code>. A
+<code class="inline">MatchSpecification</code> is a list of <code class="inline">MatchFunction</code>s, where each <code class="inline">MatchFunction</code>
+consists of a tuple containing <code class="inline">{MatchHead, MatchCondition, MatchBody}</code>:</p><ul><li><code class="inline">MatchHead</code> is the same pattern as used in <a href="mnesia.html#match_object/3"><code class="inline">mnesia:match_object/3</code></a> described
+earlier.</li><li><code class="inline">MatchCondition</code> is a list of extra constraints applied to each record.</li><li><code class="inline">MatchBody</code> constructs the return values.</li></ul><p>For details about the match specifications, see &quot;Match Specifications in Erlang&quot;
+in <a href="../../apps/erts/index.html">ERTS</a> User's Guide. For more information, see the
+<a href="../../apps/stdlib/ets.html"><code class="inline">ets</code></a> and <a href="../../apps/stdlib/dets.html"><code class="inline">dets</code></a> manual pages in <code class="inline">STDLIB</code>.</p><p>The functions <a href="mnesia.html#select/4">select/4</a> and <a href="mnesia.html#select/2">select/1</a>
+are used to get a limited number of results, where <code class="inline">Continuation</code> gets the next
+chunk of results. <code class="inline">Mnesia</code> uses <code class="inline">NObjects</code> as a recommendation only. Thus, more
+or less results than specified with <code class="inline">NObjects</code> can be returned in the result
+list, even the empty list can be returned even if there are more results to
+collect.</p><blockquote><h4 class="warning">Warning</h4><p>There is a severe performance penalty in using <code class="inline">mnesia:select/1,2,3,4</code> after
+any modifying operation is done on that table in the same transaction. That
+is, avoid using <a href="mnesia.html#write/1"><code class="inline">mnesia:write/1</code></a> or <a href="mnesia.html#delete/1"><code class="inline">mnesia:delete/1</code></a> before <code class="inline">mnesia:select</code>
+in the same transaction.</p></blockquote><p>If the key attribute is bound in a pattern, the match operation is efficient.
+However, if the key attribute in a pattern is given as <code class="inline">'_'</code> or <code class="inline">'$1'</code>, the
+whole <code class="inline">employee</code> table must be searched for records that match. Hence if the
+table is large, this can become a time-consuming operation, but it can be
+remedied with indexes (see <a href="mnesia_chap5.html#indexing">Indexing</a>) if the function
+<a href="mnesia.html#match_object/1">mnesia:match_object</a> is used.</p><p>QLC queries can also be used to search <code class="inline">Mnesia</code> tables. By using the function
+<a href="mnesia.html#table/1">mnesia:table/1,2</a> as the generator inside a QLC query, you
+let the query operate on a <code class="inline">Mnesia</code> table. <code class="inline">Mnesia</code>-specific options to
+<a href="mnesia.html#table/2"><code class="inline">mnesia:table/2</code></a> are <code class="inline">{lock, Lock}</code>, <code class="inline">{n_objects,Integer}</code>, and
+<code class="inline">{traverse, SelMethod}</code>:</p><ul><li><code class="inline">lock</code> specifies whether <code class="inline">Mnesia</code> is to acquire a read or write lock on the
+table.</li><li><code class="inline">n_objects</code> specifies how many results are to be returned in each chunk to
+QLC.</li><li><code class="inline">traverse</code> specifies which function <code class="inline">Mnesia</code> is to use to traverse the table.
+Default <code class="inline">select</code> is used, but by using
+<code class="inline">{traverse, {select, MatchSpecification}}</code> as an option to
+<a href="mnesia.html#table/1">mnesia:table/2</a> the user can specify its own view of the
+table.</li></ul><p>If no options are specified, a read lock is acquired, 100 results are returned
+in each chunk, and <code class="inline">select</code> is used to traverse the table, that is:</p><pre><code class="makeup erlang" translate="no"><span class="w">      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">table</span><span class="p" data-group-id="2503017755-1">(</span><span class="n">Tab</span><span class="p" data-group-id="2503017755-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+          </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">table</span><span class="p" data-group-id="2503017755-2">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2503017755-3">[</span><span class="p" data-group-id="2503017755-4">{</span><span class="ss">n_objects</span><span class="p">,</span><span class="mi">100</span><span class="p" data-group-id="2503017755-4">}</span><span class="p">,</span><span class="p" data-group-id="2503017755-5">{</span><span class="ss">lock</span><span class="p">,</span><span class="w"> </span><span class="ss">read</span><span class="p" data-group-id="2503017755-5">}</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2503017755-6">{</span><span class="ss">traverse</span><span class="p">,</span><span class="w"> </span><span class="ss">select</span><span class="p" data-group-id="2503017755-6">}</span><span class="p" data-group-id="2503017755-3">]</span><span class="p" data-group-id="2503017755-2">)</span><span class="p">.</span></code></pre><p>The function <a href="mnesia.html#all_keys/1">mnesia:all_keys(Tab)</a> returns all keys in a
+table.</p><h2 id="iteration" class="section-heading">
+  <a href="#iteration" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Iteration</span>
+</h2>
+<p><code class="inline">Mnesia</code> provides the following functions that iterate over all the records in a
+table:</p><pre><code class="makeup erlang" translate="no"><span class="w">      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">foldl</span><span class="p" data-group-id="3317361735-1">(</span><span class="n">Fun</span><span class="p">,</span><span class="w"> </span><span class="n">Acc0</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p" data-group-id="3317361735-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="n">NewAcc</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="ss">transaction</span><span class="w"> </span><span class="ss">abort</span><span class="w">
+      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">foldr</span><span class="p" data-group-id="3317361735-2">(</span><span class="n">Fun</span><span class="p">,</span><span class="w"> </span><span class="n">Acc0</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p" data-group-id="3317361735-2">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="n">NewAcc</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="ss">transaction</span><span class="w"> </span><span class="ss">abort</span><span class="w">
+      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">foldl</span><span class="p" data-group-id="3317361735-3">(</span><span class="n">Fun</span><span class="p">,</span><span class="w"> </span><span class="n">Acc0</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">LockType</span><span class="p" data-group-id="3317361735-3">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="n">NewAcc</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="ss">transaction</span><span class="w"> </span><span class="ss">abort</span><span class="w">
+      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">foldr</span><span class="p" data-group-id="3317361735-4">(</span><span class="n">Fun</span><span class="p">,</span><span class="w"> </span><span class="n">Acc0</span><span class="p">,</span><span class="w"> </span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">LockType</span><span class="p" data-group-id="3317361735-4">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="n">NewAcc</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="ss">transaction</span><span class="w"> </span><span class="ss">abort</span></code></pre><p>These functions iterate over the <code class="inline">Mnesia</code> table <code class="inline">Tab</code> and apply the function
+<code class="inline">Fun</code> to each record. <code class="inline">Fun</code> takes two arguments, the first is a record from the
+table, and the second is the accumulator. <code class="inline">Fun</code> returns a new accumulator.</p><p>The first time <code class="inline">Fun</code> is applied, <code class="inline">Acc0</code> is the second argument. The next time
+<code class="inline">Fun</code> is called, the return value from the previous call is used as the second
+argument. The term the last call to <code class="inline">Fun</code> returns is the return value of the
+function <a href="mnesia.html#foldl/3"><code class="inline">mnesia:foldl/3</code></a> or <a href="mnesia.html#foldr/3"><code class="inline">mnesia:foldr/3</code></a>.</p><p>The difference between these functions is the order the table is accessed for
+<code class="inline">ordered_set</code> tables. For other table types the functions are equivalent.</p><p><code class="inline">LockType</code> specifies what type of lock that is to be acquired for the iteration,
+default is <code class="inline">read</code>. If records are written or deleted during the iteration, a
+write lock is to be acquired.</p><p>These functions can be used to find records in a table when it is impossible to
+write constraints for the function <a href="mnesia.html#match_object/3"><code class="inline">mnesia:match_object/3</code></a>, or when you want to
+perform some action on certain records.</p><p>For example, finding all the employees who have a salary less than 10 can look
+as follows:</p><pre><code class="makeup erlang" translate="no"><span class="w">      </span><span class="nf">find_low_salaries</span><span class="p" data-group-id="6035295745-1">(</span><span class="p" data-group-id="6035295745-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+        </span><span class="n">Constraint</span><span class="w"> </span><span class="o">=</span><span class="w">
+             </span><span class="nf">fun</span><span class="p" data-group-id="6035295745-2">(</span><span class="n">Emp</span><span class="p">,</span><span class="w"> </span><span class="n">Acc</span><span class="p" data-group-id="6035295745-2">)</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="n">Emp</span><span class="o">#</span><span class="ss">employee</span><span class="p">.</span><span class="ss">salary</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">10</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                    </span><span class="p" data-group-id="6035295745-3">[</span><span class="n">Emp</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="n">Acc</span><span class="p" data-group-id="6035295745-3">]</span><span class="p">;</span><span class="w">
+                </span><span class="p" data-group-id="6035295745-4">(</span><span class="p">_</span><span class="p">,</span><span class="w"> </span><span class="n">Acc</span><span class="p" data-group-id="6035295745-4">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                    </span><span class="n">Acc</span><span class="w">
+             </span><span class="k">end</span><span class="p">,</span><span class="w">
+        </span><span class="n">Find</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">fun</span><span class="p" data-group-id="6035295745-5">(</span><span class="p" data-group-id="6035295745-5">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">foldl</span><span class="p" data-group-id="6035295745-6">(</span><span class="n">Constraint</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6035295745-7">[</span><span class="p" data-group-id="6035295745-7">]</span><span class="p">,</span><span class="w"> </span><span class="ss">employee</span><span class="p" data-group-id="6035295745-6">)</span><span class="w"> </span><span class="k">end</span><span class="p">,</span><span class="w">
+        </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">transaction</span><span class="p" data-group-id="6035295745-8">(</span><span class="n">Find</span><span class="p" data-group-id="6035295745-8">)</span><span class="p">.</span></code></pre><p>To raise the salary to 10 for everyone with a salary less than 10 and return the
+sum of all raises:</p><pre><code class="makeup erlang" translate="no"><span class="w">      </span><span class="nf">increase_low_salaries</span><span class="p" data-group-id="9389844948-1">(</span><span class="p" data-group-id="9389844948-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+         </span><span class="n">Increase</span><span class="w"> </span><span class="o">=</span><span class="w">
+             </span><span class="nf">fun</span><span class="p" data-group-id="9389844948-2">(</span><span class="n">Emp</span><span class="p">,</span><span class="w"> </span><span class="n">Acc</span><span class="p" data-group-id="9389844948-2">)</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="n">Emp</span><span class="o">#</span><span class="ss">employee</span><span class="p">.</span><span class="ss">salary</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">10</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                    </span><span class="n">OldS</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Emp</span><span class="o">#</span><span class="ss">employee</span><span class="p">.</span><span class="ss">salary</span><span class="p">,</span><span class="w">
+                    </span><span class="ss">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">write</span><span class="p" data-group-id="9389844948-3">(</span><span class="n">Emp</span><span class="o">#</span><span class="ss">employee</span><span class="p" data-group-id="9389844948-4">{</span><span class="ss">salary</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="p" data-group-id="9389844948-4">}</span><span class="p" data-group-id="9389844948-3">)</span><span class="p">,</span><span class="w">
+                    </span><span class="n">Acc</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">10</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">OldS</span><span class="p">;</span><span class="w">
+                </span><span class="p" data-group-id="9389844948-5">(</span><span class="p">_</span><span class="p">,</span><span class="w"> </span><span class="n">Acc</span><span class="p" data-group-id="9389844948-5">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                    </span><span class="n">Acc</span><span class="w">
+             </span><span class="k">end</span><span class="p">,</span><span class="w">
+        </span><span class="n">IncLow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">fun</span><span class="p" data-group-id="9389844948-6">(</span><span class="p" data-group-id="9389844948-6">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">foldl</span><span class="p" data-group-id="9389844948-7">(</span><span class="n">Increase</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="ss">employee</span><span class="p">,</span><span class="w"> </span><span class="ss">write</span><span class="p" data-group-id="9389844948-7">)</span><span class="w"> </span><span class="k">end</span><span class="p">,</span><span class="w">
+        </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">transaction</span><span class="p" data-group-id="9389844948-8">(</span><span class="n">IncLow</span><span class="p" data-group-id="9389844948-8">)</span><span class="p">.</span></code></pre><p>Many nice things can be done with the iterator functions but take some caution
+about performance and memory use for large tables.</p><p>Call these iteration functions on nodes that contain a replica of the table.
+Each call to the function <code class="inline">Fun</code> access the table and if the table resides on
+another node it generates much unnecessary network traffic.</p><p><code class="inline">Mnesia</code> also provides some functions that make it possible for the user to
+iterate over the table. The order of the iteration is unspecified if the table
+is not of type <code class="inline">ordered_set</code>:</p><pre><code class="makeup erlang" translate="no"><span class="w">      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">first</span><span class="p" data-group-id="6029265057-1">(</span><span class="n">Tab</span><span class="p" data-group-id="6029265057-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">  </span><span class="n">Key</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="ss">transaction</span><span class="w"> </span><span class="ss">abort</span><span class="w">
+      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">last</span><span class="p" data-group-id="6029265057-2">(</span><span class="n">Tab</span><span class="p" data-group-id="6029265057-2">)</span><span class="w">  </span><span class="p">-&gt;</span><span class="w">  </span><span class="n">Key</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="ss">transaction</span><span class="w"> </span><span class="ss">abort</span><span class="w">
+      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">next</span><span class="p" data-group-id="6029265057-3">(</span><span class="n">Tab</span><span class="p">,</span><span class="n">Key</span><span class="p" data-group-id="6029265057-3">)</span><span class="w">  </span><span class="p">-&gt;</span><span class="w">  </span><span class="n">Key</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="ss">transaction</span><span class="w"> </span><span class="ss">abort</span><span class="w">
+      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">prev</span><span class="p" data-group-id="6029265057-4">(</span><span class="n">Tab</span><span class="p">,</span><span class="n">Key</span><span class="p" data-group-id="6029265057-4">)</span><span class="w">  </span><span class="p">-&gt;</span><span class="w">  </span><span class="n">Key</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="ss">transaction</span><span class="w"> </span><span class="ss">abort</span><span class="w">
+      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">snmp_get_next_index</span><span class="p" data-group-id="6029265057-5">(</span><span class="n">Tab</span><span class="p">,</span><span class="n">Index</span><span class="p" data-group-id="6029265057-5">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="p" data-group-id="6029265057-6">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">NextIndex</span><span class="p" data-group-id="6029265057-6">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="ss">endOfTable</span></code></pre><p>The order of <code class="inline">first</code>/<code class="inline">last</code> and <code class="inline">next</code>/<code class="inline">prev</code> is only valid for <code class="inline">ordered_set</code>
+tables, they are synonyms for other tables. When the end of the table is
+reached, the special key <code class="inline">'$end_of_table'</code> is returned.</p><p>If records are written and deleted during the traversal, use the function
+<a href="mnesia.html#foldl">mnesia:foldl/3</a> or <a href="mnesia.html#foldr">mnesia:foldr/3</a> with a
+<code class="inline">write</code> lock. Or the function <a href="mnesia.html#write_lock_table/1"><code class="inline">mnesia:write_lock_table/1</code></a> when using <code class="inline">first</code> and
+<code class="inline">next</code>.</p><p>Writing or deleting in transaction context creates a local copy of each modified
+record. Thus, modifying each record in a large table uses much memory. <code class="inline">Mnesia</code>
+compensates for every written or deleted record during the iteration in a
+transaction context, which can reduce the performance. If possible, avoid
+writing or deleting records in the same transaction before iterating over the
+table.</p><p>In dirty context, that is, <code class="inline">sync_dirty</code> or <code class="inline">async_dirty</code>, the modified records
+are not stored in a local copy; instead, each record is updated separately. This
+generates much network traffic if the table has a replica on another node and
+has all the other drawbacks that dirty operations have. Especially for commands
+<a href="mnesia.html#first/1"><code class="inline">mnesia:first/1</code></a> and <a href="mnesia.html#next/2"><code class="inline">mnesia:next/2</code></a>, the same drawbacks as described previously
+for <a href="mnesia.html#dirty_first/1"><code class="inline">mnesia:dirty_first/1</code></a> and <a href="mnesia.html#dirty_next/2"><code class="inline">mnesia:dirty_next/2</code></a> applies, that is, no
+writing to the table is to be done during iteration.</p>
+<div class="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="mnesia_chap3.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Build a Mnesia Database
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="mnesia_chap5.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+Miscellaneous Mnesia Features
+        </span>
+      </a>
+
+  </div>
+</div>
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+              <a href="mnesia.epub" title="ePub version">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

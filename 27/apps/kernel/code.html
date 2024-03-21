@@ -1,0 +1,3417 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="kernel v9.3">
+
+
+    <title>code — kernel v9.3</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-D60EFF5E.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="modules" class="page-module">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="kernel" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+kernel
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v9.3
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of kernel</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L20" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+  <span translate="no">code</span> 
+  <small class="app-vsn" translate="no">(kernel v9.3)</small>
+
+</h1>
+
+
+  <section id="moduledoc">
+<p>Erlang code server.</p><p>This module contains the interface to the Erlang <em>code server</em>, which deals with
+the loading of compiled code into a running Erlang runtime system.</p><p>The runtime system can be started in <em>interactive</em> or <em>embedded</em> mode. Which one
+is decided by the command-line flag <code class="inline">-mode</code>:</p><pre><code class="text">% erl -mode interactive</code></pre><p>The modes are as follows:</p><ul><li>In interactive mode, which is default, only some code is loaded during system
+startup, basically the modules needed by the runtime system. Other code is
+dynamically loaded when first referenced. When a call to a function in a
+certain module is made, and the module is not loaded, the code server searches
+for and tries to load the module.</li><li>In embedded mode, modules are not auto loaded. Trying to use a module that has
+not been loaded results in an error. This mode is recommended when the boot
+script loads all modules, as it is typically done in OTP releases. (Code can
+still be loaded later by explicitly ordering the code server to do so).</li></ul><p>To prevent accidentally reloading of modules affecting the Erlang runtime
+system, directories <code class="inline">kernel</code>, <code class="inline">stdlib</code>, and <code class="inline">compiler</code> are considered <em>sticky</em>.
+This means that the system issues a warning and rejects the request if a user
+tries to reload a module residing in any of them. The feature can be disabled by
+using command-line flag <code class="inline">-nostick</code>.</p><h2 id="module-code-path" class="section-heading">
+  <a href="#module-code-path" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Code Path</span>
+</h2>
+<p>In interactive mode, the code server maintains a search path, usually called the
+<em>code path</em>, consisting of a list of directories, which it searches sequentially
+when trying to load a module.</p><p>Initially, the code path consists of the current working directory and all
+Erlang object code directories under library directory <code class="inline">$OTPROOT/lib</code>, where
+<code class="inline">$OTPROOT</code> is the installation directory of Erlang/OTP, <code class="inline">code:root_dir()</code>.
+Directories can be named <code class="inline">Name[-Vsn]</code> and the code server, by default, chooses
+the directory with the highest version number among those having the same
+<code class="inline">Name</code>. Suffix <code class="inline">-Vsn</code> is optional. If an <code class="inline">ebin</code> directory exists under
+<code class="inline">Name[-Vsn]</code>, this directory is added to the code path.</p><p>Environment variable <code class="inline">ERL_LIBS</code> (defined in the operating system) can be used to
+define more library directories to be handled in the same way as the standard
+OTP library directory described above, except that directories without an <code class="inline">ebin</code>
+directory are ignored.</p><p>All application directories found in the additional directories appear before
+the standard OTP applications, except for the Kernel and STDLIB applications,
+which are placed before any additional applications. In other words, modules
+found in any of the additional library directories override modules with the
+same name in OTP, except for modules in Kernel and STDLIB.</p><p>Environment variable <code class="inline">ERL_LIBS</code> (if defined) is to contain a colon-separated
+(for Unix-like systems) or semicolon-separated (for Windows) list of additional
+libraries.</p><p><em>Example:</em></p><p>On a Unix-like system, <code class="inline">ERL_LIBS</code> can be set to the following</p><pre><code class="text">/usr/local/jungerl:/home/some_user/my_erlang_lib</code></pre><p>On Windows, use semi-colon as separator.</p><p>The code paths specified by <code class="inline">$OTPROOT</code>, <code class="inline">ERL_LIBS</code>, and boot scripts have their
+listings cached by default (except for &quot;.&quot;) since OTP 26.0. The code server will
+lookup the contents in their directories once and avoid future file system
+traversals. Therefore modules added to such directories after the Erlang VM
+boots won't be picked up. You can disable this behaviour by setting
+<code class="inline">-cache_boot_paths false</code> or by calling <code class="inline">code:set_path(code:get_path())</code>.</p><p>The functions in this module and the command line options <code class="inline">-pa</code> and <code class="inline">-pz</code> are
+not cached by default. However, many of the functions that manipulate the code
+path accept the <code class="inline">cache</code> atom as an optional argument, which will enable caching
+on selected paths.</p><h2 id="module-loading-of-code-from-archive-files" class="section-heading">
+  <a href="#module-loading-of-code-from-archive-files" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Loading of Code From Archive Files</span>
+</h2>
+<blockquote><h4 class="info">Change</h4><p>The existing experimental support for archive files will be changed
+in a future release. As of Erlang/OTP 27, the function <a href="#lib_dir/2"><code class="inline">code:lib_dir/2</code></a>,
+the <code class="inline">-code_path_choice</code> flag, and using <a href="../../apps/erts/erl_prim_loader.html"><code class="inline">erl_prim_loader</code></a> for
+reading files from an archive are deprecated.</p><p><code class="inline">escript</code> scripts that use archive files should use
+<a href="../../apps/stdlib/escript.html#extract/2"><code class="inline">escript:extract/2</code></a> to read data files from its archive instead of using
+<a href="#lib_dir/2"><code class="inline">code:lib_dir/2</code></a> and <a href="../../apps/erts/erl_prim_loader.html"><code class="inline">erl_prim_loader</code></a>.</p></blockquote><p>The Erlang archives are <code class="inline">ZIP</code> files with extension <code class="inline">.ez</code>. Erlang archives can
+also be <a href="../../apps/stdlib/escript.html">enclosed in <code class="inline">escript</code></a> files whose file extension is arbitrary.</p><p>Erlang archive files can contain entire Erlang applications or parts of
+applications. The structure in an archive file is the same as the directory
+structure for an application. If you, for example, create an archive of
+<code class="inline">mnesia-4.4.7</code>, the archive file must be named <code class="inline">mnesia-4.4.7.ez</code> and it must
+contain a top directory named <code class="inline">mnesia-4.4.7</code>. If the version part of the name is
+omitted, it must also be omitted in the archive. That is, a <code class="inline">mnesia.ez</code> archive
+must contain a <code class="inline">mnesia</code> top directory.</p><p>An archive file for an application can, for example, be created like this:</p><pre><code class="makeup erlang" translate="no"><span class="nc">zip</span><span class="p">:</span><span class="nf">create</span><span class="p" data-group-id="0338521768-1">(</span><span class="s">&quot;mnesia-4.4.7.ez&quot;</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="p" data-group-id="0338521768-2">[</span><span class="s">&quot;mnesia-4.4.7&quot;</span><span class="p" data-group-id="0338521768-2">]</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="p" data-group-id="0338521768-3">[</span><span class="p" data-group-id="0338521768-4">{</span><span class="ss">cwd</span><span class="p">,</span><span class="w"> </span><span class="nc">code</span><span class="p">:</span><span class="nf">lib_dir</span><span class="p" data-group-id="0338521768-5">(</span><span class="p" data-group-id="0338521768-5">)</span><span class="p" data-group-id="0338521768-4">}</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w"> </span><span class="p" data-group-id="0338521768-6">{</span><span class="ss">compress</span><span class="p">,</span><span class="w"> </span><span class="ss">all</span><span class="p" data-group-id="0338521768-6">}</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w"> </span><span class="p" data-group-id="0338521768-7">{</span><span class="ss">uncompress</span><span class="p">,</span><span class="p" data-group-id="0338521768-8">[</span><span class="s">&quot;.beam&quot;</span><span class="p">,</span><span class="s">&quot;.app&quot;</span><span class="p" data-group-id="0338521768-8">]</span><span class="p" data-group-id="0338521768-7">}</span><span class="p" data-group-id="0338521768-3">]</span><span class="p" data-group-id="0338521768-1">)</span><span class="p">.</span></code></pre><p>Any file in the archive can be compressed, but to speed up the access of
+frequently read files, it can be a good idea to store <code class="inline">beam</code> and <code class="inline">app</code> files
+uncompressed in the archive.</p><p>Normally the top directory of an application is located in library directory
+<code class="inline">$OTPROOT/lib</code> or in a directory referred to by environment variable <code class="inline">ERL_LIBS</code>.
+At startup, when the initial code path is computed, the code server also looks
+for archive files in these directories and possibly adds <code class="inline">ebin</code> directories in
+archives to the code path. The code path then contains paths to directories that
+look like <code class="inline">$OTPROOT/lib/mnesia.ez/mnesia/ebin</code> or
+<code class="inline">$OTPROOT/lib/mnesia-4.4.7.ez/mnesia-4.4.7/ebin</code>.</p><p>The code server uses module <code class="inline">erl_prim_loader</code> in ERTS (possibly through
+<code class="inline">erl_boot_server</code>) to read code files from archives. However, the functions in
+<code class="inline">erl_prim_loader</code> can also be used by other applications to read files from
+archives. For example, the call
+<code class="inline">erl_prim_loader:list_dir( &quot;/otp/root/lib/mnesia-4.4.7.ez/mnesia-4.4.7/examples/bench)&quot;</code>
+would list the contents of a directory inside an archive. See
+<a href="../../apps/erts/erl_prim_loader.html"><code class="inline">erl_prim_loader</code></a>.</p><p>An application archive file and a regular application directory can coexist.
+This can be useful when it is needed to have parts of the application as regular
+files. A typical case is the <code class="inline">priv</code> directory, which must reside as a regular
+directory to link in drivers dynamically and start port programs. For other
+applications that do not need this, directory <code class="inline">priv</code> can reside in the archive
+and the files under the directory <code class="inline">priv</code> can be read through <code class="inline">erl_prim_loader</code>.</p><p>When a directory is added to the code path and when the entire code path is
+(re)set, the code server decides which subdirectories in an application that are
+to be read from the archive and which that are to be read as regular files. If
+directories are added or removed afterwards, the file access can fail if the
+code path is not updated (possibly to the same path as before, to trigger the
+directory resolution update).</p><p>For each directory on the second level in the application archive (<code class="inline">ebin</code>,
+<code class="inline">priv</code>, <code class="inline">src</code>, and so on), the code server first chooses the regular directory
+if it exists and second from the archive. Function <a href="#lib_dir/2"><code class="inline">code:lib_dir/2</code></a> returns the
+path to the subdirectory. For example, <code class="inline">code:lib_dir(megaco, ebin)</code> can return
+<code class="inline">/otp/root/lib/megaco-3.9.1.1.ez/megaco-3.9.1.1/ebin</code> while
+<code class="inline">code:lib_dir(megaco, priv)</code> can return <code class="inline">/otp/root/lib/megaco-3.9.1.1/priv</code>.</p><p>When an <code class="inline">escript</code> file contains an archive, there are no restrictions on the
+name of the <code class="inline">escript</code> and no restrictions on how many applications that can be
+stored in the embedded archive. Single Beam files can also reside on the top
+level in the archive. At startup, the top directory in the embedded archive and
+all (second level) <code class="inline">ebin</code> directories in the embedded archive are added to the
+code path. See <a href="../../apps/erts/escript_cmd.html"><code class="inline">erts:escript(1)</code></a>.</p><p>A future-proof way for <code class="inline">escript</code> scripts to read data files from the archive is
+to use the <a href="../../apps/stdlib/escript.html#extract/2"><code class="inline">escript:extract/2</code></a> function.</p><p>When the choice of directories in the code path is <code class="inline">strict</code> (which is
+the default as of Erlang/OTP 27), the directory that ends up in the
+code path is exactly the stated one. This means that if, for example,
+the directory <code class="inline">$OTPROOT/lib/mnesia-4.4.7/ebin</code> is explicitly added to
+the code path, the code server does not load files from
+<code class="inline">$OTPROOT/lib/mnesia-4.4.7.ez/mnesia-4.4.7/ebin</code>.</p><p>This behavior can be controlled through command-line flag
+<code class="inline">-code_path_choice Choice</code>. If the flag is set to <code class="inline">relaxed</code>, the code server
+instead chooses a suitable directory depending on the actual file structure. If
+a regular application <code class="inline">ebin</code> directory exists, it is chosen. Otherwise, the
+directory <code class="inline">ebin</code> in the archive is chosen if it exists. If neither of them
+exists, the original directory is chosen.</p><p>Command-line flag <code class="inline">-code_path_choice Choice</code> also affects how module <code class="inline">init</code>
+interprets the <code class="inline">boot script</code>. The interpretation of the explicit code paths in
+the <code class="inline">boot script</code> can be <code class="inline">strict</code> or <code class="inline">relaxed</code>. It is particularly useful to set
+the flag to <code class="inline">relaxed</code> when elaborating with code loading from archives without
+editing the <code class="inline">boot script</code>. The default has changed to <code class="inline">strict</code> in OTP 27 and the
+option is scheduled for removal in OTP 28. See <a href="../../apps/erts/init.html"><code class="inline">erts:init(3)</code></a>.</p><h2 id="module-current-and-old-code" class="section-heading">
+  <a href="#module-current-and-old-code" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Current and Old Code</span>
+</h2>
+<p>The code for a module can exist in two variants in a system: <em>current code</em> and
+<em>old code</em>. When a module is loaded into the system for the first time, the
+module code becomes 'current' and the global <em>export table</em> is updated with
+references to all functions exported from the module.</p><p>If then a new instance of the module is loaded (for example, because of error
+correction), the code of the previous instance becomes 'old', and all export
+entries referring to the previous instance are removed. After that, the new
+instance is loaded as for the first time, and becomes 'current'.</p><p>Both old and current code for a module are valid, and can even be evaluated
+concurrently. The difference is that exported functions in old code are
+unavailable. Hence, a global call cannot be made to an exported function in old
+code, but old code can still be evaluated because of processes lingering in it.</p><p>If a third instance of the module is loaded, the code server removes (purges)
+the old code and any processes lingering in it are terminated. Then the third
+instance becomes 'current' and the previously current code becomes 'old'.</p><p>For more information about old and current code, and how to make a process
+switch from old to current code, see section Compilation and Code Loading in the
+<a href="../../system/code_loading.html">Erlang Reference Manual</a>.</p><h2 id="module-argument-types-and-invalid-arguments" class="section-heading">
+  <a href="#module-argument-types-and-invalid-arguments" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Argument Types and Invalid Arguments</span>
+</h2>
+<p>Module and application names are atoms, while file and directory names are
+strings. For backward compatibility reasons, some functions accept both strings
+and atoms, but a future release will probably only allow the arguments that are
+documented.</p><p>Functions in this module generally fail with an exception if they are passed an
+incorrect type (for example, an integer or a tuple where an atom is expected).
+An error tuple is returned if the argument type is correct, but there are some
+other errors (for example, a non-existing directory is specified to
+<a href="#set_path/1"><code class="inline">set_path/1</code></a>).</p><p><a href="" id="error_reasons"></a></p><h2 id="module-error-reasons-for-code-loading-functions" class="section-heading">
+  <a href="#module-error-reasons-for-code-loading-functions" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Error Reasons for Code-Loading Functions</span>
+</h2>
+<p>Functions that load code (such as <a href="#load_file/1"><code class="inline">load_file/1</code></a>) will return
+<code class="inline">{error,Reason}</code> if the load operation fails. Here follows a description of the
+common reasons.</p><ul><li><p><strong><code class="inline">badfile</code></strong> - The object code has an incorrect format or the module name in
+the object code is not the expected module name.</p></li><li><p><strong><code class="inline">nofile</code></strong> - No file with object code was found.</p></li><li><p><strong><code class="inline">not_purged</code></strong> - The object code could not be loaded because an old version
+of the code already existed.</p></li><li><p><strong><code class="inline">on_load_failure</code></strong> - The module has an
+<a href="../../system/code_loading.html#on_load">-on_load function</a> that failed when it
+was called.</p></li><li><p><strong><code class="inline">sticky_directory</code></strong> - The object code resides in a sticky directory.</p></li></ul>
+  </section>
+
+
+  <section id="summary" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#summary">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Summary</span>
+    </h1>
+<div class="summary-types summary">
+  <h2>
+    <a href="#types">Types</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:add_path_ret/0" translate="no">add_path_ret()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:cache/0" translate="no">cache()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:coverage_mode/0" translate="no">coverage_mode()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:load_error_rsn/0" translate="no">load_error_rsn()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:load_ret/0" translate="no">load_ret()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:loaded_filename/0" translate="no">loaded_filename()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:loaded_ret_atoms/0" translate="no">loaded_ret_atoms()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:module_status/0" translate="no">module_status()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:prepared_code/0" translate="no">prepared_code()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>An opaque term holding prepared code.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:replace_path_ret/0" translate="no">replace_path_ret()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:set_path_ret/0" translate="no">set_path_ret()</a>
+
+      </div>
+
+    </div>
+
+</div>
+<div class="summary-functions summary">
+  <h2>
+    <a href="#functions">Functions</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#add_path/1" translate="no">add_path(Dir)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#add_pathz/2"><code class="inline">add_pathz/2</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#add_path/2" translate="no">add_path(Dir, Cache)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#add_pathz/2"><code class="inline">add_pathz/2</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#add_patha/1" translate="no">add_patha(Dir)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#add_patha/2"><code class="inline">add_patha/2</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#add_patha/2" translate="no">add_patha(Dir, Cache)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Adds <code class="inline">Dir</code> to the beginning of the code path. If <code class="inline">Dir</code> exists, it is removed
+from the old position in the code path.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#add_paths/1" translate="no">add_paths(Dirs)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#add_pathsz/2"><code class="inline">add_pathsz/2</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#add_paths/2" translate="no">add_paths(Dirs, Cache)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#add_pathsz/2"><code class="inline">add_pathsz/2</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#add_pathsa/1" translate="no">add_pathsa(Dirs)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#add_pathsa/2"><code class="inline">add_pathsa/2</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#add_pathsa/2" translate="no">add_pathsa(Dirs, Cache)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Traverses <code class="inline">Dirs</code> and adds each <code class="inline">Dir</code> to the beginning of the code path. This
+means that the order of <code class="inline">Dirs</code> is reversed in the resulting code path. For
+example, if you add <code class="inline">[Dir1,Dir2]</code>, the resulting path will be
+<code class="inline">[Dir2,Dir1|OldCodePath]</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#add_pathsz/1" translate="no">add_pathsz(Dirs)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#add_pathsz/2"><code class="inline">add_pathsz/2</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#add_pathsz/2" translate="no">add_pathsz(Dirs, Cache)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Adds the directories in <code class="inline">Dirs</code> to the end of the code path. If a <code class="inline">Dir</code> exists,
+it is not added.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#add_pathz/1" translate="no">add_pathz(Dir)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#add_pathz/2"><code class="inline">add_pathz/2</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#add_pathz/2" translate="no">add_pathz(Dir, Cache)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Adds <code class="inline">Dir</code> to the code path. The directory is added as the last directory in the
+new path. If <code class="inline">Dir</code> already exists in the path, it is not added.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#all_available/0" translate="no">all_available()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns a list of tuples <code class="inline">{Module, Filename, Loaded}</code> for all available modules.
+A module is considered to be available if it either is loaded or would be loaded
+if called. <code class="inline">Filename</code> is normally the absolute filename, as described for
+<a href="#is_loaded/1"><code class="inline">is_loaded/1</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#all_loaded/0" translate="no">all_loaded()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns a list of tuples <code class="inline">{Module, Loaded}</code> for all loaded modules. <code class="inline">Loaded</code> is
+normally the absolute filename, as described for <a href="#is_loaded/1"><code class="inline">is_loaded/1</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#atomic_load/1" translate="no">atomic_load(Modules)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Tries to load all of the modules in the list <code class="inline">Modules</code> atomically. That means
+that either all modules are loaded at the same time, or none of the modules are
+loaded if there is a problem with any of the modules.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#clash/0" translate="no">clash()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Searches all directories in the code path for module names with identical names
+and writes a report to <code class="inline">stdout</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#clear_cache/0" translate="no">clear_cache()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Clear the code path cache. If a directory is cached, its cache is cleared once
+and then it will be recalculated and cached once more in a future traversal.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#compiler_dir/0" translate="no">compiler_dir()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns the compiler library directory. Equivalent to <code class="inline">code:lib_dir(compiler)</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#coverage_support/0" translate="no">coverage_support()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns <code class="inline">true</code> if the system supports coverage and <code class="inline">false</code> otherwise.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#del_path/1" translate="no">del_path(NameOrDir)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Deletes a directory from the code path. The argument can be an atom <code class="inline">Name</code>, in
+which case the directory with the name <code class="inline">.../Name[-Vsn][/ebin]</code> is deleted from
+the code path. Also, the complete directory name <code class="inline">Dir</code> can be specified as
+argument.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#del_paths/1" translate="no">del_paths(NamesOrDirs)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Deletes directories from the code path. The argument is a list of either atoms
+or complete directory names. If an atom <code class="inline">Name</code>, the directory with the name
+<code class="inline">.../Name[-Vsn][/ebin]</code> is deleted from the code path.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#delete/1" translate="no">delete(Module)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Removes the current code for <code class="inline">Module</code>, that is, the current code for <code class="inline">Module</code> is
+made old. This means that processes can continue to execute the code in the
+module, but no external function calls can be made to it.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#ensure_loaded/1" translate="no">ensure_loaded(Module)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Tries to load a module in the same way as <a href="#load_file/1"><code class="inline">load_file/1</code></a>, unless the module is
+already loaded. If called concurrently, this function ensures only one process
+attempts to load said module at a given time.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#ensure_modules_loaded/1" translate="no">ensure_modules_loaded(Modules)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Tries to load any modules not already loaded in the list <code class="inline">Modules</code> in the same
+way as <a href="#load_file/1"><code class="inline">load_file/1</code></a>. Unlike <a href="#ensure_loaded/1"><code class="inline">ensure_loaded/1</code></a>, modules are loaded even in
+<code class="inline">embedded</code> mode.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#finish_loading/1" translate="no">finish_loading(Prepared)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Tries to load code for all modules that have been previously prepared by
+<a href="#prepare_loading/1"><code class="inline">prepare_loading/1</code></a>. The loading occurs atomically, meaning that either all
+modules are loaded at the same time, or none of the modules are loaded.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#get_coverage/2" translate="no">get_coverage(Level, Module)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>If Level is <code class="inline">function</code>, returns line coverage for the given module according to
+its coverage mode</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#get_coverage_mode/0" translate="no">get_coverage_mode()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns the current coverage mode as set by option
+<a href="../../apps/erts/erl_cmd.html#%2BJPcover">+JPcover</a> for <code class="inline">erl</code> or <a href="#set_coverage_mode/1"><code class="inline">set_coverage_mode/1</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#get_coverage_mode/1" translate="no">get_coverage_mode(Module)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Get coverage mode for the given module.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#get_doc/1" translate="no">get_doc(Mod)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Searches the code path for EEP-48 style documentation and returns it if
+available. If no documentation can be found the function tries to generate
+documentation from the debug information in the module. If no debug information
+is available, this function will return <code class="inline">{error,missing}</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#get_mode/0" translate="no">get_mode()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns an atom describing the mode of the code server: <code class="inline">interactive</code> or
+<code class="inline">embedded</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#get_object_code/1" translate="no">get_object_code(Module)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Searches the code path for the object code of module <code class="inline">Module</code>. Returns
+<code class="inline">{Module, Binary, Filename}</code> if successful, otherwise <code class="inline">error</code>. <code class="inline">Binary</code> is a
+binary data object, which contains the object code for the module. This can be
+useful if code is to be loaded on a remote node in a distributed system. For
+example, loading module <code class="inline">Module</code> on a node <code class="inline">Node</code> is done as follows</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#get_path/0" translate="no">get_path()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns the code path.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#is_loaded/1" translate="no">is_loaded(Module)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Checks if <code class="inline">Module</code> is loaded. If it is, <code class="inline">{file, Loaded}</code> is returned, otherwise
+<code class="inline">false</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#is_sticky/1" translate="no">is_sticky(Module)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns <code class="inline">true</code> if <code class="inline">Module</code> is the name of a module that has been loaded from a
+sticky directory (in other words: an attempt to reload the module will fail), or
+<code class="inline">false</code> if <code class="inline">Module</code> is not a loaded module or is not sticky.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#lib_dir/0" translate="no">lib_dir()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns the library directory, <code class="inline">$OTPROOT/lib</code>, where <code class="inline">$OTPROOT</code> is the root
+directory of Erlang/OTP.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#lib_dir/1" translate="no">lib_dir(Name)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns the path for the &quot;library directory&quot;, the top directory, for an
+application <code class="inline">Name</code> located under <code class="inline">$OTPROOT/lib</code> or on a directory referred to
+with environment variable <code class="inline">ERL_LIBS</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#lib_dir/2" translate="no">lib_dir(Name, SubDir)</a>
+
+          <span class="deprecated" title="code:lib_dir/2 is deprecated; this functionality will be removed in a future release">deprecated</span>
+
+      </div>
+
+        <div class="summary-synopsis"><blockquote><h4 class="info">Change</h4><p>This function is deprecated and will be removed in a future release.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#load_abs/1" translate="no">load_abs(Filename)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Same as <a href="#load_file/1"><code class="inline">load_file(Module)</code></a>, but <code class="inline">Filename</code> is an absolute or
+relative filename. The code path is not searched. It returns a value in the same
+way as <a href="#load_file/1"><code class="inline">load_file/1</code></a>. Notice that <code class="inline">Filename</code> must not contain the extension (for
+example, <code class="inline">.beam</code>) because <a href="#load_abs/1"><code class="inline">load_abs/1</code></a> adds the correct
+extension.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#load_binary/3" translate="no">load_binary(Module, Filename, Binary)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>This function can be used to load object code on remote Erlang nodes. Argument
+<code class="inline">Binary</code> must contain object code for <code class="inline">Module</code>. <code class="inline">Filename</code> is only used by the
+code server to keep a record of from which file the object code for <code class="inline">Module</code>
+comes. Thus, <code class="inline">Filename</code> is not opened and read by the code server.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#load_file/1" translate="no">load_file(Module)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Tries to load the Erlang module <code class="inline">Module</code>, using the code path. It looks for the
+object code file with an extension corresponding to the Erlang machine used, for
+example, <code class="inline">Module.beam</code>. The loading fails if the module name found in the object
+code differs from the name <code class="inline">Module</code>. <a href="#load_binary/3"><code class="inline">load_binary/3</code></a> must be used to load object
+code with a module name that is different from the file name.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#modified_modules/0" translate="no">modified_modules()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns the list of all currently loaded modules for which <a href="#module_status/1"><code class="inline">module_status/1</code></a>
+returns <code class="inline">modified</code>. See also <a href="#all_loaded/0"><code class="inline">all_loaded/0</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#module_status/0" translate="no">module_status()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>See <a href="#module_status/1"><code class="inline">module_status/1</code></a> and <a href="#all_loaded/0"><code class="inline">all_loaded/0</code></a> for details.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#module_status/1" translate="no">module_status(Module)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>The status of a module can be one of</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#objfile_extension/0" translate="no">objfile_extension()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns the object code file extension corresponding to the Erlang machine used,
+namely <code class="inline">.beam</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#prepare_loading/1" translate="no">prepare_loading(Modules)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Prepares to load the modules in the list <code class="inline">Modules</code>. Finish the loading by
+calling <a href="#finish_loading/1">finish_loading(Prepared)</a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#priv_dir/1" translate="no">priv_dir(Name)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns the path to the <code class="inline">priv</code> directory in an application. Equivalent to
+<code class="inline">code:lib_dir(Name, priv)</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#purge/1" translate="no">purge(Module)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Purges the code for <code class="inline">Module</code>, that is, removes code marked as old. If some
+processes still linger in the old code, these processes are killed before the
+code is removed.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#replace_path/2" translate="no">replace_path(Name, Dir)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#replace_path/3"><code class="inline">replace_path/3</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#replace_path/3" translate="no">replace_path(Name, Dir, Cache)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Replaces an old occurrence of a directory named <code class="inline">.../Name[-Vsn][/ebin]</code> in the
+code path, with <code class="inline">Dir</code>. If <code class="inline">Name</code> does not exist, it adds the new directory <code class="inline">Dir</code>
+last in the code path. The new directory must also be named
+<code class="inline">.../Name[-Vsn][/ebin]</code>. This function is to be used if a new version of the
+directory (library) is added to a running system.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#reset_coverage/1" translate="no">reset_coverage(Module)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Reset coverage information for module Module.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#root_dir/0" translate="no">root_dir()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns the root directory of Erlang/OTP, which is the directory where it is
+installed.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#set_coverage_mode/1" translate="no">set_coverage_mode(Mode)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Sets the coverage mode for modules that are subsequently loaded, similar to
+option <a href="../../apps/erts/erl_cmd.html#%2BJPcover">+JPcover</a> for <code class="inline">erl</code></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#set_path/1" translate="no">set_path(Path)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#set_path/2"><code class="inline">set_path/2</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#set_path/2" translate="no">set_path(PathList, Cache)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Sets the code path to the list of directories <code class="inline">Path</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#soft_purge/1" translate="no">soft_purge(Module)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Purges the code for <code class="inline">Module</code>, that is, removes code marked as old, but only if
+no processes linger in it.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#stick_dir/1" translate="no">stick_dir(Dir)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Marks <code class="inline">Dir</code> as sticky.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#unstick_dir/1" translate="no">unstick_dir(Dir)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Unsticks a directory that is marked as sticky.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#where_is_file/1" translate="no">where_is_file(Filename)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Searches the code path for <code class="inline">Filename</code>, a file of arbitrary type. If found, the
+full name is returned. <code class="inline">non_existing</code> is returned if the file cannot be found.
+The function can be useful, for example, to locate application resource files.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#which/1" translate="no">which(Module)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>If the module is not loaded, this function searches the code path for the first
+file containing object code for <code class="inline">Module</code> and returns the absolute filename.</p></div>
+
+    </div>
+
+</div>
+
+  </section>
+
+
+  <section id="types" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#types">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Types</span>
+    </h1>
+    <div class="types-list">
+<section class="detail" id="t:add_path_ret/0">
+
+  <div class="detail-header">
+    <a href="#t:add_path_ret/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">add_path_ret()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L931" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> add_path_ret() :: true | {error, bad_directory}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:cache/0">
+
+  <div class="detail-header">
+    <a href="#t:cache/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">cache()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L356" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> cache() :: cache | nocache.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:coverage_mode/0">
+
+  <div class="detail-header">
+    <a href="#t:coverage_mode/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">coverage_mode()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L341" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> coverage_mode() :: none | function | function_counters | line_coverage | line_counters.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:load_error_rsn/0">
+
+  <div class="detail-header">
+    <a href="#t:load_error_rsn/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">load_error_rsn()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L357" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> load_error_rsn() :: badfile | nofile | not_purged | on_load_failure | sticky_directory.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:load_ret/0">
+
+  <div class="detail-header">
+    <a href="#t:load_ret/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">load_ret()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L362" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> load_ret() :: {error, What :: <a href="#t:load_error_rsn/0">load_error_rsn</a>()} | {module, Module :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:loaded_filename/0">
+
+  <div class="detail-header">
+    <a href="#t:loaded_filename/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">loaded_filename()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L365" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> loaded_filename() :: (Filename :: <a href="file.html#t:filename/0">file:filename</a>()) | <a href="#t:loaded_ret_atoms/0">loaded_ret_atoms</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:loaded_ret_atoms/0">
+
+  <div class="detail-header">
+    <a href="#t:loaded_ret_atoms/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">loaded_ret_atoms()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L364" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> loaded_ret_atoms() :: cover_compiled | preloaded.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:module_status/0">
+
+  <div class="detail-header">
+    <a href="#t:module_status/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">module_status()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L1884" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> module_status() :: not_loaded | loaded | modified | removed.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:prepared_code/0">
+
+  <div class="detail-header">
+    <a href="#t:prepared_code/0" class="detail-link" title="Link to this opaque">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this opaque</span>
+    </a>
+    <h1 class="signature" translate="no">prepared_code()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L369" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(opaque)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-opaque</span> prepared_code()</pre>
+
+      </div>
+
+<p>An opaque term holding prepared code.</p>
+  </section>
+</section>
+<section class="detail" id="t:replace_path_ret/0">
+
+  <div class="detail-header">
+    <a href="#t:replace_path_ret/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">replace_path_ret()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L1090" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> replace_path_ret() :: true | {error, bad_directory | bad_name | {badarg, _}}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:set_path_ret/0">
+
+  <div class="detail-header">
+    <a href="#t:set_path_ret/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">set_path_ret()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L881" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> set_path_ret() :: true | {error, bad_directory}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+
+    </div>
+  </section>
+
+  <section id="functions" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#functions">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Functions</span>
+    </h1>
+    <div class="functions-list">
+<section class="detail" id="add_path/1">
+
+  <div class="detail-header">
+    <a href="#add_path/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">add_path(Dir)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L936" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 26.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> add_path(Dir) -> <a href="#t:add_path_ret/0">add_path_ret</a>() when Dir :: <a href="file.html#t:filename/0">file:filename</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#add_pathz/2"><code class="inline">add_pathz/2</code></a></p>
+  </section>
+</section>
+<section class="detail" id="add_path/2">
+
+  <div class="detail-header">
+    <a href="#add_path/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">add_path(Dir, Cache)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L942" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 26.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> add_path(Dir, <a href="#t:cache/0">cache</a>()) -> <a href="#t:add_path_ret/0">add_path_ret</a>() when Dir :: <a href="file.html#t:filename/0">file:filename</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#add_pathz/2"><code class="inline">add_pathz/2</code></a></p>
+  </section>
+</section>
+<section class="detail" id="add_patha/1">
+
+  <div class="detail-header">
+    <a href="#add_patha/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">add_patha(Dir)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L972" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 26.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> add_patha(Dir) -> <a href="#t:add_path_ret/0">add_path_ret</a>() when Dir :: <a href="file.html#t:filename/0">file:filename</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#add_patha/2"><code class="inline">add_patha/2</code></a></p>
+  </section>
+</section>
+<section class="detail" id="add_patha/2">
+
+  <div class="detail-header">
+    <a href="#add_patha/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">add_patha(Dir, Cache)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L988" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 26.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> add_patha(Dir, <a href="#t:cache/0">cache</a>()) -> <a href="#t:add_path_ret/0">add_path_ret</a>() when Dir :: <a href="file.html#t:filename/0">file:filename</a>().</pre>
+
+      </div>
+
+<p>Adds <code class="inline">Dir</code> to the beginning of the code path. If <code class="inline">Dir</code> exists, it is removed
+from the old position in the code path.</p><p>An optional second argument may be set to the atom <code class="inline">cache</code> to control if the
+contents of the directory must be cached on first traversal. Defaults to
+<code class="inline">nocache</code>.</p><p>Returns <code class="inline">true</code> if successful, or <code class="inline">{error, bad_directory}</code> if <code class="inline">Dir</code> is not the
+name of a directory.</p>
+  </section>
+</section>
+<section class="detail" id="add_paths/1">
+
+  <div class="detail-header">
+    <a href="#add_paths/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">add_paths(Dirs)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L996" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 26.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> add_paths(Dirs) -> ok when Dirs :: [Dir :: <a href="file.html#t:filename/0">file:filename</a>()].</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#add_pathsz/2"><code class="inline">add_pathsz/2</code></a></p>
+  </section>
+</section>
+<section class="detail" id="add_paths/2">
+
+  <div class="detail-header">
+    <a href="#add_paths/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">add_paths(Dirs, Cache)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L1002" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 26.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> add_paths(Dirs, <a href="#t:cache/0">cache</a>()) -> ok when Dirs :: [Dir :: <a href="file.html#t:filename/0">file:filename</a>()].</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#add_pathsz/2"><code class="inline">add_pathsz/2</code></a></p>
+  </section>
+</section>
+<section class="detail" id="add_pathsa/1">
+
+  <div class="detail-header">
+    <a href="#add_pathsa/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">add_pathsa(Dirs)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L1031" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 26.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> add_pathsa(Dirs) -> ok when Dirs :: [Dir :: <a href="file.html#t:filename/0">file:filename</a>()].</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#add_pathsa/2"><code class="inline">add_pathsa/2</code></a></p>
+  </section>
+</section>
+<section class="detail" id="add_pathsa/2">
+
+  <div class="detail-header">
+    <a href="#add_pathsa/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">add_pathsa(Dirs, Cache)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L1050" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 26.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> add_pathsa(Dirs, <a href="#t:cache/0">cache</a>()) -> ok when Dirs :: [Dir :: <a href="file.html#t:filename/0">file:filename</a>()].</pre>
+
+      </div>
+
+<p>Traverses <code class="inline">Dirs</code> and adds each <code class="inline">Dir</code> to the beginning of the code path. This
+means that the order of <code class="inline">Dirs</code> is reversed in the resulting code path. For
+example, if you add <code class="inline">[Dir1,Dir2]</code>, the resulting path will be
+<code class="inline">[Dir2,Dir1|OldCodePath]</code>.</p><p>If a <code class="inline">Dir</code> already exists in the code path, it is removed from the old position.</p><p>An optional second argument may be set to the atom <code class="inline">cache</code> to control if the
+contents of the directory must be cached on first traversal. Defaults to
+<code class="inline">nocache</code>.</p><p>Always returns <code class="inline">ok</code>, regardless of the validity of each individual <code class="inline">Dir</code>.</p>
+  </section>
+</section>
+<section class="detail" id="add_pathsz/1">
+
+  <div class="detail-header">
+    <a href="#add_pathsz/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">add_pathsz(Dirs)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L1008" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 26.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> add_pathsz(Dirs) -> ok when Dirs :: [Dir :: <a href="file.html#t:filename/0">file:filename</a>()].</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#add_pathsz/2"><code class="inline">add_pathsz/2</code></a></p>
+  </section>
+</section>
+<section class="detail" id="add_pathsz/2">
+
+  <div class="detail-header">
+    <a href="#add_pathsz/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">add_pathsz(Dirs, Cache)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L1023" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 26.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> add_pathsz(Dirs, <a href="#t:cache/0">cache</a>()) -> ok when Dirs :: [Dir :: <a href="file.html#t:filename/0">file:filename</a>()].</pre>
+
+      </div>
+
+<p>Adds the directories in <code class="inline">Dirs</code> to the end of the code path. If a <code class="inline">Dir</code> exists,
+it is not added.</p><p>An optional second argument may be set to the atom <code class="inline">cache</code> to control if the
+contents of the directory must be cached on first traversal. Defaults to
+<code class="inline">nocache</code>.</p><p>Always returns <code class="inline">ok</code>, regardless of the validity of each individual <code class="inline">Dir</code>.</p>
+  </section>
+</section>
+<section class="detail" id="add_pathz/1">
+
+  <div class="detail-header">
+    <a href="#add_pathz/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">add_pathz(Dir)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L948" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 26.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> add_pathz(Dir) -> <a href="#t:add_path_ret/0">add_path_ret</a>() when Dir :: <a href="file.html#t:filename/0">file:filename</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#add_pathz/2"><code class="inline">add_pathz/2</code></a></p>
+  </section>
+</section>
+<section class="detail" id="add_pathz/2">
+
+  <div class="detail-header">
+    <a href="#add_pathz/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">add_pathz(Dir, Cache)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L964" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 26.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> add_pathz(Dir, <a href="#t:cache/0">cache</a>()) -> <a href="#t:add_path_ret/0">add_path_ret</a>() when Dir :: <a href="file.html#t:filename/0">file:filename</a>().</pre>
+
+      </div>
+
+<p>Adds <code class="inline">Dir</code> to the code path. The directory is added as the last directory in the
+new path. If <code class="inline">Dir</code> already exists in the path, it is not added.</p><p>An optional second argument may be set to the atom <code class="inline">cache</code> to control if the
+contents of the directory must be cached on first traversal. Defaults to
+<code class="inline">nocache</code>.</p><p>Returns <code class="inline">true</code> if successful, or <code class="inline">{error, bad_directory}</code> if <code class="inline">Dir</code> is not the
+name of a directory.</p>
+  </section>
+</section>
+<section class="detail" id="all_available/0">
+
+  <div class="detail-header">
+    <a href="#all_available/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">all_available()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L687" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 23.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> all_available() -> [{Module, Filename, Loaded}]
+                 when Module :: <a href="../../apps/erts/erlang.html#t:string/0">string</a>(), Filename :: <a href="#t:loaded_filename/0">loaded_filename</a>(), Loaded :: <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>().</pre>
+
+      </div>
+
+<p>Returns a list of tuples <code class="inline">{Module, Filename, Loaded}</code> for all available modules.
+A module is considered to be available if it either is loaded or would be loaded
+if called. <code class="inline">Filename</code> is normally the absolute filename, as described for
+<a href="#is_loaded/1"><code class="inline">is_loaded/1</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="all_loaded/0">
+
+  <div class="detail-header">
+    <a href="#all_loaded/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">all_loaded()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L674" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> all_loaded() -> [{Module, Loaded}] when Module :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>(), Loaded :: <a href="#t:loaded_filename/0">loaded_filename</a>().</pre>
+
+      </div>
+
+<p>Returns a list of tuples <code class="inline">{Module, Loaded}</code> for all loaded modules. <code class="inline">Loaded</code> is
+normally the absolute filename, as described for <a href="#is_loaded/1"><code class="inline">is_loaded/1</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="atomic_load/1">
+
+  <div class="detail-header">
+    <a href="#atomic_load/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">atomic_load(Modules)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L1265" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 19.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> atomic_load(Modules) -> ok | {error, [{Module, What}]}
+               when
+                   Modules :: [Module | {Module, Filename, Binary}],
+                   Module :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>(),
+                   Filename :: <a href="file.html#t:filename/0">file:filename</a>(),
+                   Binary :: <a href="../../apps/erts/erlang.html#t:binary/0">binary</a>(),
+                   What ::
+                       badfile | nofile | on_load_not_allowed | duplicated | not_purged |
+                       sticky_directory | pending_on_load.</pre>
+
+      </div>
+
+<p>Tries to load all of the modules in the list <code class="inline">Modules</code> atomically. That means
+that either all modules are loaded at the same time, or none of the modules are
+loaded if there is a problem with any of the modules.</p><p>Loading can fail for one the following reasons:</p><ul><li><p><strong><code class="inline">badfile</code></strong> - The object code has an incorrect format or the module name in
+the object code is not the expected module name.</p></li><li><p><strong><code class="inline">nofile</code></strong> - No file with object code exists.</p></li><li><p><strong><code class="inline">on_load_not_allowed</code></strong> - A module contains an
+<a href="../../system/code_loading.html#on_load">-on_load function</a>.</p></li><li><p><strong><code class="inline">duplicated</code></strong> - A module is included more than once in <code class="inline">Modules</code>.</p></li><li><p><strong><code class="inline">not_purged</code></strong> - The object code cannot be loaded because an old version of
+the code already exists.</p></li><li><p><strong><code class="inline">sticky_directory</code></strong> - The object code resides in a sticky directory.</p></li><li><p><strong><code class="inline">pending_on_load</code></strong> - A previously loaded module contains an <code class="inline">-on_load</code>
+function that never finished.</p></li></ul><p>If it is important to minimize the time that an application is inactive while
+changing code, use <a href="#prepare_loading/1"><code class="inline">prepare_loading/1</code></a> and <a href="#finish_loading/1"><code class="inline">finish_loading/1</code></a> instead of
+<a href="#atomic_load/1"><code class="inline">atomic_load/1</code></a>. Here is an example:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="4619053767-1">{</span><span class="ss">ok</span><span class="p">,</span><span class="n">Prepared</span><span class="p" data-group-id="4619053767-1">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">code</span><span class="p">:</span><span class="nf">prepare_loading</span><span class="p" data-group-id="4619053767-2">(</span><span class="n">Modules</span><span class="p" data-group-id="4619053767-2">)</span><span class="p">,</span><span class="w">
+</span><span class="c1">%% Put the application into an inactive state or do any</span><span class="w">
+</span><span class="c1">%% other preparation needed before changing the code.</span><span class="w">
+</span><span class="ss">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">code</span><span class="p">:</span><span class="nf">finish_loading</span><span class="p" data-group-id="4619053767-3">(</span><span class="n">Prepared</span><span class="p" data-group-id="4619053767-3">)</span><span class="p">,</span><span class="w">
+</span><span class="c1">%% Resume the application.</span></code></pre>
+  </section>
+</section>
+<section class="detail" id="clash/0">
+
+  <div class="detail-header">
+    <a href="#clash/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">clash()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L1819" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> clash() -> ok.</pre>
+
+      </div>
+
+<p>Searches all directories in the code path for module names with identical names
+and writes a report to <code class="inline">stdout</code>.</p>
+  </section>
+</section>
+<section class="detail" id="clear_cache/0">
+
+  <div class="detail-header">
+    <a href="#clear_cache/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">clear_cache()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L1155" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 26.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> clear_cache() -> ok.</pre>
+
+      </div>
+
+<p>Clear the code path cache. If a directory is cached, its cache is cleared once
+and then it will be recalculated and cached once more in a future traversal.</p><p>If you want to clear the cache for a single path, you might re-add it to the
+code path (with <a href="#add_path/2"><code class="inline">add_path/2</code></a>) or replace it (with
+<a href="#replace_path/3"><code class="inline">replace_path/3</code></a>). If you want to disable all cache, you can
+reset the code path with <code class="inline">code:set_path(code:get_path())</code>.</p><p>Always returns <code class="inline">ok</code>.</p>
+  </section>
+</section>
+<section class="detail" id="compiler_dir/0">
+
+  <div class="detail-header">
+    <a href="#compiler_dir/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">compiler_dir()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L829" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> compiler_dir() -> <a href="file.html#t:filename/0">file:filename</a>().</pre>
+
+      </div>
+
+<p>Returns the compiler library directory. Equivalent to <code class="inline">code:lib_dir(compiler)</code>.</p>
+  </section>
+</section>
+<section class="detail" id="coverage_support/0">
+
+  <div class="detail-header">
+    <a href="#coverage_support/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">coverage_support()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L2166" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> coverage_support() -> Supported when Supported :: <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>().</pre>
+
+      </div>
+
+<p>Returns <code class="inline">true</code> if the system supports coverage and <code class="inline">false</code> otherwise.</p>
+  </section>
+</section>
+<section class="detail" id="del_path/1">
+
+  <div class="detail-header">
+    <a href="#del_path/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">del_path(NameOrDir)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L1073" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> del_path(NameOrDir) -> <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>() | {error, What}
+            when NameOrDir :: Name | Dir, Name :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), Dir :: <a href="file.html#t:filename/0">file:filename</a>(), What :: bad_name.</pre>
+
+      </div>
+
+<p>Deletes a directory from the code path. The argument can be an atom <code class="inline">Name</code>, in
+which case the directory with the name <code class="inline">.../Name[-Vsn][/ebin]</code> is deleted from
+the code path. Also, the complete directory name <code class="inline">Dir</code> can be specified as
+argument.</p><p>Returns:</p><ul><li><p><strong><code class="inline">true</code></strong> - If successful</p></li><li><p><strong><code class="inline">false</code></strong> - If the directory is not found</p></li><li><p><strong><code class="inline">{error, bad_name}</code></strong> - If the argument is invalid</p></li></ul>
+  </section>
+</section>
+<section class="detail" id="del_paths/1">
+
+  <div class="detail-header">
+    <a href="#del_paths/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">del_paths(NamesOrDirs)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L1088" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 26.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> del_paths(NamesOrDirs) -> ok
+             when NamesOrDirs :: [Name | Dir], Name :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), Dir :: <a href="file.html#t:filename/0">file:filename</a>().</pre>
+
+      </div>
+
+<p>Deletes directories from the code path. The argument is a list of either atoms
+or complete directory names. If an atom <code class="inline">Name</code>, the directory with the name
+<code class="inline">.../Name[-Vsn][/ebin]</code> is deleted from the code path.</p><p>Always returns <code class="inline">ok</code>, regardless of the validity of each individual
+<code class="inline">NamesOrDirs</code>.</p>
+  </section>
+</section>
+<section class="detail" id="delete/1">
+
+  <div class="detail-header">
+    <a href="#delete/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">delete(Module)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L584" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> delete(Module) -> <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>() when Module :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>().</pre>
+
+      </div>
+
+<p>Removes the current code for <code class="inline">Module</code>, that is, the current code for <code class="inline">Module</code> is
+made old. This means that processes can continue to execute the code in the
+module, but no external function calls can be made to it.</p><p>Returns <code class="inline">true</code> if successful, or <code class="inline">false</code> if there is old code for <code class="inline">Module</code> that
+must be purged first, or if <code class="inline">Module</code> is not a (loaded) module.</p>
+  </section>
+</section>
+<section class="detail" id="ensure_loaded/1">
+
+  <div class="detail-header">
+    <a href="#ensure_loaded/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">ensure_loaded(Module)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L473" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> ensure_loaded(Module) -> {module, Module} | {error, What}
+                 when Module :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>(), What :: embedded | badfile | nofile | on_load_failure.</pre>
+
+      </div>
+
+<p>Tries to load a module in the same way as <a href="#load_file/1"><code class="inline">load_file/1</code></a>, unless the module is
+already loaded. If called concurrently, this function ensures only one process
+attempts to load said module at a given time.</p><p>In embedded mode, it does not load a module that is not already loaded, but
+returns <code class="inline">{error, embedded}</code> instead. See
+<a href="code.html#error_reasons">Error Reasons for Code-Loading Functions</a> for a
+description of other possible error reasons.</p>
+  </section>
+</section>
+<section class="detail" id="ensure_modules_loaded/1">
+
+  <div class="detail-header">
+    <a href="#ensure_modules_loaded/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">ensure_modules_loaded(Modules)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L1177" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 19.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> ensure_modules_loaded([Module]) -> ok | {error, [{Module, What}]}
+                         when Module :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>(), What :: badfile | nofile | on_load_failure.</pre>
+
+      </div>
+
+<p>Tries to load any modules not already loaded in the list <code class="inline">Modules</code> in the same
+way as <a href="#load_file/1"><code class="inline">load_file/1</code></a>. Unlike <a href="#ensure_loaded/1"><code class="inline">ensure_loaded/1</code></a>, modules are loaded even in
+<code class="inline">embedded</code> mode.</p><p>Returns <code class="inline">ok</code> if successful, or <code class="inline">{error,[{Module,Reason}]}</code> if loading of some
+modules fails. See
+<a href="code.html#error_reasons">Error Reasons for Code-Loading Functions</a> for a
+description of other possible error reasons.</p>
+  </section>
+</section>
+<section class="detail" id="finish_loading/1">
+
+  <div class="detail-header">
+    <a href="#finish_loading/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">finish_loading(Prepared)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L1332" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 19.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> finish_loading(Prepared) -> ok | {error, [{Module, What}]}
+                  when
+                      Prepared :: <a href="#t:prepared_code/0">prepared_code</a>(),
+                      Module :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>(),
+                      What :: not_purged | sticky_directory | pending_on_load.</pre>
+
+      </div>
+
+<p>Tries to load code for all modules that have been previously prepared by
+<a href="#prepare_loading/1"><code class="inline">prepare_loading/1</code></a>. The loading occurs atomically, meaning that either all
+modules are loaded at the same time, or none of the modules are loaded.</p><p>This function can fail with one of the following error reasons:</p><ul><li><p><strong><code class="inline">not_purged</code></strong> - The object code cannot be loaded because an old version of
+the code already exists.</p></li><li><p><strong><code class="inline">sticky_directory</code></strong> - The object code resides in a sticky directory.</p></li><li><p><strong><code class="inline">pending_on_load</code></strong> - A previously loaded module contains an <code class="inline">-on_load</code>
+function that never finished.</p></li></ul>
+  </section>
+</section>
+<section class="detail" id="get_coverage/2">
+
+  <div class="detail-header">
+    <a href="#get_coverage/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">get_coverage(Level, Module)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L2059" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> get_coverage(Level, <a href="../../apps/erts/erlang.html#t:module/0">module</a>()) -> Result
+                when
+                    Level :: function | line | cover_id_line,
+                    Result :: [{Entity, CoverageInfo}],
+                    Entity :: {Function, Arity} | Line | CoverId,
+                    CoverageInfo :: Covered | Counter,
+                    Function :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(),
+                    Arity :: <a href="../../apps/erts/erlang.html#t:arity/0">arity</a>(),
+                    Line :: <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(),
+                    CoverId :: <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer</a>(),
+                    Covered :: <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>(),
+                    Counter :: <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>().</pre>
+
+      </div>
+
+<p>If Level is <code class="inline">function</code>, returns line coverage for the given module according to
+its coverage mode:</p><ul><li><p><strong><code class="inline">function</code></strong> - For each function in module Module, a boolean indicating
+whether that function has been executed at least once is returned.</p></li><li><p><strong><code class="inline">function_counters</code></strong> - For each function in module Module, an integer
+giving the number of times that line has been executed is returned.</p></li><li><p><strong><code class="inline">line</code></strong> - For each function in module Module, a boolean indicating whether
+that function has been executed at least once is returned.</p></li><li><p><strong><code class="inline">line_counters</code></strong> - For each function in module Module, a boolean indicating
+whether that function has been executed at least once is returned (note that
+in this mode, counters for the number of times each function has been executed
+<strong>cannot</strong> be retrieved).</p></li></ul><p>If Level is <code class="inline">line</code>, returns line coverage for the given module according to its
+coverage mode:</p><ul><li><p><strong><code class="inline">line</code></strong> - For each executable line in the module, a boolean indicating
+whether that line has been executed at least once is returned.</p></li><li><p><strong><code class="inline">line_counters</code></strong> - For each executable line in the module, an integer
+giving the number of times that line was executed is returned.</p></li></ul><p>Level <code class="inline">cover_id_line</code> is used by the <a href="../../apps/tools/cover.html"><code class="inline">cover</code></a> tool.</p><p>Failures:</p><ul><li><p><strong><code class="inline">badarg</code></strong> - If <code class="inline">Level</code> is not <code class="inline">function</code> or <code class="inline">line</code>.</p></li><li><p><strong><code class="inline">badarg</code></strong> - If <code class="inline">Module</code> is not an atom.</p></li><li><p><strong><code class="inline">badarg</code></strong> - If <code class="inline">Module</code> does not refer to a loaded module.</p></li><li><p><strong><code class="inline">badarg</code></strong> - If <code class="inline">Module</code> was not loaded in another coverage mode than
+<code class="inline">none</code>.</p></li><li><p><strong><code class="inline">badarg</code></strong> - If Level is <code class="inline">line</code> and <code class="inline">Module</code> has not been loaded with either
+<code class="inline">line</code> or <code class="inline">line_counters</code> enabled.</p></li><li><p><strong><code class="inline">badarg</code></strong> - If the runtime system does not support coverage.</p></li></ul>
+  </section>
+</section>
+<section class="detail" id="get_coverage_mode/0">
+
+  <div class="detail-header">
+    <a href="#get_coverage_mode/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">get_coverage_mode()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L2073" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> get_coverage_mode() -> Mode when Mode :: <a href="#t:coverage_mode/0">coverage_mode</a>().</pre>
+
+      </div>
+
+<p>Returns the current coverage mode as set by option
+<a href="../../apps/erts/erl_cmd.html#%2BJPcover">+JPcover</a> for <code class="inline">erl</code> or <a href="#set_coverage_mode/1"><code class="inline">set_coverage_mode/1</code></a>.</p><p>Failure:</p><ul><li><strong><code class="inline">badarg</code></strong> - If the runtime system does not support coverage.</li></ul>
+  </section>
+</section>
+<section class="detail" id="get_coverage_mode/1">
+
+  <div class="detail-header">
+    <a href="#get_coverage_mode/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">get_coverage_mode(Module)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L2091" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> get_coverage_mode(Module) -> Mode when Module :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>(), Mode :: <a href="#t:coverage_mode/0">coverage_mode</a>().</pre>
+
+      </div>
+
+<p>Get coverage mode for the given module.</p><p>Failures:</p><ul><li><p><strong><code class="inline">badarg</code></strong> - If <code class="inline">Module</code> is not an atom.</p></li><li><p><strong><code class="inline">badarg</code></strong> - If <code class="inline">Module</code> does not refer to a loaded module.</p></li><li><p><strong><code class="inline">badarg</code></strong> - If the runtime system does not support coverage.</p></li></ul>
+  </section>
+</section>
+<section class="detail" id="get_doc/1">
+
+  <div class="detail-header">
+    <a href="#get_doc/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">get_doc(Mod)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L1702" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 23.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> get_doc(Mod) -> {ok, Res} | {error, Reason}
+           when
+               Mod :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>(),
+               Res ::
+                   #docs_v1{anno :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(),
+                            beam_language :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(),
+                            format :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(),
+                            module_doc :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(),
+                            metadata :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(),
+                            docs :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()},
+               Reason :: non_existing | missing | <a href="file.html#t:posix/0">file:posix</a>().</pre>
+
+      </div>
+
+<p>Searches the code path for EEP-48 style documentation and returns it if
+available. If no documentation can be found the function tries to generate
+documentation from the debug information in the module. If no debug information
+is available, this function will return <code class="inline">{error,missing}</code>.</p><p>For more information about the documentation chunk see
+<a href="eep48_chapter.html">Documentation Storage and Format</a> in Kernel's User's Guide.</p>
+  </section>
+</section>
+<section class="detail" id="get_mode/0">
+
+  <div class="detail-header">
+    <a href="#get_mode/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">get_mode()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L1140" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP R16B)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> get_mode() -> embedded | interactive.</pre>
+
+      </div>
+
+<p>Returns an atom describing the mode of the code server: <code class="inline">interactive</code> or
+<code class="inline">embedded</code>.</p><p>This information is useful when an external entity (for example, an IDE)
+provides additional code for a running node. If the code server is in
+interactive mode, it only has to add the path to the code. If the code server is
+in embedded mode, the code must be loaded with <a href="#load_binary/3"><code class="inline">load_binary/3</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="get_object_code/1">
+
+  <div class="detail-header">
+    <a href="#get_object_code/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">get_object_code(Module)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L656" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> get_object_code(Module) -> {Module, Binary, Filename} | error
+                   when Module :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>(), Binary :: <a href="../../apps/erts/erlang.html#t:binary/0">binary</a>(), Filename :: <a href="file.html#t:filename/0">file:filename</a>().</pre>
+
+      </div>
+
+<p>Searches the code path for the object code of module <code class="inline">Module</code>. Returns
+<code class="inline">{Module, Binary, Filename}</code> if successful, otherwise <code class="inline">error</code>. <code class="inline">Binary</code> is a
+binary data object, which contains the object code for the module. This can be
+useful if code is to be loaded on a remote node in a distributed system. For
+example, loading module <code class="inline">Module</code> on a node <code class="inline">Node</code> is done as follows:</p><pre><code class="makeup erlang" translate="no"><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="6432228730-1">{</span><span class="p">_</span><span class="n">Module</span><span class="p">,</span><span class="w"> </span><span class="n">Binary</span><span class="p">,</span><span class="w"> </span><span class="n">Filename</span><span class="p" data-group-id="6432228730-1">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">code</span><span class="p">:</span><span class="nf">get_object_code</span><span class="p" data-group-id="6432228730-2">(</span><span class="n">Module</span><span class="p" data-group-id="6432228730-2">)</span><span class="p">,</span><span class="w">
+</span><span class="nc">rpc</span><span class="p">:</span><span class="nf">call</span><span class="p" data-group-id="6432228730-3">(</span><span class="n">Node</span><span class="p">,</span><span class="w"> </span><span class="ss">code</span><span class="p">,</span><span class="w"> </span><span class="ss">load_binary</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6432228730-4">[</span><span class="n">Module</span><span class="p">,</span><span class="w"> </span><span class="n">Filename</span><span class="p">,</span><span class="w"> </span><span class="n">Binary</span><span class="p" data-group-id="6432228730-4">]</span><span class="p" data-group-id="6432228730-3">)</span><span class="p">,</span><span class="w">
+</span><span class="p">.</span><span class="p">.</span><span class="p">.</span></code></pre>
+  </section>
+</section>
+<section class="detail" id="get_path/0">
+
+  <div class="detail-header">
+    <a href="#get_path/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">get_path()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L929" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> get_path() -> Path when Path :: [Dir :: <a href="file.html#t:filename/0">file:filename</a>()].</pre>
+
+      </div>
+
+<p>Returns the code path.</p>
+  </section>
+</section>
+<section class="detail" id="is_loaded/1">
+
+  <div class="detail-header">
+    <a href="#is_loaded/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">is_loaded(Module)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L635" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> is_loaded(Module) -> {file, Loaded} | false when Module :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>(), Loaded :: <a href="#t:loaded_filename/0">loaded_filename</a>().</pre>
+
+      </div>
+
+<p>Checks if <code class="inline">Module</code> is loaded. If it is, <code class="inline">{file, Loaded}</code> is returned, otherwise
+<code class="inline">false</code>.</p><p>Normally, <code class="inline">Loaded</code> is the absolute filename <code class="inline">Filename</code> from which the code is
+obtained. If the module is preloaded (see <a href="../../apps/sasl/script.html"><code class="inline">script(4)</code></a>),
+<code class="inline">Loaded==preloaded</code>. If the module is Cover-compiled (see <a href="../../apps/tools/cover.html"><code class="inline">cover</code></a>),
+<code class="inline">Loaded==cover_compiled</code>.</p>
+  </section>
+</section>
+<section class="detail" id="is_sticky/1">
+
+  <div class="detail-header">
+    <a href="#is_sticky/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">is_sticky(Module)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L878" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> is_sticky(Module) -> <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>() when Module :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>().</pre>
+
+      </div>
+
+<p>Returns <code class="inline">true</code> if <code class="inline">Module</code> is the name of a module that has been loaded from a
+sticky directory (in other words: an attempt to reload the module will fail), or
+<code class="inline">false</code> if <code class="inline">Module</code> is not a loaded module or is not sticky.</p>
+  </section>
+</section>
+<section class="detail" id="lib_dir/0">
+
+  <div class="detail-header">
+    <a href="#lib_dir/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">lib_dir()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L760" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> lib_dir() -> <a href="file.html#t:filename/0">file:filename</a>().</pre>
+
+      </div>
+
+<p>Returns the library directory, <code class="inline">$OTPROOT/lib</code>, where <code class="inline">$OTPROOT</code> is the root
+directory of Erlang/OTP.</p><p><em>Example:</em></p><pre><code class="text">&gt; code:lib_dir().
+&quot;/usr/local/otp/lib&quot;</code></pre>
+  </section>
+</section>
+<section class="detail" id="lib_dir/1">
+
+  <div class="detail-header">
+    <a href="#lib_dir/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">lib_dir(Name)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L797" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> lib_dir(Name) -> <a href="file.html#t:filename/0">file:filename</a>() | {error, bad_name} when Name :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>().</pre>
+
+      </div>
+
+<p>Returns the path for the &quot;library directory&quot;, the top directory, for an
+application <code class="inline">Name</code> located under <code class="inline">$OTPROOT/lib</code> or on a directory referred to
+with environment variable <code class="inline">ERL_LIBS</code>.</p><p>If a regular directory called <code class="inline">Name</code> or <code class="inline">Name-Vsn</code> exists in the code path with
+an <code class="inline">ebin</code> subdirectory, the path to this directory is returned (not the <code class="inline">ebin</code>
+directory).</p><p>If the directory refers to a directory in an archive, the archive name is
+stripped away before the path is returned. For example, if directory
+<code class="inline">/usr/local/otp/lib/mnesia-4.2.2.ez/mnesia-4.2.2/ebin</code> is in the path,
+<code class="inline">/usr/local/otp/lib/mnesia-4.2.2/ebin</code> is returned. This means that the library
+directory for an application is the same, regardless if the application resides
+in an archive or not.</p><p><em>Example:</em></p><pre><code class="text">&gt; code:lib_dir(mnesia).
+&quot;/usr/local/otp/lib/mnesia-4.2.2&quot;</code></pre><p>Returns <code class="inline">{error, bad_name}</code> if <code class="inline">Name</code> is not the name of an application under
+<code class="inline">$OTPROOT/lib</code> or on a directory referred to through environment variable
+<code class="inline">ERL_LIBS</code>. Fails with an exception if <code class="inline">Name</code> has the wrong type.</p><blockquote><h4 class="warning">Warning</h4><p>For backward compatibility, <code class="inline">Name</code> is also allowed to be a string. That will
+probably change in a future release.</p></blockquote>
+  </section>
+</section>
+<section class="detail" id="lib_dir/2">
+
+  <div class="detail-header">
+    <a href="#lib_dir/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">lib_dir(Name, SubDir)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L825" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+    <div class="deprecated">
+      This function is deprecated. code:lib_dir/2 is deprecated; this functionality will be removed in a future release.
+    </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> lib_dir(Name, SubDir) -> <a href="file.html#t:filename/0">file:filename</a>() | {error, bad_name} when Name :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), SubDir :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>().</pre>
+
+      </div>
+
+<blockquote><h4 class="info">Change</h4><p>This function is deprecated and will be removed in a future release.</p></blockquote><p>Returns the path to a subdirectory directly under the top directory of an
+application. Normally the subdirectories reside under the top directory for the
+application, but when applications at least partly reside in an archive, the
+situation is different. Some of the subdirectories can reside as regular
+directories while others reside in an archive file. It is not checked whether
+this directory exists.</p><p>Instead of using this function, use <a href="#lib_dir/1"><code class="inline">code:lib_dir/1</code></a>.</p><p><em>Example:</em></p><pre><code class="text">&gt; filename:join(code:lib_dir(megaco), &quot;priv&quot;).
+&quot;/usr/local/otp/lib/megaco-3.9.1.1/priv&quot;</code></pre><p>Fails with an exception if <code class="inline">Name</code> or <code class="inline">SubDir</code> has the wrong type.</p>
+  </section>
+</section>
+<section class="detail" id="load_abs/1">
+
+  <div class="detail-header">
+    <a href="#load_abs/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">load_abs(Filename)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L513" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> load_abs(Filename) -> <a href="#t:load_ret/0">load_ret</a>() when Filename :: <a href="file.html#t:filename/0">file:filename</a>().</pre>
+
+      </div>
+
+<p>Same as <a href="#load_file/1"><code class="inline">load_file(Module)</code></a>, but <code class="inline">Filename</code> is an absolute or
+relative filename. The code path is not searched. It returns a value in the same
+way as <a href="#load_file/1"><code class="inline">load_file/1</code></a>. Notice that <code class="inline">Filename</code> must not contain the extension (for
+example, <code class="inline">.beam</code>) because <a href="#load_abs/1"><code class="inline">load_abs/1</code></a> adds the correct
+extension.</p>
+  </section>
+</section>
+<section class="detail" id="load_binary/3">
+
+  <div class="detail-header">
+    <a href="#load_binary/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">load_binary(Module, Filename, Binary)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L551" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> load_binary(Module, Filename, Binary) -> {module, Module} | {error, What}
+               when
+                   Module :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>(),
+                   Filename :: <a href="#t:loaded_filename/0">loaded_filename</a>(),
+                   Binary :: <a href="../../apps/erts/erlang.html#t:binary/0">binary</a>(),
+                   What :: badarg | <a href="#t:load_error_rsn/0">load_error_rsn</a>().</pre>
+
+      </div>
+
+<p>This function can be used to load object code on remote Erlang nodes. Argument
+<code class="inline">Binary</code> must contain object code for <code class="inline">Module</code>. <code class="inline">Filename</code> is only used by the
+code server to keep a record of from which file the object code for <code class="inline">Module</code>
+comes. Thus, <code class="inline">Filename</code> is not opened and read by the code server.</p><p>Returns <code class="inline">{module, Module}</code> if successful, or <code class="inline">{error, Reason}</code> if loading fails.
+See <a href="code.html#error_reasons">Error Reasons for Code-Loading Functions</a> for a
+description of the possible error reasons.</p>
+  </section>
+</section>
+<section class="detail" id="load_file/1">
+
+  <div class="detail-header">
+    <a href="#load_file/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">load_file(Module)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L454" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> load_file(Module) -> <a href="#t:load_ret/0">load_ret</a>() when Module :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>().</pre>
+
+      </div>
+
+<p>Tries to load the Erlang module <code class="inline">Module</code>, using the code path. It looks for the
+object code file with an extension corresponding to the Erlang machine used, for
+example, <code class="inline">Module.beam</code>. The loading fails if the module name found in the object
+code differs from the name <code class="inline">Module</code>. <a href="#load_binary/3"><code class="inline">load_binary/3</code></a> must be used to load object
+code with a module name that is different from the file name.</p><p>Returns <code class="inline">{module, Module}</code> if successful, or <code class="inline">{error, Reason}</code> if loading fails.
+See <a href="code.html#error_reasons">Error Reasons for Code-Loading Functions</a> for a
+description of the possible error reasons.</p>
+  </section>
+</section>
+<section class="detail" id="modified_modules/0">
+
+  <div class="detail-header">
+    <a href="#modified_modules/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">modified_modules()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L1985" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 20.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> modified_modules() -> [<a href="../../apps/erts/erlang.html#t:module/0">module</a>()].</pre>
+
+      </div>
+
+<p>Returns the list of all currently loaded modules for which <a href="#module_status/1"><code class="inline">module_status/1</code></a>
+returns <code class="inline">modified</code>. See also <a href="#all_loaded/0"><code class="inline">all_loaded/0</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="module_status/0">
+
+  <div class="detail-header">
+    <a href="#module_status/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">module_status()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L1890" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 23.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> module_status() -> [{<a href="../../apps/erts/erlang.html#t:module/0">module</a>(), <a href="#t:module_status/0">module_status</a>()}].</pre>
+
+      </div>
+
+<p>See <a href="#module_status/1"><code class="inline">module_status/1</code></a> and <a href="#all_loaded/0"><code class="inline">all_loaded/0</code></a> for details.</p>
+  </section>
+</section>
+<section class="detail" id="module_status/1">
+
+  <div class="detail-header">
+    <a href="#module_status/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">module_status(Module)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L1919" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 20.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> module_status(Module :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>() | [<a href="../../apps/erts/erlang.html#t:module/0">module</a>()]) -> <a href="#t:module_status/0">module_status</a>() | [{<a href="../../apps/erts/erlang.html#t:module/0">module</a>(), <a href="#t:module_status/0">module_status</a>()}].</pre>
+
+      </div>
+
+<p>The status of a module can be one of:</p><ul><li><p><strong><code class="inline">not_loaded</code></strong> - If <code class="inline">Module</code> is not currently loaded.</p></li><li><p><strong><code class="inline">loaded</code></strong> - If <code class="inline">Module</code> is loaded and the object file exists and contains
+the same code.</p></li><li><p><strong><code class="inline">removed</code></strong> - If <code class="inline">Module</code> is loaded but no corresponding object file can be
+found in the code path.</p></li><li><p><strong><code class="inline">modified</code></strong> - If <code class="inline">Module</code> is loaded but the object file contains code with
+a different MD5 checksum.</p></li></ul><p>Preloaded modules are always reported as <code class="inline">loaded</code>, without inspecting the
+contents on disk. Cover compiled modules will always be reported as <code class="inline">modified</code>
+if an object file exists, or as <code class="inline">removed</code> otherwise. Modules whose load path is
+an empty string (which is the convention for auto-generated code) will only be
+reported as <code class="inline">loaded</code> or <code class="inline">not_loaded</code>.</p><p>See also <a href="#modified_modules/0"><code class="inline">modified_modules/0</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="objfile_extension/0">
+
+  <div class="detail-header">
+    <a href="#objfile_extension/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">objfile_extension()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L438" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> objfile_extension() -> <a href="../../apps/erts/erlang.html#t:nonempty_string/0">nonempty_string</a>().</pre>
+
+      </div>
+
+<p>Returns the object code file extension corresponding to the Erlang machine used,
+namely <code class="inline">.beam</code>.</p>
+  </section>
+</section>
+<section class="detail" id="prepare_loading/1">
+
+  <div class="detail-header">
+    <a href="#prepare_loading/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">prepare_loading(Modules)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L1301" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 19.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> prepare_loading(Modules) -> {ok, Prepared} | {error, [{Module, What}]}
+                   when
+                       Modules :: [Module | {Module, Filename, Binary}],
+                       Module :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>(),
+                       Filename :: <a href="file.html#t:filename/0">file:filename</a>(),
+                       Binary :: <a href="../../apps/erts/erlang.html#t:binary/0">binary</a>(),
+                       Prepared :: <a href="#t:prepared_code/0">prepared_code</a>(),
+                       What :: badfile | nofile | on_load_not_allowed | duplicated.</pre>
+
+      </div>
+
+<p>Prepares to load the modules in the list <code class="inline">Modules</code>. Finish the loading by
+calling <a href="#finish_loading/1">finish_loading(Prepared)</a>.</p><p>This function can fail with one of the following error reasons:</p><ul><li><p><strong><code class="inline">badfile</code></strong> - The object code has an incorrect format or the module name in
+the object code is not the expected module name.</p></li><li><p><strong><code class="inline">nofile</code></strong> - No file with object code exists.</p></li><li><p><strong><code class="inline">on_load_not_allowed</code></strong> - A module contains an
+<a href="../../system/code_loading.html#on_load">-on_load function</a>.</p></li><li><p><strong><code class="inline">duplicated</code></strong> - A module is included more than once in <code class="inline">Modules</code>.</p></li></ul>
+  </section>
+</section>
+<section class="detail" id="priv_dir/1">
+
+  <div class="detail-header">
+    <a href="#priv_dir/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">priv_dir(Name)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L843" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> priv_dir(Name) -> <a href="file.html#t:filename/0">file:filename</a>() | {error, bad_name} when Name :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>().</pre>
+
+      </div>
+
+<p>Returns the path to the <code class="inline">priv</code> directory in an application. Equivalent to
+<code class="inline">code:lib_dir(Name, priv)</code>.</p><blockquote><h4 class="warning">Warning</h4><p>For backward compatibility, <code class="inline">Name</code> is also allowed to be a string. That will
+probably change in a future release.</p></blockquote>
+  </section>
+</section>
+<section class="detail" id="purge/1">
+
+  <div class="detail-header">
+    <a href="#purge/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">purge(Module)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L603" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> purge(Module) -> <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>() when Module :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>().</pre>
+
+      </div>
+
+<p>Purges the code for <code class="inline">Module</code>, that is, removes code marked as old. If some
+processes still linger in the old code, these processes are killed before the
+code is removed.</p><blockquote><h4 class="info">Note</h4><p>As of ERTS version 9.0, a process is only considered to be lingering in the
+code if it has direct references to the code. For more information see
+documentation of <a href="../../apps/erts/erlang.html#check_process_code/3"><code class="inline">erlang:check_process_code/3</code></a>, which is used in order to
+determine this.</p></blockquote><p>Returns <code class="inline">true</code> if successful and any process is needed to be killed, otherwise
+<code class="inline">false</code>.</p>
+  </section>
+</section>
+<section class="detail" id="replace_path/2">
+
+  <div class="detail-header">
+    <a href="#replace_path/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">replace_path(Name, Dir)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L1097" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 26.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> replace_path(Name, Dir) -> <a href="#t:replace_path_ret/0">replace_path_ret</a>() when Name :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), Dir :: <a href="file.html#t:filename/0">file:filename</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#replace_path/3"><code class="inline">replace_path/3</code></a></p>
+  </section>
+</section>
+<section class="detail" id="replace_path/3">
+
+  <div class="detail-header">
+    <a href="#replace_path/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">replace_path(Name, Dir, Cache)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L1125" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 26.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> replace_path(Name, Dir, <a href="#t:cache/0">cache</a>()) -> <a href="#t:replace_path_ret/0">replace_path_ret</a>() when Name :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), Dir :: <a href="file.html#t:filename/0">file:filename</a>().</pre>
+
+      </div>
+
+<p>Replaces an old occurrence of a directory named <code class="inline">.../Name[-Vsn][/ebin]</code> in the
+code path, with <code class="inline">Dir</code>. If <code class="inline">Name</code> does not exist, it adds the new directory <code class="inline">Dir</code>
+last in the code path. The new directory must also be named
+<code class="inline">.../Name[-Vsn][/ebin]</code>. This function is to be used if a new version of the
+directory (library) is added to a running system.</p><p>An optional third argument may be set to the atom <code class="inline">cache</code> to control if the
+contents of the directory must be cached on first traversal. Defaults to
+<code class="inline">nocache</code>.</p><p>Returns:</p><ul><li><p><strong><code class="inline">true</code></strong> - If successful</p></li><li><p><strong><code class="inline">{error, bad_name}</code></strong> - If <code class="inline">Name</code> is not found</p></li><li><p><strong><code class="inline">{error, bad_directory}</code></strong> - If <code class="inline">Dir</code> does not exist</p></li><li><p><strong><code class="inline">{error, {badarg, [Name, Dir]}}</code></strong> - If <code class="inline">Name</code> or <code class="inline">Dir</code> is invalid</p></li></ul>
+  </section>
+</section>
+<section class="detail" id="reset_coverage/1">
+
+  <div class="detail-header">
+    <a href="#reset_coverage/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">reset_coverage(Module)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L2159" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> reset_coverage(Module) -> ok when Module :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>().</pre>
+
+      </div>
+
+<p>Reset coverage information for module Module.</p><p>Failures:</p><ul><li><p><strong><code class="inline">badarg</code></strong> - If <code class="inline">Module</code> is not an atom.</p></li><li><p><strong><code class="inline">badarg</code></strong> - If <code class="inline">Module</code> does not refer to a loaded module.</p></li><li><p><strong><code class="inline">badarg</code></strong> - If <code class="inline">Module</code> was not loaded with coverage enabled.</p></li><li><p><strong><code class="inline">badarg</code></strong> - If the runtime system does not support coverage.</p></li></ul>
+  </section>
+</section>
+<section class="detail" id="root_dir/0">
+
+  <div class="detail-header">
+    <a href="#root_dir/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">root_dir()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L746" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> root_dir() -> <a href="file.html#t:filename/0">file:filename</a>().</pre>
+
+      </div>
+
+<p>Returns the root directory of Erlang/OTP, which is the directory where it is
+installed.</p><p><em>Example:</em></p><pre><code class="text">&gt; code:root_dir().
+&quot;/usr/local/otp&quot;</code></pre>
+  </section>
+</section>
+<section class="detail" id="set_coverage_mode/1">
+
+  <div class="detail-header">
+    <a href="#set_coverage_mode/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">set_coverage_mode(Mode)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L2140" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> set_coverage_mode(Mode) -> OldMode when Mode :: <a href="#t:coverage_mode/0">coverage_mode</a>(), OldMode :: <a href="#t:coverage_mode/0">coverage_mode</a>().</pre>
+
+      </div>
+
+<p>Sets the coverage mode for modules that are subsequently loaded, similar to
+option <a href="../../apps/erts/erl_cmd.html#%2BJPcover">+JPcover</a> for <code class="inline">erl</code>:</p><ul><li><p><strong><code class="inline">function</code></strong> - All modules that are loaded will be instrumented to keep
+track of which functions are executed. Information about which functions that
+have been executed can be retrieved by calling
+<a href="#get_coverage/2"><code class="inline">get_coverage(function, Module)</code></a>.</p></li><li><p><strong><code class="inline">function_counters</code></strong> - All modules that are loaded will be instrumented to
+count how many times each function is executed. Information about how many
+times each function has been executed can be retrieved by calling
+<a href="#get_coverage/2"><code class="inline">get_coverage(function, Module)</code></a>.</p></li><li><p><strong><code class="inline">line</code></strong> - When modules that have been compiled with the
+<a href="../../apps/compiler/compile.html#line_coverage"><code class="inline">line_coverage</code></a> option are loaded, they will be
+instrumented to keep track of which lines have been executed. Information
+about which lines have been executed can be retrieved by calling
+<a href="#get_coverage/2"><code class="inline">get_coverage(line, Module)</code></a>, and information about which
+functions that have been executed can be retrieved by calling
+<a href="#get_coverage/2"><code class="inline">get_coverage(function, Module)</code></a>.</p></li><li><p><strong><code class="inline">line_counters</code></strong> - When modules that have been compiled with the
+<a href="../../apps/compiler/compile.html#line_coverage"><code class="inline">line_coverage</code></a> option are loaded, they will be
+instrumented to count the number of times each line is executed. Information
+about how many times each line has been executed can be retrieved by calling
+<a href="#get_coverage/2"><code class="inline">get_coverage(line, Module)</code></a>, and information about which
+functions that have been executed can be retrieved by calling
+<a href="#get_coverage/2"><code class="inline">get_coverage(function, Module)</code></a> (note that in this mode,
+counters for the number of times each function has been executed <strong>cannot</strong> be
+retrieved).</p></li><li><p><strong><code class="inline">none</code></strong> - Modules will be loaded without coverage instrumentation.</p></li></ul><p>Returns the previous coverage mode.</p><p>Failures:</p><ul><li><p><strong><code class="inline">badarg</code></strong> - If <code class="inline">Mode</code> is not a valid coverage mode.</p></li><li><p><strong><code class="inline">badarg</code></strong> - If the runtime system does not support coverage.</p></li></ul>
+  </section>
+</section>
+<section class="detail" id="set_path/1">
+
+  <div class="detail-header">
+    <a href="#set_path/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">set_path(Path)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L886" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 26.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> set_path(Path) -> <a href="#t:set_path_ret/0">set_path_ret</a>() when Path :: [Dir :: <a href="file.html#t:filename/0">file:filename</a>()].</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#set_path/2"><code class="inline">set_path/2</code></a></p>
+  </section>
+</section>
+<section class="detail" id="set_path/2">
+
+  <div class="detail-header">
+    <a href="#set_path/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">set_path(PathList, Cache)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L904" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 26.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> set_path(Path, <a href="#t:cache/0">cache</a>()) -> <a href="#t:set_path_ret/0">set_path_ret</a>() when Path :: [Dir :: <a href="file.html#t:filename/0">file:filename</a>()].</pre>
+
+      </div>
+
+<p>Sets the code path to the list of directories <code class="inline">Path</code>.</p><p>An optional second argument may be set to the atom <code class="inline">cache</code> to control if the
+contents of the directory must be cached on first traversal. Defaults to
+<code class="inline">nocache</code>.</p><p>Returns:</p><ul><li><p><strong><code class="inline">true</code></strong> - If successful</p></li><li><p><strong><code class="inline">{error, bad_directory}</code></strong> - If any <code class="inline">Dir</code> is not a directory name</p></li></ul>
+  </section>
+</section>
+<section class="detail" id="soft_purge/1">
+
+  <div class="detail-header">
+    <a href="#soft_purge/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">soft_purge(Module)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L621" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> soft_purge(Module) -> <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>() when Module :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>().</pre>
+
+      </div>
+
+<p>Purges the code for <code class="inline">Module</code>, that is, removes code marked as old, but only if
+no processes linger in it.</p><blockquote><h4 class="info">Note</h4><p>As of ERTS version 9.0, a process is only considered to be lingering in the
+code if it has direct references to the code. For more information see
+documentation of <a href="../../apps/erts/erlang.html#check_process_code/3"><code class="inline">erlang:check_process_code/3</code></a>, which is used in order to
+determine this.</p></blockquote><p>Returns <code class="inline">false</code> if the module cannot be purged because of processes lingering in
+old code, otherwise <code class="inline">true</code>.</p>
+  </section>
+</section>
+<section class="detail" id="stick_dir/1">
+
+  <div class="detail-header">
+    <a href="#stick_dir/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">stick_dir(Dir)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L852" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> stick_dir(Dir) -> ok | error when Dir :: <a href="file.html#t:filename/0">file:filename</a>().</pre>
+
+      </div>
+
+<p>Marks <code class="inline">Dir</code> as sticky.</p><p>Returns <code class="inline">ok</code> if successful, otherwise <code class="inline">error</code>.</p>
+  </section>
+</section>
+<section class="detail" id="unstick_dir/1">
+
+  <div class="detail-header">
+    <a href="#unstick_dir/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">unstick_dir(Dir)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L861" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> unstick_dir(Dir) -> ok | error when Dir :: <a href="file.html#t:filename/0">file:filename</a>().</pre>
+
+      </div>
+
+<p>Unsticks a directory that is marked as sticky.</p><p>Returns <code class="inline">ok</code> if successful, otherwise <code class="inline">error</code>.</p>
+  </section>
+</section>
+<section class="detail" id="where_is_file/1">
+
+  <div class="detail-header">
+    <a href="#where_is_file/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">where_is_file(Filename)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L1656" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> where_is_file(Filename) -> non_existing | Absname
+                 when Filename :: <a href="file.html#t:filename/0">file:filename</a>(), Absname :: <a href="file.html#t:filename/0">file:filename</a>().</pre>
+
+      </div>
+
+<p>Searches the code path for <code class="inline">Filename</code>, a file of arbitrary type. If found, the
+full name is returned. <code class="inline">non_existing</code> is returned if the file cannot be found.
+The function can be useful, for example, to locate application resource files.</p>
+  </section>
+</section>
+<section class="detail" id="which/1">
+
+  <div class="detail-header">
+    <a href="#which/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">which(Module)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/code.erl#L1634" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> which(Module) -> Which when Module :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>(), Which :: <a href="#t:loaded_filename/0">loaded_filename</a>() | non_existing.</pre>
+
+      </div>
+
+<p>If the module is not loaded, this function searches the code path for the first
+file containing object code for <code class="inline">Module</code> and returns the absolute filename.</p><p>If the module is loaded, it returns the name of the file containing the loaded
+object code.</p><p>If the module is preloaded, <code class="inline">preloaded</code> is returned.</p><p>If the module is Cover-compiled, <code class="inline">cover_compiled</code> is returned.</p><p>If the module cannot be found, <code class="inline">non_existing</code> is returned.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+              <a href="kernel.epub" title="ePub version">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

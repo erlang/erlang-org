@@ -1,0 +1,1823 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="stdlib v6.0">
+
+
+    <title>supervisor — stdlib v6.0</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-C7A0AB26.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="modules" class="page-behaviour">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="stdlib" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+stdlib
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v6.0
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of stdlib</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/supervisor.erl#L20" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+  <span translate="no">supervisor</span> <small>behaviour</small>
+  <small class="app-vsn" translate="no">(stdlib v6.0)</small>
+
+</h1>
+
+
+  <section id="moduledoc">
+<p>Generic supervisor behavior.</p><p>This behavior module provides a supervisor, a process that supervises other
+processes called child processes. A child process can either be another
+supervisor or a worker process. Worker processes are normally implemented using
+one of the <a href="gen_event.html"><code class="inline">gen_event</code></a>, <a href="gen_server.html"><code class="inline">gen_server</code></a>, or <a href="gen_statem.html"><code class="inline">gen_statem</code></a> behaviors. A
+supervisor implemented using this module has a standard set of interface
+functions and includes functionality for tracing and error reporting.
+Supervisors are used to build a hierarchical process structure called a
+supervision tree, a nice way to structure a fault-tolerant application. For more
+information, see <a href="../../system/sup_princ.html">Supervisor Behaviour</a> in OTP Design
+Principles.</p><p>A supervisor expects the definition of which child processes to supervise to be
+specified in a callback module exporting a predefined set of functions.</p><p>Unless otherwise stated, all functions in this module fail if the specified
+supervisor does not exist or if bad arguments are specified.</p><p><a href="" id="supervision_princ"></a></p><h2 id="module-supervision-principles" class="section-heading">
+  <a href="#module-supervision-principles" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Supervision Principles</span>
+</h2>
+<p>The supervisor is responsible for starting, stopping, and monitoring its child
+processes. The basic idea of a supervisor is that it must keep its child
+processes alive by restarting them when necessary.</p><p>The children of a supervisor are defined as a list of <em>child specifications</em>.
+When the supervisor is started, the child processes are started in order from
+left to right according to this list. When the supervisor is going to terminate,
+it first terminates its child processes in reversed start order, from right to
+left.</p><p><a href="" id="sup_flags"></a></p><h3 id="module-supervisor-flags" class="section-heading">
+  <a href="#module-supervisor-flags" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Supervisor flags</span>
+</h3>
+<p>The supervisor properties are defined by the supervisor flags. The type
+definition for the supervisor flags is as follows:</p><pre><code class="makeup erlang" translate="no"><span class="nf">sup_flags</span><span class="p" data-group-id="0633224292-1">(</span><span class="p" data-group-id="0633224292-1">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="0633224292-2">#{</span><span class="ss">strategy</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nf">strategy</span><span class="p" data-group-id="0633224292-3">(</span><span class="p" data-group-id="0633224292-3">)</span><span class="p">,</span><span class="w">           </span><span class="c1">% optional</span><span class="w">
+                </span><span class="ss">intensity</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nf">non_neg_integer</span><span class="p" data-group-id="0633224292-4">(</span><span class="p" data-group-id="0633224292-4">)</span><span class="p">,</span><span class="w">   </span><span class="c1">% optional</span><span class="w">
+                </span><span class="ss">period</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nf">pos_integer</span><span class="p" data-group-id="0633224292-5">(</span><span class="p" data-group-id="0633224292-5">)</span><span class="p">,</span><span class="w">          </span><span class="c1">% optional</span><span class="w">
+                </span><span class="ss">auto_shutdown</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nf">auto_shutdown</span><span class="p" data-group-id="0633224292-6">(</span><span class="p" data-group-id="0633224292-6">)</span><span class="p" data-group-id="0633224292-2">}</span><span class="w"> </span><span class="c1">% optional</span></code></pre><h4>Restart Strategies</h4><p>A supervisor can have one of the following <em>restart strategies</em> specified with
+the <code class="inline">strategy</code> key in the above map:</p><ul><li><p><code class="inline">one_for_one</code> - If one child process terminates and is to be restarted, only
+that child process is affected. This is the default restart strategy.</p></li><li><p><code class="inline">one_for_all</code> - If one child process terminates and is to be restarted, all
+other child processes are terminated and then all child processes are
+restarted.</p></li><li><p><code class="inline">rest_for_one</code> - If one child process terminates and is to be restarted, the
+'rest' of the child processes (that is, the child processes after the
+terminated child process in the start order) are terminated. Then the
+terminated child process and all child processes after it are restarted.</p></li><li><p><code class="inline">simple_one_for_one</code> - A simplified <code class="inline">one_for_one</code> supervisor, where all child
+processes are dynamically added instances of the same process type, that is,
+running the same code.</p><p>Functions <a href="#delete_child/2"><code class="inline">delete_child/2</code></a> and <a href="#restart_child/2"><code class="inline">restart_child/2</code></a> are invalid for
+<code class="inline">simple_one_for_one</code> supervisors and return <code class="inline">{error,simple_one_for_one}</code> if
+the specified supervisor uses this restart strategy.</p><p>Function <a href="#terminate_child/2"><code class="inline">terminate_child/2</code></a> can be used for children under
+<code class="inline">simple_one_for_one</code> supervisors by specifying the child's <a href="../../apps/erts/erlang.html#t:pid/0"><code class="inline">pid/0</code></a> as the
+second argument. If instead the child specification identifier is used,
+<a href="#terminate_child/2"><code class="inline">terminate_child/2</code></a> return
+<code class="inline">{error,simple_one_for_one}</code>.</p><p>As a <code class="inline">simple_one_for_one</code> supervisor can have many children, it shuts them all
+down asynchronously. This means that the children do their cleanup in
+parallel, and therefore the order in which they are stopped is not defined.</p></li></ul><h4>Restart intensity and period</h4><p>To prevent a supervisor from getting into an infinite loop of child process
+terminations and restarts, a <em>maximum restart intensity</em> is defined using two
+integer values specified with keys <code class="inline">intensity</code> and <code class="inline">period</code> in the above map.
+Assuming the values <code class="inline">MaxR</code> for <code class="inline">intensity</code> and <code class="inline">MaxT</code> for <code class="inline">period</code>, then, if
+more than <code class="inline">MaxR</code> restarts occur within <code class="inline">MaxT</code> seconds, the supervisor terminates
+all child processes and then itself. The termination reason for the supervisor
+itself in that case will be <code class="inline">shutdown</code>. <code class="inline">intensity</code> defaults to <code class="inline">1</code> and <code class="inline">period</code>
+defaults to <code class="inline">5</code>.</p><p><a href="" id="auto_shutdown"></a></p><h4>Automatic Shutdown</h4><p>A supervisor can be configured to automatically shut itself down with exit
+reason <code class="inline">shutdown</code> when <a href="supervisor.html#significant_child">significant children</a>
+terminate with the <code class="inline">auto_shutdown</code> key in the above map:</p><ul><li><p><code class="inline">never</code> - Automic shutdown is disabled. This is the default setting.</p><p>With <code class="inline">auto_shutdown</code> set to <code class="inline">never</code>, child specs with the <code class="inline">significant</code> flag
+set to <code class="inline">true</code> are considered invalid and will be rejected.</p></li><li><p><code class="inline">any_significant</code> - The supervisor will shut itself down when <em>any</em>
+significant child terminates, that is, when a <code class="inline">transient</code> significant child
+terminates normally or when a <code class="inline">temporary</code> significant child terminates
+normally or abnormally.</p></li><li><p><code class="inline">all_significant</code> - The supervisor will shut itself down when <em>all</em>
+significant children have terminated, that is, when the <em>last active</em>
+significant child terminates. The same rules as for <code class="inline">any_significant</code> apply.</p></li></ul><p>For more information, see the section
+<a href="../../system/sup_princ.html#automatic-shutdown">Automatic Shutdown</a> in Supervisor
+Behavior in OTP Design Principles.</p><blockquote><h4 class="warning">Warning</h4><p>The automatic shutdown feature appeared in OTP 24.0, but applications using
+this feature will also compile and run with older OTP versions.</p><p>However, such applications, when compiled with an OTP version that predates
+the appearance of the automatic shutdown feature, will leak processes because
+the automatic shutdowns they rely on will not happen.</p><p>It is up to implementors to take proper precautions if they expect that their
+applications may be compiled with older OTP versions.</p></blockquote><p><a href="" id="child_spec"></a></p><h3 id="module-child-specification" class="section-heading">
+  <a href="#module-child-specification" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Child specification</span>
+</h3>
+<p>The type definition of a child specification is as follows:</p><pre><code class="makeup erlang" translate="no"><span class="nf">child_spec</span><span class="p" data-group-id="0272924509-1">(</span><span class="p" data-group-id="0272924509-1">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="0272924509-2">#{</span><span class="ss">id</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nf">child_id</span><span class="p" data-group-id="0272924509-3">(</span><span class="p" data-group-id="0272924509-3">)</span><span class="p">,</span><span class="w">             </span><span class="c1">% mandatory</span><span class="w">
+                 </span><span class="ss">start</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nf">mfargs</span><span class="p" data-group-id="0272924509-4">(</span><span class="p" data-group-id="0272924509-4">)</span><span class="p">,</span><span class="w">            </span><span class="c1">% mandatory</span><span class="w">
+                 </span><span class="ss">restart</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nf">restart</span><span class="p" data-group-id="0272924509-5">(</span><span class="p" data-group-id="0272924509-5">)</span><span class="p">,</span><span class="w">         </span><span class="c1">% optional</span><span class="w">
+                 </span><span class="ss">significant</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nf">significant</span><span class="p" data-group-id="0272924509-6">(</span><span class="p" data-group-id="0272924509-6">)</span><span class="p">,</span><span class="w"> </span><span class="c1">% optional</span><span class="w">
+                 </span><span class="ss">shutdown</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nf">shutdown</span><span class="p" data-group-id="0272924509-7">(</span><span class="p" data-group-id="0272924509-7">)</span><span class="p">,</span><span class="w">       </span><span class="c1">% optional</span><span class="w">
+                 </span><span class="ss">type</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nf">worker</span><span class="p" data-group-id="0272924509-8">(</span><span class="p" data-group-id="0272924509-8">)</span><span class="p">,</span><span class="w">             </span><span class="c1">% optional</span><span class="w">
+                 </span><span class="ss">modules</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nf">modules</span><span class="p" data-group-id="0272924509-9">(</span><span class="p" data-group-id="0272924509-9">)</span><span class="p" data-group-id="0272924509-2">}</span><span class="w">         </span><span class="c1">% optional</span></code></pre><p>The old tuple format is kept for backwards compatibility, see <a href="#t:child_spec/0"><code class="inline">child_spec/0</code></a>,
+but the map is preferred.</p><ul><li><p><code class="inline">id</code> is used to identify the child specification internally by the supervisor.</p><p>The <code class="inline">id</code> key is mandatory.</p><p>Notice that this identifier on occations has been called &quot;name&quot;. As far as
+possible, the terms &quot;identifier&quot; or &quot;id&quot; are now used but to keep backward
+compatibility, some occurences of &quot;name&quot; can still be found, for example in
+error messages.</p></li><li><p><code class="inline">start</code> defines the function call used to start the child process. It must be
+a module-function-arguments tuple <code class="inline">{M,F,A}</code> used as
+<a href="../../apps/erts/erlang.html#apply/3"><code class="inline">apply(M,F,A)</code></a>.</p><p>The start function <em>must create and link to</em> the child process, and must
+return <code class="inline">{ok,Child}</code> or <code class="inline">{ok,Child,Info}</code>, where <code class="inline">Child</code> is the pid of the
+child process and <code class="inline">Info</code> any term that is ignored by the supervisor.</p><p>The start function can also return <code class="inline">ignore</code> if the child process for some
+reason cannot be started, in which case the child specification is kept by the
+supervisor (unless it is a temporary child) but the non-existing child process
+is ignored.</p><p>If something goes wrong, the function can also return an error tuple
+<code class="inline">{error,Error}</code>.</p><p>Notice that the <code class="inline">start_link</code> functions of the different behavior modules
+fulfill the above requirements.</p><p>The <code class="inline">start</code> key is mandatory.</p></li><li><p><a href="" id="restart"></a> <code class="inline">restart</code> defines when a terminated child process must be
+restarted. A <code class="inline">permanent</code> child process is always restarted. A <code class="inline">temporary</code>
+child process is never restarted (even when the supervisor's restart strategy
+is <code class="inline">rest_for_one</code> or <code class="inline">one_for_all</code> and a sibling's death causes the temporary
+process to be terminated). A <code class="inline">transient</code> child process is restarted only if it
+terminates abnormally, that is, with another exit reason than <code class="inline">normal</code>,
+<code class="inline">shutdown</code>, or <code class="inline">{shutdown,Term}</code>.</p><p>The <code class="inline">restart</code> key is optional. If it is not specified, it defaults to
+<code class="inline">permanent</code>.</p></li><li><p><a href="" id="significant_child"></a> <code class="inline">significant</code> defines if a child is considered
+significant for <a href="supervisor.html#auto_shutdown">automatic self-shutdown</a> of the
+supervisor.</p><p>Setting this option to <code class="inline">true</code> when the <a href="supervisor.html#restart">restart type</a>
+is <code class="inline">permanent</code> is invalid. Also, it is considered invalid to start children
+with this option set to <code class="inline">true</code> in a supervisor when the
+<a href="supervisor.html#auto_shutdown"><code class="inline">auto_shutdown</code></a> supervisor flag is set to
+<code class="inline">never</code>.</p><p>The <code class="inline">significant</code> key is optional. If it is not specified, it defaults to
+<code class="inline">false</code>.</p></li><li><p><code class="inline">shutdown</code> defines how a child process must be terminated. <code class="inline">brutal_kill</code> means
+that the child process is unconditionally terminated using
+<a href="../../apps/erts/erlang.html#exit/2"><code class="inline">exit(Child,kill)</code></a>. An integer time-out value means that the
+supervisor tells the child process to terminate by calling
+<a href="../../apps/erts/erlang.html#exit/2"><code class="inline">exit(Child,shutdown)</code></a> and then wait for an exit signal with
+reason <code class="inline">shutdown</code> back from the child process. If no exit signal is received
+within the specified number of milliseconds, the child process is
+unconditionally terminated using <a href="../../apps/erts/erlang.html#exit/2"><code class="inline">exit(Child,kill)</code></a>.</p><p>If the child process is another supervisor, the shutdown time must be set to
+<code class="inline">infinity</code> to give the subtree ample time to shut down.</p><blockquote><h4 class="warning">Warning</h4><p>Setting the shutdown time to anything other than <code class="inline">infinity</code> for a child of
+type <code class="inline">supervisor</code> can cause a race condition where the child in question
+unlinks its own children, but fails to terminate them before it is killed.</p></blockquote><p>It is also allowed to set it to <code class="inline">infinity</code>, if the child process is a worker.</p><blockquote><h4 class="warning">Warning</h4><p>Be careful when setting the shutdown time to <code class="inline">infinity</code> when the child
+process is a worker. Because, in this situation, the termination of the
+supervision tree depends on the child process, it must be implemented in a
+safe way and its cleanup procedure must always return.</p></blockquote><p>Notice that all child processes implemented using the standard OTP behavior
+modules automatically adhere to the shutdown protocol.</p><p>The <code class="inline">shutdown</code> key is optional. If it is not specified, it defaults to <code class="inline">5000</code>
+if the child is of type <code class="inline">worker</code> and it defaults to <code class="inline">infinity</code> if the child is
+of type <code class="inline">supervisor</code>.</p></li><li><p><code class="inline">type</code> specifies if the child process is a supervisor or a worker.</p><p>The <code class="inline">type</code> key is optional. If it is not specified, it defaults to <code class="inline">worker</code>.</p></li><li><p><code class="inline">modules</code> is used by the release handler during code replacement to determine
+which processes are using a certain module. As a rule of thumb, if the child
+process is a <a href="supervisor.html#content"><code class="inline">supervisor</code></a>, <a href="gen_server.html"><code class="inline">gen_server</code></a> or, <a href="gen_statem.html"><code class="inline">gen_statem</code></a>, this is to be a list
+with one element <code class="inline">[Module]</code>, where <code class="inline">Module</code> is the callback module. If the
+child process is an event manager (<a href="gen_event.html"><code class="inline">gen_event</code></a>) with a dynamic set of callback
+modules, value <code class="inline">dynamic</code> must be used. For more information about release
+handling, see <a href="../../system/release_handling.html">Release Handling</a> in OTP Design
+Principles.</p><p>The <code class="inline">modules</code> key is optional. If it is not specified, it defaults to <code class="inline">[M]</code>,
+where <code class="inline">M</code> comes from the child's start <code class="inline">{M,F,A}</code>.</p></li><li><p>Internally, the supervisor also keeps track of the pid <code class="inline">Child</code> of the child
+process, or <code class="inline">undefined</code> if no pid exists.</p></li></ul><h2 id="module-see-also" class="section-heading">
+  <a href="#module-see-also" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">See Also</span>
+</h2>
+<p><a href="gen_event.html"><code class="inline">gen_event</code></a>, <a href="gen_statem.html"><code class="inline">gen_statem</code></a>, <a href="gen_server.html"><code class="inline">gen_server</code></a>, <a href="sys.html"><code class="inline">sys</code></a></p>
+  </section>
+
+
+  <section id="summary" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#summary">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Summary</span>
+    </h1>
+<div class="summary-types summary">
+  <h2>
+    <a href="#types">Types</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:auto_shutdown/0" translate="no">auto_shutdown()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:child/0" translate="no">child()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:child_id/0" translate="no">child_id()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Not a <a href="../../apps/erts/erlang.html#t:pid/0"><code class="inline">pid/0</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:child_rec/0" translate="no">child_rec()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:child_spec/0" translate="no">child_spec()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>The tuple format is kept for backward compatibility only. A map is preferred;
+see more details <a href="supervisor.html#child_spec">above</a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:children/0" translate="no">children()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:mfargs/0" translate="no">mfargs()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Value <code class="inline">undefined</code> for <code class="inline">A</code> (the argument list) is only to be used internally in
+<a href="supervisor.html#content"><code class="inline">supervisor</code></a>. If the restart type of the child is <code class="inline">temporary</code>, the process is
+never to be restarted and therefore there is no need to store the real argument
+list. Value <code class="inline">undefined</code> is then stored instead.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:modules/0" translate="no">modules()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:restart/0" translate="no">restart()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:shutdown/0" translate="no">shutdown()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:significant/0" translate="no">significant()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:startchild_err/0" translate="no">startchild_err()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:startchild_ret/0" translate="no">startchild_ret()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:startlink_err/0" translate="no">startlink_err()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:startlink_ret/0" translate="no">startlink_ret()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:strategy/0" translate="no">strategy()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:sup_flags/0" translate="no">sup_flags()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>The tuple format is kept for backward compatibility only. A map is preferred;
+see more details <a href="supervisor.html#sup_flags">above</a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:sup_name/0" translate="no">sup_name()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Name specification to use when starting a <code class="inline">supervisor</code>. See function
+<a href="#start_link/2"><code class="inline">start_link/2,3</code></a> and the type <a href="#t:sup_ref/0"><code class="inline">sup_ref/0</code></a> below.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:sup_ref/0" translate="no">sup_ref()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Supervisor specification to use when addressing a <code class="inline">supervisor</code>. See
+<a href="#count_children/1"><code class="inline">count_children/1</code></a>, <a href="#delete_child/2"><code class="inline">delete_child/2</code></a>,
+<a href="#get_childspec/2"><code class="inline">get_childspec/2</code></a>, <a href="#restart_child/2"><code class="inline">restart_child/2</code></a>,
+<a href="#start_child/2"><code class="inline">start_child/2</code></a>, <a href="#terminate_child/2"><code class="inline">terminate_child/2</code></a>,
+<a href="#which_children/1"><code class="inline">which_children/1</code></a> and the type <a href="#t:sup_name/0"><code class="inline">sup_name/0</code></a> above.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:worker/0" translate="no">worker()</a>
+
+      </div>
+
+    </div>
+
+</div>
+<div class="summary-callbacks summary">
+  <h2>
+    <a href="#callbacks">Callbacks</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#c:init/1" translate="no">init(Args)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Whenever a supervisor is started using <a href="#start_link/2"><code class="inline">start_link/2,3</code></a>, this
+function is called by the new process to find out about restart strategy,
+maximum restart intensity, and child specifications.</p></div>
+
+    </div>
+
+</div>
+<div class="summary-functions summary">
+  <h2>
+    <a href="#functions">Functions</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#check_childspecs/1" translate="no">check_childspecs(ChildSpecs)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#check_childspecs/2"><code class="inline">check_childspecs(ChildSpecs, undefined)</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#check_childspecs/2" translate="no">check_childspecs(ChildSpecs, AutoShutdown)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Takes a list of child specification as argument and returns <code class="inline">ok</code> if all of them
+are syntactically correct, otherwise <code class="inline">{error,Error}</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#count_children/1" translate="no">count_children(SupRef)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns a <a href="proplists.html#t:proplist/0">property list</a> containing the counts for each of
+the following elements of the supervisor's child specifications and managed
+processes</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#delete_child/2" translate="no">delete_child(SupRef, Id)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Tells supervisor <code class="inline">SupRef</code> to delete the child specification identified by <code class="inline">Id</code>.
+The corresponding child process must not be running. Use <a href="#terminate_child/2"><code class="inline">terminate_child/2</code></a> to
+terminate it.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#get_childspec/2" translate="no">get_childspec(SupRef, Id)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns the child specification map for the child identified by <code class="inline">Id</code> under
+supervisor <code class="inline">SupRef</code>. The returned map contains all keys, both mandatory and
+optional.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#restart_child/2" translate="no">restart_child(SupRef, Id)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Tells supervisor <code class="inline">SupRef</code> to restart a child process corresponding to the child
+specification identified by <code class="inline">Id</code>. The child specification must exist, and the
+corresponding child process must not be running.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#start_child/2" translate="no">start_child(Supervisor, ChildSpecOrExtraArgs)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Dynamically adds a child specification to supervisor <code class="inline">SupRef</code>, which starts the
+corresponding child process.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#start_link/2" translate="no">start_link(Module, Args)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Creates a nameless supervisor process as part of a supervision tree.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#start_link/3" translate="no">start_link(SupName, Module, Args)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Creates a supervisor process as part of a supervision tree.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#terminate_child/2" translate="no">terminate_child(SupRef, Id)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Tells supervisor <code class="inline">SupRef</code> to terminate the specified child.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#which_children/1" translate="no">which_children(SupRef)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns a newly created list with information about all child specifications and
+child processes belonging to supervisor <code class="inline">SupRef</code>.</p></div>
+
+    </div>
+
+</div>
+
+  </section>
+
+
+  <section id="types" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#types">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Types</span>
+    </h1>
+    <div class="types-list">
+<section class="detail" id="t:auto_shutdown/0">
+
+  <div class="detail-header">
+    <a href="#t:auto_shutdown/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">auto_shutdown()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/supervisor.erl#L324" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> auto_shutdown() :: never | any_significant | all_significant.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:child/0">
+
+  <div class="detail-header">
+    <a href="#t:child/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">child()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/supervisor.erl#L325" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> child() :: undefined | <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:child_id/0">
+
+  <div class="detail-header">
+    <a href="#t:child_id/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">child_id()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/supervisor.erl#L327" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> child_id() :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+<p>Not a <a href="../../apps/erts/erlang.html#t:pid/0"><code class="inline">pid/0</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="t:child_rec/0">
+
+  <div class="detail-header">
+    <a href="#t:child_rec/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">child_rec()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/supervisor.erl#L448" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> child_rec() ::
+    #child{pid :: <a href="#t:child/0">child</a>() | {restarting, <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() | undefined} | [<a href="../../apps/erts/erlang.html#t:pid/0">pid</a>()],
+           id :: <a href="#t:child_id/0">child_id</a>(),
+           mfargs :: <a href="#t:mfargs/0">mfargs</a>(),
+           restart_type :: <a href="#t:restart/0">restart</a>(),
+           significant :: <a href="#t:significant/0">significant</a>(),
+           shutdown :: <a href="#t:shutdown/0">shutdown</a>(),
+           child_type :: <a href="#t:worker/0">worker</a>(),
+           modules :: <a href="#t:modules/0">modules</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:child_spec/0">
+
+  <div class="detail-header">
+    <a href="#t:child_spec/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">child_spec()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/supervisor.erl#L394" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> child_spec() ::
+    #{id := <a href="#t:child_id/0">child_id</a>(),
+      start := <a href="#t:mfargs/0">mfargs</a>(),
+      restart => <a href="#t:restart/0">restart</a>(),
+      significant => <a href="#t:significant/0">significant</a>(),
+      shutdown => <a href="#t:shutdown/0">shutdown</a>(),
+      type => <a href="#t:worker/0">worker</a>(),
+      modules => <a href="#t:modules/0">modules</a>()} |
+    {Id :: <a href="#t:child_id/0">child_id</a>(),
+     StartFunc :: <a href="#t:mfargs/0">mfargs</a>(),
+     Restart :: <a href="#t:restart/0">restart</a>(),
+     Shutdown :: <a href="#t:shutdown/0">shutdown</a>(),
+     Type :: <a href="#t:worker/0">worker</a>(),
+     Modules :: <a href="#t:modules/0">modules</a>()}.</pre>
+
+      </div>
+
+<p>The tuple format is kept for backward compatibility only. A map is preferred;
+see more details <a href="supervisor.html#child_spec">above</a>.</p>
+  </section>
+</section>
+<section class="detail" id="t:children/0">
+
+  <div class="detail-header">
+    <a href="#t:children/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">children()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/supervisor.erl#L422" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> children() :: {Ids :: [<a href="#t:child_id/0">child_id</a>()], Db :: #{<a href="#t:child_id/0">child_id</a>() => <a href="#t:child_rec/0">child_rec</a>()}}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:mfargs/0">
+
+  <div class="detail-header">
+    <a href="#t:mfargs/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">mfargs()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/supervisor.erl#L334" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> mfargs() :: {M :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>(), F :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), A :: [<a href="../../apps/erts/erlang.html#t:term/0">term</a>()] | undefined}.</pre>
+
+      </div>
+
+<p>Value <code class="inline">undefined</code> for <code class="inline">A</code> (the argument list) is only to be used internally in
+<a href="supervisor.html#content"><code class="inline">supervisor</code></a>. If the restart type of the child is <code class="inline">temporary</code>, the process is
+never to be restarted and therefore there is no need to store the real argument
+list. Value <code class="inline">undefined</code> is then stored instead.</p>
+  </section>
+</section>
+<section class="detail" id="t:modules/0">
+
+  <div class="detail-header">
+    <a href="#t:modules/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">modules()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/supervisor.erl#L335" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> modules() :: [<a href="../../apps/erts/erlang.html#t:module/0">module</a>()] | dynamic.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:restart/0">
+
+  <div class="detail-header">
+    <a href="#t:restart/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">restart()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/supervisor.erl#L336" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> restart() :: permanent | transient | temporary.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:shutdown/0">
+
+  <div class="detail-header">
+    <a href="#t:shutdown/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">shutdown()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/supervisor.erl#L338" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> shutdown() :: brutal_kill | <a href="../../apps/erts/erlang.html#t:timeout/0">timeout</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:significant/0">
+
+  <div class="detail-header">
+    <a href="#t:significant/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">significant()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/supervisor.erl#L337" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> significant() :: <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:startchild_err/0">
+
+  <div class="detail-header">
+    <a href="#t:startchild_err/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">startchild_err()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/supervisor.erl#L582" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> startchild_err() :: already_present | {already_started, Child :: <a href="#t:child/0">child</a>()} | <a href="../../apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:startchild_ret/0">
+
+  <div class="detail-header">
+    <a href="#t:startchild_ret/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">startchild_ret()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/supervisor.erl#L584" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> startchild_ret() ::
+    {ok, Child :: <a href="#t:child/0">child</a>()} | {ok, Child :: <a href="#t:child/0">child</a>(), Info :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()} | {error, <a href="#t:startchild_err/0">startchild_err</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:startlink_err/0">
+
+  <div class="detail-header">
+    <a href="#t:startlink_err/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">startlink_err()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/supervisor.erl#L510" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> startlink_err() :: {already_started, <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>()} | {shutdown, <a href="../../apps/erts/erlang.html#t:term/0">term</a>()} | <a href="../../apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:startlink_ret/0">
+
+  <div class="detail-header">
+    <a href="#t:startlink_ret/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">startlink_ret()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/supervisor.erl#L513" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> startlink_ret() :: {ok, <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>()} | ignore | {error, <a href="#t:startlink_err/0">startlink_err</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:strategy/0">
+
+  <div class="detail-header">
+    <a href="#t:strategy/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">strategy()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/supervisor.erl#L408" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> strategy() :: one_for_all | one_for_one | rest_for_one | simple_one_for_one.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:sup_flags/0">
+
+  <div class="detail-header">
+    <a href="#t:sup_flags/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">sup_flags()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/supervisor.erl#L415" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> sup_flags() ::
+    #{strategy => <a href="#t:strategy/0">strategy</a>(),
+      intensity => <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(),
+      period => <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer</a>(),
+      auto_shutdown => <a href="#t:auto_shutdown/0">auto_shutdown</a>()} |
+    {RestartStrategy :: <a href="#t:strategy/0">strategy</a>(), Intensity :: <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(), Period :: <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer</a>()}.</pre>
+
+      </div>
+
+<p>The tuple format is kept for backward compatibility only. A map is preferred;
+see more details <a href="supervisor.html#sup_flags">above</a>.</p>
+  </section>
+</section>
+<section class="detail" id="t:sup_name/0">
+
+  <div class="detail-header">
+    <a href="#t:sup_name/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">sup_name()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/supervisor.erl#L357" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> sup_name() ::
+    {local, Name :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>()} | {global, Name :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()} | {via, Module :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>(), Name :: <a href="../../apps/erts/erlang.html#t:any/0">any</a>()}.</pre>
+
+      </div>
+
+<p>Name specification to use when starting a <code class="inline">supervisor</code>. See function
+<a href="#start_link/2"><code class="inline">start_link/2,3</code></a> and the type <a href="#t:sup_ref/0"><code class="inline">sup_ref/0</code></a> below.</p><ul><li><p><strong><code class="inline">{local,LocalName}</code></strong> - Register the <code class="inline">supervisor</code> locally as <code class="inline">LocalName</code>
+using <a href="../../apps/erts/erlang.html#register/2"><code class="inline">register/2</code></a>.</p></li><li><p><strong><code class="inline">{global,GlobalName}</code></strong> - Register the <code class="inline">supervisor</code> process id globally as
+<code class="inline">GlobalName</code> using <a href="../../apps/kernel/global.html#register_name/2"><code class="inline">global:register_name/2</code></a>.</p></li><li><p><strong><code class="inline">{via,RegMod,ViaName}</code></strong> - Register the <code class="inline">supervisor</code> process with the
+registry represented by <code class="inline">RegMod</code>. The <code class="inline">RegMod</code> callback is to export the
+functions <code class="inline">register_name/2</code>, <code class="inline">unregister_name/1</code>, <code class="inline">whereis_name/1</code>, and
+<code class="inline">send/2</code>, which are to behave like the corresponding functions in <a href="../../apps/kernel/global.html"><code class="inline">global</code></a>.
+Thus, <code class="inline">{via,global,GlobalName}</code> is a valid reference equivalent to
+<code class="inline">{global,GlobalName}</code>.</p></li></ul>
+  </section>
+</section>
+<section class="detail" id="t:sup_ref/0">
+
+  <div class="detail-header">
+    <a href="#t:sup_ref/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">sup_ref()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/supervisor.erl#L385" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> sup_ref() ::
+    (Name :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>()) |
+    {Name :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), Node :: <a href="../../apps/erts/erlang.html#t:node/0">node</a>()} |
+    {global, Name :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()} |
+    {via, Module :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>(), Name :: <a href="../../apps/erts/erlang.html#t:any/0">any</a>()} |
+    <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>().</pre>
+
+      </div>
+
+<p>Supervisor specification to use when addressing a <code class="inline">supervisor</code>. See
+<a href="#count_children/1"><code class="inline">count_children/1</code></a>, <a href="#delete_child/2"><code class="inline">delete_child/2</code></a>,
+<a href="#get_childspec/2"><code class="inline">get_childspec/2</code></a>, <a href="#restart_child/2"><code class="inline">restart_child/2</code></a>,
+<a href="#start_child/2"><code class="inline">start_child/2</code></a>, <a href="#terminate_child/2"><code class="inline">terminate_child/2</code></a>,
+<a href="#which_children/1"><code class="inline">which_children/1</code></a> and the type <a href="#t:sup_name/0"><code class="inline">sup_name/0</code></a> above.</p><p>It can be:</p><ul><li><p><strong><a href="../../apps/erts/erlang.html#t:pid/0"><code class="inline">pid/0</code></a></strong> - The <code class="inline">supervisor</code>'s process identifier.</p></li><li><p><strong><code class="inline">LocalName</code></strong> - The <code class="inline">supervisor</code> is locally registered as <code class="inline">LocalName</code> with
+<a href="../../apps/erts/erlang.html#register/2"><code class="inline">register/2</code></a>.</p></li><li><p><strong><code class="inline">{Name,Node}</code></strong> - The <code class="inline">supervisor</code> is locally registered on another node.</p></li><li><p><strong><code class="inline">{global,GlobalName}</code></strong> - The <code class="inline">supervisor</code> is globally registered in
+<a href="../../apps/kernel/global.html"><code class="inline">global</code></a>.</p></li><li><p><strong><code class="inline">{via,RegMod,ViaName}</code></strong> - The <code class="inline">supervisor</code> is registered in an alternative
+process registry. The registry callback module <code class="inline">RegMod</code> is to export functions
+<code class="inline">register_name/2</code>, <code class="inline">unregister_name/1</code>, <code class="inline">whereis_name/1</code>, and <code class="inline">send/2</code>, which
+are to behave like the corresponding functions in <a href="../../apps/kernel/global.html"><code class="inline">global</code></a>. Thus,
+<code class="inline">{via,global,GlobalName}</code> is the same as <code class="inline">{global,GlobalName}</code>.</p></li></ul>
+  </section>
+</section>
+<section class="detail" id="t:worker/0">
+
+  <div class="detail-header">
+    <a href="#t:worker/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">worker()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/supervisor.erl#L339" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> worker() :: worker | supervisor.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+
+    </div>
+  </section>
+
+  <section id="callbacks" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#callbacks">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Callbacks</span>
+    </h1>
+    <div class="callbacks-list">
+<section class="detail" id="c:init/1">
+
+  <div class="detail-header">
+    <a href="#c:init/1" class="detail-link" title="Link to this callback">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this callback</span>
+    </a>
+    <h1 class="signature" translate="no">init(Args)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/supervisor.erl#L498" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-callback</span> init(Args :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()) -> {ok, {SupFlags :: <a href="#t:sup_flags/0">sup_flags</a>(), [ChildSpec :: <a href="#t:child_spec/0">child_spec</a>()]}} | ignore.</pre>
+
+      </div>
+
+<p>Whenever a supervisor is started using <a href="#start_link/2"><code class="inline">start_link/2,3</code></a>, this
+function is called by the new process to find out about restart strategy,
+maximum restart intensity, and child specifications.</p><p><code class="inline">Args</code> is the <code class="inline">Args</code> argument provided to the start function.</p><p><code class="inline">SupFlags</code> is the supervisor flags defining the restart strategy and maximum
+restart intensity for the supervisor. <code class="inline">[ChildSpec]</code> is a list of valid child
+specifications defining which child processes the supervisor must start and
+monitor. See the discussion in section
+<a href="supervisor.html#supervision_princ"><code class="inline">Supervision Principles</code></a> earlier.</p><p>Notice that when the restart strategy is <code class="inline">simple_one_for_one</code>, the list of child
+specifications must be a list with one child specification only. (The child
+specification identifier is ignored.) No child process is then started during
+the initialization phase, but all children are assumed to be started dynamically
+using <a href="#start_child/2"><code class="inline">start_child/2</code></a>.</p><p>The function can also return <code class="inline">ignore</code>.</p><p>Notice that this function can also be called as a part of a code upgrade
+procedure. Therefore, the function is not to have any side effects. For more
+information about code upgrade of supervisors, see section
+<a href="../../system/appup_cookbook.html#sup">Changing a Supervisor</a> in OTP Design
+Principles.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+  <section id="functions" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#functions">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Functions</span>
+    </h1>
+    <div class="functions-list">
+<section class="detail" id="check_childspecs/1">
+
+  <div class="detail-header">
+    <a href="#check_childspecs/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">check_childspecs(ChildSpecs)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/supervisor.erl#L797" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 24.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> check_childspecs(ChildSpecs) -> Result
+                    when ChildSpecs :: [<a href="#t:child_spec/0">child_spec</a>()], Result :: ok | {error, Error :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()}.</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#check_childspecs/2"><code class="inline">check_childspecs(ChildSpecs, undefined)</code></a></p>
+  </section>
+</section>
+<section class="detail" id="check_childspecs/2">
+
+  <div class="detail-header">
+    <a href="#check_childspecs/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">check_childspecs(ChildSpecs, AutoShutdown)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/supervisor.erl#L813" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 24.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> check_childspecs(ChildSpecs, AutoShutdown) -> Result
+                    when
+                        ChildSpecs :: [<a href="#t:child_spec/0">child_spec</a>()],
+                        AutoShutdown :: undefined | <a href="#t:auto_shutdown/0">auto_shutdown</a>(),
+                        Result :: ok | {error, Error :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()}.</pre>
+
+      </div>
+
+<p>Takes a list of child specification as argument and returns <code class="inline">ok</code> if all of them
+are syntactically correct, otherwise <code class="inline">{error,Error}</code>.</p><p>If the <code class="inline">AutoShutdown</code> argument is not <code class="inline">undefined</code>, also
+checks if the child specifications are allowed for the given
+<a href="supervisor.html#auto_shutdown">auto_shutdown</a> option.</p>
+  </section>
+</section>
+<section class="detail" id="count_children/1">
+
+  <div class="detail-header">
+    <a href="#count_children/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">count_children(SupRef)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/supervisor.erl#L786" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP R13B04)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> count_children(SupRef) -> PropListOfCounts
+                  when
+                      SupRef :: <a href="#t:sup_ref/0">sup_ref</a>(),
+                      PropListOfCounts :: [Count],
+                      Count ::
+                          {specs, ChildSpecCount :: <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()} |
+                          {active, ActiveProcessCount :: <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()} |
+                          {supervisors, ChildSupervisorCount :: <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()} |
+                          {workers, ChildWorkerCount :: <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()}.</pre>
+
+      </div>
+
+<p>Returns a <a href="proplists.html#t:proplist/0">property list</a> containing the counts for each of
+the following elements of the supervisor's child specifications and managed
+processes:</p><ul><li><code class="inline">specs</code> - The total count of children, dead or alive.</li><li><code class="inline">active</code> - The count of all actively running child processes managed by this
+supervisor. For a <code class="inline">simple_one_for_one</code> supervisors, no check is done to ensure
+that each child process is still alive, although the result provided here is
+likely to be very accurate unless the supervisor is heavily overloaded.</li><li><code class="inline">supervisors</code> - The count of all children marked as <code class="inline">child_type = supervisor</code>
+in the specification list, regardless if the child process is still alive.</li><li><code class="inline">workers</code> - The count of all children marked as <code class="inline">child_type = worker</code> in the
+specification list, regardless if the child process is still alive.</li></ul>
+  </section>
+</section>
+<section class="detail" id="delete_child/2">
+
+  <div class="detail-header">
+    <a href="#delete_child/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">delete_child(SupRef, Id)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/supervisor.erl#L681" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> delete_child(SupRef, Id) -> Result
+                when
+                    SupRef :: <a href="#t:sup_ref/0">sup_ref</a>(),
+                    Id :: <a href="#t:child_id/0">child_id</a>(),
+                    Result :: ok | {error, Error},
+                    Error :: running | restarting | not_found | simple_one_for_one.</pre>
+
+      </div>
+
+<p>Tells supervisor <code class="inline">SupRef</code> to delete the child specification identified by <code class="inline">Id</code>.
+The corresponding child process must not be running. Use <a href="#terminate_child/2"><code class="inline">terminate_child/2</code></a> to
+terminate it.</p><p>If successful, the function returns <code class="inline">ok</code>. If the child specification identified
+by <code class="inline">Id</code> exists but the corresponding child process is running or is about to be
+restarted, the function returns <code class="inline">{error,running}</code> or <code class="inline">{error,restarting}</code>,
+respectively. If the child specification identified by <code class="inline">Id</code> does not exist, the
+function returns <code class="inline">{error,not_found}</code>.</p>
+  </section>
+</section>
+<section class="detail" id="get_childspec/2">
+
+  <div class="detail-header">
+    <a href="#get_childspec/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">get_childspec(SupRef, Id)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/supervisor.erl#L734" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 18.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> get_childspec(SupRef, Id) -> Result
+                 when
+                     SupRef :: <a href="#t:sup_ref/0">sup_ref</a>(),
+                     Id :: <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() | <a href="#t:child_id/0">child_id</a>(),
+                     Result :: {ok, <a href="#t:child_spec/0">child_spec</a>()} | {error, Error},
+                     Error :: not_found.</pre>
+
+      </div>
+
+<p>Returns the child specification map for the child identified by <code class="inline">Id</code> under
+supervisor <code class="inline">SupRef</code>. The returned map contains all keys, both mandatory and
+optional.</p>
+  </section>
+</section>
+<section class="detail" id="restart_child/2">
+
+  <div class="detail-header">
+    <a href="#restart_child/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">restart_child(SupRef, Id)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/supervisor.erl#L662" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> restart_child(SupRef, Id) -> Result
+                 when
+                     SupRef :: <a href="#t:sup_ref/0">sup_ref</a>(),
+                     Id :: <a href="#t:child_id/0">child_id</a>(),
+                     Result ::
+                         {ok, Child :: <a href="#t:child/0">child</a>()} |
+                         {ok, Child :: <a href="#t:child/0">child</a>(), Info :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()} |
+                         {error, Error},
+                     Error :: running | restarting | not_found | simple_one_for_one | <a href="../../apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+<p>Tells supervisor <code class="inline">SupRef</code> to restart a child process corresponding to the child
+specification identified by <code class="inline">Id</code>. The child specification must exist, and the
+corresponding child process must not be running.</p><p>Notice that for temporary children, the child specification is automatically
+deleted when the child terminates; thus, it is not possible to restart such
+children.</p><p>If the child specification identified by <code class="inline">Id</code> does not exist, the function
+returns <code class="inline">{error,not_found}</code>. If the child specification exists but the
+corresponding process is already running, the function returns
+<code class="inline">{error,running}</code>.</p><p>If the child process start function returns <code class="inline">{ok,Child}</code> or <code class="inline">{ok,Child,Info}</code>,
+the pid is added to the supervisor and the function returns the same value.</p><p>If the child process start function returns <code class="inline">ignore</code>, the pid remains set to
+<code class="inline">undefined</code> and the function returns <code class="inline">{ok,undefined}</code>.</p><p>If the child process start function returns an error tuple or an erroneous
+value, or if it fails, the function returns <code class="inline">{error,Error}</code>, where <code class="inline">Error</code> is a
+term containing information about the error.</p>
+  </section>
+</section>
+<section class="detail" id="start_child/2">
+
+  <div class="detail-header">
+    <a href="#start_child/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">start_child(Supervisor, ChildSpecOrExtraArgs)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/supervisor.erl#L627" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> start_child(SupRef, ChildSpec) -> <a href="#t:startchild_ret/0">startchild_ret</a>()
+               when SupRef :: <a href="#t:sup_ref/0">sup_ref</a>(), ChildSpec :: <a href="#t:child_spec/0">child_spec</a>();
+           (SupRef, ExtraArgs) -> <a href="#t:startchild_ret/0">startchild_ret</a>() when SupRef :: <a href="#t:sup_ref/0">sup_ref</a>(), ExtraArgs :: [<a href="../../apps/erts/erlang.html#t:term/0">term</a>()].</pre>
+
+      </div>
+
+<p>Dynamically adds a child specification to supervisor <code class="inline">SupRef</code>, which starts the
+corresponding child process.</p><p>For <code class="inline">one_for_one</code>, <code class="inline">one_for_all</code> and <code class="inline">rest_for_one</code> supervisors, the second
+argument must be a valid child specification <code class="inline">ChildSpec</code>. The child process
+is started by using the start function as defined in the child specification.</p><p>For <code class="inline">simple_one_for_one</code> supervisors, the child specification defined in
+<a href="#c:init/1"><code class="inline">Module:init/1</code></a> is used, and the second argument must instead
+be an arbitrary list of terms <code class="inline">ExtraArgs</code>. The child process is then started
+by appending <code class="inline">ExtraArgs</code> to the existing start function arguments, that is, by
+calling <a href="../../apps/erts/erlang.html#apply/3"><code class="inline">apply(M, F, A++ExtraArgs)</code></a>, where <code class="inline">{M,F,A}</code> is the start
+function defined in the child specification.</p><ul><li>If there already exists a child specification with the specified identifier,
+<code class="inline">ChildSpec</code> is discarded, and the function returns <code class="inline">{error,already_present}</code>
+or <code class="inline">{error,{already_started,Child}}</code>, depending on if the corresponding child
+process is running or not.</li><li>If the child process start function returns <code class="inline">{ok,Child}</code> or <code class="inline">{ok,Child,Info}</code>,
+the child specification and pid are added to the supervisor and the function
+returns the same value.</li><li>If the child process start function returns <code class="inline">ignore</code>, the child specification
+<code class="inline">ChildSpec</code> is added to the supervisor if it is an <code class="inline">one_for_one</code>, <code class="inline">one_for_all</code>
+or <code class="inline">rest_for_one</code> supervisor, and the pid is set to <code class="inline">undefined</code>. For
+<code class="inline">simple_one_for_one</code> supervisors, no child is added to the supervisor. The
+function returns <code class="inline">{ok,undefined}</code>.</li></ul><p>If the child process start function returns an error tuple or an erroneous
+value, or if it fails, the child specification is discarded, and the function
+returns <code class="inline">{error,Error}</code>, where <code class="inline">Error</code> is a term containing information about
+the error and child specification.</p>
+  </section>
+</section>
+<section class="detail" id="start_link/2">
+
+  <div class="detail-header">
+    <a href="#start_link/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">start_link(Module, Args)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/supervisor.erl#L524" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> start_link(Module, Args) -> <a href="#t:startlink_ret/0">startlink_ret</a>() when Module :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>(), Args :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+<p>Creates a nameless supervisor process as part of a supervision tree.</p><p>Equivalent to <a href="#start_link/3"><code class="inline">start_link/3</code></a> except that the supervisor process is not
+<a href="../../apps/erts/erlang.html#register/2"><code class="inline">registered</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="start_link/3">
+
+  <div class="detail-header">
+    <a href="#start_link/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">start_link(SupName, Module, Args)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/supervisor.erl#L575" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> start_link(SupName, Module, Args) -> <a href="#t:startlink_ret/0">startlink_ret</a>()
+              when SupName :: <a href="#t:sup_name/0">sup_name</a>(), Module :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>(), Args :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+<p>Creates a supervisor process as part of a supervision tree.</p><p>For example, the function ensures that the supervisor is linked to the calling
+process (its supervisor).</p><p>The created supervisor process calls <a href="#c:init/1"><code class="inline">Module:init/1</code></a> to find out
+about restart strategy, maximum restart intensity, and child processes. To
+ensure a synchronized startup procedure, <code class="inline">start_link/2,3</code> does not return until
+<a href="#c:init/1"><code class="inline">Module:init/1</code></a> has returned and all child processes have been
+started.</p><ul><li>If <code class="inline">SupName={local,Name}</code>, the supervisor is registered locally as <code class="inline">Name</code>
+using <a href="../../apps/erts/erlang.html#register/2"><code class="inline">register/2</code></a>.</li><li>If <code class="inline">SupName={global,Name}</code>, the supervisor is registered globally as <code class="inline">Name</code>
+using <a href="../../apps/kernel/global.html#register_name/2"><code class="inline">global:register_name/2</code></a>.</li><li>If <code class="inline">SupName={via,Module,Name}</code>, the supervisor is registered as <code class="inline">Name</code> using
+the registry represented by <code class="inline">Module</code>. The <code class="inline">Module</code> callback must export the
+functions <code class="inline">register_name/2</code>, <code class="inline">unregister_name/1</code>, and <code class="inline">send/2</code>, which must
+behave like the corresponding functions in <a href="../../apps/kernel/global.html"><code class="inline">global</code></a>. Thus,
+<code class="inline">{via,global,Name}</code> is a valid reference.</li></ul><p><code class="inline">Module</code> is the name of the callback module.</p><p><code class="inline">Args</code> is any term that is passed as the argument to
+<a href="#c:init/1"><code class="inline">Module:init/1</code></a>.</p><ul><li>If the supervisor and its child processes are successfully created (that is,
+if all child process start functions return <code class="inline">{ok,Child}</code>, <code class="inline">{ok,Child,Info}</code>,
+or <code class="inline">ignore</code>), the function returns <code class="inline">{ok,Pid}</code>, where <code class="inline">Pid</code> is the pid of the
+supervisor.</li><li>If there already exists a process with the specified <code class="inline">SupName</code>, the function
+returns <code class="inline">{error,{already_started,Pid}}</code>, where <code class="inline">Pid</code> is the pid of that
+process.</li><li>If <a href="#c:init/1"><code class="inline">Module:init/1</code></a> returns <code class="inline">ignore</code>, this function returns
+<code class="inline">ignore</code> as well, and the supervisor terminates with reason <code class="inline">normal</code>.</li><li>If <a href="#c:init/1"><code class="inline">Module:init/1</code></a> fails or returns an incorrect value, this
+function returns <code class="inline">{error,Term}</code>, where <code class="inline">Term</code> is a term with information about
+the error, and the supervisor terminates with reason <code class="inline">Term</code>.</li><li>If any child process start function fails or returns an error tuple or an
+erroneous value, the supervisor first terminates all already started child
+processes with reason <code class="inline">shutdown</code> and then terminate itself and returns
+<code class="inline">{error, {shutdown, Reason}}</code>.</li></ul>
+  </section>
+</section>
+<section class="detail" id="terminate_child/2">
+
+  <div class="detail-header">
+    <a href="#terminate_child/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">terminate_child(SupRef, Id)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/supervisor.erl#L720" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> terminate_child(SupRef, Id) -> Result
+                   when
+                       SupRef :: <a href="#t:sup_ref/0">sup_ref</a>(),
+                       Id :: <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() | <a href="#t:child_id/0">child_id</a>(),
+                       Result :: ok | {error, Error},
+                       Error :: not_found | simple_one_for_one.</pre>
+
+      </div>
+
+<p>Tells supervisor <code class="inline">SupRef</code> to terminate the specified child.</p><p>If the supervisor is not <code class="inline">simple_one_for_one</code>, <code class="inline">Id</code> must be the child
+specification identifier. The process, if any, is terminated and, unless it is a
+temporary child, the child specification is kept by the supervisor. The child
+process can later be restarted by the supervisor. The child process can also be
+restarted explicitly by calling <a href="#restart_child/2"><code class="inline">restart_child/2</code></a>. Use <a href="#delete_child/2"><code class="inline">delete_child/2</code></a> to
+remove the child specification.</p><p>If the child is temporary, the child specification is deleted as soon as the
+process terminates. This means that <a href="#delete_child/2"><code class="inline">delete_child/2</code></a> has no
+meaning and <a href="#restart_child/2"><code class="inline">restart_child/2</code></a> cannot be used for these
+children.</p><p>If the supervisor is <code class="inline">simple_one_for_one</code>, <code class="inline">Id</code> must be the <a href="../../apps/erts/erlang.html#t:pid/0"><code class="inline">pid/0</code></a> of the
+child process. If the specified process is alive, but is not a child of the
+specified supervisor, the function returns <code class="inline">{error,not_found}</code>. If the child
+specification identifier is specified instead of a <a href="../../apps/erts/erlang.html#t:pid/0"><code class="inline">pid/0</code></a>, the function
+returns <code class="inline">{error,simple_one_for_one}</code>.</p><p>If successful, the function returns <code class="inline">ok</code>. If there is no child specification
+with the specified <code class="inline">Id</code>, the function returns <code class="inline">{error,not_found}</code>.</p>
+  </section>
+</section>
+<section class="detail" id="which_children/1">
+
+  <div class="detail-header">
+    <a href="#which_children/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">which_children(SupRef)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/supervisor.erl#L760" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> which_children(SupRef) -> [{Id, Child, Type, Modules}]
+                  when
+                      SupRef :: <a href="#t:sup_ref/0">sup_ref</a>(),
+                      Id :: <a href="#t:child_id/0">child_id</a>() | undefined,
+                      Child :: <a href="#t:child/0">child</a>() | restarting,
+                      Type :: <a href="#t:worker/0">worker</a>(),
+                      Modules :: <a href="#t:modules/0">modules</a>().</pre>
+
+      </div>
+
+<p>Returns a newly created list with information about all child specifications and
+child processes belonging to supervisor <code class="inline">SupRef</code>.</p><p>Notice that calling this function when supervising many children under low
+memory conditions can cause an out of memory exception.</p><p>The following information is given for each child specification/process:</p><ul><li><code class="inline">Id</code> - As defined in the child specification or <code class="inline">undefined</code> for a
+<code class="inline">simple_one_for_one</code> supervisor.</li><li><code class="inline">Child</code> - The pid of the corresponding child process, the atom <code class="inline">restarting</code>
+if the process is about to be restarted, or <code class="inline">undefined</code> if there is no such
+process.</li><li><code class="inline">Type</code> - As defined in the child specification.</li><li><code class="inline">Modules</code> - As defined in the child specification.</li></ul>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+              <a href="stdlib.epub" title="ePub version">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="erts v14.3">
+
+
+    <title>Delayed Dealloc — erts v14.3</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-218663D5.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="erts" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+erts
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v14.3
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of erts</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/erts/emulator/internal_doc/DelayedDealloc.md#L1" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+
+  <span>Delayed Dealloc</span>
+</h1>
+
+<h2 id="problem" class="section-heading">
+  <a href="#problem" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Problem</span>
+</h2>
+<p>An easy way to handle memory allocation in a multi-threaded
+environment is to protect the memory allocator with a global lock
+which threads performing memory allocations or deallocations have to
+have locked during the whole operation. This solution of course scales
+very poorly, due to heavy lock contention. An improved solution of
+this scheme is to use multiple thread specific instances of such an
+allocator. That is, each thread allocates in its own allocator
+instance which is protected by a lock. In the general case references
+to memory need to be passed between threads. In the case where a
+thread that needs to deallocate memory that originates from another
+threads allocator instance a lock conflict is possible. In a system as
+the Erlang VM where memory allocation/deallocation is frequent and
+references to memory also are passed around between threads this
+solution will also scale poorly due to lock contention.</p><h2 id="functionality-used-to-address-this-problem" class="section-heading">
+  <a href="#functionality-used-to-address-this-problem" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Functionality Used to Address This problem</span>
+</h2>
+<p>In order to reduce contention due to locking of allocator instances we
+introduced completely lock free instances tied to each scheduler
+thread, and an extra locked instance for other threads. The scheduler
+threads in the system is expected to do the major part of the
+work. Other threads may still be needed but should not perform any
+major and/or time critical work. The limited amount of contention that
+appears on the locked allocator instance can more or less be
+disregarded.</p><p>Since we still need to be able to pass references to memory between
+scheduler threads we need some way to manage this. An allocator
+instance belonging to one scheduler thread is only allowed to be
+manipulated by that scheduler thread. When other threads need to
+deallocate memory originating from a foreign allocator instance, they
+only pass the memory block to a &quot;message box&quot; containing deallocation
+jobs attached to the originating allocator instance. When a scheduler
+thread detects such deallocation job it performs the actual
+deallocation.</p><p>The &quot;message box&quot; is implemented using a lock free single linked list
+through the memory blocks to deallocate. The order of the elements in
+this list is not important. Insertion of new free blocks will be made
+somewhere near the end of this list. Requiring that the new blocks
+need to be inserted at the end would cause unnecessary contention when
+large amount of memory blocks are inserted simultaneous by multiple
+threads.</p><p>The data structure referring to this single linked list cover two cache
+lines. One cache line containing information about the head of the
+list, and one cache line containing information about the tail of the
+list. This in order to reduce cache line ping ponging of this data
+structure. The head of the list will only be manipulated by the thread
+owning the allocator instance, and the tail will be manipulated by
+other threads inserting deallocation jobs.</p><h3 id="tail" class="section-heading">
+  <a href="#tail" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Tail</span>
+</h3>
+<p>In the tail part of the data structure we find a pointer to the last
+element of the list, or at least something that is near the end of the
+list. In the uncontended case it will point to the end of the list,
+but when simultaneous insert operations are performed it will point to
+something near the end of the list.</p><p>When inserting an element one will try to write a pointer to the new
+element in the next pointer of the element pointed to by the last
+pointer. This is done using an atomic compare and swap that expects
+the next pointer to be <code class="inline">NULL</code>. If this succeeds the thread performing
+this operation moves the last pointer to point to the newly inserted
+element.</p><p>If the atomic compare and swap described above failed, the last
+pointer didn't point to the last element. In this case we need to
+insert the new element somewhere between the element that the last
+pointer pointed to and the actual last element. If we do it this way
+the last pointer will eventually end up at the last element when
+threads stop adding new elements. When trying to insert somewhere near
+the end and failing to do so, the inserting thread sometimes moves to
+the next element and sometimes tries with the same element again. This
+in order to spread the inserted elements during heavy contention. That
+is, we try to spread the modifications of memory to different
+locations instead of letting all threads continue to try to modify the
+same location in memory.</p><h3 id="head" class="section-heading">
+  <a href="#head" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Head</span>
+</h3>
+<p>The head contains pointers to beginning of the list (<code class="inline">head.first</code>), and
+to the first block which other threads may refer to
+(<code class="inline">head.unref_end</code>). Blocks between these pointers are only referred to
+by the head part of the data structure which is only used by the
+thread owning the allocator instance. When these two pointers are not
+equal the thread owning the allocator instance deallocate block after
+block until <code class="inline">head.first</code> reach <code class="inline">head.unref_end</code>.</p><p>We of course periodically need to move the <code class="inline">head.unref_end</code> closer to
+the end in order to be able to continue deallocating memory
+blocks. Since all threads inserting new elements in the linked list
+will enter the list using the last pointer we can use this
+knowledge. If we call <code class="inline">erts_thr_progress_later()</code> and wait until we
+have reached that thread progress we know that no managed threads can
+refer the elements up to the element pointed to by the last pointer at
+the time when we called <code class="inline">erts_thr_progress_later()</code>. This since, all
+managed threads must have left the code implementing this at least
+once, and they always enters into the list via the last pointer. The
+<code class="inline">tail.next</code> field contains information about next <code class="inline">head.unref_end</code>
+pointer and thread progress that needs to be reached before we can
+move <code class="inline">head.unref_end</code>.</p><p>Unfortunately not only threads managed by the thread progress
+functionality may insert memory blocks. Other threads also needs to be
+taken care of. Other threads will not be as frequent users of this
+functionality as managed threads, so using a less efficient scheme for
+them is not that big of a problem. In order to handle unmanaged
+threads we use two reference counters. When an unmanaged thread enters
+this implementation it increments the reference counter currently
+used, and when it leaves this implementation it decrements the same
+reference counter. When the consumer thread calls
+<code class="inline">erts_thr_progress_later()</code> in order to determine when it is safe to
+move <code class="inline">head.unref_end</code>, it also swaps reference counters for unmanaged
+threads. The previous current represents outstanding references from
+the time up to this point. The new current represents future reference
+following this point. When the consumer thread detects that we have
+both reached the desired thread progress and when the previous current
+reference counter reach zero it is safe to move the <code class="inline">head.unref_end</code>.</p><p>The reason for using two reference counters is that we need to know
+that the reference counter eventually will reach zero. If we only used
+one reference counter it would potentially be held above zero for ever
+by different unmanaged threads.</p><h3 id="empty-list" class="section-heading">
+  <a href="#empty-list" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Empty List</span>
+</h3>
+<p>If no new memory blocks are inserted into the list, it should
+eventually be emptied. All pointers to the list however expect to
+always point to something. This is solved by inserting an empty
+&quot;marker&quot; element, which only has to purpose of being there in the
+absence of other elements. That is when the list is empty it only
+contains this &quot;marker&quot; element.</p><h3 id="contention" class="section-heading">
+  <a href="#contention" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Contention</span>
+</h3>
+<p>When elements are continuously inserted by threads not owning the
+allocator instance, the thread owning the allocator instance will be
+able to work more or less undisturbed by other threads at the head end
+of the list. At the tail end large amounts of simultaneous inserts may
+cause contention, but we reduce such contention by spreading inserts
+of new elements near the end instead of requiring all new elements to
+be inserted at the end.</p><h3 id="schedulers-and-the-locked-allocator-instance" class="section-heading">
+  <a href="#schedulers-and-the-locked-allocator-instance" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Schedulers and The Locked Allocator Instance</span>
+</h3>
+<p>Also the locked allocator instance for use by non-scheduler threads
+have a message box for deallocation jobs just as all the other
+allocator instances. The reason for this is that other threads may
+allocate memory pass it to a scheduler that then needs to deallocate
+it. We do not want the scheduler to have to wait for the lock on this
+locked instance. Since also locked instances has message boxes for
+deallocation jobs, the scheduler can just insert the job and avoid the
+locking.</p><h3 id="a-benchmark-result" class="section-heading">
+  <a href="#a-benchmark-result" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">A Benchmark Result</span>
+</h3>
+<p>When running the ehb benchmark, large amount of messages are passed
+around between schedulers. All message passing will in some way or the
+other cause memory allocation and deallocation. Since messages are
+passed between different schedulers we will get contention on the
+allocator instances where messages were allocated. By the introduction
+of the delayed dealloc feature, we got a speedup of between 25-45%,
+depending on configuration of the benchmark, when running on a
+relatively new machine with an Intel i7 quad core processor with
+hyper-threading using 8 schedulers.</p>
+<div class="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="countinginstructions.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Counting Instructions
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="garbagecollection.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+Erlang Garbage Collector
+        </span>
+      </a>
+
+  </div>
+</div>
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

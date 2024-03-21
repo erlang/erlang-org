@@ -1,0 +1,3147 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="kernel v9.3">
+
+
+    <title>disk_log — kernel v9.3</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-D60EFF5E.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="modules" class="page-module">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="kernel" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+kernel
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v9.3
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of kernel</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L20" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+  <span translate="no">disk_log</span> 
+  <small class="app-vsn" translate="no">(kernel v9.3)</small>
+
+</h1>
+
+
+  <section id="moduledoc">
+<p>A disk-based term logging facility.</p><p><code class="inline">disk_log</code> is a disk-based term logger that enables efficient logging of items
+on files.</p><p>Three types of logs are supported:</p><ul><li><p><strong>halt logs</strong> - Appends items to a single file, which size can be limited by
+the <code class="inline">disk_log</code> module.</p></li><li><p><strong>wrap logs</strong> - Uses a sequence of wrap log files of limited size. As a wrap
+log file is filled up, further items are logged on to the next file in the
+sequence, starting all over with the first file when the last file is filled
+up.</p></li><li><p><strong>rotate logs</strong> - Uses a sequence of rotate log files of limited size. As a
+log file is filled up, it is rotated and then compressed. There is one active
+log file and upto the configured number of compressed log files. Only
+externally formatted logs are supported. It follows the same naming convention
+as the handler logger_std_h for Logger. For more details about the naming
+convention check the file parameter for <a href="#open/1"><code class="inline">open/1</code></a>.</p><p>It follows the same naming convention as that for the compressed files for
+Linux's logrotate and BSD's newsyslog.</p></li></ul><p>For efficiency reasons, items are always written to files as binaries.</p><p>Two formats of the log files are supported:</p><ul><li><p><strong>internal format</strong> - Supports automatic repair of log files that are not
+properly closed and enables efficient reading of logged items in <em>chunks</em>
+using a set of functions defined in this module. This is the only way to read
+internally formatted logs. An item logged to an internally formatted log must
+not occupy more than 4 GB of disk space (the size must fit in 4 bytes).</p></li><li><p><strong>external format</strong> - Leaves it up to the user to read and interpret the
+logged data. The <code class="inline">disk_log</code> module cannot repair externally formatted logs.</p></li></ul><p>For each open disk log, one process handles requests made to the disk log. This
+process is created when <a href="#open/1"><code class="inline">open/1</code></a> is called, provided there exists no process
+handling the disk log. A process that opens a disk log can be an <em>owner</em> or an
+anonymous <em>user</em> of the disk log. Each owner is linked to the disk log process,
+and an owner can close the disk log either explicitly (by calling
+<a href="#close/1"><code class="inline">close/1</code></a>) or by terminating.</p><p>Owners can subscribe to <em>notifications</em>, messages of the form
+<code class="inline">{disk_log, Node, Log, Info}</code>, which are sent from the disk log process when
+certain events occur, see the functions and in particular the
+<a href="#open/1"><code class="inline">open/1</code></a> option <a href="disk_log.html#notify"><code class="inline">notify</code></a>. A log can have many
+owners, but a process cannot own a log more than once. However, the same process
+can open the log as a user more than once.</p><p>For a disk log process to close its file properly and terminate, it must be
+closed by its owners and once by some non-owner process for each time the log
+was used anonymously. The users are counted and there must not be any users left
+when the disk log process terminates.</p><p>Items can be logged <em>synchronously</em> by using functions <a href="#log/2"><code class="inline">log/2</code></a>, <a href="#blog/2"><code class="inline">blog/2</code></a>,
+<a href="#log_terms/2"><code class="inline">log_terms/2</code></a>, and <a href="#blog_terms/2"><code class="inline">blog_terms/2</code></a>. For each of these functions, the caller is
+put on hold until the items are logged (but not necessarily written, use
+<a href="#sync/1"><code class="inline">sync/1</code></a> to ensure that). By adding an <code class="inline">a</code> to each of the mentioned
+function names, we get functions that log items <em>asynchronously</em>. Asynchronous
+functions do not wait for the disk log process to write the items to the file,
+but return the control to the caller more or less immediately.</p><p>When using the internal format for logs, use functions <a href="#log/2"><code class="inline">log/2</code></a>, <a href="#log_terms/2"><code class="inline">log_terms/2</code></a>,
+<a href="#alog/2"><code class="inline">alog/2</code></a>, and <a href="#alog_terms/2"><code class="inline">alog_terms/2</code></a>. These functions log one or more Erlang terms. By
+prefixing each of the functions with a <code class="inline">b</code> (for &quot;binary&quot;), we get the
+corresponding <code class="inline">blog()</code> functions for the external format. These functions log
+one or more chunks of bytes. For example, to log the string <code class="inline">&quot;hello&quot;</code> in ASCII
+format, you can use <code class="inline">disk_log:blog(Log, &quot;hello&quot;)</code>, or
+<code class="inline">disk_log:blog(Log, list_to_binary(&quot;hello&quot;))</code>. The two alternatives are equally
+efficient.</p><p>The <code class="inline">blog()</code> functions can also be used for internally formatted logs, but in
+this case they must be called with binaries constructed with calls to
+<a href="../../apps/erts/erlang.html#term_to_binary/1"><code class="inline">term_to_binary/1</code></a>. There is no check to ensure
+this, it is entirely the responsibility of the caller. If these functions are
+called with binaries that do not correspond to Erlang terms, the
+<a href="#chunk/2"><code class="inline">chunk/2,3</code></a> and automatic repair functions fail. The corresponding
+terms (not the binaries) are returned when <code class="inline">chunk/2,3</code> is called.</p><p>An open disk log is only accessible from the node where the disk log process
+runs. All processes on the node where the disk log process runs can log items or
+otherwise change, inspect, or close the log.</p><p>Errors are reported differently for asynchronous log attempts and other uses of
+the <code class="inline">disk_log</code> module. When used synchronously, this module replies with an
+error message, but when called asynchronously, this module does not know where
+to send the error message. Instead, owners subscribing to notifications receive
+an <code class="inline">error_status</code> message.</p><p>The <code class="inline">disk_log</code> module does not report errors to the <a href="error_logger.html"><code class="inline">error_logger</code></a> module. It
+is up to the caller to decide whether to employ the error logger. Function
+<a href="#format_error/1"><code class="inline">format_error/1</code></a> can be used to produce readable messages from error replies.
+However, information events are sent to the error logger in two situations,
+namely when a log is repaired, or when a file is missing while reading chunks.</p><p>Error message <code class="inline">no_such_log</code> means that the specified disk log is not open.
+Nothing is said about whether the disk log files exist or not.</p><blockquote><h4 class="info">Note</h4><p>If an attempt to reopen or truncate a log fails (see
+<a href="#reopen/2"><code class="inline">reopen/2,3</code></a> and <a href="#truncate/1"><code class="inline">truncate/1,2</code></a>) the disk log
+process terminates immediately. Before the process terminates, links to owners
+and blocking processes (see <a href="#block/1"><code class="inline">block/1,2</code></a>) are removed. The effect
+is that the links work in one direction only. Any process using a disk log
+must check for error message <code class="inline">no_such_log</code> if some other process truncates or
+reopens the log simultaneously.</p></blockquote><h2 id="module-see-also" class="section-heading">
+  <a href="#module-see-also" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">See Also</span>
+</h2>
+<p><a href="file.html"><code class="inline">file</code></a>, <a href="wrap_log_reader.html"><code class="inline">wrap_log_reader</code></a></p>
+  </section>
+
+
+  <section id="summary" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#summary">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Summary</span>
+    </h1>
+<div class="summary-types summary">
+  <h2>
+    <a href="#types">Types</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:bchunk_ret/0" translate="no">bchunk_ret()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:block_error_rsn/0" translate="no">block_error_rsn()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:chunk_error_rsn/0" translate="no">chunk_error_rsn()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:chunk_ret/0" translate="no">chunk_ret()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:close_error_rsn/0" translate="no">close_error_rsn()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:continuation/0" translate="no">continuation()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Chunk continuation returned by <code class="inline">chunk/2,3</code>, <code class="inline">bchunk/2,3</code>, or
+<a href="#chunk_step/3"><code class="inline">chunk_step/3</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:dlog_format/0" translate="no">dlog_format()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:dlog_head_opt/0" translate="no">dlog_head_opt()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:dlog_info/0" translate="no">dlog_info()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:dlog_mode/0" translate="no">dlog_mode()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:dlog_optattr/0" translate="no">dlog_optattr()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:dlog_option/0" translate="no">dlog_option()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:dlog_options/0" translate="no">dlog_options()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:dlog_size/0" translate="no">dlog_size()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:dlog_type/0" translate="no">dlog_type()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:file_error/0" translate="no">file_error()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:inc_wrap_error_rsn/0" translate="no">inc_wrap_error_rsn()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:invalid_header/0" translate="no">invalid_header()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:log/0" translate="no">log()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:log_error_rsn/0" translate="no">log_error_rsn()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:next_file_error_rsn/0" translate="no">next_file_error_rsn()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:notify_ret/0" translate="no">notify_ret()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:open_error_rsn/0" translate="no">open_error_rsn()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:open_ret/0" translate="no">open_ret()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:reopen_error_rsn/0" translate="no">reopen_error_rsn()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:sync_error_rsn/0" translate="no">sync_error_rsn()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:trunc_error_rsn/0" translate="no">trunc_error_rsn()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:unblock_error_rsn/0" translate="no">unblock_error_rsn()</a>
+
+      </div>
+
+    </div>
+
+</div>
+<div class="summary-functions summary">
+  <h2>
+    <a href="#functions">Functions</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#all/0" translate="no">all()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns the names of the disk logs accessible on the current node.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#alog/2" translate="no">alog(Log, Term)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#balog/2"><code class="inline">balog/2</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#alog_terms/2" translate="no">alog_terms(Log, TermList)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#balog_terms/2"><code class="inline">balog_terms/2</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#balog/2" translate="no">balog(Log, Bytes)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Asynchronously append an item to a disk log. <a href="#alog/2"><code class="inline">alog/2</code></a> is used for
+internally formatted logs and <a href="#balog/2"><code class="inline">balog/2</code></a> for externally formatted
+logs. <a href="#balog/2"><code class="inline">balog/2</code></a> can also be used for internally formatted logs if
+the binary is constructed with a call to
+<a href="../../apps/erts/erlang.html#term_to_binary/1"><code class="inline">term_to_binary/1</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#balog_terms/2" translate="no">balog_terms(Log, ByteList)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Asynchronously append a list of items to a disk log.
+<a href="#alog_terms/2"><code class="inline">alog_terms/2</code></a> is used for internally formatted logs and
+<a href="#balog_terms/2"><code class="inline">balog_terms/2</code></a> for externally formatted logs.
+<a href="#balog_terms/2"><code class="inline">balog_terms/2</code></a> can also be used for internally formatted
+logs if the binaries are constructed with calls to
+<a href="../../apps/erts/erlang.html#term_to_binary/1"><code class="inline">term_to_binary/1</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#bchunk/2" translate="no">bchunk(Log, Continuation)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#chunk/3"><code class="inline">chunk/3</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#bchunk/3" translate="no">bchunk(Log, Continuation, N)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#chunk/3"><code class="inline">chunk/3</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#block/1" translate="no">block(Log)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#block/2"><code class="inline">block/2</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#block/2" translate="no">block(Log, QueueLogRecords)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>With a call to <code class="inline">block/1,2</code> a process can block a log. If the blocking process is
+not an owner of the log, a temporary link is created between the disk log
+process and the blocking process. The link ensures that the disk log is
+unblocked if the blocking process terminates without first closing or unblocking
+the log.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#blog/2" translate="no">blog(Log, Bytes)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#log/2"><code class="inline">log/2</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#blog_terms/2" translate="no">blog_terms(Log, BytesList)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#log_terms/2"><code class="inline">log_terms/2</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#breopen/3" translate="no">breopen(Log, File, BHead)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#reopen/3"><code class="inline">reopen/3</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#btruncate/2" translate="no">btruncate(Log, BHead)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#truncate/2"><code class="inline">truncate/2</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#change_header/2" translate="no">change_header(Log, Header)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Changes the value of option <code class="inline">head</code> or <code class="inline">head_func</code> for an owner of a disk log.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#change_notify/3" translate="no">change_notify(Log, Owner, Notify)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Changes the value of option <code class="inline">notify</code> for an owner of a disk log.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#change_size/2" translate="no">change_size(Log, Size)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Changes the size of an open log. For a halt log, the size can always be
+increased, but it cannot be decreased to something less than the current file
+size.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#chunk/2" translate="no">chunk(Log, Continuation)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#chunk/3"><code class="inline">chunk/3</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#chunk/3" translate="no">chunk(Log, Continuation, N)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Efficiently reads the terms that are appended to an internally formatted log. It
+minimizes disk I/O by reading 64 kilobyte chunks from the file. Functions
+<code class="inline">bchunk/2,3</code> return the binaries read from the file, they do not call
+<code class="inline">binary_to_term()</code>. Apart from that, they work just like <code class="inline">chunk/2,3</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#chunk_info/1" translate="no">chunk_info(Continuation)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns the pair <code class="inline">{node, Node}</code>, describing the chunk continuation returned by
+<code class="inline">chunk/2,3</code>, <code class="inline">bchunk/2,3</code>, or <a href="#chunk_step/3"><code class="inline">chunk_step/3</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#chunk_step/3" translate="no">chunk_step(Log, Continuation, Step)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Can be used with <code class="inline">chunk/2,3</code> and <code class="inline">bchunk/2,3</code> to search through an internally
+formatted wrap log. It takes as argument a continuation as returned by
+<code class="inline">chunk/2,3</code>, <code class="inline">bchunk/2,3</code>, or <a href="#chunk_step/3"><code class="inline">chunk_step/3</code></a>, and steps
+forward (or backward) <code class="inline">Step</code> files in the wrap log. The continuation returned,
+points to the first log item in the new current file.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#close/1" translate="no">close(Log)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p><a href=""></a> Closes a disk log properly. An internally formatted log must
+be closed before the Erlang system is stopped. Otherwise, the log is regarded as
+unclosed and the automatic repair procedure is activated next time the log is
+opened.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#format_error/1" translate="no">format_error(Error)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Given the error returned by any function in this module, this function returns a
+descriptive string of the error in English. For file errors, function
+<a href="#format_error/1"><code class="inline">format_error/1</code></a> in module <a href="file.html#format_error/1"><code class="inline">file</code></a>
+is called.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#inc_wrap_file/1" translate="no">inc_wrap_file(Log)</a>
+
+          <span class="deprecated" title="disk_log:inc_wrap_file/1 is deprecated; use disk_log:next_file/1 instead">deprecated</span>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Forces the internally formatted disk log to start logging to the next log file.
+It can be used, for example, with <a href="#change_size/2"><code class="inline">change_size/2</code></a> to reduce
+the amount of disk space allocated by the disk log.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#info/1" translate="no">info(Log)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns a list of <code class="inline">{Tag, Value}</code> pairs describing a log running on the node.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#log/2" translate="no">log(Log, Term)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Synchronously appends a term to a disk log. Returns <code class="inline">ok</code> or <code class="inline">{error, Reason}</code>
+when the term is written to disk. Terms are written by the ordinary <code class="inline">write()</code>
+function of the operating system. Hence, it is not guaranteed that the term is
+written to disk, it can linger in the operating system kernel for a while. To
+ensure that the item is written to disk, function <a href="#sync/1"><code class="inline">sync/1</code></a> must be called.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#log_terms/2" translate="no">log_terms(Log, TermList)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Synchronously appends a list of items to the log. It is more efficient to use
+these functions instead of functions <a href="#log/2"><code class="inline">log/2</code></a> and
+<a href="#blog/2"><code class="inline">blog/2</code></a>. The specified list is split into as large sublists as
+possible (limited by the size of wrap log files), and each sublist is logged as
+one single item, which reduces the overhead.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#next_file/1" translate="no">next_file(Log)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>For wrap logs, it forces the disk log to start logging to the next log file. It
+can be used, for example, with <a href="#change_size/2"><code class="inline">change_size/2</code></a> to reduce the
+amount of disk space allocated by the disk log.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#open/1" translate="no">open(ArgL)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Parameter <code class="inline">ArgL</code> is a list of the following options</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#pid2name/1" translate="no">pid2name(Pid)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns the log name given the pid of a disk log process on the current node, or
+<code class="inline">undefined</code> if the specified pid is not a disk log process.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#reopen/2" translate="no">reopen(Log, File)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#reopen/3"><code class="inline">reopen/3</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#reopen/3" translate="no">reopen(Log, File, Head)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Renames the log file to <code class="inline">File</code> and then recreates a new log file. If a
+wrap/rotate log exists, <code class="inline">File</code> is used as the base name of the renamed files. By
+default the header given to <a href="#open/1"><code class="inline">open/1</code></a> is written first in the newly
+opened log file, but if argument <code class="inline">Head</code> or <code class="inline">BHead</code> is specified, this item is
+used instead. The header argument is used only once. Next time a wrap/rotate log
+file is opened, the header given to <a href="#open/1"><code class="inline">open/1</code></a> is used.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#sync/1" translate="no">sync(Log)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Ensures that the contents of the log are written to the disk. This is usually a
+rather expensive operation.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#truncate/1" translate="no">truncate(Log)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#truncate/2"><code class="inline">truncate/2</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#truncate/2" translate="no">truncate(Log, Head)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Removes all items from a disk log. If argument <code class="inline">Head</code> or <code class="inline">BHead</code> is specified,
+this item is written first in the newly truncated log, otherwise the header
+given to <a href="#open/1"><code class="inline">open/1</code></a> is used. The header argument is used only once.
+Next time a wrap/rotate log file is opened, the header given to
+<a href="#open/1"><code class="inline">open/1</code></a> is used.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#unblock/1" translate="no">unblock(Log)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Unblocks a log. A log can only be unblocked by the blocking process.</p></div>
+
+    </div>
+
+</div>
+
+  </section>
+
+
+  <section id="types" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#types">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Types</span>
+    </h1>
+    <div class="types-list">
+<section class="detail" id="t:bchunk_ret/0">
+
+  <div class="detail-header">
+    <a href="#t:bchunk_ret/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">bchunk_ret()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L1074" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> bchunk_ret() ::
+    {Continuation2 :: <a href="#t:continuation/0">continuation</a>(), Binaries :: [<a href="../../apps/erts/erlang.html#t:binary/0">binary</a>()]} |
+    {Continuation2 :: <a href="#t:continuation/0">continuation</a>(), Binaries :: [<a href="../../apps/erts/erlang.html#t:binary/0">binary</a>()], Badbytes :: <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()} |
+    eof |
+    {error, Reason :: <a href="#t:chunk_error_rsn/0">chunk_error_rsn</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:block_error_rsn/0">
+
+  <div class="detail-header">
+    <a href="#t:block_error_rsn/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">block_error_rsn()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L766" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> block_error_rsn() :: no_such_log | nonode | {blocked_log, <a href="#t:log/0">log</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:chunk_error_rsn/0">
+
+  <div class="detail-header">
+    <a href="#t:chunk_error_rsn/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">chunk_error_rsn()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L946" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> chunk_error_rsn() ::
+    no_such_log |
+    {format_external, <a href="#t:log/0">log</a>()} |
+    {blocked_log, <a href="#t:log/0">log</a>()} |
+    {badarg, continuation} |
+    {not_internal_wrap, <a href="#t:log/0">log</a>()} |
+    {corrupt_log_file, FileName :: <a href="file.html#t:filename/0">file:filename</a>()} |
+    {file_error, <a href="file.html#t:filename/0">file:filename</a>(), <a href="#t:file_error/0">file_error</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:chunk_ret/0">
+
+  <div class="detail-header">
+    <a href="#t:chunk_ret/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">chunk_ret()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L954" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> chunk_ret() ::
+    {Continuation2 :: <a href="#t:continuation/0">continuation</a>(), Terms :: [<a href="../../apps/erts/erlang.html#t:term/0">term</a>()]} |
+    {Continuation2 :: <a href="#t:continuation/0">continuation</a>(), Terms :: [<a href="../../apps/erts/erlang.html#t:term/0">term</a>()], Badbytes :: <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()} |
+    eof |
+    {error, Reason :: <a href="#t:chunk_error_rsn/0">chunk_error_rsn</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:close_error_rsn/0">
+
+  <div class="detail-header">
+    <a href="#t:close_error_rsn/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">close_error_rsn()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L534" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> close_error_rsn() :: no_such_log | nonode | {file_error, <a href="file.html#t:filename/0">file:filename</a>(), <a href="#t:file_error/0">file_error</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:continuation/0">
+
+  <div class="detail-header">
+    <a href="#t:continuation/0" class="detail-link" title="Link to this opaque">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this opaque</span>
+    </a>
+    <h1 class="signature" translate="no">continuation()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L202" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(opaque)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-opaque</span> continuation()</pre>
+
+      </div>
+
+<p>Chunk continuation returned by <code class="inline">chunk/2,3</code>, <code class="inline">bchunk/2,3</code>, or
+<a href="#chunk_step/3"><code class="inline">chunk_step/3</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="t:dlog_format/0">
+
+  <div class="detail-header">
+    <a href="#t:dlog_format/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">dlog_format()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.hrl#L58" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> dlog_format() :: external | internal.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:dlog_head_opt/0">
+
+  <div class="detail-header">
+    <a href="#t:dlog_head_opt/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">dlog_head_opt()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.hrl#L62" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> dlog_head_opt() :: none | <a href="../../apps/erts/erlang.html#t:term/0">term</a>() | <a href="../../apps/erts/erlang.html#t:iodata/0">iodata</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:dlog_info/0">
+
+  <div class="detail-header">
+    <a href="#t:dlog_info/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">dlog_info()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L817" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> dlog_info() ::
+    {name, Log :: <a href="#t:log/0">log</a>()} |
+    {file, File :: <a href="file.html#t:filename/0">file:filename</a>()} |
+    {type, Type :: <a href="#t:dlog_type/0">dlog_type</a>()} |
+    {format, Format :: <a href="#t:dlog_format/0">dlog_format</a>()} |
+    {size, Size :: <a href="#t:dlog_size/0">dlog_size</a>()} |
+    {mode, Mode :: <a href="#t:dlog_mode/0">dlog_mode</a>()} |
+    {owners, [{<a href="../../apps/erts/erlang.html#t:pid/0">pid</a>(), Notify :: <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>()}]} |
+    {users, Users :: <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()} |
+    {status, Status :: ok | {blocked, QueueLogRecords :: <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>()}} |
+    {node, Node :: <a href="../../apps/erts/erlang.html#t:node/0">node</a>()} |
+    {head, Head :: none | {head, <a href="../../apps/erts/erlang.html#t:binary/0">binary</a>()} | (MFA :: {<a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), <a href="../../apps/erts/erlang.html#t:list/0">list</a>()})} |
+    {no_written_items, NoWrittenItems :: <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()} |
+    {full, Full :: boolean} |
+    {no_current_bytes, <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()} |
+    {no_current_items, <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()} |
+    {no_items, <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()} |
+    {current_file, <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer</a>()} |
+    {no_overflows, {SinceLogWasOpened :: <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(), SinceLastInfo :: <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()}}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:dlog_mode/0">
+
+  <div class="detail-header">
+    <a href="#t:dlog_mode/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">dlog_mode()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.hrl#L64" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> dlog_mode() :: read_only | read_write.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:dlog_optattr/0">
+
+  <div class="detail-header">
+    <a href="#t:dlog_optattr/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">dlog_optattr()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.hrl#L66" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> dlog_optattr() ::
+    name | file | linkto | repair | type | format | size | notify | head | head_func | mode.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:dlog_option/0">
+
+  <div class="detail-header">
+    <a href="#t:dlog_option/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">dlog_option()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.hrl#L69" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> dlog_option() ::
+    {name, Log :: <a href="#t:log/0">log</a>()} |
+    {file, FileName :: <a href="file.html#t:filename/0">file:filename</a>()} |
+    {linkto, LinkTo :: none | <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>()} |
+    {repair, Repair :: true | false | truncate} |
+    {type, Type :: <a href="#t:dlog_type/0">dlog_type</a>()} |
+    {format, Format :: <a href="#t:dlog_format/0">dlog_format</a>()} |
+    {size, Size :: <a href="#t:dlog_size/0">dlog_size</a>()} |
+    {notify, <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>()} |
+    {head, Head :: <a href="#t:dlog_head_opt/0">dlog_head_opt</a>()} |
+    {head_func, MFA :: {<a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), <a href="../../apps/erts/erlang.html#t:list/0">list</a>()}} |
+    {quiet, <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>()} |
+    {mode, Mode :: <a href="#t:dlog_mode/0">dlog_mode</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:dlog_options/0">
+
+  <div class="detail-header">
+    <a href="#t:dlog_options/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">dlog_options()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.hrl#L81" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> dlog_options() :: [<a href="#t:dlog_option/0">dlog_option</a>()].</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:dlog_size/0">
+
+  <div class="detail-header">
+    <a href="#t:dlog_size/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">dlog_size()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.hrl#L83" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> dlog_size() ::
+    infinity | <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer</a>() | {MaxNoBytes :: <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer</a>(), MaxNoFiles :: <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:dlog_type/0">
+
+  <div class="detail-header">
+    <a href="#t:dlog_type/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">dlog_type()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.hrl#L87" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> dlog_type() :: halt | wrap | rotate.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:file_error/0">
+
+  <div class="detail-header">
+    <a href="#t:file_error/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">file_error()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L204" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> file_error() :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:inc_wrap_error_rsn/0">
+
+  <div class="detail-header">
+    <a href="#t:inc_wrap_error_rsn/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">inc_wrap_error_rsn()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L675" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> inc_wrap_error_rsn() :: <a href="#t:next_file_error_rsn/0">next_file_error_rsn</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:invalid_header/0">
+
+  <div class="detail-header">
+    <a href="#t:invalid_header/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">invalid_header()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L205" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> invalid_header() :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:log/0">
+
+  <div class="detail-header">
+    <a href="#t:log/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">log()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.hrl#L63" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> log() :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:log_error_rsn/0">
+
+  <div class="detail-header">
+    <a href="#t:log_error_rsn/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">log_error_rsn()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L410" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> log_error_rsn() ::
+    no_such_log | nonode |
+    {read_only_mode, <a href="#t:log/0">log</a>()} |
+    {format_external, <a href="#t:log/0">log</a>()} |
+    {blocked_log, <a href="#t:log/0">log</a>()} |
+    {full, <a href="#t:log/0">log</a>()} |
+    {invalid_header, <a href="#t:invalid_header/0">invalid_header</a>()} |
+    {file_error, <a href="file.html#t:filename/0">file:filename</a>(), <a href="#t:file_error/0">file_error</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:next_file_error_rsn/0">
+
+  <div class="detail-header">
+    <a href="#t:next_file_error_rsn/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">next_file_error_rsn()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L650" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> next_file_error_rsn() ::
+    no_such_log | nonode |
+    {read_only_mode, <a href="#t:log/0">log</a>()} |
+    {blocked_log, <a href="#t:log/0">log</a>()} |
+    {halt_log, <a href="#t:log/0">log</a>()} |
+    {rotate_log, <a href="#t:log/0">log</a>()} |
+    {invalid_header, <a href="#t:invalid_header/0">invalid_header</a>()} |
+    {file_error, <a href="file.html#t:filename/0">file:filename</a>(), <a href="#t:file_error/0">file_error</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:notify_ret/0">
+
+  <div class="detail-header">
+    <a href="#t:notify_ret/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">notify_ret()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L477" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> notify_ret() :: ok | {error, no_such_log}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:open_error_rsn/0">
+
+  <div class="detail-header">
+    <a href="#t:open_error_rsn/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">open_error_rsn()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L216" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> open_error_rsn() ::
+    no_such_log |
+    {badarg, <a href="../../apps/erts/erlang.html#t:term/0">term</a>()} |
+    {size_mismatch, CurrentSize :: <a href="#t:dlog_size/0">dlog_size</a>(), NewSize :: <a href="#t:dlog_size/0">dlog_size</a>()} |
+    {arg_mismatch, OptionName :: <a href="#t:dlog_optattr/0">dlog_optattr</a>(), CurrentValue :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(), Value :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()} |
+    {name_already_open, Log :: <a href="#t:log/0">log</a>()} |
+    {open_read_write, Log :: <a href="#t:log/0">log</a>()} |
+    {open_read_only, Log :: <a href="#t:log/0">log</a>()} |
+    {need_repair, Log :: <a href="#t:log/0">log</a>()} |
+    {not_a_log_file, FileName :: <a href="file.html#t:filename/0">file:filename</a>()} |
+    {invalid_index_file, FileName :: <a href="file.html#t:filename/0">file:filename</a>()} |
+    {invalid_header, <a href="#t:invalid_header/0">invalid_header</a>()} |
+    {file_error, <a href="file.html#t:filename/0">file:filename</a>(), <a href="#t:file_error/0">file_error</a>()} |
+    {node_already_open, Log :: <a href="#t:log/0">log</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:open_ret/0">
+
+  <div class="detail-header">
+    <a href="#t:open_ret/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">open_ret()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L231" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> open_ret() ::
+    {ok, Log :: <a href="#t:log/0">log</a>()} |
+    {repaired,
+     Log :: <a href="#t:log/0">log</a>(),
+     {recovered, Rec :: <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()},
+     {badbytes, Bad :: <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()}} |
+    {error, <a href="#t:open_error_rsn/0">open_error_rsn</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:reopen_error_rsn/0">
+
+  <div class="detail-header">
+    <a href="#t:reopen_error_rsn/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">reopen_error_rsn()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L601" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> reopen_error_rsn() ::
+    no_such_log | nonode |
+    {read_only_mode, <a href="#t:log/0">log</a>()} |
+    {blocked_log, <a href="#t:log/0">log</a>()} |
+    {same_file_name, <a href="#t:log/0">log</a>()} |
+    {invalid_index_file, <a href="file.html#t:filename/0">file:filename</a>()} |
+    {invalid_header, <a href="#t:invalid_header/0">invalid_header</a>()} |
+    {file_error, <a href="file.html#t:filename/0">file:filename</a>(), <a href="#t:file_error/0">file_error</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:sync_error_rsn/0">
+
+  <div class="detail-header">
+    <a href="#t:sync_error_rsn/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">sync_error_rsn()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L753" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> sync_error_rsn() ::
+    no_such_log | nonode |
+    {read_only_mode, <a href="#t:log/0">log</a>()} |
+    {blocked_log, <a href="#t:log/0">log</a>()} |
+    {file_error, <a href="file.html#t:filename/0">file:filename</a>(), <a href="#t:file_error/0">file_error</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:trunc_error_rsn/0">
+
+  <div class="detail-header">
+    <a href="#t:trunc_error_rsn/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">trunc_error_rsn()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L556" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> trunc_error_rsn() ::
+    no_such_log | nonode |
+    {read_only_mode, <a href="#t:log/0">log</a>()} |
+    {blocked_log, <a href="#t:log/0">log</a>()} |
+    {invalid_header, <a href="#t:invalid_header/0">invalid_header</a>()} |
+    {file_error, <a href="file.html#t:filename/0">file:filename</a>(), <a href="#t:file_error/0">file_error</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:unblock_error_rsn/0">
+
+  <div class="detail-header">
+    <a href="#t:unblock_error_rsn/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">unblock_error_rsn()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L796" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> unblock_error_rsn() :: no_such_log | nonode | {not_blocked, <a href="#t:log/0">log</a>()} | {not_blocked_by_pid, <a href="#t:log/0">log</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+
+    </div>
+  </section>
+
+  <section id="functions" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#functions">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Functions</span>
+    </h1>
+    <div class="functions-list">
+<section class="detail" id="all/0">
+
+  <div class="detail-header">
+    <a href="#all/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">all()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L1166" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 24.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> all() -> [Log] when Log :: <a href="#t:log/0">log</a>().</pre>
+
+      </div>
+
+<p>Returns the names of the disk logs accessible on the current node.</p>
+  </section>
+</section>
+<section class="detail" id="alog/2">
+
+  <div class="detail-header">
+    <a href="#alog/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">alog(Log, Term)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L483" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> alog(Log, Term) -> <a href="#t:notify_ret/0">notify_ret</a>() when Log :: <a href="#t:log/0">log</a>(), Term :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#balog/2"><code class="inline">balog/2</code></a></p>
+  </section>
+</section>
+<section class="detail" id="alog_terms/2">
+
+  <div class="detail-header">
+    <a href="#alog_terms/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">alog_terms(Log, TermList)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L490" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> alog_terms(Log, TermList) -> <a href="#t:notify_ret/0">notify_ret</a>() when Log :: <a href="#t:log/0">log</a>(), TermList :: [<a href="../../apps/erts/erlang.html#t:term/0">term</a>()].</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#balog_terms/2"><code class="inline">balog_terms/2</code></a></p>
+  </section>
+</section>
+<section class="detail" id="balog/2">
+
+  <div class="detail-header">
+    <a href="#balog/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">balog(Log, Bytes)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L510" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> balog(Log, Bytes) -> <a href="#t:notify_ret/0">notify_ret</a>() when Log :: <a href="#t:log/0">log</a>(), Bytes :: <a href="../../apps/erts/erlang.html#t:iodata/0">iodata</a>().</pre>
+
+      </div>
+
+<p>Asynchronously append an item to a disk log. <a href="#alog/2"><code class="inline">alog/2</code></a> is used for
+internally formatted logs and <a href="#balog/2"><code class="inline">balog/2</code></a> for externally formatted
+logs. <a href="#balog/2"><code class="inline">balog/2</code></a> can also be used for internally formatted logs if
+the binary is constructed with a call to
+<a href="../../apps/erts/erlang.html#term_to_binary/1"><code class="inline">term_to_binary/1</code></a>.</p><p>Owners subscribing to notifications receive message <code class="inline">read_only</code>, <code class="inline">blocked_log</code>,
+or <code class="inline">format_external</code> if the item cannot be written on the log, and possibly one
+of the messages <code class="inline">wrap</code>, <code class="inline">full</code>, or <code class="inline">error_status</code> if an item is written on the
+log. Message <code class="inline">error_status</code> is sent if something is wrong with the header
+function or if a file error occurs.</p>
+  </section>
+</section>
+<section class="detail" id="balog_terms/2">
+
+  <div class="detail-header">
+    <a href="#balog_terms/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">balog_terms(Log, ByteList)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L530" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> balog_terms(Log, ByteList) -> <a href="#t:notify_ret/0">notify_ret</a>() when Log :: <a href="#t:log/0">log</a>(), ByteList :: [<a href="../../apps/erts/erlang.html#t:iodata/0">iodata</a>()].</pre>
+
+      </div>
+
+<p>Asynchronously append a list of items to a disk log.
+<a href="#alog_terms/2"><code class="inline">alog_terms/2</code></a> is used for internally formatted logs and
+<a href="#balog_terms/2"><code class="inline">balog_terms/2</code></a> for externally formatted logs.
+<a href="#balog_terms/2"><code class="inline">balog_terms/2</code></a> can also be used for internally formatted
+logs if the binaries are constructed with calls to
+<a href="../../apps/erts/erlang.html#term_to_binary/1"><code class="inline">term_to_binary/1</code></a>.</p><p>Owners subscribing to notifications receive message <code class="inline">read_only</code>, <code class="inline">blocked_log</code>,
+or <code class="inline">format_external</code> if the items cannot be written on the log, and possibly one
+or more of the messages <code class="inline">wrap</code>, <code class="inline">full</code>, and <code class="inline">error_status</code> if items are written
+on the log. Message <code class="inline">error_status</code> is sent if something is wrong with the header
+function or if a file error occurs.</p>
+  </section>
+</section>
+<section class="detail" id="bchunk/2">
+
+  <div class="detail-header">
+    <a href="#bchunk/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">bchunk(Log, Continuation)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L1086" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> bchunk(Log, Continuation) -> <a href="#t:bchunk_ret/0">bchunk_ret</a>()
+          when Log :: <a href="#t:log/0">log</a>(), Continuation :: start | <a href="#t:continuation/0">continuation</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#chunk/3"><code class="inline">chunk/3</code></a></p>
+  </section>
+</section>
+<section class="detail" id="bchunk/3">
+
+  <div class="detail-header">
+    <a href="#bchunk/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">bchunk(Log, Continuation, N)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L1094" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> bchunk(Log, Continuation, N) -> <a href="#t:bchunk_ret/0">bchunk_ret</a>()
+          when Log :: <a href="#t:log/0">log</a>(), Continuation :: start | <a href="#t:continuation/0">continuation</a>(), N :: <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer</a>() | infinity.</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#chunk/3"><code class="inline">chunk/3</code></a></p>
+  </section>
+</section>
+<section class="detail" id="block/1">
+
+  <div class="detail-header">
+    <a href="#block/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">block(Log)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L771" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> block(Log) -> ok | {error, <a href="#t:block_error_rsn/0">block_error_rsn</a>()} when Log :: <a href="#t:log/0">log</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#block/2"><code class="inline">block/2</code></a></p>
+  </section>
+</section>
+<section class="detail" id="block/2">
+
+  <div class="detail-header">
+    <a href="#block/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">block(Log, QueueLogRecords)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L793" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> block(Log, QueueLogRecords) -> ok | {error, <a href="#t:block_error_rsn/0">block_error_rsn</a>()}
+         when Log :: <a href="#t:log/0">log</a>(), QueueLogRecords :: <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>().</pre>
+
+      </div>
+
+<p>With a call to <code class="inline">block/1,2</code> a process can block a log. If the blocking process is
+not an owner of the log, a temporary link is created between the disk log
+process and the blocking process. The link ensures that the disk log is
+unblocked if the blocking process terminates without first closing or unblocking
+the log.</p><p>Any process can probe a blocked log with <a href="#info/1"><code class="inline">info/1</code></a> or close it with
+<a href="#close/1"><code class="inline">close/1</code></a>. The blocking process can also use functions <code class="inline">chunk/2,3</code>,
+<code class="inline">bchunk/2,3</code>, <a href="#chunk_step/3"><code class="inline">chunk_step/3</code></a>, and <a href="#unblock/1"><code class="inline">unblock/1</code></a>
+without being affected by the block. Any other attempt than those mentioned so
+far to update or read a blocked log suspends the calling process until the log
+is unblocked or returns error message <code class="inline">{blocked_log, Log}</code>, depending on whether
+the value of <code class="inline">QueueLogRecords</code> is <code class="inline">true</code> or <code class="inline">false</code>. <code class="inline">QueueLogRecords</code> defaults
+to <code class="inline">true</code>, which is used by <a href="#block/1"><code class="inline">block/1</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="blog/2">
+
+  <div class="detail-header">
+    <a href="#blog/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">blog(Log, Bytes)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L441" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> blog(Log, Bytes) -> ok | {error, Reason :: <a href="#t:log_error_rsn/0">log_error_rsn</a>()} when Log :: <a href="#t:log/0">log</a>(), Bytes :: <a href="../../apps/erts/erlang.html#t:iodata/0">iodata</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#log/2"><code class="inline">log/2</code></a></p>
+  </section>
+</section>
+<section class="detail" id="blog_terms/2">
+
+  <div class="detail-header">
+    <a href="#blog_terms/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">blog_terms(Log, BytesList)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L473" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> blog_terms(Log, BytesList) -> ok | {error, Reason :: <a href="#t:log_error_rsn/0">log_error_rsn</a>()}
+              when Log :: <a href="#t:log/0">log</a>(), BytesList :: [<a href="../../apps/erts/erlang.html#t:iodata/0">iodata</a>()].</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#log_terms/2"><code class="inline">log_terms/2</code></a></p>
+  </section>
+</section>
+<section class="detail" id="breopen/3">
+
+  <div class="detail-header">
+    <a href="#breopen/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">breopen(Log, File, BHead)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L647" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> breopen(Log, File, BHead) -> ok | {error, <a href="#t:reopen_error_rsn/0">reopen_error_rsn</a>()}
+           when Log :: <a href="#t:log/0">log</a>(), File :: <a href="file.html#t:filename/0">file:filename</a>(), BHead :: <a href="../../apps/erts/erlang.html#t:iodata/0">iodata</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#reopen/3"><code class="inline">reopen/3</code></a></p>
+  </section>
+</section>
+<section class="detail" id="btruncate/2">
+
+  <div class="detail-header">
+    <a href="#btruncate/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">btruncate(Log, BHead)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L598" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> btruncate(Log, BHead) -> ok | {error, <a href="#t:trunc_error_rsn/0">trunc_error_rsn</a>()} when Log :: <a href="#t:log/0">log</a>(), BHead :: <a href="../../apps/erts/erlang.html#t:iodata/0">iodata</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#truncate/2"><code class="inline">truncate/2</code></a></p>
+  </section>
+</section>
+<section class="detail" id="change_header/2">
+
+  <div class="detail-header">
+    <a href="#change_header/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">change_header(Log, Header)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L750" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> change_header(Log, Header) -> ok | {error, Reason}
+                 when
+                     Log :: <a href="#t:log/0">log</a>(),
+                     Header ::
+                         {head, <a href="#t:dlog_head_opt/0">dlog_head_opt</a>()} | {head_func, MFA :: {<a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), <a href="../../apps/erts/erlang.html#t:list/0">list</a>()}},
+                     Reason ::
+                         no_such_log | nonode |
+                         {read_only_mode, Log} |
+                         {blocked_log, Log} |
+                         {badarg, head}.</pre>
+
+      </div>
+
+<p>Changes the value of option <code class="inline">head</code> or <code class="inline">head_func</code> for an owner of a disk log.</p>
+  </section>
+</section>
+<section class="detail" id="change_notify/3">
+
+  <div class="detail-header">
+    <a href="#change_notify/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">change_notify(Log, Owner, Notify)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L740" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> change_notify(Log, Owner, Notify) -> ok | {error, Reason}
+                 when
+                     Log :: <a href="#t:log/0">log</a>(),
+                     Owner :: <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>(),
+                     Notify :: <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>(),
+                     Reason ::
+                         no_such_log | nonode |
+                         {blocked_log, Log} |
+                         {badarg, notify} |
+                         {not_owner, Owner}.</pre>
+
+      </div>
+
+<p>Changes the value of option <code class="inline">notify</code> for an owner of a disk log.</p>
+  </section>
+</section>
+<section class="detail" id="change_size/2">
+
+  <div class="detail-header">
+    <a href="#change_size/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">change_size(Log, Size)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L730" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> change_size(Log, Size) -> ok | {error, Reason}
+               when
+                   Log :: <a href="#t:log/0">log</a>(),
+                   Size :: <a href="#t:dlog_size/0">dlog_size</a>(),
+                   Reason ::
+                       no_such_log | nonode |
+                       {read_only_mode, Log} |
+                       {blocked_log, Log} |
+                       {new_size_too_small, Log, CurrentSize :: <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer</a>()} |
+                       {badarg, size} |
+                       {file_error, <a href="file.html#t:filename/0">file:filename</a>(), <a href="#t:file_error/0">file_error</a>()}.</pre>
+
+      </div>
+
+<p>Changes the size of an open log. For a halt log, the size can always be
+increased, but it cannot be decreased to something less than the current file
+size.</p><p>For a wrap or rotate log, both the size and the number of files can always be
+increased, as long as the number of files does not exceed 65000. For wrap logs,
+if the maximum number of files is decreased, the change is not valid until the
+current file is full and the log wraps to the next file. The redundant files are
+removed the next time the log wraps around, that is, starts to log to file
+number 1.</p><p>As an example, assume that the old maximum number of files is 10 and that the
+new maximum number of files is 6. If the current file number is not greater than
+the new maximum number of files, files 7-10 are removed when file 6 is full and
+the log starts to write to file number 1 again. Otherwise, the files greater
+than the current file are removed when the current file is full (for example, if
+the current file is 8, files 9 and 10 are removed). The files between the new
+maximum number of files and the current file (that is, files 7 and 8) are
+removed the next time file 6 is full.</p><p>For rotate logs, if the maximum number of files is decreased, the redundant
+files are deleted instantly.</p><p>If the size of the files is decreased, the change immediately affects the
+current log. It does not change the size of log files already full until the
+next time they are used.</p><p>If the log size is decreased, for example, to save space, function
+<a href="#next_file/1"><code class="inline">next_file/1</code></a>, can be used to force the log to wrap.</p>
+  </section>
+</section>
+<section class="detail" id="chunk/2">
+
+  <div class="detail-header">
+    <a href="#chunk/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">chunk(Log, Continuation)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L965" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> chunk(Log, Continuation) -> <a href="#t:chunk_ret/0">chunk_ret</a>() when Log :: <a href="#t:log/0">log</a>(), Continuation :: start | <a href="#t:continuation/0">continuation</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#chunk/3"><code class="inline">chunk/3</code></a></p>
+  </section>
+</section>
+<section class="detail" id="chunk/3">
+
+  <div class="detail-header">
+    <a href="#chunk/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">chunk(Log, Continuation, N)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L1008" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> chunk(Log, Continuation, N) -> <a href="#t:chunk_ret/0">chunk_ret</a>()
+         when Log :: <a href="#t:log/0">log</a>(), Continuation :: start | <a href="#t:continuation/0">continuation</a>(), N :: <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer</a>() | infinity.</pre>
+
+      </div>
+
+<p>Efficiently reads the terms that are appended to an internally formatted log. It
+minimizes disk I/O by reading 64 kilobyte chunks from the file. Functions
+<code class="inline">bchunk/2,3</code> return the binaries read from the file, they do not call
+<code class="inline">binary_to_term()</code>. Apart from that, they work just like <code class="inline">chunk/2,3</code>.</p><p>The first time <code class="inline">chunk()</code> (or <code class="inline">bchunk()</code>) is called, an initial continuation, the
+atom <code class="inline">start</code>, must be provided.</p><p>When <a href="#chunk/3"><code class="inline">chunk/3</code></a> is called, <code class="inline">N</code> controls the maximum number of terms
+that are read from the log in each chunk. Defaults to <code class="inline">infinity</code>, which means
+that all the terms contained in the 64 kilobyte chunk are read. If less than <code class="inline">N</code>
+terms are returned, this does not necessarily mean that the end of the file is
+reached.</p><p><code class="inline">chunk()</code> returns a tuple <code class="inline">{Continuation2, Terms}</code>, where <code class="inline">Terms</code> is a list of
+terms found in the log. <code class="inline">Continuation2</code> is yet another continuation, which must
+be passed on to any subsequent calls to <code class="inline">chunk()</code>. With a series of calls to
+<code class="inline">chunk()</code>, all terms from a log can be extracted.</p><p><code class="inline">chunk()</code> returns a tuple <code class="inline">{Continuation2, Terms, Badbytes}</code> if the log is
+opened in read-only mode and the read chunk is corrupt. <code class="inline">Badbytes</code> is the number
+of bytes in the file found not to be Erlang terms in the chunk. Notice that the
+log is not repaired. When trying to read chunks from a log opened in read-write
+mode, tuple <code class="inline">{corrupt_log_file, FileName}</code> is returned if the read chunk is
+corrupt.</p><p><code class="inline">chunk()</code> returns <code class="inline">eof</code> when the end of the log is reached, or <code class="inline">{error, Reason}</code>
+if an error occurs. If a wrap log file is missing, a message is output on the
+error log.</p><p>When <code class="inline">chunk/2,3</code> is used with wrap logs, the returned continuation might not be
+valid in the next call to <code class="inline">chunk()</code>. This is because the log can wrap and delete
+the file into which the continuation points. To prevent this, the log can be
+blocked during the search.</p>
+  </section>
+</section>
+<section class="detail" id="chunk_info/1">
+
+  <div class="detail-header">
+    <a href="#chunk_info/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">chunk_info(Continuation)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L1157" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> chunk_info(Continuation) -> InfoList | {error, Reason}
+              when
+                  Continuation :: <a href="#t:continuation/0">continuation</a>(),
+                  InfoList :: [{node, Node :: <a href="../../apps/erts/erlang.html#t:node/0">node</a>()}, ...],
+                  Reason :: {no_continuation, Continuation}.</pre>
+
+      </div>
+
+<p>Returns the pair <code class="inline">{node, Node}</code>, describing the chunk continuation returned by
+<code class="inline">chunk/2,3</code>, <code class="inline">bchunk/2,3</code>, or <a href="#chunk_step/3"><code class="inline">chunk_step/3</code></a>.</p><p>Terms are read from the disk log running on <code class="inline">Node</code>.</p>
+  </section>
+</section>
+<section class="detail" id="chunk_step/3">
+
+  <div class="detail-header">
+    <a href="#chunk_step/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">chunk_step(Log, Continuation, Step)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L1137" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> chunk_step(Log, Continuation, Step) -> {ok, <a href="../../apps/erts/erlang.html#t:any/0">any</a>()} | {error, Reason}
+              when
+                  Log :: <a href="#t:log/0">log</a>(),
+                  Continuation :: start | <a href="#t:continuation/0">continuation</a>(),
+                  Step :: <a href="../../apps/erts/erlang.html#t:integer/0">integer</a>(),
+                  Reason ::
+                      no_such_log | end_of_log |
+                      {format_external, Log} |
+                      {blocked_log, Log} |
+                      {badarg, continuation} |
+                      {file_error, <a href="file.html#t:filename/0">file:filename</a>(), <a href="#t:file_error/0">file_error</a>()}.</pre>
+
+      </div>
+
+<p>Can be used with <code class="inline">chunk/2,3</code> and <code class="inline">bchunk/2,3</code> to search through an internally
+formatted wrap log. It takes as argument a continuation as returned by
+<code class="inline">chunk/2,3</code>, <code class="inline">bchunk/2,3</code>, or <a href="#chunk_step/3"><code class="inline">chunk_step/3</code></a>, and steps
+forward (or backward) <code class="inline">Step</code> files in the wrap log. The continuation returned,
+points to the first log item in the new current file.</p><p>If atom <code class="inline">start</code> is specified as continuation, the first file of the wrap log is
+chosen as the new current file.</p><p>If the wrap log is not full because all files are not yet used,
+<code class="inline">{error, end_of_log}</code> is returned if trying to step outside the log.</p>
+  </section>
+</section>
+<section class="detail" id="close/1">
+
+  <div class="detail-header">
+    <a href="#close/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">close(Log)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L553" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> close(Log) -> ok | {error, <a href="#t:close_error_rsn/0">close_error_rsn</a>()} when Log :: <a href="#t:log/0">log</a>().</pre>
+
+      </div>
+
+<p><a href="" id="close_1"></a> Closes a disk log properly. An internally formatted log must
+be closed before the Erlang system is stopped. Otherwise, the log is regarded as
+unclosed and the automatic repair procedure is activated next time the log is
+opened.</p><p>The disk log process is not terminated as long as there are owners or users of
+the log. All owners must close the log, possibly by terminating. Also, any other
+process, not only the processes that have opened the log anonymously, can
+decrement the <code class="inline">users</code> counter by closing the log. Attempts to close a log by a
+process that is not an owner are ignored if there are no users.</p><p>If the log is blocked by the closing process, the log is also unblocked.</p>
+  </section>
+</section>
+<section class="detail" id="format_error/1">
+
+  <div class="detail-header">
+    <a href="#format_error/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">format_error(Error)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L814" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> format_error(Error) -> <a href="../../apps/stdlib/io_lib.html#t:chars/0">io_lib:chars</a>() when Error :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+<p>Given the error returned by any function in this module, this function returns a
+descriptive string of the error in English. For file errors, function
+<a href="#format_error/1"><code class="inline">format_error/1</code></a> in module <a href="file.html#format_error/1"><code class="inline">file</code></a>
+is called.</p>
+  </section>
+</section>
+<section class="detail" id="inc_wrap_file/1">
+
+  <div class="detail-header">
+    <a href="#inc_wrap_file/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">inc_wrap_file(Log)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L688" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+    <div class="deprecated">
+      This function is deprecated. disk_log:inc_wrap_file/1 is deprecated; use disk_log:next_file/1 instead.
+    </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> inc_wrap_file(Log) -> ok | {error, <a href="#t:inc_wrap_error_rsn/0">inc_wrap_error_rsn</a>()} when Log :: <a href="#t:log/0">log</a>().</pre>
+
+      </div>
+
+<p>Forces the internally formatted disk log to start logging to the next log file.
+It can be used, for example, with <a href="#change_size/2"><code class="inline">change_size/2</code></a> to reduce
+the amount of disk space allocated by the disk log.</p><p>Owners subscribing to notifications normally receive a <code class="inline">wrap</code> message, but if an
+error occurs with a reason tag of <code class="inline">invalid_header</code> or <code class="inline">file_error</code>, an
+<code class="inline">error_status</code> message is sent.</p>
+  </section>
+</section>
+<section class="detail" id="info/1">
+
+  <div class="detail-header">
+    <a href="#info/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">info(Log)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L923" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> info(Log) -> InfoList | {error, no_such_log} when Log :: <a href="#t:log/0">log</a>(), InfoList :: [<a href="#t:dlog_info/0">dlog_info</a>()].</pre>
+
+      </div>
+
+<p>Returns a list of <code class="inline">{Tag, Value}</code> pairs describing a log running on the node.</p><p>The following pairs are returned for all logs:</p><ul><li><p><strong><code class="inline">{name, Log}</code></strong> - <code class="inline">Log</code> is the log name as specified by the
+<a href="#open/1"><code class="inline">open/1</code></a> option <code class="inline">name</code>.</p></li><li><p><strong><code class="inline">{file, File}</code></strong> - For halt logs <code class="inline">File</code> is the filename, and for wrap logs
+<code class="inline">File</code> is the base name.</p></li><li><p><strong><code class="inline">{type, Type}</code></strong> - <code class="inline">Type</code> is the log type as specified by the
+<a href="#open/1"><code class="inline">open/1</code></a> option <code class="inline">type</code>.</p></li><li><p><strong><code class="inline">{format, Format}</code></strong> - <code class="inline">Format</code> is the log format as specified by the
+<a href="#open/1"><code class="inline">open/1</code></a> option <code class="inline">format</code>.</p></li><li><p><strong><code class="inline">{size, Size}</code></strong> - <code class="inline">Size</code> is the log size as specified by the
+<a href="#open/1"><code class="inline">open/1</code></a> option <code class="inline">size</code>, or the size set by
+<a href="#change_size/2"><code class="inline">change_size/2</code></a>. The value set by
+<a href="#change_size/2"><code class="inline">change_size/2</code></a> is reflected immediately.</p></li><li><p><strong><code class="inline">{mode, Mode}</code></strong> - <code class="inline">Mode</code> is the log mode as specified by the
+<a href="#open/1"><code class="inline">open/1</code></a> option <code class="inline">mode</code>.</p></li><li><p><strong><code class="inline">{owners, [{pid(), Notify}]}</code></strong> - <code class="inline">Notify</code> is the value set by the
+<a href="#open/1"><code class="inline">open/1</code></a> option <code class="inline">notify</code> or function
+<a href="#change_notify/3"><code class="inline">change_notify/3</code></a> for the owners of the log.</p></li><li><p><strong><code class="inline">{users, Users}</code></strong> - <code class="inline">Users</code> is the number of anonymous users of the log,
+see the <a href="#open/1"><code class="inline">open/1</code></a> option <a href="disk_log.html#linkto"><code class="inline">linkto</code></a>.</p></li><li><p><strong><code class="inline">{status, Status}</code></strong> - <code class="inline">Status</code> is <code class="inline">ok</code> or <code class="inline">{blocked, QueueLogRecords}</code> as
+set by functions <code class="inline">block/1,2</code> and <a href="#unblock/1"><code class="inline">unblock/1</code></a>.</p></li><li><p><strong><code class="inline">{node, Node}</code></strong> - The information returned by the current invocation of
+function <a href="#info/1"><code class="inline">info/1</code></a> is gathered from the disk log process running on
+<code class="inline">Node</code>.</p></li></ul><p>The following pairs are returned for all logs opened in <code class="inline">read_write</code> mode:</p><ul><li><p><strong><code class="inline">{head, Head}</code></strong> - Depending on the value of the <a href="#open/1"><code class="inline">open/1</code></a>
+options <code class="inline">head</code> and <code class="inline">head_func</code>, or set by function
+<a href="#change_header/2"><code class="inline">change_header/2</code></a>, the value of <code class="inline">Head</code> is <code class="inline">none</code>
+(default), <code class="inline">{head, H}</code> (<code class="inline">head</code> option), or <code class="inline">{M,F,A}</code> (<code class="inline">head_func</code> option).</p></li><li><p><strong><code class="inline">{no_written_items, NoWrittenItems}</code></strong> - <code class="inline">NoWrittenItems</code> is the number of
+items written to the log since the disk log process was created.</p></li></ul><p>The following pair is returned for halt logs opened in <code class="inline">read_write</code> mode:</p><ul><li><strong><code class="inline">{full, Full}</code></strong> - <code class="inline">Full</code> is <code class="inline">true</code> or <code class="inline">false</code> depending on whether the halt
+log is full or not.</li></ul><p>The following pairs are returned for wrap logs opened in <code class="inline">read_write</code> mode:</p><ul><li><p><strong><code class="inline">{no_current_bytes, integer() &gt;= 0}</code></strong> - The number of bytes written to the
+current wrap log file.</p></li><li><p><strong><code class="inline">{no_current_items, integer() &gt;= 0}</code></strong> - The number of items written to the
+current wrap log file, header inclusive.</p></li><li><p><strong><code class="inline">{no_items, integer() &gt;= 0}</code></strong> - The total number of items in all wrap log
+files.</p></li><li><p><strong><code class="inline">{current_file, integer()}</code></strong> - The ordinal for the current wrap log file in
+the range <code class="inline">1..MaxNoFiles</code>, where <code class="inline">MaxNoFiles</code> is specified by the
+<a href="#open/1"><code class="inline">open/1</code></a> option <code class="inline">size</code> or set by
+<a href="#change_size/2"><code class="inline">change_size/2</code></a>.</p></li><li><p><strong><code class="inline">{no_overflows, {SinceLogWasOpened, SinceLastInfo}}</code></strong> - <code class="inline">SinceLogWasOpened</code>
+(<code class="inline">SinceLastInfo</code>) is the number of times a wrap log file has been filled up
+and a new one is opened or <a href="#inc_wrap_file/1"><code class="inline">inc_wrap_file/1</code></a> has been
+called since the disk log was last opened (<a href="#info/1"><code class="inline">info/1</code></a> was last
+called). The first time <code class="inline">info/2</code> is called after a log was (re)opened or
+truncated, the two values are equal.</p></li></ul><p>Notice that functions <code class="inline">chunk/2,3</code>, <code class="inline">bchunk/2,3</code>, and
+<a href="#chunk_step/3"><code class="inline">chunk_step/3</code></a> do not affect any value returned by
+<a href="#info/1"><code class="inline">info/1</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="log/2">
+
+  <div class="detail-header">
+    <a href="#log/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">log(Log, Term)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L434" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> log(Log, Term) -> ok | {error, Reason :: <a href="#t:log_error_rsn/0">log_error_rsn</a>()} when Log :: <a href="#t:log/0">log</a>(), Term :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+<p>Synchronously appends a term to a disk log. Returns <code class="inline">ok</code> or <code class="inline">{error, Reason}</code>
+when the term is written to disk. Terms are written by the ordinary <code class="inline">write()</code>
+function of the operating system. Hence, it is not guaranteed that the term is
+written to disk, it can linger in the operating system kernel for a while. To
+ensure that the item is written to disk, function <a href="#sync/1"><code class="inline">sync/1</code></a> must be called.</p><p><a href="#log/2"><code class="inline">log/2</code></a> is used for internally formatted logs, and
+<a href="#blog/2"><code class="inline">blog/2</code></a> for externally formatted logs. <a href="#blog/2"><code class="inline">blog/2</code></a> can
+also be used for internally formatted logs if the binary is constructed with a
+call to <a href="../../apps/erts/erlang.html#term_to_binary/1"><code class="inline">term_to_binary/1</code></a>.</p><p>Owners subscribing to notifications are notified of an error with an
+<code class="inline">error_status</code> message if the error reason tag is <code class="inline">invalid_header</code> or
+<code class="inline">file_error</code>.</p>
+  </section>
+</section>
+<section class="detail" id="log_terms/2">
+
+  <div class="detail-header">
+    <a href="#log_terms/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">log_terms(Log, TermList)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L464" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> log_terms(Log, TermList) -> ok | {error, Reason :: <a href="#t:log_error_rsn/0">log_error_rsn</a>()}
+             when Log :: <a href="#t:log/0">log</a>(), TermList :: [<a href="../../apps/erts/erlang.html#t:term/0">term</a>()].</pre>
+
+      </div>
+
+<p>Synchronously appends a list of items to the log. It is more efficient to use
+these functions instead of functions <a href="#log/2"><code class="inline">log/2</code></a> and
+<a href="#blog/2"><code class="inline">blog/2</code></a>. The specified list is split into as large sublists as
+possible (limited by the size of wrap log files), and each sublist is logged as
+one single item, which reduces the overhead.</p><p><a href="#log_terms/2"><code class="inline">log_terms/2</code></a> is used for internally formatted logs, and
+<a href="#blog_terms/2"><code class="inline">blog_terms/2</code></a> for externally formatted logs.
+<a href="#blog_terms/2"><code class="inline">blog_terms/2</code></a> can also be used for internally formatted logs
+if the binaries are constructed with calls to
+<a href="../../apps/erts/erlang.html#term_to_binary/1"><code class="inline">term_to_binary/1</code></a>.</p><p>Owners subscribing to notifications are notified of an error with an
+<code class="inline">error_status</code> message if the error reason tag is <code class="inline">invalid_header</code> or
+<code class="inline">file_error</code>.</p>
+  </section>
+</section>
+<section class="detail" id="next_file/1">
+
+  <div class="detail-header">
+    <a href="#next_file/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">next_file(Log)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L672" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 26.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> next_file(Log) -> ok | {error, <a href="#t:next_file_error_rsn/0">next_file_error_rsn</a>()} when Log :: <a href="#t:log/0">log</a>().</pre>
+
+      </div>
+
+<p>For wrap logs, it forces the disk log to start logging to the next log file. It
+can be used, for example, with <a href="#change_size/2"><code class="inline">change_size/2</code></a> to reduce the
+amount of disk space allocated by the disk log.</p><p>Owners subscribing to notifications normally receive a <code class="inline">wrap</code> message, but if an
+error occurs with a reason tag of <code class="inline">invalid_header</code> or <code class="inline">file_error</code>, an
+<code class="inline">error_status</code> message is sent.</p><p>For rotate logs, it forces rotation of the currently active log file, compresses
+it and opens a new active file for logging.</p>
+  </section>
+</section>
+<section class="detail" id="open/1">
+
+  <div class="detail-header">
+    <a href="#open/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">open(ArgL)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L407" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> open(ArgL) -> <a href="#t:open_ret/0">open_ret</a>() when ArgL :: <a href="#t:dlog_options/0">dlog_options</a>().</pre>
+
+      </div>
+
+<p>Parameter <code class="inline">ArgL</code> is a list of the following options:</p><ul><li><p><strong><code class="inline">{name, Log}</code></strong> - Specifies the log name. This name must be passed on as a
+parameter in all subsequent logging operations. A name must always be
+supplied.</p></li><li><p><strong><code class="inline">{file, FileName}</code></strong> - Specifies the name of the file to be used for logged
+terms. If this value is omitted and the log name is an atom or a string, the
+filename defaults to <code class="inline">lists:concat([Log, &quot;.LOG&quot;])</code> for halt logs.</p><p>For wrap logs, this is the base name of the files. Each file in a wrap log is
+called <code class="inline">&lt;FileName&gt;.N</code>, where <code class="inline">N</code> is an integer. Each wrap log also has two
+files called <code class="inline">&lt;FileName&gt;.idx</code> and <code class="inline">&lt;FileName&gt;.siz</code>.</p><p>For rotate logs, this is the name of the active log file. The compressed files
+are named as <code class="inline">&lt;FileName&gt;.N.gz</code>, where <code class="inline">N</code> is an integer and <code class="inline">&lt;FileName&gt;.0.gz</code>
+is the latest compressed log file. All the compressed files are renamed at
+each rotation so that the latest files have the smallest index. The maximum
+value for N is the value of <code class="inline">MaxNoFiles</code> minus 1.</p></li><li><p><strong><code class="inline">{linkto, LinkTo}</code><a href="" id="linkto"></a> </strong><br/> If <code class="inline">LinkTo</code> is a pid, it becomes an owner of the log. If <code class="inline">LinkTo</code> is <code class="inline">none</code>, the
+log records that it is used anonymously by some process by incrementing the <code class="inline">users</code>
+counter. By default, the process that calls <a href="#open/1"><code class="inline">open/1</code></a> owns the log.</p></li><li><p><strong><code class="inline">{repair, Repair}</code></strong> - If <code class="inline">Repair</code> is <code class="inline">true</code>, the current log file is
+repaired, if needed. As the restoration is initiated, a message is output on
+the error log. If <code class="inline">false</code> is specified, no automatic repair is attempted.
+Instead, the tuple <code class="inline">{error, {need_repair, Log}}</code> is returned if an attempt is
+made to open a corrupt log file. If <code class="inline">truncate</code> is specified, the log file
+becomes truncated, creating an empty log, regardless of previous content.
+Defaults to <code class="inline">true</code>, which has no effect on logs opened in read-only mode.</p></li><li><p><strong><code class="inline">{type, Type}</code></strong> - The log type. Defaults to <code class="inline">halt</code>.</p></li><li><p><strong><code class="inline">{format, Format}</code></strong> - Disk log format. Defaults to <code class="inline">internal</code>.</p></li><li><p><strong><code class="inline">{size, Size}</code></strong> - Log size.</p><p>When a halt log has reached its maximum size, all attempts to log more items
+are rejected. Defaults to <code class="inline">infinity</code>, which for halt implies that there is no
+maximum size.</p><p>For wrap and rotate logs, parameter <code class="inline">Size</code> can be a pair
+<code class="inline">{MaxNoBytes, MaxNoFiles}</code>. For wrap logs it can also be <code class="inline">infinity</code>. In the
+latter case, if the files of an existing wrap log with the same name can be
+found, the size is read from the existing wrap log, otherwise an error is
+returned.</p><p>Wrap logs write at most <code class="inline">MaxNoBytes</code> bytes on each file and use <code class="inline">MaxNoFiles</code>
+files before starting all over with the first wrap log file. Regardless of
+<code class="inline">MaxNoBytes</code>, at least the header (if there is one) and one item are written
+on each wrap log file before wrapping to the next file.</p><p>The first time an existing wrap log is opened, that is, when the disk log
+process is created, the value of the option <code class="inline">size</code> is allowed to differ from
+the current log size, and the size of the disk log is changed as per
+<a href="#change_size/2"><code class="inline">change_size/2</code></a>.</p><p>When opening an existing wrap log, it is not necessary to supply a value for
+option <code class="inline">size</code>, but if the log is already open, that is, the disk log process
+exists, the supplied value must equal the current log size, otherwise the
+tuple <code class="inline">{error, {size_mismatch, CurrentSize, NewSize}}</code> is returned.</p><blockquote><h4 class="info">Note</h4><p>Before Erlang/OTP 24.0, the supplied value of option <code class="inline">size</code> was to be equal
+to the current log size when opening an existing wrap log for the first
+time, that is, when creating the disk log process.</p></blockquote><p>Rotate logs write at most <code class="inline">MaxNoBytes</code> bytes on the active log file and keep
+the latest <code class="inline">MaxNoFiles</code> compressed files. Regardless of <code class="inline">MaxNoBytes</code>, at least
+the header (if there is one) and one item are written on each rotate log file
+before rotation.</p><p>When opening an already open halt log, option <code class="inline">size</code> is ignored.</p></li><li><p><strong><code class="inline">{notify, boolean()}</code><a href="" id="notify"></a> </strong><br/> If <code class="inline">true</code>, the log owners are notified when certain log events occur. Defaults
+to <code class="inline">false</code>. The owners are sent one of the following messages when an event occurs:</p><ul><li><p><strong><code class="inline">{disk_log, Node, Log, {wrap, NoLostItems}}</code></strong> - Sent when a wrap log has
+filled up one of its files and a new file is opened. <code class="inline">NoLostItems</code> is the
+number of previously logged items that were lost when truncating existing
+files.</p></li><li><p><strong><code class="inline">{disk_log, Node, Log, {truncated, NoLostItems}}</code></strong> - Sent when a log is
+truncated or reopened. For halt logs <code class="inline">NoLostItems</code> is the number of items
+written on the log since the disk log process was created. For wrap logs
+<code class="inline">NoLostItems</code> is the number of items on all wrap log files.</p></li><li><p><strong><code class="inline">{disk_log, Node, Log, {read_only, Items}}</code></strong> - Sent when an asynchronous
+log attempt is made to a log file opened in read-only mode. <code class="inline">Items</code> is the
+items from the log attempt.</p></li><li><p><strong><code class="inline">{disk_log, Node, Log, {blocked_log, Items}}</code></strong> - Sent when an
+asynchronous log attempt is made to a blocked log that does not queue log
+attempts. <code class="inline">Items</code> is the items from the log attempt.</p></li><li><p><strong><code class="inline">{disk_log, Node, Log, {format_external, Items}}</code></strong> - Sent when function
+<a href="#alog/2"><code class="inline">alog/2</code></a> or <a href="#alog_terms/2"><code class="inline">alog_terms/2</code></a> is used for
+internally formatted logs. <code class="inline">Items</code> is the items from the log attempt.</p></li><li><p><strong><code class="inline">{disk_log, Node, Log, full}</code></strong> - Sent when an attempt to log items to a
+wrap log would write more bytes than the limit set by option <code class="inline">size</code>.</p></li><li><p><strong><code class="inline">{disk_log, Node, Log, {error_status, Status}}</code></strong> - Sent when the error
+status changes. The error status is defined by the outcome of the last
+attempt to log items to the log, or to truncate the log, or the last use of
+function <a href="#sync/1"><code class="inline">sync/1</code></a>, <a href="#inc_wrap_file/1"><code class="inline">inc_wrap_file/1</code></a>, or
+<a href="#change_size/2"><code class="inline">change_size/2</code></a>. <code class="inline">Status</code> is either <code class="inline">ok</code> or
+<code class="inline">{error, Error}</code>, the former is the initial value.</p></li></ul></li><li><p><strong><code class="inline">{head, Head}</code></strong> - Specifies a header to be written first on the log file.
+If the log is a wrap or rotate log, the item <code class="inline">Head</code> is written first in each
+new file. <code class="inline">Head</code> is to be a term if the format is <code class="inline">internal</code>, otherwise an
+<a href="../../apps/erts/erlang.html#t:iodata/0"><code class="inline">iodata/0</code></a>. Defaults to <code class="inline">none</code>, which means that no header is written first
+on the file.</p></li><li><p><strong><code class="inline">{head_func, {M,F,A}}</code></strong> - Specifies a function to be called each time a new
+log file is opened. The call <code class="inline">M:F(A)</code> is assumed to return <code class="inline">{ok, Head}</code>. The
+item <code class="inline">Head</code> is written first in each file. <code class="inline">Head</code> is to be a term if the
+format is <code class="inline">internal</code>, otherwise an <a href="../../apps/erts/erlang.html#t:iodata/0"><code class="inline">iodata/0</code></a>.</p></li><li><p><strong><code class="inline">{mode, Mode}</code></strong> - Specifies if the log is to be opened in read-only or
+read-write mode. Defaults to <code class="inline">read_write</code>.</p></li><li><p><strong><code class="inline">{quiet, Boolean}</code></strong> - Specifies if messages will be sent to <code class="inline">error_logger</code>
+on recoverable errors with the log files. Defaults to <code class="inline">false</code>.</p></li></ul><p><a href="#open/1"><code class="inline">open/1</code></a> returns <code class="inline">{ok, Log}</code> if the log file is successfully opened.
+If the file is successfully repaired, the tuple
+<code class="inline">{repaired, Log, {recovered, Rec}, {badbytes, Bad}}</code> is returned, where <code class="inline">Rec</code> is
+the number of whole Erlang terms found in the file and <code class="inline">Bad</code> is the number of
+bytes in the file that are non-Erlang terms.</p><p>When a disk log is opened in read-write mode, any existing log file is checked
+for. If there is none, a new empty log is created, otherwise the existing file
+is opened at the position after the last logged item, and the logging of items
+starts from there. If the format is <code class="inline">internal</code> and the existing file is not
+recognized as an internally formatted log, a tuple
+<code class="inline">{error, {not_a_log_file, FileName}}</code> is returned.</p><p><a href="#open/1"><code class="inline">open/1</code></a> cannot be used for changing the values of options of an
+open log. When there are prior owners or users of a log, all option values
+except <code class="inline">name</code>, <code class="inline">linkto</code>, and <code class="inline">notify</code> are only checked against the values
+supplied before as option values to function <a href="#open/1"><code class="inline">open/1</code></a>,
+<a href="#change_header/2"><code class="inline">change_header/2</code></a>, <a href="#change_notify/3"><code class="inline">change_notify/3</code></a>,
+or <a href="#change_size/2"><code class="inline">change_size/2</code></a>. Thus, none of the options except <code class="inline">name</code>
+is mandatory. If some specified value differs from the current value, a tuple
+<code class="inline">{error, {arg_mismatch, OptionName, CurrentValue, Value}}</code> is returned.</p><blockquote><h4 class="info">Note</h4><p>If an owner attempts to open a log as owner once again, it is acknowledged
+with the return value <code class="inline">{ok, Log}</code>, but the state of the disk log is not
+affected.</p></blockquote><p>A log file can be opened more than once by giving different values to option
+<code class="inline">name</code> or by using the same file when opening a log on different nodes. It is up
+to the user of module <code class="inline">disk_log</code> to ensure that not more than one disk log
+process has write access to any file, otherwise the file can be corrupted.</p><p>If an attempt to open a log file for the first time fails, the disk log process
+terminates with the EXIT message <code class="inline">{{failed,Reason},[{disk_log,open,1}]}</code>. The
+function returns <code class="inline">{error, Reason}</code> for all other errors.</p>
+  </section>
+</section>
+<section class="detail" id="pid2name/1">
+
+  <div class="detail-header">
+    <a href="#pid2name/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">pid2name(Pid)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L935" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> pid2name(Pid) -> {ok, Log} | undefined when Pid :: <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>(), Log :: <a href="#t:log/0">log</a>().</pre>
+
+      </div>
+
+<p>Returns the log name given the pid of a disk log process on the current node, or
+<code class="inline">undefined</code> if the specified pid is not a disk log process.</p><p>This function is meant to be used for debugging only.</p>
+  </section>
+</section>
+<section class="detail" id="reopen/2">
+
+  <div class="detail-header">
+    <a href="#reopen/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">reopen(Log, File)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L614" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> reopen(Log, File) -> ok | {error, <a href="#t:reopen_error_rsn/0">reopen_error_rsn</a>()} when Log :: <a href="#t:log/0">log</a>(), File :: <a href="file.html#t:filename/0">file:filename</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#reopen/3"><code class="inline">reopen/3</code></a></p>
+  </section>
+</section>
+<section class="detail" id="reopen/3">
+
+  <div class="detail-header">
+    <a href="#reopen/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">reopen(Log, File, Head)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L639" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> reopen(Log, File, Head) -> ok | {error, <a href="#t:reopen_error_rsn/0">reopen_error_rsn</a>()}
+          when Log :: <a href="#t:log/0">log</a>(), File :: <a href="file.html#t:filename/0">file:filename</a>(), Head :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+<p>Renames the log file to <code class="inline">File</code> and then recreates a new log file. If a
+wrap/rotate log exists, <code class="inline">File</code> is used as the base name of the renamed files. By
+default the header given to <a href="#open/1"><code class="inline">open/1</code></a> is written first in the newly
+opened log file, but if argument <code class="inline">Head</code> or <code class="inline">BHead</code> is specified, this item is
+used instead. The header argument is used only once. Next time a wrap/rotate log
+file is opened, the header given to <a href="#open/1"><code class="inline">open/1</code></a> is used.</p><p><code class="inline">reopen/2,3</code> are used for internally formatted logs, and
+<a href="#breopen/3"><code class="inline">breopen/3</code></a> for externally formatted logs.</p><p>Owners subscribing to notifications receive a <code class="inline">truncate</code> message.</p><p>Upon failure to reopen the log, the disk log process terminates with the EXIT
+message <code class="inline">{{failed,Error},[{disk_log,Fun,Arity}]}</code>. Other processes having
+requests queued receive the message
+<code class="inline">{disk_log, Node, {error, disk_log_stopped}}</code>.</p>
+  </section>
+</section>
+<section class="detail" id="sync/1">
+
+  <div class="detail-header">
+    <a href="#sync/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">sync(Log)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L763" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> sync(Log) -> ok | {error, <a href="#t:sync_error_rsn/0">sync_error_rsn</a>()} when Log :: <a href="#t:log/0">log</a>().</pre>
+
+      </div>
+
+<p>Ensures that the contents of the log are written to the disk. This is usually a
+rather expensive operation.</p>
+  </section>
+</section>
+<section class="detail" id="truncate/1">
+
+  <div class="detail-header">
+    <a href="#truncate/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">truncate(Log)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L565" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> truncate(Log) -> ok | {error, <a href="#t:trunc_error_rsn/0">trunc_error_rsn</a>()} when Log :: <a href="#t:log/0">log</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#truncate/2"><code class="inline">truncate/2</code></a></p>
+  </section>
+</section>
+<section class="detail" id="truncate/2">
+
+  <div class="detail-header">
+    <a href="#truncate/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">truncate(Log, Head)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L591" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> truncate(Log, Head) -> ok | {error, <a href="#t:trunc_error_rsn/0">trunc_error_rsn</a>()} when Log :: <a href="#t:log/0">log</a>(), Head :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+<p>Removes all items from a disk log. If argument <code class="inline">Head</code> or <code class="inline">BHead</code> is specified,
+this item is written first in the newly truncated log, otherwise the header
+given to <a href="#open/1"><code class="inline">open/1</code></a> is used. The header argument is used only once.
+Next time a wrap/rotate log file is opened, the header given to
+<a href="#open/1"><code class="inline">open/1</code></a> is used.</p><p><a href="#truncate/1"><code class="inline">truncate/1</code></a> is used for both internally and externally
+formatted logs.</p><p><a href="#truncate/2"><code class="inline">truncate/2</code></a> is used for internally formatted logs, and
+<a href="#btruncate/2"><code class="inline">btruncate/2</code></a> for externally formatted logs.</p><p>Owners subscribing to notifications receive a <code class="inline">truncate</code> message.</p><p>If the attempt to truncate the log fails, the disk log process terminates with
+the EXIT message <code class="inline">{{failed,Reason},[{disk_log,Fun,Arity}]}</code>. Other processes
+having requests queued receive the message
+<code class="inline">{disk_log, Node, {error, disk_log_stopped}}</code>.</p>
+  </section>
+</section>
+<section class="detail" id="unblock/1">
+
+  <div class="detail-header">
+    <a href="#unblock/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">unblock(Log)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/disk_log.erl#L803" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> unblock(Log) -> ok | {error, <a href="#t:unblock_error_rsn/0">unblock_error_rsn</a>()} when Log :: <a href="#t:log/0">log</a>().</pre>
+
+      </div>
+
+<p>Unblocks a log. A log can only be unblocked by the blocking process.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+              <a href="kernel.epub" title="ePub version">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

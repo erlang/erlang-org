@@ -1,0 +1,599 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html xmlns:fn="http://www.w3.org/2005/02/xpath-functions">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" href="../../otp_doc.css" type="text/css">
+<title>Erlang -- Getting Started</title>
+</head>
+<body bgcolor="white" text="#000000" link="#0000ff" vlink="#ff00ff" alink="#ff0000"><div id="container">
+<script id="js" type="text/javascript" language="JavaScript" src="../../js/flipmenu/flipmenu.js"></script><script id="js2" type="text/javascript" src="../../js/erlresolvelinks.js"></script><script language="JavaScript" type="text/javascript">
+            <!--
+              function getWinHeight() {
+                var myHeight = 0;
+                if( typeof( window.innerHeight ) == 'number' ) {
+                  //Non-IE
+                  myHeight = window.innerHeight;
+                } else if( document.documentElement && ( document.documentElement.clientWidth ||
+                                                         document.documentElement.clientHeight ) ) {
+                  //IE 6+ in 'standards compliant mode'
+                  myHeight = document.documentElement.clientHeight;
+                } else if( document.body && ( document.body.clientWidth || document.body.clientHeight ) ) {
+                  //IE 4 compatible
+                  myHeight = document.body.clientHeight;
+                }
+                return myHeight;
+              }
+
+              function setscrollpos() {
+                var objf=document.getElementById('loadscrollpos');
+                 document.getElementById("leftnav").scrollTop = objf.offsetTop - getWinHeight()/2;
+              }
+
+              function addEvent(obj, evType, fn){
+                if (obj.addEventListener){
+                obj.addEventListener(evType, fn, true);
+                return true;
+              } else if (obj.attachEvent){
+                var r = obj.attachEvent("on"+evType, fn);
+                return r;
+              } else {
+                return false;
+              }
+             }
+
+             addEvent(window, 'load', setscrollpos);
+
+             //--></script><div id="leftnav"><div class="innertube">
+<img alt="Erlang logo" src="../../../../doc/erlang-logo.png"><br><small><a href="users_guide.html">User's Guide</a><br><a href="index.html">Reference Manual</a><br><a href="release_notes.html">Release Notes</a><br><a href="public_key.pdf">PDF</a><br><a href="../../index.html">Top</a></small><p><strong>public_key</strong><br><strong>User's Guide</strong><br><small>Version 1.1.1</small></p>
+<br><a href="javascript:openAllFlips()">Expand All</a><br><a href="javascript:closeAllFlips()">Contract All</a><p><small><strong>Chapters</strong></small></p>
+<ul class="flipMenu" imagePath="../../js/flipmenu">
+<li id="no" title="Introduction" expanded="false">Introduction<ul>
+<li><a href="introduction.html">
+              Top of chapter
+            </a></li>
+<li title="Purpose"><a href="introduction.html#id56934">Purpose</a></li>
+<li title="Prerequisites"><a href="introduction.html#id62637">Prerequisites</a></li>
+<li title="Performance Tips"><a href="introduction.html#id60652">Performance Tips</a></li>
+</ul>
+</li>
+<li id="no" title="Public-Key Records" expanded="false">Public-Key Records<ul>
+<li><a href="public_key_records.html">
+              Top of chapter
+            </a></li>
+<li title="Data Types"><a href="public_key_records.html#id57029">Data Types</a></li>
+<li title="RSA"><a href="public_key_records.html#id62003">RSA</a></li>
+<li title="DSA"><a href="public_key_records.html#id56708">DSA</a></li>
+<li title="ECDSA "><a href="public_key_records.html#id61169">ECDSA </a></li>
+<li title="PKIX Certificates"><a href="public_key_records.html#id61191">PKIX Certificates</a></li>
+<li title="Standard Certificate Extensions"><a href="public_key_records.html#id56765">Standard Certificate Extensions</a></li>
+<li title="Private Internet Extensions"><a href="public_key_records.html#id59103">Private Internet Extensions</a></li>
+<li title="CRL and CRL Extensions Profile"><a href="public_key_records.html#id59194">CRL and CRL Extensions Profile</a></li>
+</ul>
+</li>
+<li id="loadscrollpos" title="Getting Started" expanded="true">Getting Started<ul>
+<li><a href="using_public_key.html">
+              Top of chapter
+            </a></li>
+<li title="PEM Files"><a href="using_public_key.html#id61902">PEM Files</a></li>
+<li title="RSA Public-Key Cryptography"><a href="using_public_key.html#id65123">RSA Public-Key Cryptography</a></li>
+<li title="Digital Signatures"><a href="using_public_key.html#id65187">Digital Signatures</a></li>
+<li title="SSH Files"><a href="using_public_key.html#id65265">SSH Files</a></li>
+</ul>
+</li>
+</ul>
+</div></div>
+<div id="content">
+<div class="innertube">
+<h1>3 Getting Started</h1>
+  
+
+  <p>This section describes examples of how to use the 
+    Public Key API. Keys and certificates used in the following 
+    sections are generated only for testing the Public Key 
+    application.</p>
+
+    <p>Some shell printouts in the following examples
+    are abbreviated for increased readability.</p>
+
+     
+  <h3><a name="id61902">3.1 
+        PEM Files</a></h3>
+    
+    <p>Public-key data (keys, certificates, and so on) can be stored in 
+    Privacy Enhanced Mail (PEM) format. 
+    The PEM files have the following structure:</p>
+    
+    <div class="example"><pre>
+    &lt;text&gt;
+    -----BEGIN &lt;SOMETHING&gt;-----
+    &lt;Attribute&gt; : &lt;Value&gt;
+    &lt;Base64 encoded DER data&gt;
+    -----END &lt;SOMETHING&gt;-----
+    &lt;text&gt;</pre></div>
+    
+    <p>A file can contain several <span class="code">BEGIN/END</span> blocks. Text lines between
+    blocks are ignored. Attributes, if present, are ignored except
+    for <span class="code">Proc-Type</span> and <span class="code">DEK-Info</span>, which are used when <span class="code">DER</span> 
+    data is encrypted.</p>
+
+    <h4>DSA Private Key</h4>
+      
+      <p>A DSA private key can look as follows:</p>
+      <div class="note">
+<div class="label">Note</div>
+<div class="content"><p><p>File handling is not done by the Public Key application.</p></p></div>
+</div>
+      
+      <div class="example"><pre>1&gt; {ok, PemBin} = file:read_file("dsa.pem").
+{ok,&lt;&lt;"-----BEGIN DSA PRIVATE KEY-----\nMIIBuw"...&gt;&gt;}</pre></div>
+      
+      <p>The following PEM file has only one entry, a private DSA key:</p>
+      <div class="example"><pre>2&gt; [DSAEntry] =  public_key:pem_decode(PemBin).
+[{'DSAPrivateKey',&lt;&lt;48,130,1,187,2,1,0,2,129,129,0,183,
+                    179,230,217,37,99,144,157,21,228,204,
+		    162,207,61,246,...&gt;&gt;,
+		    not_encrypted}]</pre></div>
+      
+      <div class="example"><pre>3&gt; Key = public_key:pem_entry_decode(DSAEntry).
+#'DSAPrivateKey'{version = 0,
+                 p = 12900045185019966618...6593,
+                 q = 1216700114794736143432235288305776850295620488937,
+                 g = 10442040227452349332...47213,
+                 y = 87256807980030509074...403143,
+                 x = 510968529856012146351317363807366575075645839654}</pre></div>
+    
+
+    <h4>RSA Private Key with Password</h4>
+      
+      <p>An RSA private key encrypted with a password can look as follows:</p>
+      
+      <div class="example"><pre>1&gt; {ok, PemBin} = file:read_file("rsa.pem").
+{ok,&lt;&lt;"Bag Attribut"...&gt;&gt;}</pre></div>
+
+    <p>The following PEM file has only one entry, a private RSA key:</p>
+    <div class="example"><pre>2&gt;[RSAEntry] = public_key:pem_decode(PemBin).
+[{'RSAPrivateKey',&lt;&lt;224,108,117,203,152,40,15,77,128,126,
+                    221,195,154,249,85,208,202,251,109,
+                    119,120,57,29,89,19,9,...&gt;&gt;,
+                  {"DES-EDE3-CBC",&lt;&lt;"kÙeø¼pµL"&gt;&gt;}}]</pre></div>
+
+    <p>In this following example, the password is <span class="code">"abcd1234"</span>:</p>
+    <div class="example"><pre>3&gt; Key = public_key:pem_entry_decode(RSAEntry, "abcd1234").
+    #'RSAPrivateKey'{version = 'two-prime',
+                 modulus = 1112355156729921663373...2737107,
+                 publicExponent = 65537,
+                 privateExponent = 58064406231183...2239766033,
+                 prime1 = 11034766614656598484098...7326883017,
+                 prime2 = 10080459293561036618240...77738643771,
+                 exponent1 = 77928819327425934607...22152984217,
+                 exponent2 = 36287623121853605733...20588523793,
+                 coefficient = 924840412626098444...41820968343,
+                 otherPrimeInfos = asn1_NOVALUE}</pre></div>
+    
+  
+  <h4>X509 Certificates</h4>
+    
+    <p>The following is an example of X509 certificates:</p>
+    
+      <div class="example"><pre>1&gt; {ok, PemBin} = file:read_file("cacerts.pem").
+{ok,&lt;&lt;"-----BEGIN CERTIFICATE-----\nMIIC7jCCAl"...&gt;&gt;}</pre></div>
+
+      <p>The following file includes two certificates:</p>
+      <div class="example"><pre>2&gt; [CertEntry1, CertEntry2] = public_key:pem_decode(PemBin).
+[{'Certificate',&lt;&lt;48,130,2,238,48,130,2,87,160,3,2,1,2,2,
+                  9,0,230,145,97,214,191,2,120,150,48,13,
+                  ...&gt;&gt;,
+                not_encrypted},
+ {'Certificate',&lt;&lt;48,130,3,200,48,130,3,49,160,3,2,1,2,2,1,
+                  1,48,13,6,9,42,134,72,134,247,...&gt;&gt;&gt;,
+                not_encrypted}]</pre></div>
+      
+      <p>Certificates can be decoded as usual:</p>
+      <div class="example"><pre>2&gt; Cert = public_key:pem_entry_decode(CertEntry1).
+#'Certificate'{
+    tbsCertificate =
+        #'TBSCertificate'{
+            version = v3,serialNumber = 16614168075301976214,
+            signature =
+                #'AlgorithmIdentifier'{
+                    algorithm = {1,2,840,113549,1,1,5},
+                    parameters = &lt;&lt;5,0&gt;&gt;},
+            issuer =
+                {rdnSequence,
+                    [[#'AttributeTypeAndValue'{
+                          type = {2,5,4,3},
+                          value = &lt;&lt;19,8,101,114,108,97,110,103,67,65&gt;&gt;}],
+                     [#'AttributeTypeAndValue'{
+                          type = {2,5,4,11},
+                          value = &lt;&lt;19,10,69,114,108,97,110,103,32,79,84,80&gt;&gt;}],
+                     [#'AttributeTypeAndValue'{
+                          type = {2,5,4,10},
+                          value = &lt;&lt;19,11,69,114,105,99,115,115,111,110,32,65,66&gt;&gt;}],
+                     [#'AttributeTypeAndValue'{
+                          type = {2,5,4,7},
+                          value = &lt;&lt;19,9,83,116,111,99,107,104,111,108,109&gt;&gt;}],
+                     [#'AttributeTypeAndValue'{
+                          type = {2,5,4,6},
+                          value = &lt;&lt;19,2,83,69&gt;&gt;}],
+                     [#'AttributeTypeAndValue'{
+                          type = {1,2,840,113549,1,9,1},
+                          value = &lt;&lt;22,22,112,101,116,101,114,64,101,114,...&gt;&gt;}]]},
+            validity =
+                #'Validity'{
+                    notBefore = {utcTime,"080109082929Z"},
+                    notAfter = {utcTime,"080208082929Z"}},
+            subject =
+                {rdnSequence,
+                    [[#'AttributeTypeAndValue'{
+                          type = {2,5,4,3},
+                          value = &lt;&lt;19,8,101,114,108,97,110,103,67,65&gt;&gt;}],
+                     [#'AttributeTypeAndValue'{
+                          type = {2,5,4,11},
+                          value = &lt;&lt;19,10,69,114,108,97,110,103,32,79,84,80&gt;&gt;}],
+                     [#'AttributeTypeAndValue'{
+                          type = {2,5,4,10},
+                          value = &lt;&lt;19,11,69,114,105,99,115,115,111,110,32,...&gt;&gt;}],
+                     [#'AttributeTypeAndValue'{
+                          type = {2,5,4,7},
+                          value = &lt;&lt;19,9,83,116,111,99,107,104,111,108,...&gt;&gt;}],
+                     [#'AttributeTypeAndValue'{
+                          type = {2,5,4,6},
+                          value = &lt;&lt;19,2,83,69&gt;&gt;}],
+                     [#'AttributeTypeAndValue'{
+                          type = {1,2,840,113549,1,9,1},
+                          value = &lt;&lt;22,22,112,101,116,101,114,64,...&gt;&gt;}]]},
+            subjectPublicKeyInfo =
+                #'SubjectPublicKeyInfo'{
+                    algorithm =
+                        #'AlgorithmIdentifier'{
+                            algorithm = {1,2,840,113549,1,1,1},
+                            parameters = &lt;&lt;5,0&gt;&gt;},
+                    subjectPublicKey =
+                        {0,&lt;&lt;48,129,137,2,129,129,0,203,209,187,77,73,231,90,...&gt;&gt;}},
+            issuerUniqueID = asn1_NOVALUE,
+            subjectUniqueID = asn1_NOVALUE,
+            extensions =
+                [#'Extension'{
+                     extnID = {2,5,29,19},
+                     critical = true,
+                     extnValue = [48,3,1,1,255]},
+                 #'Extension'{
+                     extnID = {2,5,29,15},
+                     critical = false,
+                     extnValue = [3,2,1,6]},
+                 #'Extension'{
+                     extnID = {2,5,29,14},
+                     critical = false,
+                     extnValue = [4,20,27,217,65,152,6,30,142|...]},
+                 #'Extension'{
+                     extnID = {2,5,29,17},
+                     critical = false,
+                     extnValue = [48,24,129,22,112,101,116,101|...]}]},
+    signatureAlgorithm =
+        #'AlgorithmIdentifier'{
+            algorithm = {1,2,840,113549,1,1,5},
+            parameters = &lt;&lt;5,0&gt;&gt;},
+    signature =
+    &lt;&lt;163,186,7,163,216,152,63,47,154,234,139,73,154,96,120,
+    165,2,52,196,195,109,167,192,...&gt;&gt;}</pre></div>
+
+      <p>Parts of certificates can be decoded with
+      <span class="code">public_key:der_decode/2</span>, using the ASN.1 type of that part.
+      However, an application-specific certificate extension requires 
+      application-specific ASN.1 decode/encode-functions.
+      In the recent example, the first value of <span class="code">rdnSequence</span> is 
+      of ASN.1 type <span class="code">'X520CommonName'. ({2,5,4,3} = ?id-at-commonName)</span>:</p>
+      
+      <div class="example"><pre>public_key:der_decode('X520CommonName', &lt;&lt;19,8,101,114,108,97,110,103,67,65&gt;&gt;).
+{printableString,"erlangCA"}</pre></div>
+
+      <p>However, certificates can also be decoded using <span class="code">pkix_decode_cert/2</span>, 
+      which can customize and recursively decode standard parts of a certificate:</p>
+
+      <div class="example"><pre>3&gt;{_, DerCert, _} = CertEntry1.</pre></div>
+
+      <div class="example"><pre>4&gt; public_key:pkix_decode_cert(DerCert, otp).
+#'OTPCertificate'{
+    tbsCertificate =
+        #'OTPTBSCertificate'{
+            version = v3,serialNumber = 16614168075301976214,
+            signature =
+                #'SignatureAlgorithm'{
+                    algorithm = {1,2,840,113549,1,1,5},
+                    parameters = 'NULL'},
+            issuer =
+                {rdnSequence,
+                    [[#'AttributeTypeAndValue'{
+                          type = {2,5,4,3},
+                          value = {printableString,"erlangCA"}}],
+                     [#'AttributeTypeAndValue'{
+                          type = {2,5,4,11},
+                          value = {printableString,"Erlang OTP"}}],
+                     [#'AttributeTypeAndValue'{
+                          type = {2,5,4,10},
+                          value = {printableString,"Ericsson AB"}}],
+                     [#'AttributeTypeAndValue'{
+                          type = {2,5,4,7},
+                          value = {printableString,"Stockholm"}}],
+                     [#'AttributeTypeAndValue'{type = {2,5,4,6},value = "SE"}],
+                     [#'AttributeTypeAndValue'{
+                          type = {1,2,840,113549,1,9,1},
+                          value = "peter@erix.ericsson.se"}]]},
+            validity =
+                #'Validity'{
+                    notBefore = {utcTime,"080109082929Z"},
+                    notAfter = {utcTime,"080208082929Z"}},
+            subject =
+                {rdnSequence,
+                    [[#'AttributeTypeAndValue'{
+                          type = {2,5,4,3},
+                          value = {printableString,"erlangCA"}}],
+                     [#'AttributeTypeAndValue'{
+                          type = {2,5,4,11},
+                          value = {printableString,"Erlang OTP"}}],
+                     [#'AttributeTypeAndValue'{
+                          type = {2,5,4,10},
+                          value = {printableString,"Ericsson AB"}}],
+                     [#'AttributeTypeAndValue'{
+                          type = {2,5,4,7},
+                          value = {printableString,"Stockholm"}}],
+                     [#'AttributeTypeAndValue'{type = {2,5,4,6},value = "SE"}],
+                     [#'AttributeTypeAndValue'{
+                          type = {1,2,840,113549,1,9,1},
+                          value = "peter@erix.ericsson.se"}]]},
+            subjectPublicKeyInfo =
+                #'OTPSubjectPublicKeyInfo'{
+                    algorithm =
+                        #'PublicKeyAlgorithm'{
+                            algorithm = {1,2,840,113549,1,1,1},
+                            parameters = 'NULL'},
+                    subjectPublicKey =
+                        #'RSAPublicKey'{
+                            modulus =
+                                1431267547247997...37419,
+                            publicExponent = 65537}},
+            issuerUniqueID = asn1_NOVALUE,
+            subjectUniqueID = asn1_NOVALUE,
+            extensions =
+                [#'Extension'{
+                     extnID = {2,5,29,19},
+                     critical = true,
+                     extnValue =
+                         #'BasicConstraints'{
+                             cA = true,pathLenConstraint = asn1_NOVALUE}},
+                 #'Extension'{
+                     extnID = {2,5,29,15},
+                     critical = false,
+                     extnValue = [keyCertSign,cRLSign]},
+                 #'Extension'{
+                     extnID = {2,5,29,14},
+                     critical = false,
+                     extnValue = [27,217,65,152,6,30,142,132,245|...]},
+                 #'Extension'{
+                     extnID = {2,5,29,17},
+                     critical = false,
+                     extnValue = [{rfc822Name,"peter@erix.ericsson.se"}]}]},
+    signatureAlgorithm =
+        #'SignatureAlgorithm'{
+            algorithm = {1,2,840,113549,1,1,5},
+            parameters = 'NULL'},
+    signature =
+         &lt;&lt;163,186,7,163,216,152,63,47,154,234,139,73,154,96,120,
+           165,2,52,196,195,109,167,192,...&gt;&gt;}</pre></div>
+
+      <p>This call is equivalent to <span class="code">public_key:pem_entry_decode(CertEntry1)</span>:</p>
+      <div class="example"><pre>5&gt; public_key:pkix_decode_cert(DerCert, plain).
+#'Certificate'{ ...}</pre></div>
+  
+
+  <h4>Encoding Public-Key Data to PEM Format</h4>
+    
+
+    <p>If you have public-key data and want to create a PEM file
+    this can be done by calling functions
+    <span class="code">public_key:pem_entry_encode/2</span> and <span class="code">pem_encode/1</span> and 
+    saving the result to a file. For example, assume that you have 
+    <span class="code">PubKey = 'RSAPublicKey'{}</span>. Then you can create a PEM-"RSA PUBLIC KEY" 
+    file (ASN.1 type <span class="code">'RSAPublicKey'</span>) or a PEM-"PUBLIC KEY" file
+    (<span class="code">'SubjectPublicKeyInfo'</span> ASN.1 type).</p>
+
+    <p>The second element of the PEM-entry is the ASN.1 <span class="code">DER</span> encoded
+    key data:</p>
+
+    <div class="example"><pre>1&gt; PemEntry = public_key:pem_entry_encode('RSAPublicKey', RSAPubKey).
+{'RSAPublicKey', &lt;&lt;48,72,...&gt;&gt;, not_encrypted}
+
+2&gt; PemBin = public_key:pem_encode([PemEntry]).
+&lt;&lt;"-----BEGIN RSA PUBLIC KEY-----\nMEgC...&gt;&gt;
+
+3&gt; file:write_file("rsa_pub_key.pem", PemBin).
+ok</pre></div>
+
+    <p>or:</p>
+
+    <div class="example"><pre>1&gt; PemEntry = public_key:pem_entry_encode('SubjectPublicKeyInfo', RSAPubKey).
+{'SubjectPublicKeyInfo', &lt;&lt;48,92...&gt;&gt;, not_encrypted}
+
+2&gt; PemBin = public_key:pem_encode([PemEntry]).
+&lt;&lt;"-----BEGIN PUBLIC KEY-----\nMFw...&gt;&gt;
+
+3&gt; file:write_file("pub_key.pem", PemBin).
+ok</pre></div>
+
+  
+
+
+<h3><a name="id65123">3.2 
+        RSA Public-Key Cryptography</a></h3>
+      
+       <p>Suppose you have the following private key and a corresponding public key:</p>
+       <ul>
+	 <li>
+<span class="code">PrivateKey = #'RSAPrivateKey{}'</span> and 
+	 the plaintext <span class="code">Msg = binary()</span>
+</li>
+	 <li>
+<span class="code">PublicKey = #'RSAPublicKey'{}</span>
+	 </li>
+       </ul>
+       <p>Then you can proceed as follows:</p>
+
+       <p>Encrypt with the private key:</p>
+       <div class="example"><pre>RsaEncrypted = public_key:encrypt_private(Msg, PrivateKey),
+Msg = public_key:decrypt_public(RsaEncrypted, PublicKey),</pre></div>
+
+       <p>Encrypt with the public key:</p>
+       <div class="example"><pre>RsaEncrypted = public_key:encrypt_public(Msg, PublicKey),
+Msg = public_key:decrypt_private(RsaEncrypted, PrivateKey),</pre></div>
+
+      <div class="note">
+<div class="label">Note</div>
+<div class="content"><p><p>You normally do only one of the encrypt or decrypt operations, 
+      and the peer does the other. This normaly used in legacy applications
+      as a primitive digital signature.
+      </p></p></div>
+</div>
+
+  
+
+  <h3><a name="id65187">3.3 
+        Digital Signatures</a></h3>
+    
+
+    <p>Suppose you have the following private key and a corresponding public key:</p>
+    
+    <ul>
+       <li>
+<span class="code">PrivateKey = #'RSAPrivateKey{}'</span> or
+       <span class="code">#'DSAPrivateKey'{}</span> and the plaintext <span class="code">Msg = binary()</span>
+</li>
+       <li>
+<span class="code">PublicKey = #'RSAPublicKey'{}</span> or
+       <span class="code">{integer(), #'DssParams'{}}</span>
+</li>
+     </ul>
+     <p>Then you can proceed as follows:</p>
+
+    <div class="example"><pre>Signature = public_key:sign(Msg, sha, PrivateKey),
+true = public_key:verify(Msg, sha, Signature, PublicKey),</pre></div>
+
+    <div class="note">
+<div class="label">Note</div>
+<div class="content"><p><p>You normally do only one of the sign or verify operations,
+    and the peer does the other.</p></p></div>
+</div>
+
+    <p>It can be appropriate to calculate the message digest before
+    calling <span class="code">sign</span> or <span class="code">verify</span>, and then use <span class="code">none</span> as 
+    second argument:</p>
+
+    <div class="example"><pre>Digest = crypto:sha(Msg),
+Signature = public_key:sign(Digest, none, PrivateKey),
+true = public_key:verify(Digest, none, Signature, PublicKey),</pre></div>
+    
+  
+  
+  <h3><a name="id65265">3.4 
+        SSH Files</a></h3>
+    
+    
+    <p>SSH typically uses PEM files for private keys but has its
+    own file format for storing public keys. The <span class="code">public_key</span>
+    application can be used to parse the content of SSH public-key files.</p>
+
+    <h4>RFC 4716 SSH Public-Key Files</h4>
+   
+
+    <p>RFC 4716 SSH files looks confusingly like PEM files,
+       but there are some differences:</p>
+      <div class="example"><pre>1&gt; {ok, SshBin} = file:read_file("ssh2_rsa_pub").
+{ok, &lt;&lt;"---- BEGIN SSH2 PUBLIC KEY ----\nAAAA"...&gt;&gt;}</pre></div>
+
+    <p>This is equivalent to calling <span class="code">public_key:ssh_decode(SshBin, rfc4716_public_key)</span>:
+    </p>
+      <div class="example"><pre>2&gt; public_key:ssh_decode(SshBin, public_key).
+[{#'RSAPublicKey'{modulus = 794430685...91663,
+                  publicExponent = 35}, []}]</pre></div>
+
+ 
+
+ <h4>OpenSSH Public-Key Format</h4>
+   
+   <p>OpenSSH public-key format looks as follows:</p>
+      <div class="example"><pre>1&gt; {ok, SshBin} = file:read_file("openssh_dsa_pub").
+{ok,&lt;&lt;"ssh-dss AAAAB3Nza"...&gt;&gt;}</pre></div>
+
+    <p>This is equivalent to calling <span class="code">public_key:ssh_decode(SshBin, openssh_public_key)</span>:
+    </p>
+    <div class="example"><pre>2&gt;  public_key:ssh_decode(SshBin, public_key).
+[{{15642692...694280725,
+   #'Dss-Parms'{p = 17291273936...696123221,
+                q = 1255626590179665817295475654204371833735706001853,
+                g = 10454211196...480338645}},
+  [{comment,"dhopson@VMUbuntu-DSH"}]}]</pre></div>
+ 
+
+ <h4>Known Hosts - OpenSSH Format</h4>
+   
+   <p>Known hosts - OpenSSH format looks as follows:</p>
+      <div class="example"><pre>1&gt; {ok, SshBin} = file:read_file("known_hosts").
+{ok,&lt;&lt;"hostname.domain.com,192.168.0.1 ssh-rsa AAAAB...&gt;&gt;}</pre></div>
+
+    <p>Returns a list of public keys and their related attributes.
+    Each pair of key and attribute corresponds to one entry in
+    the known hosts file:</p>
+    
+    <div class="example"><pre>2&gt;  public_key:ssh_decode(SshBin, known_hosts).
+[{#'RSAPublicKey'{modulus = 1498979460408...72721699,
+                  publicExponent = 35},
+  [{hostnames,["hostname.domain.com","192.168.0.1"]}]},
+ {#'RSAPublicKey'{modulus = 14989794604088...2721699,
+                  publicExponent = 35},
+  [{comment,"foo@bar.com"},
+   {hostnames,["|1|BWO5qDxk/cFH0wa05JLdHn+j6xQ=|rXQvIxh5cDD3C43k5DPDamawVNA="]}]}]</pre></div>
+  
+
+  <h4>Authorized Keys - OpenSSH Format</h4>
+    
+    <p>Authorized keys - OpenSSH format looks as follows:</p>
+
+    <div class="example"><pre>1&gt; {ok, SshBin} = file:read_file("auth_keys").
+{ok, &lt;&lt;"command=\"dump /home\",no-pty,no-port-forwarding ssh-rsa AAA...&gt;&gt;}</pre></div>
+
+    <p>Returns a list of public keys and their related attributes.
+    Each pair of key and attribute corresponds to one entry in
+    the authorized key file:</p>
+
+    <div class="example"><pre>2&gt; public_key:ssh_decode(SshBin, auth_keys).
+[{#'RSAPublicKey'{modulus = 794430685...691663,
+                  publicExponent = 35},
+  [{comment,"dhopson@VMUbuntu-DSH"},
+   {options,["command=\"dump/home\"","no-pty",
+             "no-port-forwarding"]}]},
+ {{1564269258491...607694280725,
+   #'Dss-Parms'{p = 17291273936185...763696123221,
+                q = 1255626590179665817295475654204371833735706001853,
+                g = 10454211195705...60511039590076780999046480338645}},
+  [{comment,"dhopson@VMUbuntu-DSH"}]}]</pre></div>
+    
+
+    <h4>Creating an SSH File from Public-Key Data</h4>
+      
+
+      <p>If you got a public key <span class="code">PubKey</span> and a related list of
+      attributes <span class="code">Attributes</span> as returned
+      by <span class="code">ssh_decode/2</span>, you can create a new SSH file, for example:</p>
+      <div class="example"><pre>N&gt; SshBin = public_key:ssh_encode([{PubKey, Attributes}], openssh_public_key),
+&lt;&lt;"ssh-rsa "...&gt;&gt;
+N+1&gt; file:write_file("id_rsa.pub", SshBin).
+ok</pre></div>
+    
+  
+</div>
+<div class="footer">
+<hr>
+<p>Copyright © 2008-2016 Ericsson AB, All Rights Reserved</p>
+</div>
+</div>
+</div></body>
+</html>

@@ -1,0 +1,441 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html xmlns:erl="http://erlang.org" xmlns:fn="http://www.w3.org/2005/02/xpath-functions">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" href="../../otp_doc.css" type="text/css">
+<title>Erlang -- Process Management Optimizations</title>
+</head>
+<body>
+<div id="container">
+<script id="js" type="text/javascript" language="JavaScript" src="../../js/flipmenu/flipmenu.js"></script><script id="js2" type="text/javascript" src="../../js/erlresolvelinks.js"></script><script language="JavaScript" type="text/javascript">
+            <!--
+              function getWinHeight() {
+                var myHeight = 0;
+                if( typeof( window.innerHeight ) == 'number' ) {
+                  //Non-IE
+                  myHeight = window.innerHeight;
+                } else if( document.documentElement && ( document.documentElement.clientWidth ||
+                                                         document.documentElement.clientHeight ) ) {
+                  //IE 6+ in 'standards compliant mode'
+                  myHeight = document.documentElement.clientHeight;
+                } else if( document.body && ( document.body.clientWidth || document.body.clientHeight ) ) {
+                  //IE 4 compatible
+                  myHeight = document.body.clientHeight;
+                }
+                return myHeight;
+              }
+
+              function setscrollpos() {
+                var objf=document.getElementById('loadscrollpos');
+                 document.getElementById("leftnav").scrollTop = objf.offsetTop - getWinHeight()/2;
+              }
+
+              function addEvent(obj, evType, fn){
+                if (obj.addEventListener){
+                obj.addEventListener(evType, fn, true);
+                return true;
+              } else if (obj.attachEvent){
+                var r = obj.attachEvent("on"+evType, fn);
+                return r;
+              } else {
+                return false;
+              }
+             }
+
+             addEvent(window, 'load', setscrollpos);
+
+             //--></script><div id="leftnav"><div class="innertube">
+<div class="erlang-logo-wrapper"><a href="../../index.html"><img alt="Erlang Logo" src="../../../doc/erlang-logo.png" class="erlang-logo"></a></div>
+<p class="section-title">Erlang Run-Time System Application (ERTS)</p>
+<p class="section-subtitle">Internal Documentation</p>
+<p class="section-version">Version 10.7.2.19</p>
+<ul class="panel-sections">
+<li><a href="users_guide.html">User's Guide</a></li>
+<li><a href="index.html">Reference Manual</a></li>
+<li><a href="internal_docs.html">Internal Documentation</a></li>
+<li><a href="release_notes.html">Release Notes</a></li>
+<li><a href="erts.pdf">PDF</a></li>
+<li><a href="../../index.html">Top</a></li>
+</ul>
+<ul class="expand-collapse-items">
+<li><a href="javascript:openAllFlips()">Expand All</a></li>
+<li><a href="javascript:closeAllFlips()">Contract All</a></li>
+</ul>
+<h3>Chapters</h3>
+<ul class="flipMenu" imagePath="../../js/flipmenu">
+<li id="no" title="Carrier Migration" expanded="false">Carrier Migration<ul>
+<li><a href="CarrierMigration.html">
+              Top of chapter
+            </a></li>
+<li title="Introduction"><a href="CarrierMigration.html#introduction">Introduction</a></li>
+<li title="Problem"><a href="CarrierMigration.html#problem">Problem</a></li>
+<li title="Solution"><a href="CarrierMigration.html#solution">Solution</a></li>
+</ul>
+</li>
+<li id="no" title="Thread Progress" expanded="false">Thread Progress<ul>
+<li><a href="ThreadProgress.html">
+              Top of chapter
+            </a></li>
+<li title="Problems"><a href="ThreadProgress.html#problems">Problems</a></li>
+<li title="Functionality Used to Address These Problems"><a href="ThreadProgress.html#functionality-used-to-address-these-problems">Functionality Used to Address These Problems</a></li>
+<li title="Implementation of the Thread Progress Functionality"><a href="ThreadProgress.html#implementation-of-the-thread-progress-functionality">Implementation of the Thread Progress Functionality</a></li>
+</ul>
+</li>
+<li id="no" title="Non-Blocking Code Loading" expanded="false">Non-Blocking Code Loading<ul>
+<li><a href="CodeLoading.html">
+              Top of chapter
+            </a></li>
+<li title="Introduction"><a href="CodeLoading.html#introduction">Introduction</a></li>
+<li title="The Load Phases"><a href="CodeLoading.html#the-load-phases">The Load Phases</a></li>
+<li title="The Finishing Sequence"><a href="CodeLoading.html#the-finishing-sequence">The Finishing Sequence</a></li>
+</ul>
+</li>
+<li id="no" title="Non-blocking trace setting" expanded="false">Non-blocking trace setting<ul>
+<li><a href="Tracing.html">
+              Top of chapter
+            </a></li>
+<li title="Introduction"><a href="Tracing.html#introduction">Introduction</a></li>
+<li title="Redesign of Breakpoint Wheel"><a href="Tracing.html#redesign-of-breakpoint-wheel">Redesign of Breakpoint Wheel</a></li>
+<li title="Same Same but Different"><a href="Tracing.html#same-same-but-different">Same Same but Different</a></li>
+<li title="Adding a new Breakpoint"><a href="Tracing.html#adding-a-new-breakpoint">Adding a new Breakpoint</a></li>
+<li title="To Updating and Remove Breakpoints"><a href="Tracing.html#to-updating-and-remove-breakpoints">To Updating and Remove Breakpoints</a></li>
+<li title="Global Tracing"><a href="Tracing.html#global-tracing">Global Tracing</a></li>
+<li title="Future work"><a href="Tracing.html#future-work">Future work</a></li>
+</ul>
+</li>
+<li id="no" title="Delayed Dealloc" expanded="false">Delayed Dealloc<ul>
+<li><a href="DelayedDealloc.html">
+              Top of chapter
+            </a></li>
+<li title="Problem"><a href="DelayedDealloc.html#problem">Problem</a></li>
+<li title="Functionality Used to Address This problem"><a href="DelayedDealloc.html#functionality-used-to-address-this-problem">Functionality Used to Address This problem</a></li>
+</ul>
+</li>
+<li id="no" title="The beam_makeops script" expanded="false">The beam_makeops script<ul>
+<li><a href="beam_makeops.html">
+              Top of chapter
+            </a></li>
+<li title="Introduction"><a href="beam_makeops.html#introduction">Introduction</a></li>
+<li title="An example: the move instruction"><a href="beam_makeops.html#an-example--the-move-instruction">An example: the move instruction</a></li>
+<li title="Short overview of instruction loading"><a href="beam_makeops.html#short-overview-of-instruction-loading">Short overview of instruction loading</a></li>
+<li title="Running beam_makeops"><a href="beam_makeops.html#running-beam_makeops">Running beam_makeops</a></li>
+<li title="Syntax of .tab files"><a href="beam_makeops.html#syntax-of-.tab-files">Syntax of .tab files</a></li>
+</ul>
+</li>
+<li id="no" title="Counting Instructions" expanded="false">Counting Instructions<ul><li><a href="CountingInstructions.html">
+              Top of chapter
+            </a></li></ul>
+</li>
+<li id="no" title="Erlang Garbage Collector" expanded="false">Erlang Garbage Collector<ul>
+<li><a href="GarbageCollection.html">
+              Top of chapter
+            </a></li>
+<li title="Overview"><a href="GarbageCollection.html#overview">Overview</a></li>
+<li title="Generational Garbage Collection"><a href="GarbageCollection.html#generational-garbage-collection">Generational Garbage Collection</a></li>
+<li title="The young heap"><a href="GarbageCollection.html#the-young-heap">The young heap</a></li>
+<li title="Sizing the heap"><a href="GarbageCollection.html#sizing-the-heap">Sizing the heap</a></li>
+<li title="Literals"><a href="GarbageCollection.html#literals">Literals</a></li>
+<li title="Binary heap"><a href="GarbageCollection.html#binary-heap">Binary heap</a></li>
+<li title="Messages"><a href="GarbageCollection.html#messages">Messages</a></li>
+<li title="References"><a href="GarbageCollection.html#references">References</a></li>
+</ul>
+</li>
+<li id="no" title="Process and Port Tables" expanded="false">Process and Port Tables<ul>
+<li><a href="PTables.html">
+              Top of chapter
+            </a></li>
+<li title="Problems"><a href="PTables.html#problems">Problems</a></li>
+<li title="Solution"><a href="PTables.html#solution">Solution</a></li>
+</ul>
+</li>
+<li id="no" title="Port Signals" expanded="false">Port Signals<ul>
+<li><a href="PortSignals.html">
+              Top of chapter
+            </a></li>
+<li title="Problems"><a href="PortSignals.html#problems">Problems</a></li>
+<li title="Solution"><a href="PortSignals.html#solution">Solution</a></li>
+</ul>
+</li>
+<li id="loadscrollpos" title="Process Management Optimizations" expanded="true">Process Management Optimizations<ul>
+<li><a href="ProcessManagementOptimizations.html">
+              Top of chapter
+            </a></li>
+<li title="Problems"><a href="ProcessManagementOptimizations.html#problems">Problems</a></li>
+<li title="Solution"><a href="ProcessManagementOptimizations.html#solution">Solution</a></li>
+</ul>
+</li>
+<li id="no" title="Super Carrier" expanded="false">Super Carrier<ul>
+<li><a href="SuperCarrier.html">
+              Top of chapter
+            </a></li>
+<li title="Problem"><a href="SuperCarrier.html#problem">Problem</a></li>
+<li title="Solution"><a href="SuperCarrier.html#solution">Solution</a></li>
+</ul>
+</li>
+</ul>
+</div></div>
+<div id="content">
+<div class="innertube">
+<h1>11 Process Management Optimizations</h1>
+
+
+<h3>
+<a name="Problems"></a><span onMouseOver="document.getElementById('ghlink-problems-idm32077').style.visibility = 'visible';" onMouseOut="document.getElementById('ghlink-problems-idm32077').style.visibility = 'hidden';"><span id="ghlink-problems-idm32077"></span><a class="title_link" name="problems" href="#problems">11.1 
+          Problems</a></span>
+</h3>
+
+
+
+<p>
+Early versions of the SMP support for the runtime system completely
+relied on locking in order to protect data accesses from multiple
+threads. In some cases this isn't that problematic, but in some cases
+it really is. It complicates the code, ensuring all locks needed are
+actually held, and ensuring that all locks are acquired in such an
+order that no deadlock occur. Acquiring locks in the right order often
+also involve releasing locks held, forcing threads to reread data
+already read. A good recipe for creation of bugs. Trying to use more
+fine-grained locking in order to increase possible parallelism in the
+system makes the complexity situation even worse. Having to acquire a
+bunch of locks when doing operations also often cause heavy lock
+contention which cause poor scalability.
+</p>
+
+<p>
+Management of processes internally in the runtime system suffered from
+these problems. When changing state on a process, for example from
+<span class="code">waiting</span> to <span class="code">runnable</span>, a lock on the process needed to be
+locked. When inserting a process into a run queue also a lock
+protecting the run queue had to be locked. When migrating a process
+from one run queue to another run queue, locks on both run queues and
+on the process had to be locked.
+</p>
+
+<p>
+This last example is a quite common case in during normal
+operation. For example, when a scheduler thread runs out of work it
+tries to steal work from another scheduler threads run queue. When
+searching for a victim to steal from there was a lot of juggling of
+run queue locks involved, and during the actual theft finalized by
+having to lock both run queues and the process. When one scheduler
+runs out of work, often others also do, causing lots of lock
+contention.
+</p>
+
+
+
+<h3>
+<a name="Solution"></a><span onMouseOver="document.getElementById('ghlink-solution-idm32085').style.visibility = 'visible';" onMouseOut="document.getElementById('ghlink-solution-idm32085').style.visibility = 'hidden';"><span id="ghlink-solution-idm32085"></span><a class="title_link" name="solution" href="#solution">11.2 
+          Solution</a></span>
+</h3>
+
+
+
+<h4>
+<a name="Solution_Process"></a><span onMouseOver="document.getElementById('ghlink-process-idm32088').style.visibility = 'visible';" onMouseOut="document.getElementById('ghlink-process-idm32088').style.visibility = 'hidden';"><span id="ghlink-process-idm32088"></span><a class="title_link" name="process" href="#process">Process</a></span>
+</h4>
+
+
+
+<p>
+In order to avoid these situations we wanted to be able to do most of
+the fundamental operations on a process without having to acquire a
+lock on the process. Some examples of such fundamental operations are,
+moving a process between run queues, detecting if we need to insert it
+into a run queue or not, detecting if it is alive or not.
+</p>
+
+<p>
+All of this information in the process structure that was needed by
+these operations was protected by the process <span class="code">status</span> lock, but the
+information was spread across a number of fields. The fields used was
+typically state fields that could contain a small number of different
+states. By reordering this information a bit we could <strong>easily</strong> fit
+this information into a 32-bit wide field of bit flags (only 12-flags
+were needed). By moving this information we could remove five 32-bit
+wide fields and one pointer field from the process structure! The move
+also enabled us to easily read and change the state using atomic
+memory operations.
+</p>
+
+
+
+<h4>
+<a name="Solution_Run-Queue"></a><span onMouseOver="document.getElementById('ghlink-run-queue-idm32095').style.visibility = 'visible';" onMouseOut="document.getElementById('ghlink-run-queue-idm32095').style.visibility = 'hidden';"><span id="ghlink-run-queue-idm32095"></span><a class="title_link" name="run-queue" href="#run-queue">Run Queue</a></span>
+</h4>
+
+
+
+<p>
+As with processes we wanted to be able to do the most fundamental
+operations without having to acquire a lock on it. The most important
+being able to determine if we should enqueue a process in a specific
+run queue or not. This involves being able to read actual load, and
+load balancing information.
+</p>
+
+<p>
+The load balancing functionality is triggered at repeated fixed
+intervals. The load balancing more or less strives to even out run
+queue lengths over the system. When balancing is triggered,
+information about every run queue is gathered, migrations paths and
+run queue length limits are set up. Migration paths and limits are
+fixed until the next balancing has been done. The most important
+information about each run queue is the maximum run queue length since
+last balancing. All of this information were previously stored in the
+run queues themselves.
+</p>
+
+<p>
+When a process has become runnable, for example due to reception of a
+message, we need to determine which run queue to enqueue it
+in. Previously this at least involved locking the run queue that the
+process currently was assigned to while holding the status lock on the
+process. Depending on load we sometimes also had to acquire a lock on
+another run queue in order to be able to determine if it should be
+migrated to that run queue or not.
+</p>
+
+<p>
+In order to be able to decide which run queue to use without having to
+lock any run queues, we moved all fixed balancing information out of
+the run queues into a global memory block. That is, migration paths
+and run queue limits. Information that need to be frequently updated,
+like for example maximum run queue length, were kept in the run queue,
+but instead of operating on this information under locks we now use
+atomic memory operations when accessing this information. This made it
+possible to first determine which run queue to use, without locking
+any run queues, and when decided, lock the chosen run queue and insert
+the process.
+</p>
+
+<h5>
+<a name="Solution_Run-Queue_Fixed-Balancing-Information"></a>Fixed Balancing Information</h5>
+
+
+
+<p>
+When determining which run queue to choose we need to read the fixed
+balancing information that we moved out of the run queues. This
+information is global, read only between load balancing operations,
+but will be changed during a load balancing. We do not want to
+introduce a global lock that needs to be acquired when accessing this
+information. A reader optimized rwlock could avoid some of the
+overhead since the data is most frequently read, but it would
+unavoidably cause disruption during load balancing, since this
+information is very frequently read. The likelihood of a large
+disruption due to this also increase as number of schedulers grows.
+</p>
+
+<p>
+Instead of using a global lock protecting modifications of this
+information, we write a completely new version of it at each load
+balancing. The new version is written in another memory block than the
+previous one, and published by issuing a write memory barrier and then
+storing a pointer to the new memory block in a global variable using
+an atomic write operation.
+</p>
+
+<p>
+When schedulers need to read this information, they read the pointer
+to currently used information using an atomic read operation, and then
+issue a data dependency read barrier, which on most architectures is a
+no-op. That is, it is very little overhead getting access to this
+information.
+</p>
+
+<p>
+Instead of allocating and deallocating memory blocks for the different
+versions of the balancing information we keep old memory blocks and
+reuse them when it is safe to do so. In order to be able to determine
+when it is safe to reuse a block we use the thread progress
+functionality, ensuring that no threads have any references to the
+memory block when we reuse it.
+</p>
+
+
+
+<h5>
+<a name="Solution_Run-Queue_Be-Less-Aggressive"></a>Be Less Aggressive</h5>
+
+
+
+<p>
+We implemented a test version using lock free run queues. This
+implementation did however not perform as good as the version using
+one lock per run queue. The reason for this was not investigated
+enough to say why this was. Since the locked version performed better
+we kept it, at least for now. The lock free version, however, forced
+us to use other solutions, some of them we kept.
+</p>
+
+<p>
+Previously when a process that was in a run queue got suspended, we
+removed it from the queue straight away. This involved locking the
+process, locking the run queue, and then unlinking it from the double
+linked list implementing the queue. Removing a process from a lock
+free queue gets really complicated. Instead, of removing it from the
+queue, we just leave it in the queue and mark it as suspended. When
+later selected for execution we check if the process is suspended, if
+so just dropped it. During its time in the queue, it might also get
+resumed again, if so execute it when it get selected for execution.
+</p>
+
+<p>
+By keeping this part when reverting back to a locked implementation,
+we could remove a pointer field in each process structure, and avoid
+unnecessary operations on the process and the queue which might cause
+contention.
+</p>
+
+
+
+
+
+<h4>
+<a name="Solution_Combined-Modifications"></a><span onMouseOver="document.getElementById('ghlink-combined-modifications-idm32115').style.visibility = 'visible';" onMouseOut="document.getElementById('ghlink-combined-modifications-idm32115').style.visibility = 'hidden';"><span id="ghlink-combined-modifications-idm32115"></span><a class="title_link" name="combined-modifications" href="#combined-modifications">Combined Modifications</a></span>
+</h4>
+
+
+
+<p>
+By combining the modifications of the process state management and the
+run queue management, we can do large parts of the work involved when
+managing processes with regards to scheduling and migration without
+having any locks locked at all. In these situations we previously had
+to have multiple locks locked. This of course caused a lot of rewrites
+across large parts of the runtime system, but the rewrite both
+simplified code and eliminated locking at a number of places. The
+major benefit is, of course, reduced contention.
+</p>
+
+
+
+<h4>
+<a name="Solution_A-Benchmark-Result"></a><span onMouseOver="document.getElementById('ghlink-a-benchmark-result-idm32119').style.visibility = 'visible';" onMouseOut="document.getElementById('ghlink-a-benchmark-result-idm32119').style.visibility = 'hidden';"><span id="ghlink-a-benchmark-result-idm32119"></span><a class="title_link" name="a-benchmark-result" href="#a-benchmark-result">A Benchmark Result</a></span>
+</h4>
+
+
+
+<p>
+When running the chameneosredux benchmark, schedulers frequently run
+out of work trying to steal work from each other. That is, either
+succeeding in migrating, or trying to migrate processes which is a
+scenario which we wanted to optimize. By the introduction of these
+improvements, we got a speedup of 25-35% when running this benchmark
+on a relatively new machine with an Intel i7 quad core processor with
+hyper-threading using 8 schedulers.</p>
+
+
+
+
+</div>
+<div class="footer">
+<hr>
+<p>Copyright © 1997-2024 Ericsson AB. All Rights Reserved.</p>
+</div>
+</div>
+</div>
+<script type="text/javascript">window.__otpTopDocDir = '../../js/';</script><script type="text/javascript" src="../../js/highlight.js"></script>
+</body>
+</html>

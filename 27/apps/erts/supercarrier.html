@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="erts v14.3">
+
+
+    <title>Super Carrier — erts v14.3</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-218663D5.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="erts" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+erts
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v14.3
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of erts</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/erts/emulator/internal_doc/SuperCarrier.md#L1" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+
+  <span>Super Carrier</span>
+</h1>
+
+<p>A super carrier is large memory area, allocated at VM start, which can
+be used during runtime to allocate normal carriers from.</p><p>The super carrier feature was introduced in OTP R16B03. It is
+enabled with command line option +MMscs &amp;lt;size in Mb&amp;gt;
+and can be configured with other options.</p><h2 id="problem" class="section-heading">
+  <a href="#problem" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Problem</span>
+</h2>
+<p>The initial motivation for this feature was customers asking for a way
+to pre-allocate physical memory at VM start for it to use.</p><p>Other problems were different experienced limitations of the OS
+implementation of mmap:</p><ul><li>Increasingly bad performance of mmap/munmap as the number of mmap'ed areas grow.</li><li>Fragmentation problem between mmap'ed areas.</li></ul><p>A third problem was management of low memory in the halfword
+emulator. The implementation used a naive linear search structure to
+hold free segments which would lead to poor performance when
+fragmentation increased.</p><h2 id="solution" class="section-heading">
+  <a href="#solution" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Solution</span>
+</h2>
+<p>Allocate one large continuous area of address space at VM start and
+then use that area to satisfy our dynamic memory need during
+runtime. In other words: implement our own mmap.</p><h3 id="use-cases" class="section-heading">
+  <a href="#use-cases" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Use cases</span>
+</h3>
+<p>If command line option +MMscrpm (Reserve Physical Memory) is set to
+false, only virtual space is allocated for the super carrier from
+start. The super carrier then acts as an &quot;alternative mmap&quot; implementation
+without changing the consumption of physical memory pages. Physical
+pages will be reserved on demand when an allocation is done from the super
+carrier and be unreserved when the memory is released back to the
+super carrier.</p><p>If +MMscrpm is set to true, which is default, the initial allocation
+will reserve physical memory for the entire super carrier. This can be
+used by users that want to ensure a certain <em>minimum</em> amount of
+physical memory for the VM.</p><p>However, what reservation of physical memory actually means highly
+depends on the operating system, and how it is configured. For
+example, different memory overcommit settings on Linux drastically
+change the behaviour.</p><p>A third feature is to have the super carrier limit the <em>maximum</em>
+amount of memory used by the VM. If +MMsco (Super Carrier Only) is set
+to true, which is default, allocations will only be done from the
+super carrier. When the super carrier gets full, the VM will fail due
+to out of memory.
+If +MMsco is false, allocations will use mmap directly if the super
+carrier is full.</p><h3 id="implementation" class="section-heading">
+  <a href="#implementation" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Implementation</span>
+</h3>
+<p>The entire super carrier implementation is kept in erl_mmap.c. The
+name suggest that it can be viewed as our own mmap implementation.</p><p>A super carrier needs to satisfy two slightly different kinds of
+allocation requests; multi block carriers (MBC) and single block
+carriers (SBC). They are both rather large blocks of continuous
+memory, but MBCs and SBCs have different demands on alignment and
+size.</p><p>SBCs can have arbitrary size and do only need minimum 8-byte
+alignment.</p><p>MBCs are more restricted. They can only have a number of fixed
+sizes that are powers of 2. The start address need to have a very
+large alignment (currently 256 kb, called &quot;super alignment&quot;). This is a
+design choice that allows very low overhead per allocated block in the
+MBC.</p><p>To reduce fragmentation within the super carrier, it is good to keep SBCs
+and MBCs apart. MBCs with their uniform alignment and sizes can be
+packed very efficiently together. SBCs without demand for alignment can
+also be allocated quite efficiently together. But mixing them can lead
+to a lot of memory wasted when we need to create large holes of
+padding to the next alignment limit.</p><p>The super carrier thus contains two areas. One area for MBCs growing from
+the bottom and up. And one area for SBCs growing from the top and
+down. Like a process with a heap and a stack growing towards each
+other.</p><h3 id="data-structures" class="section-heading">
+  <a href="#data-structures" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Data structures</span>
+</h3>
+<p>The MBC area is called <em>sa</em> as in super aligned and the SBC area is
+called <em>sua</em> as in super un-aligned.</p><p>Note that the &quot;super&quot; in super alignment and the &quot;super&quot; in super
+carrier has nothing to do with each other. We could have chosen
+another naming to avoid confusion, such as &quot;meta&quot; carrier or &quot;giant&quot;
+alignment.</p><pre><code class="makeup erlang" translate="no"><span class="o">+</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">-</span><span class="o">+</span><span class="w"> </span><span class="o">&lt;-</span><span class="o">--</span><span class="o">-</span><span class="w"> </span><span class="ss">sua</span><span class="p">.</span><span class="ss">top</span><span class="w">
+</span><span class="p">|</span><span class="w">  </span><span class="ss">sua</span><span class="w">  </span><span class="p">|</span><span class="w">
+</span><span class="p">|</span><span class="w">       </span><span class="p">|</span><span class="w">
+</span><span class="p">|</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">-</span><span class="p">|</span><span class="w"> </span><span class="o">&lt;-</span><span class="o">--</span><span class="o">-</span><span class="w"> </span><span class="ss">sua</span><span class="p">.</span><span class="ss">bot</span><span class="w">
+</span><span class="p">|</span><span class="w">       </span><span class="p">|</span><span class="w">
+</span><span class="p">|</span><span class="w">       </span><span class="p">|</span><span class="w">
+</span><span class="p">|</span><span class="w">       </span><span class="p">|</span><span class="w">
+</span><span class="p">|</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">-</span><span class="p">|</span><span class="w"> </span><span class="o">&lt;-</span><span class="o">--</span><span class="o">-</span><span class="w"> </span><span class="ss">sa</span><span class="p">.</span><span class="ss">top</span><span class="w">
+</span><span class="p">|</span><span class="w">       </span><span class="p">|</span><span class="w">
+</span><span class="p">|</span><span class="w">  </span><span class="ss">sa</span><span class="w">   </span><span class="p">|</span><span class="w">
+</span><span class="p">|</span><span class="w">       </span><span class="p">|</span><span class="w">
+</span><span class="o">+</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">-</span><span class="o">+</span><span class="w"> </span><span class="o">&lt;-</span><span class="o">--</span><span class="o">-</span><span class="w"> </span><span class="ss">sa</span><span class="p">.</span><span class="ss">bot</span></code></pre><p>When a carrier is deallocated a free memory segment will be created
+inside the corresponding area, unless the carrier was at the very top
+(in <code class="inline">sa</code>) or bottom (in <code class="inline">sua</code>) in which case the area will just shrink
+down or up.</p><p>We need to keep track of all the free segments in order to reuse them
+for new carrier allocations. One initial idea was to use the same
+mechanism that is used to keep track of free blocks within MBCs
+(alloc_util and the different strategies). However, that would not be
+as straight forward as one can think and can also waste quite a lot of
+memory as it uses prepended block headers. The granularity of the
+super carrier is one memory page (usually 4kb). We want to allocate
+and free entire pages and we don't want to waste an entire page just
+to hold the block header of the following pages.</p><p>Instead we store the meta information about all the free segments in a
+dedicated area apart from the <code class="inline">sa</code> and <code class="inline">sua</code> areas. Every free segment is
+represented by a descriptor struct (<code class="inline">ErtsFreeSegDesc</code>).</p><pre><code class="makeup erlang" translate="no"><span class="ss">typedef</span><span class="w"> </span><span class="ss">struct</span><span class="w"> </span><span class="p" data-group-id="5908357406-1">{</span><span class="w">
+    </span><span class="n">RBTNode</span><span class="w"> </span><span class="ss">snode</span><span class="p">;</span><span class="w">      </span><span class="o">/</span><span class="o">*</span><span class="w"> </span><span class="nb">node</span><span class="w"> </span><span class="ss">in</span><span class="w"> </span><span class="ss">&#39;stree&#39;</span><span class="w"> </span><span class="o">*</span><span class="o">/</span><span class="w">
+    </span><span class="n">RBTNode</span><span class="w"> </span><span class="ss">anode</span><span class="p">;</span><span class="w">      </span><span class="o">/</span><span class="o">*</span><span class="w"> </span><span class="nb">node</span><span class="w"> </span><span class="ss">in</span><span class="w"> </span><span class="ss">&#39;atree&#39;</span><span class="w"> </span><span class="o">*</span><span class="o">/</span><span class="w">
+    </span><span class="ss">char</span><span class="o">*</span><span class="w"> </span><span class="ss">start</span><span class="p">;</span><span class="w">
+    </span><span class="ss">char</span><span class="o">*</span><span class="w"> </span><span class="k">end</span><span class="p">;</span><span class="w">
+</span><span class="p" data-group-id="5908357406-1">}</span><span class="n">ErtsFreeSegDesc</span><span class="p">;</span></code></pre><p>To find the smallest free segment that will satisfy a carrier allocation
+(best fit), the free segments are organized in a tree sorted by
+size (<code class="inline">stree</code>). We search in this tree at allocation. If no free segment of
+sufficient size was found, the area (<code class="inline">sa</code> or <code class="inline">sua</code>) is instead expanded.
+If two or more free segments with equal size exist, the one at lowest
+address is chosen for <code class="inline">sa</code> and highest address for <code class="inline">sua</code>.</p><p>At carrier deallocation, we want to coalesce with any adjacent free
+segments, to form one large free segment. To do that, all free
+segments are also organized in a tree sorted in address order (<code class="inline">atree</code>).</p><p>So, in total we keep four trees of free descriptors for the super
+carrier; two for <code class="inline">sa</code> and two for <code class="inline">sua</code>. They all use the same
+red-black-tree implementation that support the different sorting
+orders used.</p><p>When allocating a new MBC we first search after a free segment in <code class="inline">sa</code>,
+then try to raise <code class="inline">sa.top</code>, and then as a fallback try to search after a
+free segment in <code class="inline">sua</code>. When an MBC is allocated in <code class="inline">sua</code>, a larger segment
+is allocated which is then trimmed to obtain the right
+alignment. Allocation search for an SBC is done in reverse order. When
+an SBC is allocated in <code class="inline">sa</code>, the size is aligned up to super aligned
+size.</p><h3 id="the-free-descriptor-area" class="section-heading">
+  <a href="#the-free-descriptor-area" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">The free descriptor area</span>
+</h3>
+<p>As mentioned above, the descriptors for the free segments are
+allocated in a separate area. This area has a constant configurable
+size (+MMscrfsd) that defaults to 65536 descriptors. This should be
+more than enough in most cases. If the descriptors area should fill up,
+new descriptor areas will be allocated first directly from the OS, and
+then from <code class="inline">sua</code> and <code class="inline">sa</code> in the super carrier, and lastly from the memory
+segment itself which is being deallocated. Allocating free descriptor
+areas from the super carrier is only a last resort, and should be
+avoided, as it creates fragmentation.</p><h3 id="halfword-emulator" class="section-heading">
+  <a href="#halfword-emulator" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Halfword emulator</span>
+</h3>
+<p>The halfword emulator uses the super carrier implementation to manage
+its low memory mappings thar are needed for all term storage. The
+super carrier can here not be configured by command line options. One
+could imagine a second configurable instance of the super carrier used
+by high memory allocation, but that has not been implemented.</p>
+<div class="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="processmanagementoptimizations.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Process Management Optimizations
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="threadprogress.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+Thread Progress
+        </span>
+      </a>
+
+  </div>
+</div>
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

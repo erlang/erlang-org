@@ -1,0 +1,728 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html xmlns:fn="http://www.w3.org/2005/02/xpath-functions">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" href="../../otp_doc.css" type="text/css">
+<title>Erlang -- How to interpret the Erlang crash dumps</title>
+</head>
+<body bgcolor="white" text="#000000" link="#0000ff" vlink="#ff00ff" alink="#ff0000"><div id="container">
+<script id="js" type="text/javascript" language="JavaScript" src="../../js/flipmenu/flipmenu.js"></script><script id="js2" type="text/javascript" src="../../js/erlresolvelinks.js"></script><script language="JavaScript" type="text/javascript">
+            <!--
+              function getWinHeight() {
+                var myHeight = 0;
+                if( typeof( window.innerHeight ) == 'number' ) {
+                  //Non-IE
+                  myHeight = window.innerHeight;
+                } else if( document.documentElement && ( document.documentElement.clientWidth ||
+                                                         document.documentElement.clientHeight ) ) {
+                  //IE 6+ in 'standards compliant mode'
+                  myHeight = document.documentElement.clientHeight;
+                } else if( document.body && ( document.body.clientWidth || document.body.clientHeight ) ) {
+                  //IE 4 compatible
+                  myHeight = document.body.clientHeight;
+                }
+                return myHeight;
+              }
+
+              function setscrollpos() {
+                var objf=document.getElementById('loadscrollpos');
+                 document.getElementById("leftnav").scrollTop = objf.offsetTop - getWinHeight()/2;
+              }
+
+              function addEvent(obj, evType, fn){
+                if (obj.addEventListener){
+                obj.addEventListener(evType, fn, true);
+                return true;
+              } else if (obj.attachEvent){
+                var r = obj.attachEvent("on"+evType, fn);
+                return r;
+              } else {
+                return false;
+              }
+             }
+
+             addEvent(window, 'load', setscrollpos);
+
+             //--></script><div id="leftnav"><div class="innertube">
+<img alt="Erlang logo" src="../../../doc/erlang-logo.png"><br><small><a href="users_guide.html">User's Guide</a><br><a href="index.html">Reference Manual</a><br><a href="release_notes.html">Release Notes</a><br><a href="erts.pdf">PDF</a><br><a href="../../index.html">Top</a></small><p><strong>Erlang Run-Time System Application (ERTS)</strong><br><strong>User's Guide</strong><br><small>Version 6.4</small></p>
+<br><a href="javascript:openAllFlips()">Expand All</a><br><a href="javascript:closeAllFlips()">Contract All</a><p><small><strong>Chapters</strong></small></p>
+<ul class="flipMenu" imagePath="../../js/flipmenu">
+<li id="no" title="Communication in Erlang" expanded="false">Communication in Erlang<ul>
+<li><a href="communication.html">
+              Top of chapter
+            </a></li>
+<li title="Passing of Signals"><a href="communication.html#id67927">Passing of Signals</a></li>
+<li title="Synchronous Communication"><a href="communication.html#id66226">Synchronous Communication</a></li>
+<li title="Implementation"><a href="communication.html#id60753">Implementation</a></li>
+</ul>
+</li>
+<li id="no" title="Time and time correction in Erlang" expanded="false">Time and time correction in Erlang<ul>
+<li><a href="time_correction.html">
+              Top of chapter
+            </a></li>
+<li title="What does time correction mean in my system?"><a href="time_correction.html#id61722">What does time correction mean in my system?</a></li>
+<li title="Where does Erlang use corrected time?"><a href="time_correction.html#id60348">Where does Erlang use corrected time?</a></li>
+<li title="What is erlang:now/0 really?"><a href="time_correction.html#id62054">What is erlang:now/0 really?</a></li>
+<li title="Should I use erlang:now/0 or os:timestamp/0"><a href="time_correction.html#id61069">Should I use erlang:now/0 or os:timestamp/0</a></li>
+<li title="Turning off time correction"><a href="time_correction.html#id59470">Turning off time correction</a></li>
+</ul>
+</li>
+<li id="no" title="Match specifications in Erlang" expanded="false">Match specifications in Erlang<ul>
+<li><a href="match_spec.html">
+              Top of chapter
+            </a></li>
+<li title="Grammar"><a href="match_spec.html#id74026">Grammar</a></li>
+<li title="Function descriptions"><a href="match_spec.html#id70840">Function descriptions</a></li>
+<li title="Variables and literals"><a href="match_spec.html#id74849">Variables and literals</a></li>
+<li title="Execution of the match"><a href="match_spec.html#id73032">Execution of the match</a></li>
+<li title="Differences between match specifications in ETS and tracing"><a href="match_spec.html#id73819">Differences between match specifications in ETS and tracing</a></li>
+<li title="Examples"><a href="match_spec.html#id73857">Examples</a></li>
+</ul>
+</li>
+<li id="loadscrollpos" title="How to interpret the Erlang crash dumps" expanded="true">How to interpret the Erlang crash dumps<ul>
+<li><a href="crash_dump.html">
+              Top of chapter
+            </a></li>
+<li title="General information"><a href="crash_dump.html#id74675">General information</a></li>
+<li title="Memory information"><a href="crash_dump.html#id74206">Memory information</a></li>
+<li title="Internal table information"><a href="crash_dump.html#id74232">Internal table information</a></li>
+<li title="Allocated areas"><a href="crash_dump.html#id74257">Allocated areas</a></li>
+<li title="Allocator"><a href="crash_dump.html#id73247">Allocator</a></li>
+<li title="Process information"><a href="crash_dump.html#id73286">Process information</a></li>
+<li title="Port information"><a href="crash_dump.html#id79809">Port information</a></li>
+<li title="ETS tables"><a href="crash_dump.html#id79826">ETS tables</a></li>
+<li title="Timers"><a href="crash_dump.html#id79924">Timers</a></li>
+<li title="Distribution information"><a href="crash_dump.html#id79980">Distribution information</a></li>
+<li title="Loaded module information"><a href="crash_dump.html#id80103">Loaded module information</a></li>
+<li title="Fun information"><a href="crash_dump.html#id80194">Fun information</a></li>
+<li title="Process Data"><a href="crash_dump.html#id80266">Process Data</a></li>
+<li title="Atoms"><a href="crash_dump.html#id80342">Atoms</a></li>
+<li title="Disclaimer"><a href="crash_dump.html#id80358">Disclaimer</a></li>
+</ul>
+</li>
+<li id="no" title="How to implement an alternative carrier for  the Erlang distribution" expanded="false">How to implement an alternative carrier for  the Erlang distribution<ul>
+<li><a href="alt_dist.html">
+              Top of chapter
+            </a></li>
+<li title="Introduction"><a href="alt_dist.html#id80478">Introduction</a></li>
+<li title="The driver"><a href="alt_dist.html#id80568">The driver</a></li>
+<li title="Putting it all together"><a href="alt_dist.html#id81818">Putting it all together</a></li>
+</ul>
+</li>
+<li id="no" title="The Abstract Format" expanded="false">The Abstract Format<ul>
+<li><a href="absform.html">
+              Top of chapter
+            </a></li>
+<li title="Module declarations and forms"><a href="absform.html#id82098">Module declarations and forms</a></li>
+<li title="Atomic literals"><a href="absform.html#id82306">Atomic literals</a></li>
+<li title="Patterns"><a href="absform.html#id82368">Patterns</a></li>
+<li title="Expressions"><a href="absform.html#id82582">Expressions</a></li>
+<li title="Clauses"><a href="absform.html#id83397">Clauses</a></li>
+<li title="Guards"><a href="absform.html#id83617">Guards</a></li>
+<li title="The abstract format after preprocessing"><a href="absform.html#id83892">The abstract format after preprocessing</a></li>
+</ul>
+</li>
+<li id="no" title="tty - A command line interface" expanded="false">tty - A command line interface<ul>
+<li><a href="tty.html">
+              Top of chapter
+            </a></li>
+<li title="Normal Mode"><a href="tty.html#id84064">Normal Mode</a></li>
+<li title="Shell Break Mode"><a href="tty.html#id84585">Shell Break Mode</a></li>
+</ul>
+</li>
+<li id="no" title="How to implement a driver" expanded="false">How to implement a driver<ul>
+<li><a href="driver.html">
+              Top of chapter
+            </a></li>
+<li title="Introduction"><a href="driver.html#id84710">Introduction</a></li>
+<li title="Sample driver"><a href="driver.html#id84742">Sample driver</a></li>
+<li title="Compiling and linking the sample driver"><a href="driver.html#id85143">Compiling and linking the sample driver</a></li>
+<li title="Calling a driver as a port in Erlang"><a href="driver.html#id85180">Calling a driver as a port in Erlang</a></li>
+<li title="Sample asynchronous driver"><a href="driver.html#id85287">Sample asynchronous driver</a></li>
+<li title="An asynchronous driver using driver_async"><a href="driver.html#id85560">An asynchronous driver using driver_async</a></li>
+</ul>
+</li>
+<li id="no" title="Inet configuration" expanded="false">Inet configuration<ul>
+<li><a href="inet_cfg.html">
+              Top of chapter
+            </a></li>
+<li title="Introduction"><a href="inet_cfg.html#id85825">Introduction</a></li>
+<li title="Configuration Data"><a href="inet_cfg.html#id85929">Configuration Data</a></li>
+<li title="User Configuration Example"><a href="inet_cfg.html#id86806">User Configuration Example</a></li>
+</ul>
+</li>
+<li id="no" title="External Term Format" expanded="false">External Term Format<ul>
+<li><a href="erl_ext_dist.html">
+              Top of chapter
+            </a></li>
+<li title="Introduction"><a href="erl_ext_dist.html#id86907">Introduction</a></li>
+<li title="Distribution header"><a href="erl_ext_dist.html#id87255">Distribution header</a></li>
+<li title="ATOM_CACHE_REF"><a href="erl_ext_dist.html#id87860">ATOM_CACHE_REF</a></li>
+<li title="SMALL_INTEGER_EXT"><a href="erl_ext_dist.html#id87935">SMALL_INTEGER_EXT</a></li>
+<li title="INTEGER_EXT"><a href="erl_ext_dist.html#id87999">INTEGER_EXT</a></li>
+<li title="FLOAT_EXT"><a href="erl_ext_dist.html#id88062">FLOAT_EXT</a></li>
+<li title="ATOM_EXT"><a href="erl_ext_dist.html#id88138">ATOM_EXT</a></li>
+<li title="REFERENCE_EXT"><a href="erl_ext_dist.html#id88237">REFERENCE_EXT</a></li>
+<li title="PORT_EXT"><a href="erl_ext_dist.html#id88395">PORT_EXT</a></li>
+<li title="PID_EXT"><a href="erl_ext_dist.html#id88514">PID_EXT</a></li>
+<li title="SMALL_TUPLE_EXT"><a href="erl_ext_dist.html#id88658">SMALL_TUPLE_EXT</a></li>
+<li title="LARGE_TUPLE_EXT"><a href="erl_ext_dist.html#id88750">LARGE_TUPLE_EXT</a></li>
+<li title="MAP_EXT"><a href="erl_ext_dist.html#id88840">MAP_EXT</a></li>
+<li title="NIL_EXT"><a href="erl_ext_dist.html#id88950">NIL_EXT</a></li>
+<li title="STRING_EXT"><a href="erl_ext_dist.html#id89001">STRING_EXT</a></li>
+<li title="LIST_EXT"><a href="erl_ext_dist.html#id89094">LIST_EXT</a></li>
+<li title="BINARY_EXT"><a href="erl_ext_dist.html#id89212">BINARY_EXT</a></li>
+<li title="SMALL_BIG_EXT"><a href="erl_ext_dist.html#id89309">SMALL_BIG_EXT</a></li>
+<li title="LARGE_BIG_EXT"><a href="erl_ext_dist.html#id89416">LARGE_BIG_EXT</a></li>
+<li title="NEW_REFERENCE_EXT"><a href="erl_ext_dist.html#id89520">NEW_REFERENCE_EXT</a></li>
+<li title="SMALL_ATOM_EXT"><a href="erl_ext_dist.html#id89692">SMALL_ATOM_EXT</a></li>
+<li title="FUN_EXT"><a href="erl_ext_dist.html#id89811">FUN_EXT</a></li>
+<li title="NEW_FUN_EXT"><a href="erl_ext_dist.html#id90058">NEW_FUN_EXT</a></li>
+<li title="EXPORT_EXT"><a href="erl_ext_dist.html#id90435">EXPORT_EXT</a></li>
+<li title="BIT_BINARY_EXT"><a href="erl_ext_dist.html#id90579">BIT_BINARY_EXT</a></li>
+<li title="NEW_FLOAT_EXT"><a href="erl_ext_dist.html#id90685">NEW_FLOAT_EXT</a></li>
+<li title="ATOM_UTF8_EXT"><a href="erl_ext_dist.html#id90753">ATOM_UTF8_EXT</a></li>
+<li title="SMALL_ATOM_UTF8_EXT"><a href="erl_ext_dist.html#id90855">SMALL_ATOM_UTF8_EXT</a></li>
+</ul>
+</li>
+<li id="no" title="Distribution Protocol" expanded="false">Distribution Protocol<ul>
+<li><a href="erl_dist_protocol.html">
+              Top of chapter
+            </a></li>
+<li title="EPMD Protocol"><a href="erl_dist_protocol.html#id91072">EPMD Protocol</a></li>
+<li title="Distribution Handshake"><a href="erl_dist_protocol.html#id92374">Distribution Handshake</a></li>
+<li title="Protocol between connected nodes"><a href="erl_dist_protocol.html#id92768">Protocol between connected nodes</a></li>
+<li title="New Ctrlmessages for distrvsn = 1 (OTP R4)"><a href="erl_dist_protocol.html#id93209">New Ctrlmessages for distrvsn = 1 (OTP R4)</a></li>
+<li title="New Ctrlmessages for distrvsn = 2"><a href="erl_dist_protocol.html#id93308">New Ctrlmessages for distrvsn = 2</a></li>
+<li title="New Ctrlmessages for distrvsn = 3 (OTP R5C)"><a href="erl_dist_protocol.html#id93319">New Ctrlmessages for distrvsn = 3 (OTP R5C)</a></li>
+<li title="New Ctrlmessages for distrvsn = 4 (OTP R6)"><a href="erl_dist_protocol.html#id93331">New Ctrlmessages for distrvsn = 4 (OTP R6)</a></li>
+</ul>
+</li>
+</ul>
+</div></div>
+<div id="content">
+<div class="innertube">
+<h1>4 How to interpret the Erlang crash dumps</h1>
+  
+  <p>This document describes the <span class="code">erl_crash.dump</span> file generated
+    upon abnormal exit of the Erlang runtime system.</p>
+  <p><strong>Important:</strong> For OTP release R9C the Erlang crash dump has
+    had a major facelift. This means that the information in this
+    document will not be directly applicable for older dumps. However,
+    if you use the Crashdump Viewer tool on older dumps, the crash
+    dumps are translated into a format similar to this.</p>
+  <p>The system will write the crash dump in the current directory of
+    the emulator or in the file pointed out by the environment variable
+    (whatever that means on the current operating system)
+    ERL_CRASH_DUMP. For a crash dump to be written, there has to be a
+    writable file system mounted.</p>
+  <p>Crash dumps are written mainly for one of two reasons: either the
+    builtin function <span class="code">erlang:halt/1</span> is called explicitly with a
+    string argument from running Erlang code, or else the runtime
+    system has detected an error that cannot be handled. The most
+    usual reason that the system can't handle the error is that the
+    cause is external limitations, such as running out of memory. A
+    crash dump due to an internal error may be caused by the system
+    reaching limits in the emulator itself (like the number of atoms
+    in the system, or too many simultaneous ets tables). Usually the
+    emulator or the operating system can be reconfigured to avoid the
+    crash, which is why interpreting the crash dump correctly is
+    important.</p>
+  <p>The erlang crash dump is a readable text file, but it might not be
+    very easy to read. Using the Crashdump Viewer tool in the
+    <span class="code">observer</span> application will simplify the task. This is an
+    HTML based tool for browsing Erlang crash dumps.</p>
+
+  <h3><a name="id74675">4.1 
+        General information</a></h3>
+    <a name="general_info"></a>
+    
+    <p>The first part of the dump shows the creation time for the dump,
+      a slogan indicating the reason for the dump, the system version,
+      of the node from which the dump originates, the compile time of
+      the emulator running the originating node and the number of
+      atoms in the atom table.
+      </p>
+
+    <h4>Reasons for crash dumps (slogan)</h4>
+      
+      <p>The reason for the dump is noted in the beginning of the file
+        as <strong>Slogan: &lt;reason&gt;</strong> (the word "slogan" has historical
+        roots). If the system is halted by the BIF
+        <span class="code">erlang:halt/1</span>, the slogan is the string parameter
+        passed to the BIF, otherwise it is a description generated by
+        the emulator or the (Erlang) kernel. Normally the message
+        should be enough to understand the problem, but nevertheless
+        some messages are described here. Note however that the
+        suggested reasons for the crash are <strong>only suggestions</strong>. The exact reasons for the errors may vary
+        depending on the local applications and the underlying
+        operating system.</p>
+      <ul>
+        <li>"<strong>&lt;A&gt;</strong>: Cannot allocate <strong>&lt;N&gt;</strong>
+         bytes of memory (of type "<strong>&lt;T&gt;</strong>", thread
+         <strong>&lt;I&gt;</strong>em&gt;)." - The system has run out of memory. &lt;A&gt;
+         is the allocator that failed to allocate memory, &lt;N&gt; is the
+         number of bytes that &lt;A&gt; tried to allocate, &lt;T&gt; is the
+         memory block type that the memory was needed for, and &lt;I&gt; is the
+         thread identifier. The most common case is that a process stores huge
+         amounts of data. In this case &lt;T&gt; is most often
+         <span class="code">heap</span>, <span class="code">old_heap</span>,
+         <span class="code">heap_frag</span>, or <span class="code">binary</span>.
+         For more information on allocators see
+         <span class="bold_code"><a href="../../man/erts_alloc.html">erts_alloc(3)</a></span>.</li>
+        <li>"<strong>&lt;A&gt;</strong>: Cannot reallocate <strong>&lt;N&gt;</strong>
+         bytes of memory (of type "<strong>&lt;T&gt;</strong>", thread
+         <strong>&lt;I&gt;</strong>em&gt;)." - Same as above with the exception that memory
+         was being reallocated instead of being allocated when the system ran
+         out of memory.</li>
+        <li>"Unexpected op code <strong>N</strong>" - Error in compiled
+         code, <span class="code">beam</span> file damaged or error in the compiler.</li>
+        <li>"Module <strong>Name</strong> undefined" <span class="code">|</span> "Function
+        <strong>Name</strong> undefined" <span class="code">|</span> "No function
+        <strong>Name</strong>:<strong>Name</strong>/1" <span class="code">|</span> "No function
+        <strong>Name</strong>:start/2" - The kernel/stdlib applications are
+         damaged or the start script is damaged.</li>
+        <li>"Driver_select called with too large file descriptor
+        <span class="code">N</span>" - The number of file descriptors for sockets
+         exceed 1024 (Unix only). The limit on file-descriptors in
+         some Unix flavors can be set to over 1024, but only 1024
+         sockets/pipes can be used simultaneously by Erlang (due to
+         limitations in the Unix <span class="code">select</span> call).  The number of
+         open regular files is not affected by this.</li>
+        <li>"Received SIGUSR1" - Sending the SIGUSR1 signal to a
+         Erlang machine (Unix only) forces a crash dump. This slogan reflects
+         that the Erlang machine crash-dumped due to receiving that signal.</li>
+        <li>"Kernel pid terminated (<strong>Who</strong>)
+         (<strong>Exit-reason</strong>)" - The kernel supervisor has detected
+         a failure, usually that the <span class="code">application_controller</span>
+         has shut down (<span class="code">Who</span> = <span class="code">application_controller</span>,
+        <span class="code">Why</span> = <span class="code">shutdown</span>).  The application controller
+         may have shut down for a number of reasons, the most usual
+         being that the node name of the distributed Erlang node is
+         already in use. A complete supervisor tree "crash" (i.e.,
+         the top supervisors have exited) will give about the same
+         result. This message comes from the Erlang code and not from
+         the virtual machine itself. It is always due to some kind of
+         failure in an application, either within OTP or a
+         "user-written" one. Looking at the error log for your
+         application is probably the first step to take.</li>
+        <li>"Init terminating in do_boot ()" - The primitive Erlang boot
+         sequence was terminated, most probably because the boot
+         script has errors or cannot be read. This is usually a
+         configuration error - the system may have been started with
+         a faulty <span class="code">-boot</span> parameter or with a boot script from
+         the wrong version of OTP.</li>
+        <li>"Could not start kernel pid (<strong>Who</strong>) ()" - One of the
+         kernel processes could not start. This is probably due to
+         faulty arguments (like errors in a <span class="code">-config</span> argument)
+         or faulty configuration files. Check that all files are in
+         their correct location and that the configuration files (if
+         any) are not damaged. Usually there are also messages
+         written to the controlling terminal and/or the error log
+         explaining what's wrong.</li>
+      </ul>
+      <p>Other errors than the ones mentioned above may occur, as the
+        <span class="code">erlang:halt/1</span> BIF may generate any message. If the
+        message is not generated by the BIF and does not occur in the
+        list above, it may be due to an error in the emulator. There
+        may however be unusual messages that I haven't mentioned, that
+        still are connected to an application failure. There is a lot
+        more information available, so more thorough reading of the
+        crash dump may reveal the crash reason. The size of processes,
+        the number of ets tables and the Erlang data on each process
+        stack can be useful for tracking down the problem.</p>
+    
+
+    <h4>Number of atoms</h4>
+      
+      <p>The number of atoms in the system at the time of the crash is
+        shown as <strong>Atoms: &lt;number&gt;</strong>. Some ten thousands atoms is
+        perfectly normal, but more could indicate that the BIF
+        <span class="code">erlang:list_to_atom/1</span> is used to dynamically generate a
+        lot of <strong>different</strong> atoms, which is never a good idea.</p>
+    
+  
+
+  <h3><a name="id74206">4.2 
+        Memory information</a></h3>
+    <a name="memory"></a>
+    
+    <p>Under the tag <strong>=memory</strong> you will find information similar
+      to what you can obtain on a living node with
+      <span class="bold_code"><a href="../../man/erlang.html#erlang:memory-0">erlang:memory()</a></span>.</p>
+  
+
+  <h3><a name="id74232">4.3 
+        Internal table information</a></h3>
+    <a name="internal_tables"></a>
+    
+    <p>The tags <strong>=hash_table:&lt;table_name&gt;</strong> and
+      <strong>=index_table:&lt;table_name&gt;</strong> presents internal
+      tables. These are mostly of interest for runtime system
+      developers.</p>
+  
+
+  <h3><a name="id74257">4.4 
+        Allocated areas</a></h3>
+    <a name="allocated_areas"></a>
+    
+    <p>Under the tag <strong>=allocated_areas</strong> you will find information
+      similar to what you can obtain on a living node with
+      <span class="bold_code"><a href="../../man/erlang.html#system_info_allocated_areas">erlang:system_info(allocated_areas)</a></span>.</p>
+  
+
+  <h3><a name="id73247">4.5 
+        Allocator</a></h3>
+    <a name="allocator"></a>
+    
+    <p>Under the tag <strong>=allocator:&lt;A&gt;</strong> you will find
+      various information about allocator &lt;A&gt;. The information
+      is similar to what you can obtain on a living node with
+      <span class="bold_code"><a href="../../man/erlang.html#system_info_allocator_tuple">erlang:system_info({allocator, &lt;A&gt;})</a></span>.
+      For more information see the documentation of
+      <span class="bold_code"><a href="../../man/erlang.html#system_info_allocator_tuple">erlang:system_info({allocator, &lt;A&gt;})</a></span>,
+      and the
+      <span class="bold_code"><a href="../../man/erts_alloc.html">erts_alloc(3)</a></span>
+      documentation.</p>
+  
+
+  <h3><a name="id73286">4.6 
+        Process information</a></h3>
+    <a name="processes"></a>
+    
+    <p>The Erlang crashdump contains a listing of each living Erlang
+      process in the system. The process information for one process
+      may look like this (line numbers have been added):
+      </p>
+    <p>The following fields can exist for a process:</p>
+    <dl>
+      <dt><strong><strong>=proc:&lt;pid&gt;</strong></strong></dt>
+      <dd>Heading, states the process identifier</dd>
+      <dt><strong><strong>State</strong></strong></dt>
+      <dd>
+        <p>The state of the process. This can be one of the following:</p>
+        <ul>
+          <li>
+<strong>Scheduled</strong> - The process was scheduled to run
+           but not currently running ("in the run queue").</li>
+          <li>
+<strong>Waiting</strong> - The process was waiting for
+           something (in <span class="code">receive</span>).</li>
+          <li>
+<strong>Running</strong> - The process was currently
+           running. If the BIF <span class="code">erlang:halt/1</span> was called, this was
+           the process calling it.</li>
+          <li>
+<strong>Exiting</strong> - The process was on its way to
+           exit.</li>
+          <li>
+<strong>Garbing</strong> - This is bad luck, the process was
+           garbage collecting when the crash dump was written, the rest
+           of the information for this process is limited.</li>
+          <li>
+<strong>Suspended</strong> - The process is suspended, either
+           by the BIF <span class="code">erlang:suspend_process/1</span> or because it is
+           trying to write to a busy port.</li>
+        </ul>
+      </dd>
+      <dt><strong><strong>Registered name</strong></strong></dt>
+      <dd>The registered name of the process, if any.</dd>
+      <dt><strong><strong>Spawned as</strong></strong></dt>
+      <dd>The entry point of the process, i.e., what function was
+       referenced in the <span class="code">spawn</span> or <span class="code">spawn_link</span> call that
+       started the process.</dd>
+      <dt><strong><strong>Last scheduled in for | Current call</strong></strong></dt>
+      <dd>The current function of the process. These fields will not
+       always exist.</dd>
+      <dt><strong><strong>Run queue</strong></strong></dt>
+      <dd>The identifier of the scheduler run queue in which the process is
+       running.</dd>
+      <dt><strong><strong>Spawned by</strong></strong></dt>
+      <dd>The parent of the process, i.e. the process which executed
+      <span class="code">spawn</span> or <span class="code">spawn_link</span>.</dd>
+      <dt><strong><strong>Started</strong></strong></dt>
+      <dd>The date and time when the process was started.</dd>
+      <dt><strong><strong>Message queue length</strong></strong></dt>
+      <dd>The number of messages in the process' message queue.</dd>
+      <dt><strong><strong>Number of heap fragments</strong></strong></dt>
+      <dd>The number of allocated heap fragments.</dd>
+      <dt><strong><strong>Heap fragment data</strong></strong></dt>
+      <dd>Size of fragmented heap data. This is data either created by
+       messages being sent to the process or by the Erlang BIFs. This
+       amount depends on so many things that this field is utterly
+       uninteresting.</dd>
+      <dt><strong><strong>Link list</strong></strong></dt>
+      <dd>Process id's of processes linked to this one. May also contain
+       ports. If process monitoring is used, this field also tells in
+       which direction the monitoring is in effect, i.e., a link
+       being "to" a process tells you that the "current" process was
+       monitoring the other and a link "from" a process tells you
+       that the other process was monitoring the current one.</dd>
+      <dt><strong><strong>Reductions</strong></strong></dt>
+      <dd>The number of reductions consumed by the process.</dd>
+      <dt><strong><strong>Stack+heap</strong></strong></dt>
+      <dd>The size of the stack and heap (they share memory segment)</dd>
+      <dt><strong><strong>OldHeap</strong></strong></dt>
+      <dd>The size of the "old heap". The Erlang virtual machine uses
+       generational garbage collection with two generations. There is
+       one heap for new data items and one for the data that have
+       survived two garbage collections. The assumption (which is
+       almost always correct) is that data that survive two garbage
+       collections can be "tenured" to a heap more seldom garbage
+       collected, as they will live for a long period. This is a
+       quite usual technique in virtual machines.  The sum of the
+       heaps and stack together constitute most of the process's
+       allocated memory.</dd>
+      <dt><strong><strong>Heap unused, OldHeap unused</strong></strong></dt>
+      <dd>The amount of unused memory on each heap. This information is
+       usually useless.</dd>
+      <dt><strong><strong>Stack</strong></strong></dt>
+      <dd>If the system uses shared heap, the fields
+      <strong>Stack+heap</strong>, <strong>OldHeap</strong>, <strong>Heap unused</strong>
+       and <strong>OldHeap unused</strong> do not exist. Instead this field
+       presents the size of the process' stack.</dd>
+      <dt><strong><strong>Memory</strong></strong></dt>
+      <dd>The total memory used by this process. This includes call stack,
+      heap and internal structures. Same as <span class="bold_code"><a href="../../man/erlang.html#process_info-2">erlang:process_info(Pid,memory)</a></span>.
+      </dd>
+      <dt><strong><strong>Program counter</strong></strong></dt>
+      <dd>The current instruction pointer. This is only interesting for
+       runtime system developers. The function into which the program
+       counter points is the current function of the process.</dd>
+      <dt><strong><strong>CP</strong></strong></dt>
+      <dd>The continuation pointer, i.e. the return address for the
+       current call. Usually useless for other than runtime system
+       developers. This may be followed by the function into which
+       the CP points, which is the function calling the current
+       function.</dd>
+      <dt><strong><strong>Arity</strong></strong></dt>
+      <dd>The number of live argument registers. The argument registers,
+       if any are live, will follow. These may contain the arguments
+       of the function if they are not yet moved to the stack.</dd>
+    </dl>
+    <p>See also the section about <span class="bold_code"><a href="#proc_data">process data</a></span>.</p>
+  
+
+  <h3><a name="id79809">4.7 
+        Port information</a></h3>
+    <a name="ports"></a>
+    
+    <p>This section lists the open ports, their owners, any linked
+      processed, and the name of their driver or external process.</p>
+  
+
+  <h3><a name="id79826">4.8 
+        ETS tables</a></h3>
+    <a name="ets_tables"></a>
+    
+    <p>This section contains information about all the ETS tables in
+      the system. The following fields are interesting for each table:</p>
+    <dl>
+      <dt><strong><strong>=ets:&lt;owner&gt;</strong></strong></dt>
+      <dd>Heading, states the owner of the table (a process identifier)</dd>
+      <dt><strong><strong>Table</strong></strong></dt>
+      <dd>The identifier for the table. If the table is a
+      <span class="code">named_table</span>, this is the name.</dd>
+      <dt><strong><strong>Name</strong></strong></dt>
+      <dd>The name of the table, regardless of whether it is a
+      <span class="code">named_table</span> or not.</dd>
+      <dt><strong><strong>Buckets</strong></strong></dt>
+      <dd>This occurs if the table is a hash table, i.e. if it is not an
+      <span class="code">ordered_set</span>.</dd>
+      <dt><strong><strong>Ordered set (AVL tree), Elements</strong></strong></dt>
+      <dd>This occurs only if the table is an <span class="code">ordered_set</span>. (The
+       number of elements is the same as the number of objects in the
+       table.)</dd>
+      <dt><strong><strong>Objects</strong></strong></dt>
+      <dd>The number of objects in the table</dd>
+      <dt><strong><strong>Words</strong></strong></dt>
+      <dd>The number of words (usually 4 bytes/word) allocated to data
+       in the table.</dd>
+    </dl>
+  
+
+  <h3><a name="id79924">4.9 
+        Timers</a></h3>
+    <a name="timers"></a>
+    
+    <p>This section contains information about all the timers started
+      with the BIFs <span class="code">erlang:start_timer/3</span> and
+      <span class="code">erlang:send_after/3</span>. The following fields exists for each
+      timer:</p>
+    <dl>
+      <dt><strong><strong>=timer:&lt;owner&gt;</strong></strong></dt>
+      <dd>Heading, states the owner of the timer (a process identifier)
+       i.e. the process to receive the message when the timer
+       expires.</dd>
+      <dt><strong><strong>Message</strong></strong></dt>
+      <dd>The message to be sent.</dd>
+      <dt><strong><strong>Time left</strong></strong></dt>
+      <dd>Number of milliseconds left until the message would have been
+       sent.</dd>
+    </dl>
+  
+
+  <h3><a name="id79980">4.10 
+        Distribution information</a></h3>
+    <a name="distribution_info"></a>
+    
+    <p>If the Erlang node was alive, i.e., set up for communicating
+      with other nodes, this section lists the connections that were
+      active. The following fields can exist:</p>
+    <dl>
+      <dt><strong><strong>=node:&lt;node_name&gt;</strong></strong></dt>
+      <dd>The name of the node</dd>
+      <dt><strong><strong>no_distribution</strong></strong></dt>
+      <dd>This will only occur if the node was not distributed.</dd>
+      <dt><strong><strong>=visible_node:&lt;channel&gt;</strong></strong></dt>
+      <dd>Heading for a visible nodes, i.e. an alive node with a
+       connection to the node that crashed. States the channel number
+       for the node.</dd>
+      <dt><strong><strong>=hidden_node:&lt;channel&gt;</strong></strong></dt>
+      <dd>Heading for a hidden node. A hidden node is the same as a
+       visible node, except that it is started with the "-hidden"
+       flag. States the channel number for the node.</dd>
+      <dt><strong><strong>=not_connected:&lt;channel&gt;</strong></strong></dt>
+      <dd>Heading for a node which is has been connected to the crashed
+       node earlier. References (i.e. process or port identifiers)
+       to the not connected node existed at the time of the crash.
+       exist. States the channel number for the node.</dd>
+      <dt><strong><strong>Name</strong></strong></dt>
+      <dd>The name of the remote node.</dd>
+      <dt><strong><strong>Controller</strong></strong></dt>
+      <dd>The port which controls the communication with the remote node.</dd>
+      <dt><strong><strong>Creation</strong></strong></dt>
+      <dd>An integer (1-3) which together with the node name identifies
+       a specific instance of the node.</dd>
+      <dt><strong><strong>Remote monitoring: &lt;local_proc&gt;  &lt;remote_proc&gt;</strong></strong></dt>
+      <dd>The local process was monitoring the remote process at the
+       time of the crash.</dd>
+      <dt><strong><strong>Remotely monitored by: &lt;local_proc&gt;  &lt;remote_proc&gt;</strong></strong></dt>
+      <dd>The remote process was monitoring the local process at the
+       time of the crash.</dd>
+      <dt><strong><strong>Remote link: &lt;local_proc&gt; &lt;remote_proc&gt;</strong></strong></dt>
+      <dd>A link existed between the local process and the remote
+       process at the time of the crash.</dd>
+    </dl>
+  
+
+  <h3><a name="id80103">4.11 
+        Loaded module information</a></h3>
+    <a name="loaded_modules"></a>
+    
+    <p>This section contains information about all loaded modules.
+      First, the memory usage by loaded code is summarized. There is
+      one field for "Current code" which is code that is the current
+      latest version of the modules. There is also a field for "Old
+      code" which is code where there exists a newer version in the
+      system, but the old version is not yet purged. The memory usage
+      is in bytes.</p>
+    <p>All loaded modules are then listed. The following fields exist:</p>
+    <dl>
+      <dt><strong><strong>=mod:&lt;module_name&gt;</strong></strong></dt>
+      <dd>Heading, and the name of the module.</dd>
+      <dt><strong><strong>Current size</strong></strong></dt>
+      <dd>Memory usage for the loaded code in bytes</dd>
+      <dt><strong><strong>Old size</strong></strong></dt>
+      <dd>Memory usage for the old code, if any.</dd>
+      <dt><strong><strong>Current attributes</strong></strong></dt>
+      <dd>Module attributes for the current code. This field is decoded
+       when looked at by the Crashdump Viewer tool.</dd>
+      <dt><strong><strong>Old attributes</strong></strong></dt>
+      <dd>Module attributes for the old code, if any. This field is
+       decoded when looked at by the Crashdump Viewer tool.</dd>
+      <dt><strong><strong>Current compilation info</strong></strong></dt>
+      <dd>Compilation information (options) for the current code. This
+       field is decoded when looked at by the Crashdump Viewer tool.</dd>
+      <dt><strong><strong>Old compilation info</strong></strong></dt>
+      <dd>Compilation information (options) for the old code, if
+       any. This field is decoded when looked at by the Crashdump
+       Viewer tool.</dd>
+    </dl>
+  
+
+  <h3><a name="id80194">4.12 
+        Fun information</a></h3>
+    <a name="funs"></a>
+    
+    <p>In this section, all funs are listed. The following fields exist
+      for each fun:</p>
+    <dl>
+      <dt><strong><strong>=fun</strong></strong></dt>
+      <dd>Heading</dd>
+      <dt><strong><strong>Module</strong></strong></dt>
+      <dd>The name of the module where the fun was defined.</dd>
+      <dt><strong><strong>Uniq, Index</strong></strong></dt>
+      <dd>Identifiers</dd>
+      <dt><strong><strong>Address</strong></strong></dt>
+      <dd>The address of the fun's code.</dd>
+      <dt><strong><strong>Native_address</strong></strong></dt>
+      <dd>The address of the fun's code when HiPE is enabled.</dd>
+      <dt><strong><strong>Refc</strong></strong></dt>
+      <dd>The number of references to the fun.</dd>
+    </dl>
+  
+
+  <h3><a name="id80266">4.13 
+        Process Data</a></h3>
+    <a name="proc_data"></a>
+    
+    <p>For each process there will be at least one <strong>=proc_stack</strong>
+      and one <strong>=proc_heap</strong> tag followed by the raw memory
+      information for the stack and heap of the process.</p>
+    <p>For each process there will also be a <strong>=proc_messages</strong>
+      tag if the process' message queue is non-empty and a
+      <strong>=proc_dictionary</strong> tag if the process' dictionary (the
+      <span class="code">put/2</span> and <span class="code">get/1</span> thing) is non-empty.</p>
+    <p>The raw memory information can be decoded by the Crashdump
+      Viewer tool. You will then be able to see the stack dump, the
+      message queue (if any) and the dictionary (if any).</p>
+    <p>The stack dump is a dump of the Erlang process stack. Most of
+      the live data (i.e., variables currently in use) are placed on
+      the stack; thus this can be quite interesting. One has to
+      "guess" what's what, but as the information is symbolic,
+      thorough reading of this information can be very useful. As an
+      example we can find the state variable of the Erlang primitive
+      loader on line <span class="code">(5)</span> in the example below:</p>
+    <div class="example"><pre>
+(1)  3cac44   Return addr 0x13BF58 (&lt;terminate process normally&gt;)
+(2)  y(0)     ["/view/siri_r10_dev/clearcase/otp/erts/lib/kernel/ebin","/view/siri_r10_dev/
+(3)  clearcase/otp/erts/lib/stdlib/ebin"]
+(4)  y(1)     &lt;0.1.0&gt;
+(5)  y(2)     {state,[],none,#Fun&lt;erl_prim_loader.6.7085890&gt;,undefined,#Fun&lt;erl_prim_loader.7.9000327&gt;,#Fun&lt;erl_prim_loader.8.116480692&gt;,#Port&lt;0.2&gt;,infinity,#Fun&lt;erl_prim_loader.9.10708760&gt;}
+(6)  y(3)     infinity    </pre></div>
+    <p>When interpreting the data for a process, it is helpful to know
+      that anonymous function objects (funs) are given a name
+      constructed from the name of the function in which they are
+      created, and a number (starting with 0) indicating the number of
+      that fun within that function.</p>
+  
+
+  <h3><a name="id80342">4.14 
+        Atoms</a></h3>
+    <a name="atoms"></a>
+    
+    <p>Now all the atoms in the system are written. This is only
+      interesting if one suspects that dynamic generation of atoms could
+      be a problem, otherwise this section can be ignored.</p>
+    <p>Note that the last created atom is printed first.</p>
+  
+
+  <h3><a name="id80358">4.15 
+        Disclaimer</a></h3>
+    
+    <p>The format of the crash dump evolves between releases of
+      OTP. Some information here may not apply to your
+      version. A description as this will never be complete; it is meant as
+      an explanation of the crash dump in general and as a help
+      when trying to find application errors, not as a complete
+      specification.</p>
+  
+</div>
+<div class="footer">
+<hr>
+<p>Copyright © 1997-2015 Ericsson AB. All Rights Reserved.</p>
+</div>
+</div>
+</div></body>
+</html>

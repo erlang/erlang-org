@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="erts v14.3">
+
+
+    <title>Thread Progress — erts v14.3</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-218663D5.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="erts" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+erts
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v14.3
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of erts</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/erts/emulator/internal_doc/ThreadProgress.md#L1" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+
+  <span>Thread Progress</span>
+</h1>
+
+<h2 id="problems" class="section-heading">
+  <a href="#problems" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Problems</span>
+</h2>
+<h3 id="knowing-when-threads-have-completed-accesses-to-a-data-structure" class="section-heading">
+  <a href="#knowing-when-threads-have-completed-accesses-to-a-data-structure" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Knowing When Threads Have Completed Accesses to a Data Structure</span>
+</h3>
+<p>When multiple threads access the same data structure you often need to
+know when all threads have completed their accesses. For example, in
+order to know when it is safe to deallocate the data structure. One
+simple way to accomplish this is to reference count all accesses to
+the data structure. The problem with this approach is that the cache
+line where the reference counter is located needs to be communicated
+between all involved processors. Such communication can become
+extremely expensive and will scale poorly if the reference counter is
+frequently accessed. That is, we want to use some other approach of
+keeping track of threads than reference counting.</p><h3 id="knowing-that-modifications-of-memory-is-consistently-observed" class="section-heading">
+  <a href="#knowing-that-modifications-of-memory-is-consistently-observed" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Knowing That Modifications of Memory is Consistently Observed</span>
+</h3>
+<p>Different hardware architectures have different memory models. Some
+architectures allows very aggressive reordering of memory accesses
+while other architectures only reorder a few specific cases. Common to
+all modern hardware is, however, that some type of reordering will
+occur. When using locks to protect all memory accesses made from
+multiple threads such reorderings will not be visible. The locking
+primitives will ensure that the memory accesses will be ordered. When
+using lock free algorithms one do however have to take this reordering
+made by the hardware into account.</p><p>Hardware memory barriers or memory fences are instructions that can be
+used to enforce order between memory accesses. Different hardware
+architectures provide different memory barriers. Lock free algorithms
+need to use memory barriers in order to ensure that memory accesses
+are not reordered in such ways that the algorithm breaks down. Memory
+barriers are also expensive instructions, so you typically want to
+minimize the use of these instructions.</p><h2 id="functionality-used-to-address-these-problems" class="section-heading">
+  <a href="#functionality-used-to-address-these-problems" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Functionality Used to Address These Problems</span>
+</h2>
+<p>The &quot;thread progress&quot; functionality in the Erlang VM is used to
+address these problems. The name &quot;thread progress&quot; was chosen since we
+want to use it to determine when all threads in a set of threads have
+made such progress so that two specific events have taken place for
+all them.</p><p>The set of threads that we are interested in we call managed
+threads. The managed threads are the only threads that we get any
+information about. These threads <em>have</em> to frequently report
+progress. Not all threads in the system are able to frequently report
+progress. Such threads cannot be allowed in the set of managed threads
+and are called unmanaged threads. An example of unmanaged threads are
+threads in the async thread pool. Async threads can be blocked for
+very long times and by this be prevented from frequently reporting
+progress. Currently only scheduler threads and a couple of other
+threads are managed threads.</p><h3 id="thread-progress-events" class="section-heading">
+  <a href="#thread-progress-events" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Thread Progress Events</span>
+</h3>
+<p>Any thread in the system may use the thread progress functionality in
+order to determine when the following events have occurred at least
+once in all managed threads:</p><ol><li> The thread has returned from other code to a known state in the
+thread progress functionality, which is independent of any other
+code. </li><li> The thread has executed a full memory barrier.</li></ol><p>These events, of course, need to occur ordered to other memory
+operations. The operation of determining this begins by initiating the
+thread progress operation. The thread that initiated the thread
+progress operation after this poll for the completion of the
+operation. Both of these events must occur at least once <em>after</em> the
+thread progress operation has been initiated, and at least once
+<em>before</em> the operation has completed in each managed thread. This is
+ordered using communication via memory which makes it possible to draw
+conclusion about the memory state after the thread progress operation
+has completed. Lets call the progress made from initiation to
+completion for &quot;thread progress&quot;.</p><p>Assuming that the thread progress functionality is efficient, a lot of
+algorithms can both be simplified and made more efficient than using
+the first approach that comes to mind. A couple of examples follows.</p><p>By being able to determine when the first event above has occurred we
+can easily know when all managed threads have completed accesses to a
+data structure. This can be determined the following way. We have an
+implementation of some functionality <code class="inline">F</code> using a data structure
+<code class="inline">D</code>. The reference to <code class="inline">D</code> is always looked up before <code class="inline">D</code> is being
+accessed, and the references to <code class="inline">D</code> is always dropped before we leave
+the code implementing <code class="inline">F</code>. If we remove the possibility to look up <code class="inline">D</code>
+and then wait until the first event has occurred in all managed
+threads, no managed threads can have any references to the data
+structure <code class="inline">D</code>. This could for example have been achieved by using
+reference counting, but the cache line containing the reference
+counter would in this case be ping ponged between all processors
+accessing <code class="inline">D</code> at every access.</p><p>By being able to determine when the second event has occurred it is
+quite easy to do complex modifications of memory that needs to be seen
+consistently by other threads without having to resort to locking. By
+doing the modifications, then issuing a full memory barrier, then wait
+until the second event has occurred in all managed threads, and then
+publish the modifications, we know that all managed threads reading
+this memory will get a consistent view of the modifications. Managed
+threads reading this will not have to issue any extra memory barriers
+at all.</p><h2 id="implementation-of-the-thread-progress-functionality" class="section-heading">
+  <a href="#implementation-of-the-thread-progress-functionality" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Implementation of the Thread Progress Functionality</span>
+</h2>
+<h3 id="requirement-on-the-implementation" class="section-heading">
+  <a href="#requirement-on-the-implementation" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Requirement on the Implementation</span>
+</h3>
+<p>In order to be able to determine when all managed threads have reached
+the states that we are interested in we need to communicate between
+all involved threads. We of course want to minimize this
+communication.</p><p>We also want threads to be able to determine when thread progress has
+been made relatively fast. That is we need to have some balance
+between communication overhead and time to complete the operation.</p><h3 id="api" class="section-heading">
+  <a href="#api" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">API</span>
+</h3>
+<p>I will only present the most important functions in the API here.</p><ul><li>  <code class="inline">ErtsThrPrgrVal erts_thr_progress_later(void)</code> - Initiation of the
+operation. The thread progress value returned can be used testing
+for completion of the operation.</li><li>  <code class="inline">int erts_thr_progress_has_reached(ErtsThrPrgrVal val)</code> - Returns
+a non zero value when we have reached the thread progress value
+passed as argument. That is, when a non zero value is returned the
+operation has completed.</li></ul><p>When a thread calls <code class="inline">my_val = erts_thr_progress_later()</code> and waits for
+<code class="inline">erts_thr_progress_has_reached(my_val)</code> to return a non zero value it
+knows that thread progress has been made.</p><p>While waiting for <code class="inline">erts_thr_progress_has_reached()</code> to return a non
+zero value we typically do not want to block waiting, but instead want
+to continue working with other stuff. If we run out of other stuff to
+work on we typically do want to block waiting until we have reached
+the thread progress value that we are waiting for. In order to be able
+to do this we provide functionality for waking up a thread when a
+certain thread progress value has been reached:</p><ul><li>  <code class="inline">void erts_thr_progress_wakeup(ErtsSchedulerData *esdp, ErtsThrPrgrVal val)</code> - Request wake up. The calling thread will be
+woken when thread progress has reached val. </li></ul><p>Managed threads frequently need to update their thread progress by
+calling the following functions:</p><ul><li>  <code class="inline">int erts_thr_progress_update(ErtsSchedulerData *esdp)</code> - Update
+thread progress. If a non zero value is returned
+<code class="inline">erts_thr_progress_leader_update()</code> has to be called without any
+locks held.</li><li>  <code class="inline">int erts_thr_progress_leader_update(ErtsSchedulerData *esdp)</code> -
+Leader update thread progress.</li></ul><p>Unmanaged threads can delay thread progress being made:</p><ul><li>  <code class="inline">ErtsThrPrgrDelayHandle erts_thr_progress_unmanaged_delay(void)</code> -
+Delay thread progress.</li><li>  <code class="inline">void erts_thr_progress_unmanaged_continue(ErtsThrPrgrDelayHandle handle)</code> - Let thread progress continue.</li></ul><p>Scheduler threads can schedule an operation to be executed by the
+scheduler itself when thread progress has been made:</p><ul><li><code class="inline">void erts_schedule_thr_prgr_later_op(void (*funcp)(void *), void *argp, ErtsThrPrgrLaterOp *memp)</code> - Schedule a call to <code class="inline">funcp</code>. The
+call <code class="inline">(*funcp)(argp)</code> will be executed when thread progress has been
+made since the call to <code class="inline">erts_schedule_thr_prgr_later_op()</code> was
+made.</li></ul><h3 id="implementation" class="section-heading">
+  <a href="#implementation" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Implementation</span>
+</h3>
+<p>In order to determine when the events has happened we use a global
+counter that is incremented when all managed threads have called
+<code class="inline">erts_thr_progress_update()</code> (or <code class="inline">erts_thr_progress_leader_update()</code>).
+This could naively be implemented using a &quot;thread confirmed&quot; counter.
+This would however cause an explosion of communication where all
+involved processors would need to communicate with each other at each
+update.</p><p>Instead of confirming at a global location each thread confirms that
+it accepts in increment of the global counter in its own cache
+line. These confirmation cache lines are located in sequence in an
+array, and each confirmation cache line will only be written by one
+and only one thread. One of the managed threads always have the leader
+responsibility. This responsibility may jump between threads, but as
+long as there are some activity in the system always one of them will
+have the leader responsibility. The thread with the leader
+responsibility will call <code class="inline">erts_thr_progress_leader_update()</code> which
+will check that all other threads have confirmed an increment of the
+global counter before doing the increment of the global counter. The
+leader thread is the only thread reading the confirmation cache
+lines.</p><p>Doing it this way we will get a communication pattern of information
+going from the leader thread out to all other managed threads and then
+back from the other threads to the leader thread. This since only the
+leader thread will write to the global counter and all other threads
+will only read it, and since each confirmation cache lines will only
+be written by one specific thread and only read by the leader
+thread. When each managed thread is distributed over different
+processors, the communication between processors will be a reflection
+of this communication pattern between threads.</p><p>The value returned from <code class="inline">erts_thr_progress_later()</code> equals the, by
+this thread, latest confirmed value plus two. The global value may be
+latest confirmed value or latest confirmed value minus one. In order
+to be certain that all other managed threads actually will call
+<code class="inline">erts_thr_progress_update()</code> at least once before we reach the value
+returned from <code class="inline">erts_thr_progress_later()</code>, the global counter plus one
+is not enough. This since all other threads may already have confirmed
+current global value plus one at the time when we call
+<code class="inline">erts_thr_progress_later()</code>. They are however guaranteed not to have
+confirmed global value plus two at this time.</p><p>The above described implementation more or less minimizes the
+communication needed before we can increment the global counter. The
+amount of communication in the system due to the thread progress
+functionality however also depend on the frequency with which managed
+threads call <code class="inline">erts_thr_progress_update()</code>. Today each scheduler thread
+calls <code class="inline">erts_thr_progress_update()</code> more or less each time an Erlang
+process is scheduled out. One way of further reducing communication
+due to the thread progress functionality is to only call
+<code class="inline">erts_thr_progress_update()</code> every second, or third time an Erlang
+process is scheduled out, or even less frequently than that. However,
+by doing updates of thread progress less frequently all operations
+depending on the thread progress functionality will also take a longer
+time.</p><h4>Delay of Thread Progress by Unmanaged Threads</h4><p>In order to implement delay of thread progress from unmanaged threads
+we use two reference counters. One being <code class="inline">current</code> and one being
+<code class="inline">waiting</code>. When an unmanaged thread wants to delay thread progress it
+increments <code class="inline">current</code> and gets a handle back to the reference counter
+it incremented. When it later wants to enable continuation of thread
+progress it uses the handle to decrement the reference counter it
+previously incremented.</p><p>When the leader threads is about to increment the global thread
+progress counter it verifies that the <code class="inline">waiting</code> counter is zero before
+doing so. If not zero, the leader isn't allowed to increment the
+global counter, and needs to wait before it can do this. When it is
+zero, it swaps the <code class="inline">waiting</code> and <code class="inline">current</code> counters before increasing
+the global counter. From now on the new <code class="inline">waiting</code> counter will
+decrease, so that it eventually will reach zero, making it possible to
+increment the global counter the next time. If we only used one
+reference counter it would potentially be held above zero for ever by
+different unmanaged threads.</p><p>When an unmanaged thread increment the <code class="inline">current</code> counter it will not
+prevent the next increment of the global counter, but instead the
+increment after that. This is sufficient since the global counter
+needs to be incremented two times before thread progress has been
+made. It is also desirable not to prevent the first increment, since
+the likelihood increases that the delay is withdrawn before any
+increment of the global counter is delayed. That is, the operation
+will cause as little disruption as possible.</p><p>However, this feature of delaying thread progress from unmanaged
+threads should preferably be used as little as possible, since heavy
+use of it will cause contention on the reference counter cache
+lines. The functionality is however very useful in code which normally
+only executes in managed threads, but which may under some infrequent
+circumstances be executed in other threads.</p><h4>Overhead</h4><p>The overhead caused by the thread progress functionality is more or
+less fixed using the same amount of schedulers regardless of the
+number of uses of the functionality. Already today quite a lot of
+functionality use it, and we plan to use it even more. When rewriting
+old implementations of ERTS internal functionality to use the thread
+progress functionality, this implies removing communication in the old
+implementation. Otherwise it is simply no point rewriting the old
+implementation to use the thread progress functionality. Since the
+thread progress overhead is more or less fixed, the rewrite will cause
+a reduction of the total communication in the system.</p><h5>An Example</h5><p>The main structure of an ETS table was originally managed using
+reference counting. Already a long time ago we replaced this strategy
+since the reference counter caused contention on each access of the
+table. The solution used was to schedule &quot;confirm deletion&quot; jobs on
+each scheduler in order to know when it was safe to deallocate the
+table structure of a removed table. These confirm deletion jobs needed
+to be allocated. That is, we had to allocate and deallocate as many
+blocks as schedulers in order to deallocate one block. This of course
+was a quite an expensive operation, but we only needed to do this once
+when removing a table. It was more important to get rid of the
+contention on the reference counter which was present on every
+operation on the table.</p><p>When the thread progress functionality had been introduced, we could
+remove the code implementing the &quot;confirm deletion&quot; jobs, and then
+just schedule a thread progress later operation which deallocates the
+structure. Besides simplifying the code a lot, we got an increase of
+more than 10% of the number of transactions per second handled on a
+mnesia tpcb benchmark executing on a quad core machine.</p>
+<div class="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="supercarrier.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Super Carrier
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="tracing.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+Tracing
+        </span>
+      </a>
+
+  </div>
+</div>
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

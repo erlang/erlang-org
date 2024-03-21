@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="erts v14.3">
+
+
+    <title>Erlang Garbage Collector — erts v14.3</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-218663D5.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="erts" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+erts
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v14.3
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of erts</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/erts/emulator/internal_doc/GarbageCollection.md#L1" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+
+  <span>Erlang Garbage Collector</span>
+</h1>
+
+<p>Erlang manages dynamic memory with a <a href="https://en.wikipedia.org/wiki/Tracing_garbage_collection">tracing garbage collector</a>. More precisely a per process generational semi-space copying collector using Cheney's copy collection algorithm together with a global large object space. (See C. J. Cheney in <a href="#references">References</a>.)</p><h2 id="overview" class="section-heading">
+  <a href="#overview" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Overview</span>
+</h2>
+<p>Each Erlang process has its own stack and heap which are allocated in the same memory block and grow towards each other. When the stack and the heap <a href="https://github.com/erlang/otp/blob/OTP-18.0/erts/emulator/beam/beam_emu.c#L387">meet</a>, the garbage collector is triggered and memory is reclaimed. If not enough memory was reclaimed, the heap will grow.</p><h3 id="creating-data" class="section-heading">
+  <a href="#creating-data" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Creating Data</span>
+</h3>
+<p>Terms are created on the heap by evaluating expressions. There are two major types of terms: <a href="https://github.com/erlang/otp/blob/OTP-18.0/erts/emulator/beam/erl_term.h#L88-L97">immediate terms</a> which require no heap space (small integers, atoms, pids, port ids etc) and cons or <a href="https://github.com/erlang/otp/blob/OTP-18.0/erts/emulator/beam/erl_term.h#L106-L120">boxed terms</a> (tuple, big num, binaries etc) that do require heap space. Immediate terms do not need any heap space because they are embedded into the containing structure.</p><p>Let's look at an example that returns a tuple with the newly created data.</p><pre><code class="makeup erlang" translate="no"><span class="nf">data</span><span class="p" data-group-id="4414905265-1">(</span><span class="n">Foo</span><span class="p" data-group-id="4414905265-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+   </span><span class="n">Cons</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="4414905265-2">[</span><span class="mi">42</span><span class="p">|</span><span class="n">Foo</span><span class="p" data-group-id="4414905265-2">]</span><span class="p">,</span><span class="w">
+   </span><span class="n">Literal</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="4414905265-3">{</span><span class="ss">text</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;hello world!&quot;</span><span class="p" data-group-id="4414905265-3">}</span><span class="p">,</span><span class="w">
+   </span><span class="p" data-group-id="4414905265-4">{</span><span class="ss">tag</span><span class="p">,</span><span class="w"> </span><span class="n">Cons</span><span class="p">,</span><span class="w"> </span><span class="n">Literal</span><span class="p" data-group-id="4414905265-4">}</span><span class="p">.</span></code></pre><p>In this example we first create a new cons cell with an integer and a tuple with some text. Then a tuple of size three wrapping the other values with an atom tag is created and returned.</p><p>On the heap tuples require a word size for each of its elements as well as for the header. Cons cells always require two words. Adding these things together, we get seven words for the tuples and 26 words for the cons cells. The string <code class="inline">&quot;hello world!&quot;</code> is a list of cons cells and thus requires 24 words. The atom <code class="inline">tag</code> and the integer <code class="inline">42</code> do not require any additional heap memory since it is an <em>immediate</em>. Adding all the terms together, the heap space required in this example should be 33 words.</p><p>Compiling this code to beam assembly (<code class="inline">erlc -S</code>) shows exactly what is happening.</p><pre><code class="makeup erlang" translate="no"><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="6596298579-1">{</span><span class="ss">test_heap</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">1</span><span class="p" data-group-id="6596298579-1">}</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="6596298579-2">{</span><span class="ss">put_list</span><span class="p">,</span><span class="p" data-group-id="6596298579-3">{</span><span class="ss">integer</span><span class="p">,</span><span class="mi">42</span><span class="p" data-group-id="6596298579-3">}</span><span class="p">,</span><span class="p" data-group-id="6596298579-4">{</span><span class="ss">x</span><span class="p">,</span><span class="mi">0</span><span class="p" data-group-id="6596298579-4">}</span><span class="p">,</span><span class="p" data-group-id="6596298579-5">{</span><span class="ss">x</span><span class="p">,</span><span class="mi">1</span><span class="p" data-group-id="6596298579-5">}</span><span class="p" data-group-id="6596298579-2">}</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="6596298579-6">{</span><span class="ss">put_tuple</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="p" data-group-id="6596298579-7">{</span><span class="ss">x</span><span class="p">,</span><span class="mi">0</span><span class="p" data-group-id="6596298579-7">}</span><span class="p" data-group-id="6596298579-6">}</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="6596298579-8">{</span><span class="nb">put</span><span class="p">,</span><span class="p" data-group-id="6596298579-9">{</span><span class="ss">atom</span><span class="p">,</span><span class="ss">tag</span><span class="p" data-group-id="6596298579-9">}</span><span class="p" data-group-id="6596298579-8">}</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="6596298579-10">{</span><span class="nb">put</span><span class="p">,</span><span class="p" data-group-id="6596298579-11">{</span><span class="ss">x</span><span class="p">,</span><span class="mi">1</span><span class="p" data-group-id="6596298579-11">}</span><span class="p" data-group-id="6596298579-10">}</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="6596298579-12">{</span><span class="nb">put</span><span class="p">,</span><span class="p" data-group-id="6596298579-13">{</span><span class="ss">literal</span><span class="p">,</span><span class="p" data-group-id="6596298579-14">{</span><span class="ss">text</span><span class="p">,</span><span class="s">&quot;hello world!&quot;</span><span class="p" data-group-id="6596298579-14">}</span><span class="p" data-group-id="6596298579-13">}</span><span class="p" data-group-id="6596298579-12">}</span><span class="p">.</span><span class="w">
+</span><span class="ss">return</span><span class="p">.</span></code></pre><p>Looking at the assembler code we can see three things: The heap requirement in this function turns out to be only six words, as seen by the <code class="inline">{test_heap,6,1}</code> instruction. All the allocations are combined to a single instruction. The bulk of the data <code class="inline">{text, &quot;hello world!&quot;}</code> is a <em>literal</em>. Literals, sometimes referred to as constants, are not allocated in the function since they are a part of the module and allocated at load time.</p><p>If there is not enough space available on the heap to satisfy the <code class="inline">test_heap</code> instructions request for memory, then a garbage collection is initiated. It may happen immediately in the <code class="inline">test_heap</code> instruction, or it can be delayed until a later time depending on what state the process is in. If the garbage collection is delayed, any memory needed will be allocated in heap fragments. Heap fragments are extra memory blocks that are a part of the young heap, but are not allocated in the contiguous area where terms normally reside. See <a href="#the-young-heap">The young heap</a> for more details.</p><h3 id="the-collector" class="section-heading">
+  <a href="#the-collector" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">The collector</span>
+</h3>
+<p>Erlang has a copying semi-space garbage collector. This means that when doing a garbage collection, the terms are copied from one distinct area, called the <em>from space</em>, to a new clean area, called the <em>to space</em>. The collector starts by <a href="https://github.com/erlang/otp/blob/OTP-18.0/erts/emulator/beam/erl_gc.c#L1980">scanning the root-set</a> (stack, registers, etc).</p><p><img src="assets/gc-start.png" alt="Garbage collection: initial values"/></p><p>It follows all the pointers from the root-set to the heap and copies each term word by word to the <em>to space</em>.</p><p>After the header word has been copied a <a href="https://github.com/erlang/otp/blob/OTP-18.0/erts/emulator/beam/erl_gc.h#L45-L46"><em>move marker</em></a> is destructively placed in it pointing to the term in the <em>to space</em>. Any other term that points to the already moved term will <a href="https://github.com/erlang/otp/blob/OTP-18.0/erts/emulator/beam/erl_gc.c#L1125">see this move marker</a> and copy the referring pointer instead. For example, if the have the following Erlang code:</p><pre><code class="makeup erlang" translate="no"><span class="nf">foo</span><span class="p" data-group-id="7534030361-1">(</span><span class="n">Arg</span><span class="p" data-group-id="7534030361-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">T</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="7534030361-2">{</span><span class="ss">test</span><span class="p">,</span><span class="w"> </span><span class="n">Arg</span><span class="p" data-group-id="7534030361-2">}</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="7534030361-3">{</span><span class="ss">wrapper</span><span class="p">,</span><span class="w"> </span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">T</span><span class="p" data-group-id="7534030361-3">}</span><span class="p">.</span></code></pre><p>Only one copy of T exists on the heap and during the garbage collection only the first time T is encountered will it be copied.</p><p><img src="assets/gc-rootset-scan.png" alt="Garbage collection: root set scan"/></p><p>After <a href="https://github.com/erlang/otp/blob/OTP-18.0/erts/emulator/beam/erl_gc.c#L1089">all terms</a> referenced by the root-set have been copied, the collector scans the <em>to space</em> and copies all terms that these terms reference. When scanning, the collector steps through each term on the <em>to space</em> and any term still referencing the <em>from space</em> is copied over to the <em>to space</em>. Some terms contain non-term data (the payload of a on heap binary for instance). When encountered by the collector, these values are simply skipped.</p><p><img src="assets/gc-heap-scan1.png" alt="Garbage collection: heap scan"/></p><p>Every term object we can reach is copied to the <em>to space</em> and stored on top off the <em>scan stop</em> line, and then the scan stop is moved to the end of the last object.</p><p><img src="assets/gc-heap-stop.png" alt="Garbage collection: heap scan"/></p><p>When <em>scan stop</em> marker <a href="https://github.com/erlang/otp/blob/OTP-18.0/erts/emulator/beam/erl_gc.c#L1103">catches up</a> to the <em>scan start</em> marker, the garbage collection is done. At this point we can <a href="https://github.com/erlang/otp/blob/OTP-18.0/erts/emulator/beam/erl_gc.c#L1206">deallocate</a> the entire <em>from space</em> and therefore reclaim the entire young heap.</p><h2 id="generational-garbage-collection" class="section-heading">
+  <a href="#generational-garbage-collection" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Generational Garbage Collection</span>
+</h2>
+<p>In addition to the collection algorithm described above, the Erlang garbage collector also provides generational garbage collection. An additional heap, called the old heap, is used where the long lived data is stored. The original heap is called the young heap, or sometimes the allocation heap.</p><p>With this in mind we can look at the Erlang's garbage collection again. During the copy stage anything that should be copied to the young <em>to space</em> is instead copied to the old <em>to space</em> <em>if</em> it is <a href="https://github.com/erlang/otp/blob/OTP-18.0/erts/emulator/beam/erl_gc.c#L1127">below the <em>high-watermark</em></a>.</p><p><img src="assets/gc-watermark.png" alt="Garbage collection: heap scan"/></p><p>The <a href="https://github.com/erlang/otp/blob/OTP-18.0/erts/emulator/beam/erl_process.h#L1021"><em>high-watermark</em></a> is placed where the previous garbage collection (described in <a href="#overview">Overview</a>) ended and we have introduced a new area called the old heap. When doing the normal garbage collection pass, any term that is located below the high-watermark is copied to the old <em>to space</em> instead of the young.</p><p><img src="assets/gc-watermark-2.png" alt="Garbage collection: heap scan"/></p><p>In the next garbage collection, any pointers to the old heap will be ignored and not scanned. This way the garbage collector does not have to scan the long-lived terms.</p><p>Generational garbage collection aims to increase performance at the expense of memory. This is achieved because only the young, smaller, heap is considered in most garbage collections.</p><p>The generational hypothesis predicts that most terms tend to die young (see D. Ungar in <a href="#references">References</a>), and for an immutable language such as Erlang, young terms die even faster than in other languages. So for most usage patterns the data in the new heap will die very soon after it is allocated. This is good because it limits the amount of data copied to the old heap and also because the garbage collection algorithm used is proportional to the amount of live data on the heap.</p><p>One critical issue to note here is that any term on the young heap can reference terms on the old heap but <em>no</em> term on the old heap may refer to a term on the young heap. This is due to the nature of the copy algorithm. Anything referenced by an old heap term is not included in the reference tree, root-set and its followers, and hence is not copied. If it was, the data would be lost, fire and brimstone would rise to cover the earth. Fortunately, this comes naturally for Erlang because the terms are immutable and thus there can be no pointers modified on the old heap to point to the young heap.</p><p>To reclaim data from the old heap, both young and old heaps are included during the collection and copied to a common <em>to space</em>. Both the <em>from space</em> of the young and old heap are then deallocated and the procedure will start over from the beginning. This type of garbage collection is called a full sweep and is triggered when the size of the area under the high-watermark is larger than the size of the free area of the old heap. It can also be triggered by doing a manual call to <a href="http://erlang.org/doc/man/erlang.html#garbage_collect-0">erlang:garbage_collect()</a>, or by running into the young garbage collection limit set by [spawn_opt(fun(),<a href="http://erlang.org/doc/man/erlang.html#spawn_opt-4">{fullsweep_after, N}])</a> where N is the number of young garbage collections to do before forcing a garbage collection of both young and old heap.</p><h2 id="the-young-heap" class="section-heading">
+  <a href="#the-young-heap" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">The young heap</span>
+</h2>
+<p>The young heap, or the allocation heap, consists of the stack and heap as described in the Overview. However, it also includes any heap fragments that are attached to the heap. All of the heap fragments are considered to be above the high-watermark and part of the young generation. Heap fragments contain terms that either did not fit on the heap, or were created by another process and then attached to the heap. For instance if the bif <a href="erlang.html#binary_to_term/1"><code class="inline">binary_to_term/1</code></a> created a term which does not fit on the current heap without doing a garbage collection, it will create a heap-fragment for the term and then schedule a garbage collection for later. Also if a message is sent to the process, the payload may be placed in a heap-fragment and that fragment is added to young heap when the message is matched in a receive clause.</p><p>This procedure differs from how it worked prior to Erlang/OTP 19.0. Before 19.0, only a contiguous memory block where the young heap and stack resided was considered to be part of the young heap. Heap fragments and messages were immediately copied into the young heap before they could be inspected by the Erlang program. The behaviour introduced in 19.0 is superior in many ways - most significantly it reduces the number of necessary copy operations and the root set for garbage collection.</p><h2 id="sizing-the-heap" class="section-heading">
+  <a href="#sizing-the-heap" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Sizing the heap</span>
+</h2>
+<p>As mentioned in the Overview the size of the heap <a href="https://github.com/erlang/otp/blob/OTP-18.0/erts/emulator/beam/erl_gc.c#L247">grows</a> to accommodate more data. Heaps grow in two stages, first a <a href="https://github.com/erlang/otp/blob/OTP-18.0/erts/emulator/beam/erl_gc.c#L199-L208">variation of the Fibonacci sequence</a> is used starting at 233 words. Then at about 1 mega words the heap only <a href="https://github.com/erlang/otp/blob/OTP-18.0/erts/emulator/beam/erl_gc.c#L215-L227">grows in 20% increments</a>.</p><p>There are two occasions when the young heap grows:</p><ul><li>if the total size of the heap + message and heap fragments exceeds the current heap size.</li><li>if after a fullsweep, the total amount of live objects is greater than 75%.</li></ul><p>There are two occasions when the young heap is shrunk:</p><ul><li>if after a young collection, the total amount of live objects is less than 25% of the heap and the young heap is &quot;big&quot;</li><li>if after a fullsweep, the total amount of live objects is less than 25% of the heap.</li></ul><p>The old heap is always one step ahead in the heap growth stages than the young heap.</p><h2 id="literals" class="section-heading">
+  <a href="#literals" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Literals</span>
+</h2>
+<p>When garbage collecting a heap (young or old) all literals are left in place and not copied. To figure out if a term should be copied or not when doing a garbage collection the following pseudo code is used:</p><pre><code class="makeup erlang" translate="no"><span class="nf">if</span><span class="w"> </span><span class="p" data-group-id="6065261177-1">(</span><span class="nf">erts_is_literal</span><span class="p" data-group-id="6065261177-2">(</span><span class="ss">ptr</span><span class="p" data-group-id="6065261177-2">)</span><span class="w"> </span><span class="p">||</span><span class="w"> </span><span class="p" data-group-id="6065261177-3">(</span><span class="nf">on_old_heap</span><span class="p" data-group-id="6065261177-4">(</span><span class="ss">ptr</span><span class="p" data-group-id="6065261177-4">)</span><span class="w"> </span><span class="err">&amp;</span><span class="err">&amp;</span><span class="w"> </span><span class="o">!</span><span class="ss">fullsweep</span><span class="p" data-group-id="6065261177-3">)</span><span class="p" data-group-id="6065261177-1">)</span><span class="w"> </span><span class="p" data-group-id="6065261177-5">{</span><span class="w">
+  </span><span class="o">/</span><span class="o">*</span><span class="w"> </span><span class="ss">literal</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="ss">non</span><span class="w"> </span><span class="ss">fullsweep</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="ss">do</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="ss">copy</span><span class="w"> </span><span class="o">*</span><span class="o">/</span><span class="w">
+</span><span class="p" data-group-id="6065261177-5">}</span><span class="w"> </span><span class="ss">else</span><span class="w"> </span><span class="p" data-group-id="6065261177-6">{</span><span class="w">
+  </span><span class="nf">copy</span><span class="p" data-group-id="6065261177-7">(</span><span class="ss">ptr</span><span class="p" data-group-id="6065261177-7">)</span><span class="p">;</span><span class="w">
+</span><span class="p" data-group-id="6065261177-6">}</span></code></pre><p>The <a href="https://github.com/erlang/otp/blob/OTP-19.0/erts/emulator/beam/global.h#L1452-L1465"><code class="inline">erts_is_literal</code></a> check works differently on different architectures and operating systems.</p><p>On 64 bit systems that allow mapping of unreserved virtual memory areas (most operating systems except Windows), an area of size 1 GB (by default) is mapped and then all literals are placed within that area. Then all that has to be done to determine if something is a literal or not is <a href="https://github.com/erlang/otp/blob/OTP-19.0/erts/emulator/beam/erl_alloc.h#L322-L324">two quick pointer checks</a>. This system relies on the fact that a memory page that has not been touched yet does not take any actual space. So even if 1 GB of virtual memory is mapped, only the memory which is actually needed for literals is allocated in ram. The size of the literal area is configurable through the +MIscs erts_alloc option.</p><p>On 32 bit systems, there is not enough virtual memory space to allocate 1 GB for just literals, so instead small 256 KB sized literal regions are created on demand and a card mark bit-array of the entire 32 bit memory space is then used to determine if a term is a literal or not. Since the total memory space is only 32 bits, the card mark bit-array is only 256 words large. On a 64 bit system the same bit-array would have to be 1 tera words large, so this technique is only viable on 32 bit systems. Doing <a href="https://github.com/erlang/otp/blob/OTP-19.0/erts/emulator/beam/erl_alloc.h#L316-L319">lookups in the array</a> is a little more expensive then just doing the pointer checks that can be done in 64 bit systems, but not extremely so.</p><p>On 64 bit windows, on which erts_alloc cannot do unreserved virtual memory mappings, a <a href="https://github.com/erlang/otp/blob/OTP-19.0/erts/emulator/beam/erl_term.h#L59">special tag</a> within the Erlang term object is used to determine if something <a href="https://github.com/erlang/otp/blob/OTP-19.0/erts/emulator/beam/erl_term.h#L248-L252">is a literal or not</a>. This is very cheap, however, the tag is only available on 64 bit machines, and it is possible to do a great deal of other nice optimizations with this tag in the future (like for instance a more compact list implementation) so it is not used on operating systems where it is not needed.</p><p>This behaviour is different from how it worked prior to Erlang/OTP 19.0. Before 19.0 the literal check was done by checking if the pointer pointed to the young or old heap block. If it did not, then it was considered a literal. This lead to considerable overhead and strange memory usage scenarios, so it was removed in 19.0.</p><h2 id="binary-heap" class="section-heading">
+  <a href="#binary-heap" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Binary heap</span>
+</h2>
+<p>The binary heap works as a large object space for binary terms that are greater than 64 bytes (from now on called off-heap binaries). The binary heap is <a href="https://en.wikipedia.org/wiki/Reference_counting">reference counted</a> and a pointer to the off-heap binary is stored on the process heap. To keep track of when to decrement the reference counter of the off-heap binary, a linked list (the MSO - mark and sweep object list) containing funs and externals as well as off-heap binaries is woven through the heap. After a garbage collection is done, the <a href="https://github.com/erlang/otp/blob/OTP-18.0/erts/emulator/beam/erl_gc.c#L2299">MSO list is swept</a> and any off-heap binary that does not have a <a href="https://github.com/erlang/otp/blob/OTP-18.0/erts/emulator/beam/erl_gc.c#L2325">move marker</a> written into the header words has its reference <a href="https://github.com/erlang/otp/blob/OTP-18.0/erts/emulator/beam/erl_gc.c#L2344-L2367">decremented and is potentially freed</a>.</p><p>All items in the MSO list are ordered by the time they were added to the process heap, so when doing a minor garbage collection, the MSO sweeper only has to sweep until it <a href="https://github.com/erlang/otp/blob/OTP-18.0/erts/emulator/beam/erl_gc.c#L2369">encounters an off-heap binary that is on the old heap</a>.</p><h3 id="virtual-binary-heap" class="section-heading">
+  <a href="#virtual-binary-heap" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Virtual Binary heap</span>
+</h3>
+<p>Each process has a virtual binary heap associated with it that has the size of all the current off-heap binaries that the process has references to. The virtual binary heap also has a limit and grows and shrinks depending on how off-heap binaries are used by the process. The same growth and shrink mechanisms are used for the binary heap and for the term heap, so first a Fibonacci like series and then 20% growth.</p><p>The virtual binary heap exists in order to <a href="https://github.com/erlang/otp/blob/OTP-18.0/erts/emulator/beam/beam_emu.c#L364">trigger</a> garbage collections earlier when potentially there is a very large amount of off-heap binary data that could be reclaimed. This approach does not catch all problems with binary memory not being released soon enough, but it does catch a lot of them.</p><h2 id="messages" class="section-heading">
+  <a href="#messages" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Messages</span>
+</h2>
+<p>Messages can become a part of the process heap at different times. This depends on how the process is configured.
+We can configure the behaviour of each process using <code class="inline">process_flag(message_queue_data, off_heap | on_heap)</code> or we can set a default for all processes at start using the option <code class="inline">+hmqd</code>.</p><p>What do these different configurations do and when should we use them?
+Let's start by going through what happens when one Erlang process sends a message to another.
+The sending process needs to do a couple of things:</p><ol><li>calculate <a href="https://github.com/erlang/otp/blob/OTP-18.0/erts/emulator/beam/erl_message.c#L1031">how large</a> the message to be sent is</li><li><a href="https://github.com/erlang/otp/blob/OTP-18.0/erts/emulator/beam/erl_message.c#L1033">allocate enough space</a> to fit the entire message</li><li><a href="https://github.com/erlang/otp/blob/OTP-18.0/erts/emulator/beam/erl_message.c#L1040">copy</a> the message payload</li><li>allocate a message container with some meta data</li><li><a href="https://github.com/erlang/otp/blob/OTP-18.0/erts/emulator/beam/erl_message.c#L502">insert</a> the message container in the receiver process' <a href="https://github.com/erlang/otp/blob/OTP-18.0/erts/emulator/beam/erl_process.h#L1042">message queue</a></li></ol><p>The process flag <code class="inline">message_queue_data</code>, of the receiver process, controls the message allocating strategy of the sender process in step 2 and also how the message data is treated by the garbage collector.</p><p>The procedure above is different from how it worked prior to 19.0. Before 19.0 there was no configuration option, the behaviour was always very similar to how the <code class="inline">on_heap</code> option is in 19.0.</p><h3 id="message-allocating-strategies" class="section-heading">
+  <a href="#message-allocating-strategies" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Message allocating strategies</span>
+</h3>
+<p>If set to <code class="inline">on_heap</code>, the sending process will first attempt to allocate the space for the message directly on the young heap block of the receiving process.
+This is not always possible as it requires taking the <em>main lock</em> of the receiving process. The main lock is also held when the process is executing. The possibility for a lock conflict is thus likely in an intensely collaborating system.
+If the sending process cannot acquire the main lock, a heap fragment is instead created for the message and the message payload is copied onto that.
+With the <code class="inline">off_heap</code> option the sender process always creates heap fragments for messages sent to that process.</p><p>There are a bunch of different tradeoffs that come into play when trying to figure out which of the strategies you want to use.</p><p>Using <code class="inline">off_heap</code> may seem like a nice way to get a more scalable system as you get very little contention on the main locks, however, allocating a heap fragment is more expensive than allocating on the heap of the receiving process. So if it is very unlikely that contention will occur, it is more efficient to try to allocate the message directly on the receiving process' heap.</p><p>Using <code class="inline">on_heap</code> will force all messages to be part of on the young heap which will increase the amount of data that the garbage collector has to move. So if a garbage collection is triggered while processing a large amount of messages, they will be copied to the young heap. This in turn will lead to that the messages will quickly be promoted to the old heap and thus increase its size. This may be good or bad depending on exactly what the process does. A large old heap means that the young heap will also be larger, which in turn means that less garbage collections will be triggered while processing the message queue. This will temporarily increase the throughput of the process at the cost of more memory usage. However, if after all the messages have been consumed the process enters a state where a lot less messages are being received. Then it may be a long time before the next fullsweep garbage collection happens and the messages that are on the old heap will be there until that happens. So while <code class="inline">on_heap</code> is potentially faster than the other modes, it uses more memory for a longer time. This mode is the legacy mode which is almost how the message queue was handled before Erlang/OTP 19.0.</p><p>Which one of these strategies is best depends a lot on what the process is doing and how it interacts with other processes. So, as always, profile the application and see how it behaves with the different options.</p><h2 id="references" class="section-heading">
+  <a href="#references" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">References</span>
+</h2>
+<p>C. J. Cheney. A nonrecursive list compacting algorithm. Commun. ACM, 13(11):677–678, Nov. 1970.</p><p>D. Ungar. Generation scavenging: A non-disruptive high performance storage reclamation algorithm. SIGSOFT Softw. Eng. Notes, 9(3):157–167, Apr. 1984.</p>
+<div class="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="delayeddealloc.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Delayed Dealloc
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="ptables.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+Process and Port Tables
+        </span>
+      </a>
+
+  </div>
+</div>
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

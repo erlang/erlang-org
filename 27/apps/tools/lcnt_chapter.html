@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="tools v4.0">
+
+
+    <title>lcnt - The Lock Profiler — tools v4.0</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-63A1715E.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="tools" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+tools
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v4.0
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of tools</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/lib/tools/doc/guides/lcnt_chapter.md#L1" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+
+  <span>lcnt - The Lock Profiler</span>
+</h1>
+
+<p>Internally in the Erlang runtime system locks are used to protect resources from
+being updated from multiple threads in a fatal way. Locks are necessary to
+ensure that the runtime system works properly but it also introduces a couple of
+limitations. Lock contention and locking overhead.</p><p>With lock contention we mean when one thread locks a resource and another
+thread, or threads, tries to acquire the same resource at the same time. The
+lock will deny the other thread access to the resource and the thread will be
+blocked from continuing its execution. The second thread has to wait until the
+first thread has completed its access to the resource and unlocked it. The
+<code class="inline">lcnt</code> tool measures these lock conflicts.</p><p>Locks have an inherent cost in execution time and memory space. It takes time
+initialize, destroy, acquiring or releasing locks. To decrease lock contention
+it some times necessary to use finer grained locking strategies. This will
+usually also increase the locking overhead and hence there is a tradeoff between
+lock contention and overhead. In general, lock contention increases with the
+number of threads running concurrently. The <code class="inline">lcnt</code> tool does not measure locking
+overhead.</p><h2 id="enabling-lock-counting" class="section-heading">
+  <a href="#enabling-lock-counting" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Enabling lock-counting</span>
+</h2>
+<p>For investigation of locks in the emulator we use an internal tool called <code class="inline">lcnt</code>
+(short for lock-count). The VM needs to be compiled with this option enabled. To
+compile a lock-counting VM along with a normal VM, use:</p><pre><code class="text">cd $ERL_TOP
+./configure --enable-lock-counter</code></pre><p>Start the lock-counting VM like this:</p><pre><code class="text">$ERL_TOP/bin/erl -emu_type lcnt</code></pre><p>To verify that lock counting is enabled check that <code class="inline">[lock-counting]</code> appears in
+the status text when the VM is started.</p><pre><code class="makeup erlang" translate="no"><span class="n">Erlang</span><span class="o">/</span><span class="n">OTP</span><span class="w"> </span><span class="mi">20</span><span class="w"> </span><span class="p" data-group-id="2331022128-1">[</span><span class="ss">erts</span><span class="o">-</span><span class="mf">9.0</span><span class="p" data-group-id="2331022128-1">]</span><span class="w"> </span><span class="p" data-group-id="2331022128-2">[</span><span class="mi">64</span><span class="o">-</span><span class="ss">bit</span><span class="p" data-group-id="2331022128-2">]</span><span class="w"> </span><span class="p" data-group-id="2331022128-3">[</span><span class="nc">smp</span><span class="p">:</span><span class="mi">8</span><span class="p">:</span><span class="mi">8</span><span class="p" data-group-id="2331022128-3">]</span><span class="w"> </span><span class="p" data-group-id="2331022128-4">[</span><span class="nc">ds</span><span class="p">:</span><span class="mi">8</span><span class="p">:</span><span class="mi">8</span><span class="p">:</span><span class="mi">10</span><span class="p" data-group-id="2331022128-4">]</span><span class="w"> </span><span class="p" data-group-id="2331022128-5">[</span><span class="ss">async</span><span class="o">-</span><span class="nc">threads</span><span class="p">:</span><span class="mi">10</span><span class="p" data-group-id="2331022128-5">]</span><span class="w"> </span><span class="p" data-group-id="2331022128-6">[</span><span class="ss">hipe</span><span class="p" data-group-id="2331022128-6">]</span><span class="w">
+ </span><span class="p" data-group-id="2331022128-7">[</span><span class="ss">kernel</span><span class="o">-</span><span class="nc">poll</span><span class="p">:</span><span class="ss">false</span><span class="p" data-group-id="2331022128-7">]</span><span class="w"> </span><span class="p" data-group-id="2331022128-8">[</span><span class="ss">lock</span><span class="o">-</span><span class="ss">counting</span><span class="p" data-group-id="2331022128-8">]</span></code></pre><h2 id="getting-started" class="section-heading">
+  <a href="#getting-started" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Getting started</span>
+</h2>
+<p>Once you have a lock counting enabled VM the module <code class="inline">lcnt</code> can be used. The
+module is intended to be used from the current running nodes shell. To access
+remote nodes use <code class="inline">lcnt:clear(Node)</code> and <code class="inline">lcnt:collect(Node)</code>.</p><p>All locks are continuously monitored and its statistics updated. Use
+<a href="lcnt.html#clear/0"><code class="inline">lcnt:clear/0</code></a> to initially clear all counters before running any specific
+tests. This command will also reset the duration timer internally.</p><p>To retrieve lock statistics information, use <code class="inline">lcnt:collect/0,1</code>. The collect
+operation will start a <code class="inline">lcnt</code> server if it not already started. All collected
+data will be built into an Erlang term and uploaded to the server and a duration
+time will also be uploaded. This duration is the time between <code class="inline">lcnt:clear/0,1</code>
+and <code class="inline">lcnt:collect/0,1</code>.</p><p>Once the data is collected to the server it can be filtered, sorted and printed
+in many different ways.</p><p>See the <a href="lcnt.html">reference manual</a> for a description of each function.</p><h2 id="example-of-usage" class="section-heading">
+  <a href="#example-of-usage" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Example of usage</span>
+</h2>
+<p>From the Erlang shell:</p><pre><code class="text">Erlang R13B03 (erts-5.7.4) [source] [smp:8:8] [rq:8] [async-threads:0] [hipe]
+ [kernel-poll:false] [lock-counting]
+1&gt; lcnt:rt_opt({copy_save, true}).
+false
+2&gt; lcnt:clear(), big:bang(1000), lcnt:collect().
+ok
+3&gt; lcnt:conflicts().
+                   lock   id  #tries  #collisions  collisions [%]  time [us]  duration [%]
+                  -----  --- ------- ------------ --------------- ---------- -------------
+         alcu_allocator   50 4113692       158921          3.8632     215464        4.4962
+               pix_lock  256 4007140         4882          0.1218      12221        0.2550
+              run_queue    8 2287246         6949          0.3038       9825        0.2050
+              proc_main 1029 3115778        25755          0.8266       1199        0.0250
+              proc_msgq 1029 2467022         1910          0.0774       1048        0.0219
+            proc_status 1029 5708439         2435          0.0427        706        0.0147
+ message_pre_alloc_lock    8 2008569          134          0.0067         90        0.0019
+              timeofday    1   54065            8          0.0148         22        0.0005
+                gc_info    1    7071            7          0.0990          5        0.0001
+ok</code></pre><p>Another way to to profile a specific function is to use <a href="lcnt.html#apply/3"><code class="inline">lcnt:apply/3</code></a> or
+<a href="lcnt.html#apply/1"><code class="inline">lcnt:apply/1</code></a> which does <a href="lcnt.html#clear/0"><code class="inline">lcnt:clear/0</code></a> before the function and
+<a href="lcnt.html#collect/0"><code class="inline">lcnt:collect/0</code></a> after its invocation. This method should only be used in
+micro-benchmarks since it sets <code class="inline">copy_save</code> to <code class="inline">true</code> for the duration of the
+function call, which may cause the emulator to run out of memory if attempted
+under load.</p><pre><code class="text">Erlang R13B03 (erts-5.7.4) [source] [smp:8:8] [rq:8] [async-threads:0] [hipe]
+ [kernel-poll:false] [lock-counting]
+1&gt; lcnt:apply(fun() -&gt; big:bang(1000) end).
+4384.338
+2&gt; lcnt:conflicts().
+                   lock   id  #tries  #collisions  collisions [%]  time [us]  duration [%]
+                  -----  --- ------- ------------ --------------- ---------- -------------
+         alcu_allocator   50 4117913       183091          4.4462     234232        5.1490
+              run_queue    8 2050398         3801          0.1854       6700        0.1473
+               pix_lock  256 4007080         4943          0.1234       2847        0.0626
+              proc_main 1028 3000178        28247          0.9415       1022        0.0225
+              proc_msgq 1028 2293677         1352          0.0589        545        0.0120
+            proc_status 1028 5258029         1744          0.0332        442        0.0097
+ message_pre_alloc_lock    8 2009322          147          0.0073         82        0.0018
+              timeofday    1   48616            9          0.0185         13        0.0003
+                gc_info    1    7455           12          0.1610          9        0.0002
+ok</code></pre><p>The process locks are sorted after its class like all other locks. It is
+convenient to look at specific processes and ports as classes. We can do this by
+swapping class and class identifiers with <a href="lcnt.html#swap_pid_keys/0"><code class="inline">lcnt:swap_pid_keys/0</code></a>.</p><pre><code class="text">3&gt; lcnt:swap_pid_keys().
+ok
+4&gt; lcnt:conflicts([{print, [name, tries, ratio, time]}]).
+                   lock  #tries  collisions [%]  time [us]
+                  ----- ------- --------------- ----------
+         alcu_allocator 4117913          4.4462     234232
+              run_queue 2050398          0.1854       6700
+               pix_lock 4007080          0.1234       2847
+ message_pre_alloc_lock 2009322          0.0073         82
+  &lt;nonode@nohost.660.0&gt;   13493          1.4452         41
+  &lt;nonode@nohost.724.0&gt;   13504          1.1404         36
+  &lt;nonode@nohost.803.0&gt;   13181          1.6235         35
+  &lt;nonode@nohost.791.0&gt;   13534          0.8202         22
+   &lt;nonode@nohost.37.0&gt;    8744          5.8326         22
+  &lt;nonode@nohost.876.0&gt;   13335          1.1174         19
+  &lt;nonode@nohost.637.0&gt;   13452          1.3678         19
+  &lt;nonode@nohost.799.0&gt;   13497          1.8745         18
+  &lt;nonode@nohost.469.0&gt;   11009          2.5343         18
+  &lt;nonode@nohost.862.0&gt;   13131          1.2566         16
+  &lt;nonode@nohost.642.0&gt;   13216          1.7327         15
+  &lt;nonode@nohost.582.0&gt;   13156          1.1098         15
+  &lt;nonode@nohost.622.0&gt;   13420          0.7303         14
+  &lt;nonode@nohost.596.0&gt;   13141          1.6437         14
+  &lt;nonode@nohost.592.0&gt;   13346          1.2064         13
+  &lt;nonode@nohost.526.0&gt;   13076          1.1701         13
+ok</code></pre><h2 id="example-with-mnesia-transaction-benchmark" class="section-heading">
+  <a href="#example-with-mnesia-transaction-benchmark" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Example with Mnesia Transaction Benchmark</span>
+</h2>
+<p>From the Erlang shell:</p><pre><code class="makeup erlang" translate="no"><span class="n">Erlang</span><span class="w"> </span><span class="n">R13B03</span><span class="w"> </span><span class="p" data-group-id="0140235914-1">(</span><span class="ss">erts</span><span class="o">-</span><span class="mf">5.7</span><span class="p">.</span><span class="mi">4</span><span class="p" data-group-id="0140235914-1">)</span><span class="w"> </span><span class="p" data-group-id="0140235914-2">[</span><span class="ss">source</span><span class="p" data-group-id="0140235914-2">]</span><span class="w"> </span><span class="p" data-group-id="0140235914-3">[</span><span class="nc">smp</span><span class="p">:</span><span class="mi">8</span><span class="p">:</span><span class="mi">8</span><span class="p" data-group-id="0140235914-3">]</span><span class="w"> </span><span class="p" data-group-id="0140235914-4">[</span><span class="nc">rq</span><span class="p">:</span><span class="mi">8</span><span class="p" data-group-id="0140235914-4">]</span><span class="w"> </span><span class="p" data-group-id="0140235914-5">[</span><span class="ss">async</span><span class="o">-</span><span class="nc">threads</span><span class="p">:</span><span class="mi">0</span><span class="p" data-group-id="0140235914-5">]</span><span class="w"> </span><span class="p" data-group-id="0140235914-6">[</span><span class="ss">hipe</span><span class="p" data-group-id="0140235914-6">]</span><span class="w">
+ </span><span class="p" data-group-id="0140235914-7">[</span><span class="ss">kernel</span><span class="o">-</span><span class="nc">poll</span><span class="p">:</span><span class="ss">false</span><span class="p" data-group-id="0140235914-7">]</span><span class="w"> </span><span class="p" data-group-id="0140235914-8">[</span><span class="ss">lock</span><span class="o">-</span><span class="ss">counting</span><span class="p" data-group-id="0140235914-8">]</span><span class="w">
+
+</span><span class="n">Eshell</span><span class="w"> </span><span class="n">V5</span><span class="p">.</span><span class="mf">7.4</span><span class="w">  </span><span class="p" data-group-id="0140235914-9">(</span><span class="ss">abort</span><span class="w"> </span><span class="ss">with</span><span class="w"> </span><span class="err">^</span><span class="n">G</span><span class="p" data-group-id="0140235914-9">)</span><span class="gp unselectable">
+1&gt; </span><span class="n">Conf</span><span class="o">=</span><span class="p" data-group-id="0140235914-10">[</span><span class="p" data-group-id="0140235914-11">{</span><span class="ss">db_nodes</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0140235914-12">[</span><span class="nf">node</span><span class="p" data-group-id="0140235914-13">(</span><span class="p" data-group-id="0140235914-13">)</span><span class="p" data-group-id="0140235914-12">]</span><span class="p" data-group-id="0140235914-11">}</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0140235914-14">{</span><span class="ss">driver_nodes</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0140235914-15">[</span><span class="nf">node</span><span class="p" data-group-id="0140235914-16">(</span><span class="p" data-group-id="0140235914-16">)</span><span class="p" data-group-id="0140235914-15">]</span><span class="p" data-group-id="0140235914-14">}</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0140235914-17">{</span><span class="ss">replica_nodes</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0140235914-18">[</span><span class="nf">node</span><span class="p" data-group-id="0140235914-19">(</span><span class="p" data-group-id="0140235914-19">)</span><span class="p" data-group-id="0140235914-18">]</span><span class="p" data-group-id="0140235914-17">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="0140235914-20">{</span><span class="ss">n_drivers_per_node</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p" data-group-id="0140235914-20">}</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0140235914-21">{</span><span class="ss">n_branches</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p" data-group-id="0140235914-21">}</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0140235914-22">{</span><span class="ss">n_accounts_per_branch</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p" data-group-id="0140235914-22">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="0140235914-23">{</span><span class="ss">replica_type</span><span class="p">,</span><span class="w"> </span><span class="ss">ram_copies</span><span class="p" data-group-id="0140235914-23">}</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0140235914-24">{</span><span class="ss">stop_after</span><span class="p">,</span><span class="w"> </span><span class="mi">60000</span><span class="p" data-group-id="0140235914-24">}</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0140235914-25">{</span><span class="ss">reuse_history_id</span><span class="p">,</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="0140235914-25">}</span><span class="p" data-group-id="0140235914-10">]</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="0140235914-26">[</span><span class="p" data-group-id="0140235914-27">{</span><span class="ss">db_nodes</span><span class="p">,</span><span class="p" data-group-id="0140235914-28">[</span><span class="ss">nonode@nohost</span><span class="p" data-group-id="0140235914-28">]</span><span class="p" data-group-id="0140235914-27">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="0140235914-29">{</span><span class="ss">driver_nodes</span><span class="p">,</span><span class="p" data-group-id="0140235914-30">[</span><span class="ss">nonode@nohost</span><span class="p" data-group-id="0140235914-30">]</span><span class="p" data-group-id="0140235914-29">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="0140235914-31">{</span><span class="ss">replica_nodes</span><span class="p">,</span><span class="p" data-group-id="0140235914-32">[</span><span class="ss">nonode@nohost</span><span class="p" data-group-id="0140235914-32">]</span><span class="p" data-group-id="0140235914-31">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="0140235914-33">{</span><span class="ss">n_drivers_per_node</span><span class="p">,</span><span class="mi">10</span><span class="p" data-group-id="0140235914-33">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="0140235914-34">{</span><span class="ss">n_branches</span><span class="p">,</span><span class="mi">1000</span><span class="p" data-group-id="0140235914-34">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="0140235914-35">{</span><span class="ss">n_accounts_per_branch</span><span class="p">,</span><span class="mi">10</span><span class="p" data-group-id="0140235914-35">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="0140235914-36">{</span><span class="ss">replica_type</span><span class="p">,</span><span class="ss">ram_copies</span><span class="p" data-group-id="0140235914-36">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="0140235914-37">{</span><span class="ss">stop_after</span><span class="p">,</span><span class="mi">60000</span><span class="p" data-group-id="0140235914-37">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="0140235914-38">{</span><span class="ss">reuse_history_id</span><span class="p">,</span><span class="ss">true</span><span class="p" data-group-id="0140235914-38">}</span><span class="p" data-group-id="0140235914-26">]</span><span class="gp unselectable">
+2&gt; </span><span class="nc">mnesia_tpcb</span><span class="p">:</span><span class="nf">init</span><span class="p" data-group-id="0140235914-39">(</span><span class="p" data-group-id="0140235914-40">[</span><span class="p" data-group-id="0140235914-41">{</span><span class="ss">use_running_mnesia</span><span class="p">,</span><span class="w"> </span><span class="ss">false</span><span class="p" data-group-id="0140235914-41">}</span><span class="p">|</span><span class="n">Conf</span><span class="p" data-group-id="0140235914-40">]</span><span class="p" data-group-id="0140235914-39">)</span><span class="p">.</span><span class="w">
+</span><span class="ss">ignore</span></code></pre><p>Initial configuring of the benchmark is done. It is time to profile the actual
+benchmark and Mnesia</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">3&gt; </span><span class="nc">lcnt</span><span class="p">:</span><span class="nf">apply</span><span class="p" data-group-id="2176085565-1">(</span><span class="nf">fun</span><span class="p" data-group-id="2176085565-2">(</span><span class="p" data-group-id="2176085565-2">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="p" data-group-id="2176085565-3">{</span><span class="ss">ok</span><span class="p">,</span><span class="p" data-group-id="2176085565-4">{</span><span class="ss">time</span><span class="p">,</span><span class="w"> </span><span class="n">Tps</span><span class="p">,</span><span class="p">_</span><span class="p">,</span><span class="p">_</span><span class="p">,</span><span class="p">_</span><span class="p">,</span><span class="p">_</span><span class="p" data-group-id="2176085565-4">}</span><span class="p" data-group-id="2176085565-3">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">mnesia_tpcb</span><span class="p">:</span><span class="nf">run</span><span class="p" data-group-id="2176085565-5">(</span><span class="p" data-group-id="2176085565-6">[</span><span class="p" data-group-id="2176085565-7">{</span><span class="ss">use_running_mnesia</span><span class="p">,</span><span class="w">
+ </span><span class="ss">true</span><span class="p" data-group-id="2176085565-7">}</span><span class="p">|</span><span class="n">Conf</span><span class="p" data-group-id="2176085565-6">]</span><span class="p" data-group-id="2176085565-5">)</span><span class="p">,</span><span class="w"> </span><span class="n">Tps</span><span class="o">/</span><span class="mi">60</span><span class="w"> </span><span class="k">end</span><span class="p" data-group-id="2176085565-1">)</span><span class="p">.</span><span class="w">
+</span><span class="mf">12037.483333333334</span><span class="w">
+</span><span class="ss">ok</span><span class="gp unselectable">
+4&gt; </span><span class="nc">lcnt</span><span class="p">:</span><span class="nf">swap_pid_keys</span><span class="p" data-group-id="2176085565-8">(</span><span class="p" data-group-id="2176085565-8">)</span><span class="p">.</span><span class="w">
+</span><span class="ss">ok</span></code></pre><p>The <code class="inline">id</code> header represents the number of unique identifiers under a class when
+the option <code class="inline">{combine, true}</code> is used (which is on by default). It will otherwise
+show the specific identifier. The <code class="inline">db_tab</code> listing shows 722287 unique locks, it
+is one for each ets-table created and Mnesia creates one for each transaction.</p><pre><code class="text">5&gt; lcnt:conflicts().
+                   lock     id   #tries  #collisions  collisions [%]  time [us]  duration [%]
+                  -----    ---  ------- ------------ --------------- ---------- -------------
+         alcu_allocator     50 56355118       732662          1.3001    2934747        4.8862
+                 db_tab 722287 94513441        63203          0.0669    1958797        3.2613
+              timeofday      1  2701048       175854          6.5106    1746079        2.9071
+               pix_lock    256 24306168       163214          0.6715     918309        1.5289
+              run_queue      8 11813811       152637          1.2920     357040        0.5945
+ message_pre_alloc_lock      8 17671449        57203          0.3237     263043        0.4380
+          mnesia_locker      4 17477633      1618548          9.2607      97092        0.1617
+              mnesia_tm      4  9891408       463788          4.6888      86353        0.1438
+                gc_info      1   823460          628          0.0763      24826        0.0413
+     meta_main_tab_slot     16 41393400         7193          0.0174      11393        0.0190
+ &lt;nonode@nohost.1108.0&gt;      4  4331412          333          0.0077       7148        0.0119
+            timer_wheel      1   203185           30          0.0148       3108        0.0052
+ &lt;nonode@nohost.1110.0&gt;      4  4291098          210          0.0049        885        0.0015
+ &lt;nonode@nohost.1114.0&gt;      4  4294702          288          0.0067        442        0.0007
+ &lt;nonode@nohost.1113.0&gt;      4  4346066          235          0.0054        390        0.0006
+ &lt;nonode@nohost.1106.0&gt;      4  4348159          287          0.0066        379        0.0006
+ &lt;nonode@nohost.1111.0&gt;      4  4279309          290          0.0068        325        0.0005
+ &lt;nonode@nohost.1107.0&gt;      4  4292190          302          0.0070        315        0.0005
+ &lt;nonode@nohost.1112.0&gt;      4  4208858          265          0.0063        276        0.0005
+ &lt;nonode@nohost.1109.0&gt;      4  4377502          267          0.0061        276        0.0005
+ok</code></pre><p>The listing shows <code class="inline">mnesia_locker</code>, a process, has highly contended locks.</p><pre><code class="text">6&gt; lcnt:inspect(mnesia_locker).
+          lock          id  #tries  #collisions  collisions [%]  time [us]  duration [%]
+         -----         --- ------- ------------ --------------- ---------- -------------
+ mnesia_locker   proc_msgq 5449930        59374          1.0894      69781        0.1162
+ mnesia_locker   proc_main 4462782      1487374         33.3284      14398        0.0240
+ mnesia_locker proc_status 7564921        71800          0.9491      12913        0.0215
+ mnesia_locker   proc_link       0            0          0.0000          0        0.0000
+ok</code></pre><p>Listing without class combiner.</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">7&gt; </span><span class="nc">lcnt</span><span class="p">:</span><span class="nf">conflicts</span><span class="p" data-group-id="2874331217-1">(</span><span class="p" data-group-id="2874331217-2">[</span><span class="p" data-group-id="2874331217-3">{</span><span class="ss">combine</span><span class="p">,</span><span class="w"> </span><span class="ss">false</span><span class="p" data-group-id="2874331217-3">}</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2874331217-4">{</span><span class="ss">print</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2874331217-5">[</span><span class="ss">name</span><span class="p">,</span><span class="w"> </span><span class="ss">id</span><span class="p">,</span><span class="w"> </span><span class="ss">tries</span><span class="p">,</span><span class="w"> </span><span class="ss">ratio</span><span class="p">,</span><span class="w"> </span><span class="ss">time</span><span class="p" data-group-id="2874331217-5">]</span><span class="p" data-group-id="2874331217-4">}</span><span class="p" data-group-id="2874331217-2">]</span><span class="p" data-group-id="2874331217-1">)</span><span class="p">.</span><span class="w">
+                   </span><span class="ss">lock</span><span class="w">                        </span><span class="ss">id</span><span class="w">   </span><span class="p">#</span><span class="ss">tries</span><span class="w">  </span><span class="ss">collisions</span><span class="w"> </span><span class="p" data-group-id="2874331217-6">[</span><span class="c1">%]  time [us]</span><span class="w">
+                  </span><span class="o">--</span><span class="o">--</span><span class="o">-</span><span class="w">                       </span><span class="o">--</span><span class="o">-</span><span class="w">  </span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">-</span><span class="w"> </span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">-</span><span class="w"> </span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="w">
+                 </span><span class="ss">db_tab</span><span class="w"> </span><span class="ss">mnesia_transient_decision</span><span class="w">   </span><span class="mi">722250</span><span class="w">          </span><span class="mf">3.9463</span><span class="w">    </span><span class="mi">1856852</span><span class="w">
+              </span><span class="ss">timeofday</span><span class="w">                 </span><span class="ss">undefined</span><span class="w">  </span><span class="mi">2701048</span><span class="w">          </span><span class="mf">6.5106</span><span class="w">    </span><span class="mi">1746079</span><span class="w">
+         </span><span class="ss">alcu_allocator</span><span class="w">                 </span><span class="ss">ets_alloc</span><span class="w">  </span><span class="mi">7490696</span><span class="w">          </span><span class="mf">2.2737</span><span class="w">     </span><span class="mi">692655</span><span class="w">
+         </span><span class="ss">alcu_allocator</span><span class="w">                 </span><span class="ss">ets_alloc</span><span class="w">  </span><span class="mi">7081771</span><span class="w">          </span><span class="mf">2.3294</span><span class="w">     </span><span class="mi">664522</span><span class="w">
+         </span><span class="ss">alcu_allocator</span><span class="w">                 </span><span class="ss">ets_alloc</span><span class="w">  </span><span class="mi">7047750</span><span class="w">          </span><span class="mf">2.2520</span><span class="w">     </span><span class="mi">658495</span><span class="w">
+         </span><span class="ss">alcu_allocator</span><span class="w">                 </span><span class="ss">ets_alloc</span><span class="w">  </span><span class="mi">5883537</span><span class="w">          </span><span class="mf">2.3177</span><span class="w">     </span><span class="mi">610869</span><span class="w">
+               </span><span class="ss">pix_lock</span><span class="w">                        </span><span class="mi">58</span><span class="w"> </span><span class="mi">11011355</span><span class="w">          </span><span class="mf">1.1924</span><span class="w">     </span><span class="mi">564808</span><span class="w">
+               </span><span class="ss">pix_lock</span><span class="w">                        </span><span class="mi">60</span><span class="w">  </span><span class="mi">4426484</span><span class="w">          </span><span class="mf">0.7120</span><span class="w">     </span><span class="mi">262490</span><span class="w">
+         </span><span class="ss">alcu_allocator</span><span class="w">                 </span><span class="ss">ets_alloc</span><span class="w">  </span><span class="mi">1897004</span><span class="w">          </span><span class="mf">2.4248</span><span class="w">     </span><span class="mi">219543</span><span class="w">
+ </span><span class="ss">message_pre_alloc_lock</span><span class="w">                 </span><span class="ss">undefined</span><span class="w">  </span><span class="mi">4211267</span><span class="w">          </span><span class="mf">0.3242</span><span class="w">     </span><span class="mi">128299</span><span class="w">
+              </span><span class="ss">run_queue</span><span class="w">                         </span><span class="mi">3</span><span class="w">  </span><span class="mi">2801555</span><span class="w">          </span><span class="mf">1.3003</span><span class="w">     </span><span class="mi">116792</span><span class="w">
+              </span><span class="ss">run_queue</span><span class="w">                         </span><span class="mi">2</span><span class="w">  </span><span class="mi">2799988</span><span class="w">          </span><span class="mf">1.2700</span><span class="w">     </span><span class="mi">100091</span><span class="w">
+              </span><span class="ss">run_queue</span><span class="w">                         </span><span class="mi">1</span><span class="w">  </span><span class="mi">2966183</span><span class="w">          </span><span class="mf">1.2712</span><span class="w">      </span><span class="mi">78834</span><span class="w">
+          </span><span class="ss">mnesia_locker</span><span class="w">                 </span><span class="ss">proc_msgq</span><span class="w">  </span><span class="mi">5449930</span><span class="w">          </span><span class="mf">1.0894</span><span class="w">      </span><span class="mi">69781</span><span class="w">
+ </span><span class="ss">message_pre_alloc_lock</span><span class="w">                 </span><span class="ss">undefined</span><span class="w">  </span><span class="mi">3495672</span><span class="w">          </span><span class="mf">0.3262</span><span class="w">      </span><span class="mi">65773</span><span class="w">
+ </span><span class="ss">message_pre_alloc_lock</span><span class="w">                 </span><span class="ss">undefined</span><span class="w">  </span><span class="mi">4189752</span><span class="w">          </span><span class="mf">0.3174</span><span class="w">      </span><span class="mi">58607</span><span class="w">
+              </span><span class="ss">mnesia_tm</span><span class="w">                 </span><span class="ss">proc_msgq</span><span class="w">  </span><span class="mi">2094144</span><span class="w">          </span><span class="mf">1.7184</span><span class="w">      </span><span class="mi">56361</span><span class="w">
+              </span><span class="ss">run_queue</span><span class="w">                         </span><span class="mi">4</span><span class="w">  </span><span class="mi">2343585</span><span class="w">          </span><span class="mf">1.3115</span><span class="w">      </span><span class="mi">44300</span><span class="w">
+                 </span><span class="ss">db_tab</span><span class="w">                    </span><span class="ss">branch</span><span class="w">  </span><span class="mi">1446529</span><span class="w">          </span><span class="mf">0.5229</span><span class="w">      </span><span class="mi">38244</span><span class="w">
+                </span><span class="ss">gc_info</span><span class="w">                 </span><span class="ss">undefined</span><span class="w">   </span><span class="mi">823460</span><span class="w">          </span><span class="mf">0.0763</span><span class="w">      </span><span class="mi">24826</span><span class="w">
+</span><span class="ss">ok</span></code></pre><p>In this scenario the lock that protects ets-table <code class="inline">mnesia_transient_decision</code>
+has spent most of its waiting for. That is 1.8 seconds in a test that run for 60
+seconds. The time is also spread on eight different scheduler threads.</p><pre><code class="text">8&gt; lcnt:inspect(db_tab, [{print, [name, id, tries, colls, ratio, duration]}]).
+   lock                        id  #tries  #collisions  collisions [%]  duration [%]
+  -----                       --- ------- ------------ --------------- -------------
+ db_tab mnesia_transient_decision  722250        28502          3.9463        3.0916
+ db_tab                    branch 1446529         7564          0.5229        0.0637
+ db_tab                   account 1464500         8203          0.5601        0.0357
+ db_tab                    teller 1464529         8110          0.5538        0.0291
+ db_tab                   history  722250         3767          0.5216        0.0232
+ db_tab              mnesia_stats  750332         7057          0.9405        0.0180
+ db_tab        mnesia_trans_store      61            0          0.0000        0.0000
+ db_tab        mnesia_trans_store      61            0          0.0000        0.0000
+ db_tab        mnesia_trans_store      53            0          0.0000        0.0000
+ db_tab        mnesia_trans_store      53            0          0.0000        0.0000
+ db_tab        mnesia_trans_store      53            0          0.0000        0.0000
+ db_tab        mnesia_trans_store      53            0          0.0000        0.0000
+ db_tab        mnesia_trans_store      53            0          0.0000        0.0000
+ db_tab        mnesia_trans_store      53            0          0.0000        0.0000
+ db_tab        mnesia_trans_store      53            0          0.0000        0.0000
+ db_tab        mnesia_trans_store      53            0          0.0000        0.0000
+ db_tab        mnesia_trans_store      53            0          0.0000        0.0000
+ db_tab        mnesia_trans_store      53            0          0.0000        0.0000
+ db_tab        mnesia_trans_store      53            0          0.0000        0.0000
+ db_tab        mnesia_trans_store      53            0          0.0000        0.0000
+ok</code></pre><h2 id="deciphering-the-output" class="section-heading">
+  <a href="#deciphering-the-output" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Deciphering the output</span>
+</h2>
+<p>Typically high <code class="inline">time</code> values are bad and this is often the thing to look for.
+However, one should also look for high lock acquisition frequencies (#tries)
+since locks generate overhead and because high frequency could become
+problematic if they begin to have conflicts even if it is not shown in a
+particular test.</p><h2 id="see-also" class="section-heading">
+  <a href="#see-also" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">See Also</span>
+</h2>
+<p><a href="lcnt.html">LCNT Reference Manual</a></p>
+<div class="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="fprof_chapter.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+fprof - The File Trace Profiler
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="xref_chapter.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+Xref - The Cross Reference Tool
+        </span>
+      </a>
+
+  </div>
+</div>
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+              <a href="tools.epub" title="ePub version">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

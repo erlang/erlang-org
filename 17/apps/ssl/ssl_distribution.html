@@ -1,0 +1,313 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html xmlns:fn="http://www.w3.org/2005/02/xpath-functions">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" href="../../otp_doc.css" type="text/css">
+<title>Erlang -- Using SSL for Erlang Distribution</title>
+</head>
+<body bgcolor="white" text="#000000" link="#0000ff" vlink="#ff00ff" alink="#ff0000"><div id="container">
+<script id="js" type="text/javascript" language="JavaScript" src="../../js/flipmenu/flipmenu.js"></script><script id="js2" type="text/javascript" src="../../js/erlresolvelinks.js"></script><script language="JavaScript" type="text/javascript">
+            <!--
+              function getWinHeight() {
+                var myHeight = 0;
+                if( typeof( window.innerHeight ) == 'number' ) {
+                  //Non-IE
+                  myHeight = window.innerHeight;
+                } else if( document.documentElement && ( document.documentElement.clientWidth ||
+                                                         document.documentElement.clientHeight ) ) {
+                  //IE 6+ in 'standards compliant mode'
+                  myHeight = document.documentElement.clientHeight;
+                } else if( document.body && ( document.body.clientWidth || document.body.clientHeight ) ) {
+                  //IE 4 compatible
+                  myHeight = document.body.clientHeight;
+                }
+                return myHeight;
+              }
+
+              function setscrollpos() {
+                var objf=document.getElementById('loadscrollpos');
+                 document.getElementById("leftnav").scrollTop = objf.offsetTop - getWinHeight()/2;
+              }
+
+              function addEvent(obj, evType, fn){
+                if (obj.addEventListener){
+                obj.addEventListener(evType, fn, true);
+                return true;
+              } else if (obj.attachEvent){
+                var r = obj.attachEvent("on"+evType, fn);
+                return r;
+              } else {
+                return false;
+              }
+             }
+
+             addEvent(window, 'load', setscrollpos);
+
+             //--></script><div id="leftnav"><div class="innertube">
+<img alt="Erlang logo" src="../../../../doc/erlang-logo.png"><br><small><a href="users_guide.html">User's Guide</a><br><a href="index.html">Reference Manual</a><br><a href="release_notes.html">Release Notes</a><br><a href="ssl.pdf">PDF</a><br><a href="../../index.html">Top</a></small><p><strong>Secure Socket Layer </strong><br><strong>User's Guide</strong><br><small>Version 6.0</small></p>
+<br><a href="javascript:openAllFlips()">Expand All</a><br><a href="javascript:closeAllFlips()">Contract All</a><p><small><strong>Chapters</strong></small></p>
+<ul class="flipMenu" imagePath="../../js/flipmenu">
+<li id="no" title="Transport Layer Security (TLS) and its predecessor, Secure Socket Layer (SSL)" expanded="false">Transport Layer Security (TLS) and its predecessor, Secure Socket Layer (SSL)<ul>
+<li><a href="ssl_protocol.html">
+              Top of chapter
+            </a></li>
+<li title="Security overview"><a href="ssl_protocol.html#id60848">Security overview</a></li>
+<li title="Data Privacy and Integrity"><a href="ssl_protocol.html#id56663">Data Privacy and Integrity</a></li>
+<li title="Digital Certificates"><a href="ssl_protocol.html#id60866">Digital Certificates</a></li>
+<li title="Authentication of Sender"><a href="ssl_protocol.html#id61259">Authentication of Sender</a></li>
+<li title="TLS Sessions"><a href="ssl_protocol.html#id60416">TLS Sessions</a></li>
+</ul>
+</li>
+<li id="no" title="Using the SSL API" expanded="false">Using the SSL API<ul>
+<li><a href="using_ssl.html">
+              Top of chapter
+            </a></li>
+<li title="General information"><a href="using_ssl.html#id58914">General information</a></li>
+<li title="Setting up connections"><a href="using_ssl.html#id56696">Setting up connections</a></li>
+</ul>
+</li>
+<li id="loadscrollpos" title="Using SSL for Erlang Distribution" expanded="true">Using SSL for Erlang Distribution<ul>
+<li><a href="ssl_distribution.html">
+              Top of chapter
+            </a></li>
+<li title="Introduction"><a href="ssl_distribution.html#id60626">Introduction</a></li>
+<li title="Building boot scripts including the SSL application"><a href="ssl_distribution.html#id60258">Building boot scripts including the SSL application</a></li>
+<li title="Specifying distribution module for net_kernel"><a href="ssl_distribution.html#id60982">Specifying distribution module for net_kernel</a></li>
+<li title="Specifying SSL options"><a href="ssl_distribution.html#id61180">Specifying SSL options</a></li>
+<li title="Setting up environment to always use SSL"><a href="ssl_distribution.html#id60340">Setting up environment to always use SSL</a></li>
+</ul>
+</li>
+</ul>
+</div></div>
+<div id="content">
+<div class="innertube">
+<h1>3 Using SSL for Erlang Distribution</h1>
+  
+  <p>This chapter describes how the Erlang distribution can use 
+    SSL to get additional verification and security.
+  </p>
+
+  <h3><a name="id60626">3.1 
+        Introduction</a></h3>
+    
+    <p>The Erlang distribution can in theory use almost any connection
+      based protocol as bearer. A module that implements the protocol
+      specific parts of the connection setup is however needed. The
+      default distribution module is <span class="code">inet_tcp_dist</span> which is
+      included in the Kernel application. When starting an
+      Erlang node distributed, <span class="code">net_kernel</span> uses this module to
+      setup listen ports and connections. </p>
+
+      <p>In the SSL application there is an additional distribution
+      module, <span class="code">inet_tls_dist</span> which can be used as an
+      alternative. All distribution connections will be using SSL and
+      all participating Erlang nodes in a distributed system must use
+      this distribution module.</p>
+
+      <p>The security level depends on the parameters provided to the
+      SSL connection setup. Erlang node cookies are however always
+      used, as they can be used to differentiate between two different
+      Erlang networks.</p>
+    <p>Setting up Erlang distribution over SSL involves some simple but
+      necessary steps:</p>
+
+      <ul>
+      <li>Building boot scripts including the SSL application</li>
+      <li>Specifying the distribution module for net_kernel</li>
+      <li>Specifying security options and other SSL options</li>
+    </ul>
+    <p>The rest of this chapter describes the above mentioned steps in
+      more detail.</p>
+  
+
+  <h3><a name="id60258">3.2 
+        Building boot scripts including the SSL application</a></h3>
+    
+    <p>Boot scripts are built using the <span class="code">systools</span> utility in the
+      SASL application. Refer to the SASL documentations
+      for more information on systools. This is only an example of
+      what can be done.</p>
+
+      <p>The simplest boot script possible includes only the Kernel
+      and STDLIB applications. Such a script is located in the
+      Erlang distributions bin directory. The source for the script
+      can be found under the Erlang installation top directory under
+      <span class="code">releases/&lt;OTP version&gt;/start_clean.rel</span>. Copy that
+      script to another location (and preferably another name) 
+      and add the applications crypto, public_key and SSL with their current version numbers
+      after the STDLIB application.</p>
+    <p>An example .rel file with SSL added may look like this:</p>
+
+    <div class="example"><pre>
+      {release, {"OTP  APN 181 01","R15A"}, {erts, "5.9"},
+      [{kernel,"2.15"},
+      {stdlib,"1.18"},
+      {crypto, "2.0.3"},
+      {public_key, "0.12"},
+      {ssl, "5.0"}
+      ]}.
+   </pre></div>
+
+   <p>Note that the version numbers surely will differ in your system.
+   Whenever one of the applications included in the script is
+   upgraded, the script has to be changed.</p>
+   <p>Assuming the above .rel file is stored in a file
+   <span class="code">start_ssl.rel</span> in the current directory, a boot script
+   can be built like this:</p>
+
+   <div class="example"><pre>
+   1&gt; systools:make_script("start_ssl",[]).    </pre></div>
+
+   <p>There will now be a file <span class="code">start_ssl.boot</span> in the current
+   directory. To test the boot script, start Erlang with the
+   <span class="code">-boot</span> command line parameter specifying this boot script
+   (with its full path but without the <span class="code">.boot</span> suffix), in
+   Unix it could look like this:</p>
+   <p></p>
+
+   <div class="example"><pre>
+$ erl -boot /home/me/ssl/start_ssl
+Erlang (BEAM) emulator version 5.0
+ 
+Eshell V5.0  (abort with ^G)
+1&gt; whereis(ssl_manager).
+&lt;0.41.0&gt;    </pre></div>
+    <p>The <span class="code">whereis</span> function call verifies that the SSL
+      application is really started.</p>
+
+      <p>As an alternative to building a bootscript, one can explicitly
+      add the path to the SSL <span class="code">ebin</span> directory on the command
+      line. This is done with the command line option <span class="code">-pa</span>. This
+      works as the SSL application does not need to be started for the
+      distribution to come up, as a clone of the SSL application is
+      hooked into the kernel application, so as long as the
+      SSL applications code can be reached, the distribution will
+      start. The <span class="code">-pa</span> method is only recommended for testing
+      purposes.</p>
+
+      <div class="note">
+<div class="label">Note</div>
+<div class="content"><p><p>Note that the clone of the SSL application is necessary to
+      enable the use of the SSL code in such an early bootstage as
+      needed to setup the distribution, however this will make it
+      impossible to soft upgrade the SSL application.</p></p></div>
+</div>
+  
+
+  <h3><a name="id60982">3.3 
+        Specifying distribution module for net_kernel</a></h3>
+    
+    <p>The distribution module for SSL is named <span class="code">inet_tls_dist</span>
+      and is specified on the command line with the <span class="code">-proto_dist</span>
+      option. The argument to <span class="code">-proto_dist</span> should be the module
+      name without the <span class="code">_dist</span> suffix, so this distribution
+      module is specified with <span class="code">-proto_dist inet_tls</span> on the
+      command line.</p>
+    <p></p>
+
+    <p>Extending the command line from above gives us the following:</p>
+    <div class="example"><pre>
+$ erl -boot /home/me/ssl/start_ssl -proto_dist inet_tls    </pre></div>
+
+<p>For the distribution to actually be started, we need to give
+the emulator a name as well:</p>
+    <div class="example"><pre>
+$ erl -boot /home/me/ssl/start_ssl -proto_dist inet_tls -sname ssl_test
+Erlang (BEAM) emulator version 5.0 [source]
+ 
+Eshell V5.0  (abort with ^G)
+(ssl_test@myhost)1&gt;     </pre></div>
+    <p>Note however that a node started in this way will refuse to talk
+      to other nodes, as no ssl parameters are supplied
+      (see below).</p>
+  
+
+  <h3><a name="id61180">3.4 
+        Specifying SSL options</a></h3>
+     <p>For SSL to work, at least
+    a public key and certificate needs to be specified for the server
+    side.  In the following example the PEM-files consists of two
+    entries the servers certificate and its private key.</p>
+
+    <p>On the <span class="code">erl</span> command line one can specify options that the
+    SSL distribution will add when creating a socket.</p>
+
+    <p>One can specify the simpler SSL options certfile, keyfile,
+    password, cacertfile, verify, reuse_sessions,
+    secure_renegotiate, depth, hibernate_after and ciphers (use old
+    string format) by adding the prefix server_ or client_ to the
+    option name. The server can also take the options dhfile and
+    fail_if_no_peer_cert (also prefixed).
+    <span class="code">client_</span>-prfixed options are used when the distribution initiates a
+    connection to another node and the <span class="code">server_</span>-prefixed options are used
+    when accepting a connection from a remote node. </p>
+
+    <p> More complex options such as verify_fun are not available at
+    the moment but a mechanism to handle such options may be added in
+    a future release. </p>
+
+    <p> Raw socket options such as packet and size must not be specified on
+    the command line</p>.
+
+    <p>The command line argument for specifying the SSL options is named
+    <span class="code">-ssl_dist_opt</span> and should be followed by pairs of
+    SSL options and their values. The <span class="code">-ssl_dist_opt</span> argument can
+    be repeated any number of times.</p>
+
+      <p>An example command line would now look something like this
+      (line breaks in the command are for readability, 
+      they should not be there when typed):</p>
+    <div class="example"><pre>
+$ erl -boot /home/me/ssl/start_ssl -proto_dist inet_tls
+  -ssl_dist_opt server_certfile "/home/me/ssl/erlserver.pem" 
+  -ssl_dist_opt server_secure_renegotiate true client_secure_renegotiate true
+  -sname ssl_test
+Erlang (BEAM) emulator version 5.0 [source]
+ 
+Eshell V5.0  (abort with ^G)
+(ssl_test@myhost)1&gt;     </pre></div>
+    <p>A node started in this way will be fully functional, using SSL
+      as the distribution protocol.</p>
+  
+
+  <h3><a name="id60340">3.5 
+        Setting up environment to always use SSL</a></h3>
+    
+    <p>A convenient way to specify arguments to Erlang is to use the
+      <span class="code">ERL_FLAGS</span> environment variable. All the flags needed to
+      use SSL distribution can be specified in that variable and will
+      then be interpreted as command line arguments for all
+      subsequent invocations of Erlang.</p>
+    <p></p>
+    <p>In a Unix (Bourne) shell it could look like this (line breaks for
+      readability, they should not be there when typed):</p>
+    <div class="example"><pre>
+$ ERL_FLAGS="-boot /home/me/ssl/start_ssl -proto_dist inet_tls
+  -ssl_dist_opt server_certfile /home/me/ssl/erlserver.pem
+  -ssl_dist_opt server_secure_renegotiate true client_secure_renegotiate true"
+$ export ERL_FLAGS
+$ erl -sname ssl_test
+Erlang (BEAM) emulator version 5.0 [source]
+ 
+Eshell V5.0  (abort with ^G)
+(ssl_test@myhost)1&gt; init:get_arguments().
+[{root,["/usr/local/erlang"]},
+ {progname,["erl "]},
+ {sname,["ssl_test"]},
+ {boot,["/home/me/ssl/start_ssl"]},
+ {proto_dist,["inet_tls"]},
+ {ssl_dist_opt,["server_certfile","/home/me/ssl/erlserver.pem"]},
+ {ssl_dist_opt,["server_secure_renegotiate","true",
+                "client_secure_renegotiate","true"]
+ {home,["/home/me"]}]    </pre></div>
+    <p>The <span class="code">init:get_arguments()</span> call verifies that the correct
+      arguments are supplied to the emulator. </p>
+  
+</div>
+<div class="footer">
+<hr>
+<p>Copyright © 1999-2015 Ericsson AB. All Rights Reserved.</p>
+</div>
+</div>
+</div></body>
+</html>

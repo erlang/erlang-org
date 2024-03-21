@@ -1,0 +1,161 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html xmlns:fn="http://www.w3.org/2005/02/xpath-functions">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" href="../../otp_doc.css" type="text/css">
+<title>Erlang -- FTP Client</title>
+</head>
+<body bgcolor="white" text="#000000" link="#0000ff" vlink="#ff00ff" alink="#ff0000"><div id="container">
+<script id="js" type="text/javascript" language="JavaScript" src="../../js/flipmenu/flipmenu.js"></script><script id="js2" type="text/javascript" src="../../js/erlresolvelinks.js"></script><script language="JavaScript" type="text/javascript">
+            <!--
+              function getWinHeight() {
+                var myHeight = 0;
+                if( typeof( window.innerHeight ) == 'number' ) {
+                  //Non-IE
+                  myHeight = window.innerHeight;
+                } else if( document.documentElement && ( document.documentElement.clientWidth ||
+                                                         document.documentElement.clientHeight ) ) {
+                  //IE 6+ in 'standards compliant mode'
+                  myHeight = document.documentElement.clientHeight;
+                } else if( document.body && ( document.body.clientWidth || document.body.clientHeight ) ) {
+                  //IE 4 compatible
+                  myHeight = document.body.clientHeight;
+                }
+                return myHeight;
+              }
+
+              function setscrollpos() {
+                var objf=document.getElementById('loadscrollpos');
+                 document.getElementById("leftnav").scrollTop = objf.offsetTop - getWinHeight()/2;
+              }
+
+              function addEvent(obj, evType, fn){
+                if (obj.addEventListener){
+                obj.addEventListener(evType, fn, true);
+                return true;
+              } else if (obj.attachEvent){
+                var r = obj.attachEvent("on"+evType, fn);
+                return r;
+              } else {
+                return false;
+              }
+             }
+
+             addEvent(window, 'load', setscrollpos);
+
+             //--></script><div id="leftnav"><div class="innertube">
+<img alt="Erlang logo" src="../../../../doc/erlang-logo.png"><br><small><a href="users_guide.html">User's Guide</a><br><a href="index.html">Reference Manual</a><br><a href="release_notes.html">Release Notes</a><br><a href="inets.pdf">PDF</a><br><a href="../../index.html">Top</a></small><p><strong>inets</strong><br><strong>User's Guide</strong><br><small>Version 5.10.6</small></p>
+<br><a href="javascript:openAllFlips()">Expand All</a><br><a href="javascript:closeAllFlips()">Contract All</a><p><small><strong>Chapters</strong></small></p>
+<ul class="flipMenu" imagePath="../../js/flipmenu">
+<li id="no" title="Introduction" expanded="false">Introduction<ul>
+<li><a href="inets_services.html">
+              Top of chapter
+            </a></li>
+<li title="Purpose"><a href="inets_services.html#id60788">Purpose</a></li>
+<li title="Prerequisites"><a href="inets_services.html#id60162">Prerequisites</a></li>
+<li title="The Service Concept"><a href="inets_services.html#id59531">The Service Concept</a></li>
+</ul>
+</li>
+<li id="loadscrollpos" title="FTP Client" expanded="true">FTP Client<ul>
+<li><a href="ftp_client.html">
+              Top of chapter
+            </a></li>
+<li title="Introduction"><a href="ftp_client.html#id56523">Introduction</a></li>
+<li title="Using the FTP Client API"><a href="ftp_client.html#id62977">Using the FTP Client API</a></li>
+</ul>
+</li>
+<li id="no" title="HTTP Client" expanded="false">HTTP Client<ul>
+<li><a href="http_client.html">
+              Top of chapter
+            </a></li>
+<li title="Introduction"><a href="http_client.html#id60357">Introduction</a></li>
+<li title="Configuration"><a href="http_client.html#id61712">Configuration</a></li>
+<li title="Using the HTTP Client API"><a href="http_client.html#id60384">Using the HTTP Client API</a></li>
+</ul>
+</li>
+<li id="no" title="HTTP server " expanded="false">HTTP server <ul>
+<li><a href="http_server.html">
+              Top of chapter
+            </a></li>
+<li title="Introduction"><a href="http_server.html#id60153">Introduction</a></li>
+<li title="Configuration"><a href="http_server.html#id57684">Configuration</a></li>
+<li title="Using the HTTP Server API"><a href="http_server.html#id63020">Using the HTTP Server API</a></li>
+<li title="Htaccess - User Configurable Authentication."><a href="http_server.html#id58883">Htaccess - User Configurable Authentication.</a></li>
+<li title="Dynamic Web Pages"><a href="http_server.html#id62336">Dynamic Web Pages</a></li>
+<li title="Logging "><a href="http_server.html#id61592">Logging </a></li>
+<li title="Server Side Includes"><a href="http_server.html#id60174">Server Side Includes</a></li>
+<li title="The Erlang Web Server API"><a href="http_server.html#id60970">The Erlang Web Server API</a></li>
+<li title="Inets Web Server Modules"><a href="http_server.html#id61075">Inets Web Server Modules</a></li>
+</ul>
+</li>
+</ul>
+</div></div>
+<div id="content">
+<div class="innertube">
+<h1>2 FTP Client</h1>
+  
+
+  <h3><a name="id56523">2.1 
+        Introduction</a></h3>
+    
+
+    <p>Ftp clients are consider to be rather temporary and are
+      for that reason only started and stopped during
+      runtime and can not be started at application startup.
+      Due to the design of FTP client API, letting some
+      functions return intermediate results, only the process
+      that started the ftp client will be able to access it in
+      order to preserve sane semantics. (This could be solved
+      by changing the API and using the concept of a controlling
+      process more in line with other OTP applications, but
+      that is perhaps something for the future.) 
+      If the process that started the ftp session 
+      dies the ftp client process will terminate.</p>
+
+    <p>The client supports ipv6 as long as the underlying mechanisms
+      also do so. </p>
+
+    
+
+  <h3><a name="id62977">2.2 
+        Using the FTP Client API</a></h3>
+    
+    <p>The following is a simple example of an ftp session, where
+      the user <span class="code">guest</span> with password <span class="code">password</span> logs on to
+      the remote host <span class="code">erlang.org</span>, and where the file
+      <span class="code">appl.erl</span> is transferred from the remote to the local
+      host.  When the session is opened, the current directory at
+      the remote host is <span class="code">/home/guest</span>, and <span class="code">/home/fred</span>
+      at the local host. Before transferring the file, the current
+      local directory is changed to <span class="code">/home/eproj/examples</span>, and
+      the remote directory is set to
+      <span class="code">/home/guest/appl/examples</span>.</p>
+    <div class="example"><pre>
+      1&gt; inets:start().
+      ok
+      2&gt; {ok, Pid} = inets:start(ftpc, [{host, "erlang.org"}]).
+      {ok,&lt;0.22.0&gt;}
+      3&gt; ftp:user(Pid, "guest", "password").
+      ok
+      4&gt; ftp:pwd(Pid).
+      {ok, "/home/guest"}
+      5&gt; ftp:cd(Pid, "appl/examples").
+      ok
+      6&gt; ftp:lpwd(Pid).
+      {ok, "/home/fred"}.
+      7&gt; ftp:lcd(Pid, "/home/eproj/examples").
+      ok
+      8&gt; ftp:recv(Pid, "appl.erl").
+      ok
+      9&gt; inets:stop(ftpc, Pid).
+      ok
+    </pre></div>
+  
+</div>
+<div class="footer">
+<hr>
+<p>Copyright © 1997-2015 Ericsson AB. All Rights Reserved.</p>
+</div>
+</div>
+</div></body>
+</html>

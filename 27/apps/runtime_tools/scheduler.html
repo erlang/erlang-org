@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="runtime_tools v2.1">
+
+
+    <title>scheduler — runtime_tools v2.1</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-6C3A61ED.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="modules" class="page-module">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="runtime_tools" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+runtime_tools
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v2.1
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of runtime_tools</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/lib/runtime_tools/src/scheduler.erl#L24" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+  <span translate="no">scheduler</span> 
+  <small class="app-vsn" translate="no">(runtime_tools v2.1)</small>
+
+</h1>
+
+
+  <section id="moduledoc">
+<p>Measure scheduler utilization</p><p>This module contains utility functions for easy measurement and calculation of
+scheduler utilization. It act as a wrapper around the more primitive API
+<a href="../../apps/erts/erlang.html#statistics_scheduler_wall_time"><code class="inline">erlang:statistics(scheduler_wall_time)</code></a>.</p><p>The simplest usage is to call the blocking
+<a href="#utilization/1"><code class="inline">scheduler:utilization(Seconds)</code></a>.</p><p>For non blocking and/or continuous calculation of scheduler utilization, the
+recommended usage is:</p><ul><li>First call
+<a href="../../apps/erts/erlang.html#system_flag_scheduler_wall_time"><code class="inline">erlang:system_flag(scheduler_wall_time,true)</code></a>
+to enable scheduler wall time measurements.</li><li>Call <a href="#get_sample/0"><code class="inline">get_sample/0</code></a> to collect samples with some time in between.</li><li>Call <a href="#utilization/2"><code class="inline">utilization/2</code></a> to calculate the scheduler utilization in the interval
+between two samples.</li><li>When done call
+<a href="../../apps/erts/erlang.html#system_flag_scheduler_wall_time"><code class="inline">erlang:system_flag(scheduler_wall_time,false)</code></a>
+to disable scheduler wall time measurements and avoid unecessary cpu overhead.</li></ul><p>To get correct values from <a href="#utilization/2"><code class="inline">utilization/2</code></a>, it is important that
+<code class="inline">scheduler_wall_time</code> is kept enabled during the entire interval between the two
+samples. To ensure this, the process that called
+<a href="../../apps/erts/erlang.html#system_flag_scheduler_wall_time"><code class="inline">erlang:system_flag(scheduler_wall_time,true)</code></a>
+must be kept alive, as <code class="inline">scheduler_wall_time</code> will automatically be disabled if
+it terminates.</p>
+  </section>
+
+
+  <section id="summary" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#summary">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Summary</span>
+    </h1>
+<div class="summary-types summary">
+  <h2>
+    <a href="#types">Types</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:sched_id/0" translate="no">sched_id()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:sched_sample/0" translate="no">sched_sample()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:sched_type/0" translate="no">sched_type()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:sched_util_result/0" translate="no">sched_util_result()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>A list of tuples containing results for individual schedulers as well as
+aggregated averages. <code class="inline">Util</code> is the scheduler utilization as a floating point
+value between 0.0 and 1.0. <code class="inline">Percent</code> is the same utilization as a more human
+readable string expressed in percent.</p></div>
+
+    </div>
+
+</div>
+<div class="summary-functions summary">
+  <h2>
+    <a href="#functions">Functions</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#get_sample/0" translate="no">get_sample()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns a scheduler utilization sample for normal and dirty-cpu schedulers.
+Returns <code class="inline">undefined</code> if system flag
+<a href="../../apps/erts/erlang.html#system_flag_scheduler_wall_time"><code class="inline">scheduler_wall_time</code></a> has not been
+enabled.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#get_sample_all/0" translate="no">get_sample_all()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Return a scheduler utilization sample for all schedulers, including dirty-io
+schedulers. Returns <code class="inline">undefined</code> if system flag
+<a href="../../apps/erts/erlang.html#system_flag_scheduler_wall_time"><code class="inline">scheduler_wall_time</code></a> has not been
+enabled.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#sample/0" translate="no">sample()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Return a scheduler utilization sample for normal and dirty-cpu schedulers. Will
+call
+<a href="../../apps/erts/erlang.html#system_flag_scheduler_wall_time"><code class="inline">erlang:system_flag(scheduler_wall_time,true)</code></a>
+first if not already already enabled.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#sample_all/0" translate="no">sample_all()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Return a scheduler utilization sample for all schedulers, including dirty-io
+schedulers. Will call
+<a href="../../apps/erts/erlang.html#system_flag_scheduler_wall_time"><code class="inline">erlang:system_flag(scheduler_wall_time,true)</code></a>
+first if not already already enabled.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#utilization/1" translate="no">utilization/1</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Measure utilization for normal and dirty-cpu schedulers during <code class="inline">Seconds</code>
+seconds, and then return the result.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#utilization/2" translate="no">utilization(Sample1, Sample2)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Calculates scheduler utilizations for the time interval between the two samples
+obtained from calling <a href="#sample/0"><code class="inline">get_sample/0</code></a> or
+<a href="#sample_all/0"><code class="inline">get_sample_all/0</code></a>.</p></div>
+
+    </div>
+
+</div>
+
+  </section>
+
+
+  <section id="types" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#types">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Types</span>
+    </h1>
+    <div class="types-list">
+<section class="detail" id="t:sched_id/0">
+
+  <div class="detail-header">
+    <a href="#t:sched_id/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">sched_id()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/runtime_tools/src/scheduler.erl#L71" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 21.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> sched_id() :: <a href="../../apps/erts/erlang.html#t:integer/0">integer</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:sched_sample/0">
+
+  <div class="detail-header">
+    <a href="#t:sched_sample/0" class="detail-link" title="Link to this opaque">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this opaque</span>
+    </a>
+    <h1 class="signature" translate="no">sched_sample()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/runtime_tools/src/scheduler.erl#L65" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(opaque)</span>
+
+      <span class="note">(since OTP 21.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-opaque</span> sched_sample()</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:sched_type/0">
+
+  <div class="detail-header">
+    <a href="#t:sched_type/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">sched_type()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/runtime_tools/src/scheduler.erl#L69" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 21.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> sched_type() :: normal | cpu | io.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:sched_util_result/0">
+
+  <div class="detail-header">
+    <a href="#t:sched_util_result/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">sched_util_result()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/runtime_tools/src/scheduler.erl#L182" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 21.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> sched_util_result() ::
+    [{<a href="#t:sched_type/0">sched_type</a>(), <a href="#t:sched_id/0">sched_id</a>(), <a href="../../apps/erts/erlang.html#t:float/0">float</a>(), <a href="../../apps/erts/erlang.html#t:string/0">string</a>()} |
+     {total, <a href="../../apps/erts/erlang.html#t:float/0">float</a>(), <a href="../../apps/erts/erlang.html#t:string/0">string</a>()} |
+     {weighted, <a href="../../apps/erts/erlang.html#t:float/0">float</a>(), <a href="../../apps/erts/erlang.html#t:string/0">string</a>()}].</pre>
+
+      </div>
+
+<p>A list of tuples containing results for individual schedulers as well as
+aggregated averages. <code class="inline">Util</code> is the scheduler utilization as a floating point
+value between 0.0 and 1.0. <code class="inline">Percent</code> is the same utilization as a more human
+readable string expressed in percent.</p><ul><li><p><strong><code class="inline">{normal, SchedulerId, Util, Percent}</code></strong> - Scheduler utilization of a normal
+scheduler with number <code class="inline">SchedulerId</code>. Schedulers that are not online will also
+be included. <a href="../../apps/erts/erlang.html#system_info_schedulers_online">Online schedulers</a>
+have the lowest <code class="inline">SchedulerId</code>.</p></li><li><p><strong><code class="inline">{cpu, SchedulerId, Util, Percent}</code></strong> - Scheduler utilization of a dirty-cpu
+scheduler with number <code class="inline">SchedulerId</code>.</p></li><li><p><strong><code class="inline">{io, SchedulerId, Util, Percent}</code></strong> - Scheduler utilization of a dirty-io
+scheduler with number <code class="inline">SchedulerId</code>. This tuple will only exist if both
+samples were taken with <a href="#sample_all/0"><code class="inline">sample_all/0</code></a>.</p></li><li><p><strong><code class="inline">{total, Util, Percent}</code></strong> - Total utilization of all normal and dirty-cpu
+schedulers.</p></li><li><p><strong><code class="inline">{weighted, Util, Percent}</code></strong> - Total utilization of all normal and
+dirty-cpu schedulers, weighted against maximum amount of available CPU time.</p></li></ul>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+  <section id="functions" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#functions">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Functions</span>
+    </h1>
+    <div class="functions-list">
+<section class="detail" id="get_sample/0">
+
+  <div class="detail-header">
+    <a href="#get_sample/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">get_sample()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/runtime_tools/src/scheduler.erl#L129" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 24.3)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> get_sample() -> <a href="#t:sched_sample/0">sched_sample</a>() | undefined.</pre>
+
+      </div>
+
+<p>Returns a scheduler utilization sample for normal and dirty-cpu schedulers.
+Returns <code class="inline">undefined</code> if system flag
+<a href="../../apps/erts/erlang.html#system_flag_scheduler_wall_time"><code class="inline">scheduler_wall_time</code></a> has not been
+enabled.</p>
+  </section>
+</section>
+<section class="detail" id="get_sample_all/0">
+
+  <div class="detail-header">
+    <a href="#get_sample_all/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">get_sample_all()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/runtime_tools/src/scheduler.erl#L140" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 24.3)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> get_sample_all() -> <a href="#t:sched_sample/0">sched_sample</a>() | undefined.</pre>
+
+      </div>
+
+<p>Return a scheduler utilization sample for all schedulers, including dirty-io
+schedulers. Returns <code class="inline">undefined</code> if system flag
+<a href="../../apps/erts/erlang.html#system_flag_scheduler_wall_time"><code class="inline">scheduler_wall_time</code></a> has not been
+enabled.</p>
+  </section>
+</section>
+<section class="detail" id="sample/0">
+
+  <div class="detail-header">
+    <a href="#sample/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">sample()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/runtime_tools/src/scheduler.erl#L91" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 21.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> sample() -> <a href="#t:sched_sample/0">sched_sample</a>().</pre>
+
+      </div>
+
+<p>Return a scheduler utilization sample for normal and dirty-cpu schedulers. Will
+call
+<a href="../../apps/erts/erlang.html#system_flag_scheduler_wall_time"><code class="inline">erlang:system_flag(scheduler_wall_time,true)</code></a>
+first if not already already enabled.</p><blockquote><h4 class="info">Note</h4><p>This function is <em>not recommended</em> as there is no way to detect if
+<code class="inline">scheduler_wall_time</code> already was enabled or not. If <code class="inline">scheduler_wall_time</code> has
+been disabled between two samples, passing them to
+<a href="#utilization/1"><code class="inline">utilization/2</code></a> will yield invalid results.</p><p>Instead use <a href="#get_sample/0"><code class="inline">get_sample/0</code></a> together with
+<a href="../../apps/erts/erlang.html#system_flag_scheduler_wall_time"><code class="inline">erlang:system_flag(scheduler_wall_time,_)</code></a>.</p></blockquote>
+  </section>
+</section>
+<section class="detail" id="sample_all/0">
+
+  <div class="detail-header">
+    <a href="#sample_all/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">sample_all()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/runtime_tools/src/scheduler.erl#L108" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 21.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> sample_all() -> <a href="#t:sched_sample/0">sched_sample</a>().</pre>
+
+      </div>
+
+<p>Return a scheduler utilization sample for all schedulers, including dirty-io
+schedulers. Will call
+<a href="../../apps/erts/erlang.html#system_flag_scheduler_wall_time"><code class="inline">erlang:system_flag(scheduler_wall_time,true)</code></a>
+first if not already already enabled.</p><blockquote><h4 class="info">Note</h4><p>This function is <em>not recommended</em> for same reason as <a href="#sample/0"><code class="inline">sample/0</code></a>. Instead use
+<a href="#get_sample_all/0"><code class="inline">get_sample_all/0</code></a> together with
+<a href="../../apps/erts/erlang.html#system_flag_scheduler_wall_time"><code class="inline">erlang:system_flag(scheduler_wall_time,_)</code></a>.</p></blockquote>
+  </section>
+</section>
+<section class="detail" id="utilization/1">
+
+  <div class="detail-header">
+    <a href="#utilization/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">utilization/1</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/runtime_tools/src/scheduler.erl#L219" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 21.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> utilization(Seconds) -> <a href="#t:sched_util_result/0">sched_util_result</a>() when Seconds :: <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer</a>();
+           (Sample) -> <a href="#t:sched_util_result/0">sched_util_result</a>() when Sample :: <a href="#t:sched_sample/0">sched_sample</a>().</pre>
+
+      </div>
+
+<p>Measure utilization for normal and dirty-cpu schedulers during <code class="inline">Seconds</code>
+seconds, and then return the result.</p><p>Will automatically first enable and then disable
+<a href="../../apps/erts/erlang.html#system_flag_scheduler_wall_time"><code class="inline">scheduler_wall_time</code></a>.</p><p>Calculate scheduler utilizations for the time interval from when <code class="inline">Sample</code> was
+taken and &quot;now&quot;. The same as calling
+<code class="inline">scheduler:utilization(Sample, scheduler:sample_all())</code>.</p><blockquote><h4 class="info">Note</h4><p>This function is <em>not recommended</em> as it's so easy to get invalid results
+without noticing. In particular do not do this:</p><pre><code class="makeup erlang" translate="no"><span class="nc">scheduler</span><span class="p">:</span><span class="nf">utilization</span><span class="p" data-group-id="1546276487-1">(</span><span class="nc">scheduler</span><span class="p">:</span><span class="nf">sample</span><span class="p" data-group-id="1546276487-2">(</span><span class="p" data-group-id="1546276487-2">)</span><span class="p" data-group-id="1546276487-1">)</span><span class="p">.</span><span class="w"> </span><span class="c1">% DO NOT DO THIS!</span></code></pre><p>The above example takes two samples in rapid succession and calculates the
+scheduler utilization between them. The resulting values will probably be more
+misleading than informative.</p><p>Instead use <a href="#utilization/2"><code class="inline">scheduler:utilization/2</code></a> and call
+<a href="#get_sample/0"><code class="inline">get_sample/0</code></a> to get samples with some time in between.</p></blockquote>
+  </section>
+</section>
+<section class="detail" id="utilization/2">
+
+  <div class="detail-header">
+    <a href="#utilization/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">utilization(Sample1, Sample2)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/runtime_tools/src/scheduler.erl#L245" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 21.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> utilization(Sample1, Sample2) -> <a href="#t:sched_util_result/0">sched_util_result</a>()
+               when Sample1 :: <a href="#t:sched_sample/0">sched_sample</a>(), Sample2 :: <a href="#t:sched_sample/0">sched_sample</a>().</pre>
+
+      </div>
+
+<p>Calculates scheduler utilizations for the time interval between the two samples
+obtained from calling <a href="#sample/0"><code class="inline">get_sample/0</code></a> or
+<a href="#sample_all/0"><code class="inline">get_sample_all/0</code></a>.</p><p>This function itself, does not need
+<a href="../../apps/erts/erlang.html#system_flag_scheduler_wall_time"><code class="inline">scheduler_wall_time</code></a> to be
+enabled. However, for a correct result, <code class="inline">scheduler_wall_time</code> must have been
+enabled during the entire interval between the two samples.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+              <a href="runtime_tools.epub" title="ePub version">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

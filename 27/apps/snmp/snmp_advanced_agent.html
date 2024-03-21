@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="snmp v5.16">
+
+
+    <title>Advanced Agent Topics — snmp v5.16</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-CA7878C5.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="snmp" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+snmp
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v5.16
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of snmp</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/lib/snmp/doc/guides/snmp_advanced_agent.md#L1" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+
+  <span>Advanced Agent Topics</span>
+</h1>
+
+<p>The chapter <em>Advanced Agent Topics</em> describes the more advanced agent related
+features of the SNMP development tool. The following topics are covered:</p><ul><li>When to use a Sub-agent</li><li>Agent semantics</li><li>Sub-agents and dependencies</li><li>Distributed tables</li><li>Fault tolerance</li><li>Using Mnesia tables as SNMP tables</li><li>Audit Trail Logging</li><li>Deviations from the standard</li></ul><h2 id="when-to-use-a-sub-agent" class="section-heading">
+  <a href="#when-to-use-a-sub-agent" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">When to use a Sub-agent</span>
+</h2>
+<p>The section <em>When to use a Sub-agent</em> describes situations where the mechanism
+of loading and unloading MIBs is insufficient. In these cases a sub-agent is
+needed.</p><h3 id="special-set-transaction-mechanism" class="section-heading">
+  <a href="#special-set-transaction-mechanism" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Special Set Transaction Mechanism</span>
+</h3>
+<p>Each sub-agent can implement its own mechanisms for <code class="inline">set</code>, <code class="inline">get</code> and <code class="inline">get-next</code>.
+For example, if the application requires the <code class="inline">get</code> mechanism to be asynchronous,
+or needs a N-phase <code class="inline">set</code> mechanism, a specialized sub-agent should be used.</p><p>The toolkit allows different kinds of sub-agents at the same time. Accordingly,
+different MIBs can have different <code class="inline">set</code> or <code class="inline">get</code> mechanisms.</p><h3 id="process-communication" class="section-heading">
+  <a href="#process-communication" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Process Communication</span>
+</h3>
+<p>A simple distributed agent can be managed without sub-agents. The
+instrumentation functions can use distributed Erlang to communicate with other
+parts of the application. However, a sub-agent can be used on each node if this
+generates too much unnecessary traffic. A sub-agent processes requests per
+incoming SNMP request, not per variable. Therefore the network traffic is
+minimized.</p><p>If the instrumentation functions communicate with UNIX processes, it might be a
+good idea to use a special sub-agent. This sub-agent sends the SNMP request to
+the other process in one packet in order to minimize context switches. For
+example, if a whole MIB is implemented on the C level in UNIX, but you still
+want to use the Erlang SNMP tool, then you may have one special sub-agent, which
+sends the variables in the request as a single operation down to C.</p><h3 id="frequent-loading-of-mibs" class="section-heading">
+  <a href="#frequent-loading-of-mibs" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Frequent Loading of MIBs</span>
+</h3>
+<p>Loading and unloading of MIBs are quite cheap operations. However, if the
+application does this very often, perhaps several times per minute, it should
+load the MIBs once and for all in a sub-agent. This sub-agent only registers and
+unregisters itself under another agent instead of loading the MIBs each time.
+This is cheaper than loading an MIB.</p><h3 id="interaction-with-other-snmp-agent-toolkits" class="section-heading">
+  <a href="#interaction-with-other-snmp-agent-toolkits" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Interaction With Other SNMP Agent Toolkits</span>
+</h3>
+<p>If the SNMP agent needs to interact with sub-agents constructed in another
+package, a special sub-agent should be used, which communicates through a
+protocol specified by the other package.</p><h2 id="agent-semantics" class="section-heading">
+  <a href="#agent-semantics" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Agent Semantics</span>
+</h2>
+<p>The agent can be configured to be multi-threaded, to process one incoming
+request at a time, or to have a request limit enabled (this can be used for load
+control or to limit the effect of DoS attacks). If it is multi-threaded, read
+requests (<code class="inline">get</code>, <code class="inline">get-next</code> and <code class="inline">get-bulk</code>) and traps are processed in parallel
+with each other and <code class="inline">set</code> requests. However, all <code class="inline">set</code> requests are serialized,
+which means that if the agent is waiting for the application to complete a
+complicated write operation, it will not process any new write requests until
+this operation is finished. It processes read requests and sends traps,
+concurrently. The reason for not handle write requests in parallel is that a
+complex locking mechanism would be needed even in the simplest cases. Even with
+the scheme described above, the user must be careful not to violate that the
+<code class="inline">set</code> requests are atoms. If this is hard to do, do not use the multi-threaded
+feature.</p><p>The order within an request is undefined and variables are not processed in a
+defined order. Do not assume that the first variable in the PDU will be
+processed before the second, even if the agent processes variables in this
+order. It cannot even be assumed that requests belonging to different sub-agents
+have any order.</p><p>If the manager tries to set the same variable many times in the same PDU, the
+agent is free to improvise. There is no definition which determines if the
+instrumentation will be called once or twice. If called once only, there is no
+definition that determines which of the new values is going to be supplied.</p><p>When the agent receives a request, it keeps the request ID for one second after
+the response is sent. If the agent receives another request with the same
+request ID during this time, from the same IP address and UDP port, that request
+will be discarded. This mechanism has nothing to do with the function
+<a href="snmpa.html#current_request_id/0"><code class="inline">snmpa:current_request_id/0</code></a>.</p><h2 id="sub-agents-and-dependencies" class="section-heading">
+  <a href="#sub-agents-and-dependencies" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Sub-agents and Dependencies</span>
+</h2>
+<p>The toolkit supports the use of different types of sub-agents, but not the
+construction of sub-agents.</p><p>Also, the toolkit does not support dependencies between sub-agents. A sub-agent
+should by definition be stand alone and it is therefore not good design to
+create dependencies between them.</p><h2 id="distributed-tables" class="section-heading">
+  <a href="#distributed-tables" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Distributed Tables</span>
+</h2>
+<p>A common situation in more complex systems is that the data in a table is
+distributed. Different table rows are implemented in different places. Some SNMP
+tool-kits dedicate an SNMP sub-agent for each part of the table and load the
+corresponding MIB into all sub-agents. The Master Agent is responsible for
+presenting the distributed table as a single table to the manager. The toolkit
+supplied uses a different method.</p><p>The method used to implement distributed tables with this SNMP tool is to
+implement a table coordinator process responsible for coordinating the
+processes, which hold the table data and they are called table holders. All
+table holders must in some way be known by the coordinator; the structure of the
+table data determines how this is achieved. The coordinator may require that the
+table holders explicitly register themselves and specify their information. In
+other cases, the table holders can be determined once at compile time.</p><p>When the instrumentation function for the distributed table is called, the
+request should be forwarded to the table coordinator. The coordinator finds the
+requested information among the table holders and then returns the answer to the
+instrumentation function. The SNMP toolkit contains no support for coordination
+of tables since this must be independent of the implementation.</p><p>The advantages of separating the table coordinator from the SNMP tool are:</p><ul><li>We do not need a sub-agent for each table holder. Normally, the sub-agent is
+needed to take care of communication, but in Distributed Erlang we use
+ordinary message passing.</li><li>Most likely, some type of table coordinator already exists. This process
+should take care of the instrumentation for the table.</li><li>The method used to present a distributed table is strongly application
+dependent. The use of different masking techniques is only valid for a small
+subset of problems and registering every row in a distributed table makes it
+non-distributed.</li></ul><h2 id="fault-tolerance" class="section-heading">
+  <a href="#fault-tolerance" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Fault Tolerance</span>
+</h2>
+<p>The SNMP agent toolkit gets input from three different sources:</p><ul><li>UDP packets from the network</li><li>return values from the user defined instrumentation functions</li><li>return values from the MIB.</li></ul><p>The agent is highly fault tolerant. If the manager gets an unexpected response
+from the agent, it is possible that some instrumentation function has returned
+an erroneous value. The agent will not crash even if the instrumentation does.
+It should be noted that if an instrumentation function enters an infinite loop,
+the agent will also be blocked forever. The supervisor ,or the application,
+specifies how to restart the agent.</p><h3 id="using-the-snmp-agent-in-a-distributed-environment" class="section-heading">
+  <a href="#using-the-snmp-agent-in-a-distributed-environment" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Using the SNMP Agent in a Distributed Environment</span>
+</h3>
+<p>The normal way to use the agent in a distributed environment is to use one
+master agent located at one node, and zero or more sub-agents located on other
+nodes. However, this configuration makes the master agent node a single point of
+failure. If that node goes down, the agent will not work.</p><p>One solution to this problem is to make the snmp application a distributed
+Erlang application, and that means, the agent may be configured to run on one of
+several nodes. If the node where it runs goes down, another node restarts the
+agent. This is called <em>failover</em>. When the node starts again, it may <em>takeover</em>
+the application. This solution to the problem adds another problem. Generally,
+the new node has another IP address than the first one, which may cause problems
+in the communication between the SNMP managers and the agent.</p><p>If the snmp agent is configured as a distributed Erlang application, it will
+during takeover try to load the same MIBs that were loaded at the old node. It
+uses the same filenames as the old node. If the MIBs are not located in the same
+paths at the different nodes, the MIBs must be loaded explicitly after takeover.</p><h2 id="using-mnesia-tables-as-snmp-tables" class="section-heading">
+  <a href="#using-mnesia-tables-as-snmp-tables" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Using Mnesia Tables as SNMP Tables</span>
+</h2>
+<p>The Mnesia DBMS can be used for storing data of SNMP tables. This means that an
+SNMP table can be implemented as a Mnesia table, and that a Mnesia table can be
+made visible via SNMP. This mapping is largely automated.</p><p>There are three main reasons for using this mapping:</p><ul><li>We get all features of Mnesia, such as fault tolerance, persistent data
+storage, replication, and so on.</li><li>Much of the work involved is automated. This includes <code class="inline">get-next</code> processing
+and <code class="inline">RowStatus</code> handling.</li><li>The table may be used as an ordinary Mnesia table, using the Mnesia API
+internally in the application at the same time as it is visible through SNMP.</li></ul><p>When this mapping is used, insertion and deletion in the original Mnesia table
+is slower, with a factor O(log n). The read access is not affected.</p><p>A drawback with implementing an SNMP table as a Mnesia table is that the
+internal resource is forced to use the table definition from the MIB, which
+means that the external data model must be used internally. Actually, this is
+only partially true. The Mnesia table may extend the SNMP table, which means
+that the Mnesia table may have columns which are use internally and are not seen
+by SNMP. Still, the data model from SNMP must be maintained. Although this is
+undesirable, it is a pragmatic compromise in many situations where simple and
+efficient implementation is preferable to abstraction.</p><h3 id="creating-the-mnesia-table" class="section-heading">
+  <a href="#creating-the-mnesia-table" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Creating the Mnesia Table</span>
+</h3>
+<p>The table must be created in Mnesia before the manager can use it. The table
+must be declared as type <code class="inline">snmp</code>. This makes the table ordered in accordance with
+the lexicographical ordering rules of SNMP. The name of the Mnesia table must be
+identical to the SNMP table name. The types of the INDEX fields in the
+corresponding SNMP table must be specified.</p><p>If the SNMP table has more than one INDEX column, the corresponding Mnesia row
+is a tuple, where the first element is a tuple with the INDEX columns.
+Generally, if the SNMP table has <em>N</em> INDEX columns and <em>C</em> data columns, the
+Mnesia table is of arity <em>(C-N)+1</em>, where the key is a tuple of arity <em>N</em> if
+<em>N &gt; 1</em>, or a single term if <em>N = 1</em>.</p><p>Refer to the Mnesia User's Guide for information on how to declare a Mnesia
+table as an SNMP table.</p><p>The following example illustrates a situation in which we have an SNMP table
+that we wish to implement as a Mnesia table. The table stores information about
+employees at a company. Each employee is indexed with the department number and
+the name.</p><pre><code class="text">       empTable OBJECT-TYPE
+              SYNTAX      SEQUENCE OF EmpEntry
+              ACCESS      not-accessible
+              STATUS      mandatory
+              DESCRIPTION
+                      &quot;A table with information about employees.&quot;
+       ::= { emp 1}
+       empEntry OBJECT-TYPE
+              SYNTAX      EmpEntry
+              ACCESS      not-accessible
+              STATUS      mandatory
+              DESCRIPTION
+                 &quot;&quot;
+              INDEX      { empDepNo, empName }
+       ::= { empTable 1 }
+       EmpEntry ::=
+              SEQUENCE {
+                  empDepNo         INTEGER,
+                  empName          DisplayString,
+                  empTelNo         DisplayString,
+                  empStatus        RowStatus
+              }</code></pre><p>The corresponding Mnesia table is specified as follows:</p><pre><code class="makeup erlang" translate="no"><span class="nc">mnesia</span><span class="p">:</span><span class="nf">create_table</span><span class="p" data-group-id="5512263505-1">(</span><span class="p" data-group-id="5512263505-2">[</span><span class="p" data-group-id="5512263505-3">{</span><span class="ss">name</span><span class="p">,</span><span class="w"> </span><span class="ss">employees</span><span class="p" data-group-id="5512263505-3">}</span><span class="p">,</span><span class="w">
+                     </span><span class="p" data-group-id="5512263505-4">{</span><span class="ss">snmp</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="5512263505-5">[</span><span class="p" data-group-id="5512263505-6">{</span><span class="ss">key</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="5512263505-7">{</span><span class="ss">integer</span><span class="p">,</span><span class="w"> </span><span class="ss">string</span><span class="p" data-group-id="5512263505-7">}</span><span class="p" data-group-id="5512263505-6">}</span><span class="p" data-group-id="5512263505-5">]</span><span class="p" data-group-id="5512263505-4">}</span><span class="p">,</span><span class="w">
+                     </span><span class="p" data-group-id="5512263505-8">{</span><span class="ss">attributes</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="5512263505-9">[</span><span class="ss">key</span><span class="p">,</span><span class="w"> </span><span class="ss">telno</span><span class="p">,</span><span class="w"> </span><span class="ss">row_status</span><span class="p" data-group-id="5512263505-9">]</span><span class="p" data-group-id="5512263505-8">}</span><span class="p" data-group-id="5512263505-2">]</span><span class="p" data-group-id="5512263505-1">)</span><span class="p">.</span></code></pre><blockquote><h4 class="info">Note</h4><p>In the Mnesia tables, the two key columns are stored as a tuple with two
+elements. Therefore, the arity of the table is 3.</p></blockquote><h3 id="instrumentation-functions" class="section-heading">
+  <a href="#instrumentation-functions" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Instrumentation Functions</span>
+</h3>
+<p>The MIB table shown in the previous section can be compiled as follows:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">1&gt; </span><span class="nc">snmpc</span><span class="p">:</span><span class="nf">compile</span><span class="p" data-group-id="5993576391-1">(</span><span class="s">&quot;EmpMIB&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="5993576391-2">[</span><span class="p" data-group-id="5993576391-3">{</span><span class="ss">db</span><span class="p">,</span><span class="w"> </span><span class="ss">mnesia</span><span class="p" data-group-id="5993576391-3">}</span><span class="p" data-group-id="5993576391-2">]</span><span class="p" data-group-id="5993576391-1">)</span><span class="p">.</span></code></pre><p>This is all that has to be done! Now the manager can read, add, and modify
+rows. Also, you can use the ordinary Mnesia API to access the table from your
+programs. The only explicit action is to create the Mnesia table, an action the
+user has to perform in order to create the required table schemas.</p><h3 id="adding-own-actions" class="section-heading">
+  <a href="#adding-own-actions" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Adding Own Actions</span>
+</h3>
+<p>It is often necessary to take some specific action when a table is modified.
+This is accomplished with an instrumentation function. It executes some specific
+code when the table is set, and passes all other requests down to the
+pre-defined function.</p><p>The following example illustrates this idea:</p><pre><code class="makeup erlang" translate="no"><span class="nf">emp_table</span><span class="p" data-group-id="3823389106-1">(</span><span class="ss">set</span><span class="p">,</span><span class="w"> </span><span class="n">RowIndex</span><span class="p">,</span><span class="w"> </span><span class="n">Cols</span><span class="p" data-group-id="3823389106-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">notify_internal_resources</span><span class="p" data-group-id="3823389106-2">(</span><span class="n">RowIndex</span><span class="p">,</span><span class="w"> </span><span class="n">Cols</span><span class="p" data-group-id="3823389106-2">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">snmp_generic</span><span class="p">:</span><span class="nf">table_func</span><span class="p" data-group-id="3823389106-3">(</span><span class="ss">set</span><span class="p">,</span><span class="w"> </span><span class="n">RowIndex</span><span class="p">,</span><span class="w"> </span><span class="n">Cols</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="3823389106-4">{</span><span class="ss">empTable</span><span class="p">,</span><span class="w"> </span><span class="ss">mnesia</span><span class="p" data-group-id="3823389106-4">}</span><span class="p" data-group-id="3823389106-3">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">emp_table</span><span class="p" data-group-id="3823389106-5">(</span><span class="n">Op</span><span class="p">,</span><span class="w"> </span><span class="n">RowIndex</span><span class="p">,</span><span class="w"> </span><span class="n">Cols</span><span class="p" data-group-id="3823389106-5">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">snmp_generic</span><span class="p">:</span><span class="nf">table_func</span><span class="p" data-group-id="3823389106-6">(</span><span class="n">Op</span><span class="p">,</span><span class="w"> </span><span class="n">RowIndex</span><span class="p">,</span><span class="w"> </span><span class="n">Cols</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="3823389106-7">{</span><span class="ss">empTable</span><span class="p">,</span><span class="w"> </span><span class="ss">mnesia</span><span class="p" data-group-id="3823389106-7">}</span><span class="p" data-group-id="3823389106-6">)</span><span class="p">.</span></code></pre><p>The default instrumentation functions are defined in the module <code class="inline">snmp_generic</code>.
+Refer to the Reference Manual, section SNMP, module <code class="inline">snmp_generic</code> for details.</p><h3 id="extending-the-mnesia-table" class="section-heading">
+  <a href="#extending-the-mnesia-table" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Extending the Mnesia Table</span>
+</h3>
+<p>A table may contain columns that are used internally, but should not be visible
+to a manager. These internal columns must be the last columns in the table. The
+<code class="inline">set</code> operation will not work with this arrangement, because there are columns
+that the agent does not know about. This situation is handled by adding values
+for the internal columns in the <code class="inline">set</code> function.</p><p>To illustrate this, suppose we extend our Mnesia <code class="inline">empTable</code> with one internal
+column. We create it as before, but with an arity of 4, by adding another
+attribute.</p><pre><code class="makeup erlang" translate="no"><span class="nc">mnesia</span><span class="p">:</span><span class="nf">create_table</span><span class="p" data-group-id="5638901531-1">(</span><span class="p" data-group-id="5638901531-2">[</span><span class="p" data-group-id="5638901531-3">{</span><span class="ss">name</span><span class="p">,</span><span class="w"> </span><span class="ss">employees</span><span class="p" data-group-id="5638901531-3">}</span><span class="p">,</span><span class="w">
+                     </span><span class="p" data-group-id="5638901531-4">{</span><span class="ss">snmp</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="5638901531-5">[</span><span class="p" data-group-id="5638901531-6">{</span><span class="ss">key</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="5638901531-7">{</span><span class="ss">integer</span><span class="p">,</span><span class="w"> </span><span class="ss">string</span><span class="p" data-group-id="5638901531-7">}</span><span class="p" data-group-id="5638901531-6">}</span><span class="p" data-group-id="5638901531-5">]</span><span class="p" data-group-id="5638901531-4">}</span><span class="p">,</span><span class="w">
+                     </span><span class="p" data-group-id="5638901531-8">{</span><span class="ss">attributes</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="5638901531-9">{</span><span class="ss">key</span><span class="p">,</span><span class="w"> </span><span class="ss">telno</span><span class="p">,</span><span class="w"> </span><span class="ss">row_status</span><span class="p">,</span><span class="w"> </span><span class="ss">internal_col</span><span class="p" data-group-id="5638901531-9">}</span><span class="p" data-group-id="5638901531-8">}</span><span class="p" data-group-id="5638901531-2">]</span><span class="p" data-group-id="5638901531-1">)</span><span class="p">.</span></code></pre><p>The last column is the internal column. When performing a <code class="inline">set</code> operation, which
+creates a row, we must give a value to the internal column. The instrumentation
+functions will now look as follows:</p><pre><code class="makeup erlang" translate="no"><span class="p">-</span><span class="na">define</span><span class="p" data-group-id="9373987630-1">(</span><span class="ss">createAndGo</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="p" data-group-id="9373987630-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p">-</span><span class="na">define</span><span class="p" data-group-id="9373987630-2">(</span><span class="ss">createAndWait</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="p" data-group-id="9373987630-2">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">emp_table</span><span class="p" data-group-id="9373987630-3">(</span><span class="ss">set</span><span class="p">,</span><span class="w"> </span><span class="n">RowIndex</span><span class="p">,</span><span class="w"> </span><span class="n">Cols</span><span class="p" data-group-id="9373987630-3">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+  </span><span class="nf">notify_internal_resources</span><span class="p" data-group-id="9373987630-4">(</span><span class="n">RowIndex</span><span class="p">,</span><span class="w"> </span><span class="n">Cols</span><span class="p" data-group-id="9373987630-4">)</span><span class="p">,</span><span class="w">
+  </span><span class="n">NewCols</span><span class="w"> </span><span class="o">=</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="nf">is_row_created</span><span class="p" data-group-id="9373987630-5">(</span><span class="ss">empTable</span><span class="p">,</span><span class="w"> </span><span class="n">Cols</span><span class="p" data-group-id="9373987630-5">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+      </span><span class="ss">true</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="n">Cols</span><span class="w"> </span><span class="o">++</span><span class="w"> </span><span class="p" data-group-id="9373987630-6">[</span><span class="p" data-group-id="9373987630-7">{</span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;internal&quot;</span><span class="p" data-group-id="9373987630-7">}</span><span class="p" data-group-id="9373987630-6">]</span><span class="p">;</span><span class="w"> </span><span class="c1">% add internal column</span><span class="w">
+      </span><span class="ss">false</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="n">Cols</span><span class="w">                      </span><span class="c1">% keep original cols</span><span class="w">
+  </span><span class="k">end</span><span class="p">,</span><span class="w">
+  </span><span class="nc">snmp_generic</span><span class="p">:</span><span class="nf">table_func</span><span class="p" data-group-id="9373987630-8">(</span><span class="ss">set</span><span class="p">,</span><span class="w"> </span><span class="n">RowIndex</span><span class="p">,</span><span class="w"> </span><span class="n">NewCols</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="9373987630-9">{</span><span class="ss">empTable</span><span class="p">,</span><span class="w"> </span><span class="ss">mnesia</span><span class="p" data-group-id="9373987630-9">}</span><span class="p" data-group-id="9373987630-8">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">emp_table</span><span class="p" data-group-id="9373987630-10">(</span><span class="n">Op</span><span class="p">,</span><span class="w"> </span><span class="n">RowIndex</span><span class="p">,</span><span class="w"> </span><span class="n">Cols</span><span class="p" data-group-id="9373987630-10">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+  </span><span class="nc">snmp_generic</span><span class="p">:</span><span class="nf">table_func</span><span class="p" data-group-id="9373987630-11">(</span><span class="n">Op</span><span class="p">,</span><span class="w"> </span><span class="n">RowIndex</span><span class="p">,</span><span class="w"> </span><span class="n">Cols</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="9373987630-12">{</span><span class="ss">empTable</span><span class="p">,</span><span class="w"> </span><span class="ss">mnesia</span><span class="p" data-group-id="9373987630-12">}</span><span class="p" data-group-id="9373987630-11">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">is_row_created</span><span class="p" data-group-id="9373987630-13">(</span><span class="n">Name</span><span class="p">,</span><span class="w"> </span><span class="n">Cols</span><span class="p" data-group-id="9373987630-13">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+  </span><span class="k">case</span><span class="w"> </span><span class="nc">snmp_generic</span><span class="p">:</span><span class="nf">get_status_col</span><span class="p" data-group-id="9373987630-14">(</span><span class="n">Name</span><span class="p">,</span><span class="w"> </span><span class="n">Cols</span><span class="p" data-group-id="9373987630-14">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+    </span><span class="p" data-group-id="9373987630-15">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="o">?</span><span class="ss">createAndGo</span><span class="p" data-group-id="9373987630-15">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="ss">true</span><span class="p">;</span><span class="w">
+    </span><span class="p" data-group-id="9373987630-16">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="o">?</span><span class="ss">createAndWait</span><span class="p" data-group-id="9373987630-16">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="ss">true</span><span class="p">;</span><span class="w">
+    </span><span class="p">_</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="ss">false</span><span class="w">
+  </span><span class="k">end</span><span class="p">.</span></code></pre><p>If a row is created, we always set the internal column to <code class="inline">&quot;internal&quot;</code>.</p><h2 id="deviations-from-the-standard" class="section-heading">
+  <a href="#deviations-from-the-standard" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Deviations from the Standard</span>
+</h2>
+<p>In some aspects the agent does not implement SNMP fully. Here are the
+differences:</p><ul><li>The default functions and <code class="inline">snmp_generic</code> cannot handle an object of type
+<code class="inline">NetworkAddress</code> as INDEX (SNMPv1 only!). Use <code class="inline">IpAddress</code> instead.</li><li>The agent does not check complex ranges specified for INTEGER objects. In
+these cases it just checks that the value lies within the minimum and maximum
+values specified. For example, if the range is specified as <code class="inline">1..10 | 12..20</code>
+the agent would let 11 through, but not 0 or 21. The instrumentation functions
+must check the complex ranges itself.</li><li>The agent will never generate the <code class="inline">wrongEncoding</code> error. If a variable binding
+is erroneous encoded, the <code class="inline">asn1ParseError</code> counter will be incremented.</li><li>A <code class="inline">tooBig</code> error in an SNMPv1 packet will always use the <code class="inline">'NULL'</code> value in all
+variable bindings.</li><li>The default functions and <code class="inline">snmp_generic</code> do not check the range of each OCTET
+in textual conventions derived from OCTET STRING, e.g. <code class="inline">DisplayString</code> and
+<code class="inline">DateAndTime</code>. This must be checked in an overloaded <code class="inline">is_set_ok</code> function.</li></ul>
+<div class="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="snmp_audit_trail_log.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Audit Trail Log
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="snmp_app_a.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+SNMP Appendix A
+        </span>
+      </a>
+
+  </div>
+</div>
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+              <a href="snmp.epub" title="ePub version">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

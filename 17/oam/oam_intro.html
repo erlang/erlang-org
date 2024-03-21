@@ -1,0 +1,322 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html xmlns:fn="http://www.w3.org/2005/02/xpath-functions">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" href="../otp_doc.css" type="text/css">
+<title>Erlang -- Introduction</title>
+</head>
+<body bgcolor="white" text="#000000" link="#0000ff" vlink="#ff00ff" alink="#ff0000"><div id="container">
+<script id="js" type="text/javascript" language="JavaScript" src="../js/flipmenu/flipmenu.js"></script><script id="js2" type="text/javascript" src="../js/erlresolvelinks.js"></script><script language="JavaScript" type="text/javascript">
+            <!--
+              function getWinHeight() {
+                var myHeight = 0;
+                if( typeof( window.innerHeight ) == 'number' ) {
+                  //Non-IE
+                  myHeight = window.innerHeight;
+                } else if( document.documentElement && ( document.documentElement.clientWidth ||
+                                                         document.documentElement.clientHeight ) ) {
+                  //IE 6+ in 'standards compliant mode'
+                  myHeight = document.documentElement.clientHeight;
+                } else if( document.body && ( document.body.clientWidth || document.body.clientHeight ) ) {
+                  //IE 4 compatible
+                  myHeight = document.body.clientHeight;
+                }
+                return myHeight;
+              }
+
+              function setscrollpos() {
+                var objf=document.getElementById('loadscrollpos');
+                 document.getElementById("leftnav").scrollTop = objf.offsetTop - getWinHeight()/2;
+              }
+
+              function addEvent(obj, evType, fn){
+                if (obj.addEventListener){
+                obj.addEventListener(evType, fn, true);
+                return true;
+              } else if (obj.attachEvent){
+                var r = obj.attachEvent("on"+evType, fn);
+                return r;
+              } else {
+                return false;
+              }
+             }
+
+             addEvent(window, 'load', setscrollpos);
+
+             //--></script><div id="leftnav"><div class="innertube">
+<img alt="Erlang logo" src="../erlang-logo.png"><br><small><a href="users_guide.html">User's Guide</a><br><a href="../pdf/otp-system-documentation.pdf">PDF</a><br><a href="../index.html">Top</a></small><p><strong>OAM Principles</strong><br><strong>User's Guide</strong><br><small>Version 6.4</small></p>
+<br><a href="javascript:openAllFlips()">Expand All</a><br><a href="javascript:closeAllFlips()">Contract All</a><p><small><strong>Chapters</strong></small></p>
+<ul class="flipMenu" imagePath="../js/flipmenu"><li id="loadscrollpos" title="Introduction" expanded="true">Introduction<ul>
+<li><a href="oam_intro.html">
+              Top of chapter
+            </a></li>
+<li title="Terminology"><a href="oam_intro.html#id60708">Terminology</a></li>
+<li title="Model"><a href="oam_intro.html#id59313">Model</a></li>
+<li title="SNMP based OAM"><a href="oam_intro.html#id60966">SNMP based OAM</a></li>
+</ul>
+</li></ul>
+</div></div>
+<div id="content">
+<div class="innertube">
+<h1>1 Introduction</h1>
+  
+  <p>The operation and maintenance support in OTP consists of a
+    generic model for management subsystems in OTP, and some
+    components to be used in these subsystems.  This document
+    describes the model.
+    </p>
+  <p>The main idea in the model is that it is management protocol
+    independent.  Thus, it is not tied to any specific management
+    protocol.  An API is defined which can be used to write
+    adaptations for specific management protocols.
+    </p>
+  <p>Each OAM component in OTP is implemented as one sub application,
+    which can be included in a management application for the system.
+    Note that such a complete management application is not in the
+    scope of this generic functionality.  Examples illustrating how such an
+    application can be built are included however.
+    </p>
+
+  <h3><a name="id60708">1.1 
+        Terminology</a></h3>
+    
+    <p>The protocol independent architectural model on the network
+      level is the well-known Manager-Agent       model.  This model is based on the client-server
+      principle, where the manager (client) sends requeststo the
+      agent (server), the agent sends repliesback to the manager.  There are two main
+      differences to the normal client-server model.  First, there are
+      usually a few managers that communicate with many agents; and
+      second, the agent may spontaneously send notificationsto the
+      manager.  The picture below illustrates the idea.</p>
+    <img alt="IMAGE MISSING" src="../oam/terminology.gif"><br>
+      <em>Figure
+        1.1:
+         
+        Terminology</em>
+    
+    <p>The manager is often referred to as the NMS, to
+      emphasize that it usually is realized as a program that presents
+      data to an operator.
+      </p>
+    <p>The agent is an entity that executes within a NE.
+      In OTP, the network element may be a distributed system, meaning
+      that the distributed system is managed as one entity.  Of
+      course, the agent may be configured to be able to run on one of
+      several nodes, making it a distributed OTP application.
+      </p>
+    <p>The management information is defined in an MIB.
+      It is a formal definition of which information the agent makes
+      available to the manager.  The manager accesses the MIB through
+      a management protocol, such as SNMP, CMIP, HTTP or CORBA.  Each
+      of these protocols have their own MIB definition language.  In
+      SNMP, it is a subset of ASN.1, in CMIP it is GDMO, in HTTP it is
+      implicit, and using CORBA, it is IDL.  Usually, the entities
+      defined in the MIB are called MO, although these
+      objects do not have to be objects in the OO way,for example, a simple
+      scalar variable defined in an MIB is called a Managed Object.
+      The Managed Objects are logical objects, not necessarily with a
+      one-to-one mapping to the resources.
+      </p>
+  
+
+  <h3><a name="id59313">1.2 
+        Model</a></h3>
+    
+    <p>In this section, the generic protocol independent model for use
+      within an OTP based network element is presented.  This model is
+      used by all operation and maintenance components, and may be
+      used by the applications.  The advantage of the model is that it
+      clearly separates the resources from the management protocol.
+      The resources do not need to be aware of which management
+      protocol is used to manage the system.  This makes it possible
+      to manage the same resources with different protocols.
+      </p>
+    <p>The different entities involved in this model are the agentwhich terminates the management protocol, and the
+      resourceswhich is to be managed, i.e. the actual
+      application entities.  The resources should in general have no
+      knowledge of the management protocol used, and the agent should
+      have no knowledge of the managed resources.  This implies that
+      some sort of translation mechanism must be used, to translate
+      the management operations to operations on the resources.  This
+      translation mechanism is usually called
+      <strong>instrumentation</strong>, and the function that implements it is
+      called instrumentation function.  The
+      instrumentation functions are written for each combination of
+      management protocol and resource to be managed.  For example, if
+      an application is to be managed by SNMP and HTTP, two sets of
+      instrumentation functions are defined; one that maps SNMP
+      requests to the resources, and one that e.g. generates an HTML
+      page for some resources.
+      </p>
+    <p>When a manager makes a request to the agent, we have the
+      following picture:</p>
+    <img alt="IMAGE MISSING" src="../oam/snmp_model_1.gif"><br>
+      <em>Figure
+        1.2:
+         
+        Request to an agent by a manager</em>
+    
+    <p>Note that the mapping between instrumentation function and
+      resource is not necessarily 1-1.  It is also possible to write
+      one instrumentation function for each resource, and use that
+      function from different protocols.
+      </p>
+    <p>The agent receives a request and maps this request to calls to
+      one or several instrumentation functions.  The instrumentation
+      functions perform operations on the resources to implement the
+      semantics associated with the managed object.
+      </p>
+    <p>For example, a system that is managed with SNMP and HTTP may be
+      structured in the following way:</p>
+    <img alt="IMAGE MISSING" src="../oam/snmp_model_2.gif"><br>
+      <em>Figure
+        1.3:
+         
+        Structure of a system managed with SNMP and HTTP</em>
+    
+    <p>The resources may send notifications to the manager as well.
+      Examples of notifications are events and alarms.  There is a
+      need for the resource to generate protocol independent
+      notifications.  The following picture illustrates how this is
+      achieved:</p>
+    <img alt="IMAGE MISSING" src="../oam/snmp_model_3.gif"><br>
+      <em>Figure
+        1.4:
+         
+        Notification handling</em>
+    
+    <p>The main idea is that the resource sends the notfications as
+      Erlang terms to a dedicated <span class="code">gen_event</span> process.  Into this
+      process, handlers for the different management protocols are
+      installed.  When an event is received by this process, it is
+      forwarded to each installed handler.  The handlers are
+      responsible for translating the event into a notification to be
+      sent over the management protocol.  For example, a handler for
+      SNMP would translate each event into an SNMP trap.
+      </p>
+  
+
+  <h3><a name="id60966">1.3 
+        SNMP based OAM</a></h3>
+    
+    <p>For all OAM components, SNMP adaptations are provided.  Other
+      adaptations may be defined in the future.
+      </p>
+    <p>The OAM components, and some other OTP applications, define
+      SNMP MIBs.  All these MIBs are written in SNMPv2 SMI syntax, as
+      defined in RFC1902.  For convenience we also deliver the SNMPv1
+      SMI equivalent.  All MIBs are designed to be v1/v2 compatible,
+      i.e. the v2 MIBs do not use any construct not available in v1.
+      </p>
+
+    <h4>MIB structure</h4>
+      
+      <p>The top-level OTP MIB is called <span class="code">OTP-REG</span>, and it is
+        included in the <span class="code">sasl</span> application.  All other OTP mibs
+        import some objects from this MIB.
+        </p>
+      <p>Each MIB is contained in one application.  The MIB text files
+        are stored under <span class="code">mibs/&lt;MIB&gt;.mib</span> in the application
+        directory. The generated <span class="code">.hrl</span> files with constant
+        declarations are stored under <span class="code">include/&lt;MIB&gt;.hrl</span>, and
+        the compiled MIBs are stored under
+        <span class="code">priv/mibs/&lt;MIB&gt;.bin</span>.  For example, the <span class="code">OTP-MIB</span>
+        is included in the <span class="code">sasl</span> application:
+        </p>
+      <div class="example"><pre>
+sasl-1.3/mibs/OTP-MIB.mib
+         include/OTP-MIB.hrl
+         priv/mibs/OTP-MIB.bin</pre></div>
+      <p>An application that needs to IMPORT this mib into another
+        MIB, should use the <span class="code">il</span> option to the snmp mib compiler:
+        </p>
+      <div class="example"><pre>
+snmp:c("MY-MIB", [{il, ["sasl/priv/mibs"]}]).</pre></div>
+      <p>If the application needs to include the generated
+        <span class="code">.hrl</span> file, it should use the <span class="code">-include_lib</span>
+        directive to the Erlang compiler.
+        </p>
+      <div class="example"><pre>
+-module(my_mib).
+
+-include_lib("sasl/include/OTP-MIB.hrl").</pre></div>
+      <p>The following MIBs are defined in the OTP system:
+        </p>
+      <dl>
+        <dt><strong>OTP-REG  (sasl)</strong></dt>
+        <dd>
+          <p>This MIB contains the top-level OTP registration
+            objects, used by all other MIBs.
+            </p>
+        </dd>
+        <dt><strong>OTP-TC  (sasl)</strong></dt>
+        <dd>
+          <p>This MIB contains the general Textual Conventions,
+            which can be used by any other MIB.
+            </p>
+        </dd>
+        <dt><strong>OTP-MIB  (sasl)</strong></dt>
+        <dd>
+          <p>This MIB contains objects for instrumentation of the
+            Erlang nodes, the Erlang machines and the applications in
+            the system.
+            </p>
+        </dd>
+        <dt><strong>OTP-OS-MON-MIB  (os_mon)</strong></dt>
+        <dd>
+          <p>This MIB contains objects for instrumentation of disk,
+            memory and cpu usage of the nodes in the system.
+            </p>
+        </dd>
+        <dt><strong>OTP-SNMPEA-MIB  (snmp)</strong></dt>
+        <dd>
+          <p>This MIB contains objects for instrumentation and
+            control of the extensible snmp agent itself.  Note that
+            the agent also implements the standard SNMPv2-MIB (or v1
+            part of MIB-II, if SNMPv1 is used).
+            </p>
+        </dd>
+        <dt><strong>OTP-EVA-MIB  (eva)</strong></dt>
+        <dd>
+          <p>This MIB contains objects for instrumentation and
+            control of the events and alarms in the system.
+            </p>
+        </dd>
+        <dt><strong>OTP-LOG-MIB  (eva)</strong></dt>
+        <dd>
+          <p>This MIB contains objects for instrumentation and
+            control of the logs and FTP transfer of logs.
+            </p>
+        </dd>
+        <dt><strong>OTP-EVA-LOG-MIB  (eva)</strong></dt>
+        <dd>
+          <p>This MIB contains objects for instrumentation and
+            control of the events and alarm logs in the system.
+            </p>
+        </dd>
+        <dt><strong>OTP-SNMPEA-LOG-MIB  (eva)</strong></dt>
+        <dd>
+          <p>This MIB contains objects for instrumentation and
+            control of the snmp audit trail log in the system.
+            </p>
+        </dd>
+      </dl>
+      <p>The different applications use different strategies for
+        loading the MIBs into the agent.  Some MIB implementations are
+        code-only, while others need a server.  One way, used by the
+        code-only mib implementations, is for the user to call a
+        function such as <span class="code">otp_mib:init(Agent)</span> to load the MIB,
+        and <span class="code">otp_mib:stop(Agent)</span> to unload the MIB.  See the
+        application manual page for each application for a description
+        of how to load each MIB.
+        </p>
+    
+  
+</div>
+<div class="footer">
+<hr>
+<p>Copyright © 1997-2015 Ericsson AB. All Rights Reserved.</p>
+</div>
+</div>
+</div></body>
+</html>

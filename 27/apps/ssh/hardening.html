@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="ssh v5.2">
+
+
+    <title>Hardening — ssh v5.2</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-C18F4EE7.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="ssh" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+ssh
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v5.2
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of ssh</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/lib/ssh/doc/guides/hardening.md#L1" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+
+  <span>Hardening</span>
+</h1>
+
+<h2 id="introduction" class="section-heading">
+  <a href="#introduction" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Introduction</span>
+</h2>
+<p>The Erlang/OTP SSH application is intended to be used in other applications as a
+library.</p><p>Different applications using this library may have very different requirements.
+One application could be running on a high performance server, while another is
+running on a small device with very limited cpu capacity. For example, the first
+one may accept many users simultaneously logged in, while the second one wants
+to limit them to only one.</p><p>That simple example shows that it is impossible to deliver the SSH application
+with default values on hardening options as well on other options that suites
+every need.</p><p>The purpose of this guide is to discuss the different hardening options
+available, as a guide to the reader. Configuration in general is described in
+the <a href="configurations.html">Configuration in SSH</a> chapter.</p><h2 id="resilience-to-dos-attacks" class="section-heading">
+  <a href="#resilience-to-dos-attacks" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Resilience to DoS attacks</span>
+</h2>
+<p>The following applies to daemons (servers).</p><p>DoS (Denial of Service) attacks are hard to fight at the node level. Here are
+firewalls and other means needed, but that is out of scope for this guide.
+However, some measures could be taken in the configuration of the SSH server to
+increase the resilence. The options to use are:</p><h3 id="counters-and-parallelism" class="section-heading">
+  <a href="#counters-and-parallelism" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Counters and parallelism</span>
+</h3>
+<ul><li><p><strong><a href="ssh.html#hardening_daemon_options-max_sessions">max_sessions</a></strong> - The
+maximum number of simultaneous sessions that are accepted at any time for this
+daemon. This includes sessions that are being authorized. The default is that
+an unlimited number of simultaneous sessions are allowed. It is a good
+candidate to set if the capacity of the server is low or a capacity margin is
+needed.</p></li><li><p><strong><a href="ssh.html#hardening_daemon_options-max_channels">max_channels</a></strong> - The
+maximum number of channels that are accepted for each connection. The default
+is unlimited.</p></li><li><p><strong><a href="ssh.html#hardening_daemon_options-parallel_login">parallel_login</a></strong> - If set
+to false (the default value), only one login is handled at a time. If set to
+true, the number of simultaneous login attempts are limited by the value of
+the <a href="ssh.html#hardening_daemon_options-max_sessions">max_sessions</a> option.</p></li></ul><h3 id="timeouts" class="section-heading">
+  <a href="#timeouts" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Timeouts</span>
+</h3>
+<ul><li><p><strong><a href="ssh.html#t:hello_timeout_daemon_option/0">hello_timeout</a></strong> - If the client
+fails to send the first ssh message after a tcp connection setup within this
+time (in milliseconds), the connection is closed. The default value is 30
+seconds. This is actually a generous time, so it can lowered to make the
+daemon less prone to DoS attacks.</p></li><li><p><strong><a href="ssh.html#t:negotiation_timeout_daemon_option/0">negotiation_timeout</a></strong> -
+Maximum time in milliseconds for the authentication negotiation counted from
+the TCP connection establishment. If the client fails to log in within this
+time the connection is closed. The default value is 2 minutes. It is quite a
+long time, but can lowered if the client is supposed to be fast like if it is
+a program logging in.</p></li><li><p><strong><a href="ssh.html#t:max_idle_time_common_option/0">idle_time</a></strong> - Sets a time-out on a
+connection when no channels are left after closing the final one. It defaults
+to infinity.</p></li><li><p><strong><a href="ssh.html#t:max_initial_idle_time_daemon_option/0">max_initial_idle_time</a></strong> -
+Sets a time-out on a connection that will expire if no channel is opened on
+the connection. The timeout is started when the authentication phase is
+completed. It defaults to infinity.</p></li></ul><p>A figure clarifies when a timeout is started and when it triggers:</p><p><img src="assets/ssh_timeouts.jpg" alt="SSH server timeouts" title="SSH server timeouts"/></p><h2 id="verifying-the-remote-daemon-server-in-an-ssh-client" class="section-heading">
+  <a href="#verifying-the-remote-daemon-server-in-an-ssh-client" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Verifying the remote daemon (server) in an SSH client</span>
+</h2>
+<p>Every SSH server presents a public key - the <em>host key</em> - to the client while
+keeping the corresponding private key in relatively safe privacy.</p><p>The client checks that the host that presented the public key also possesses the
+private key of the key-pair. That check is part of the SSH protocol.</p><p>But how can the client know that the host <em>really</em> is the one that it tried to
+connect to and not an evil one impersonating the expected one using its own
+valid key-pair? There are two alternatives available with the default key
+handling plugin <a href="ssh_file.html"><code class="inline">ssh_file</code></a>. The alternatives are:</p><ul><li><p><strong>Pre-store the host key</strong> - * For the default handler ssh_file, store the
+valid host keys in the file <a href="ssh_file.html#FILE-known_hosts"><code class="inline">known_hosts</code></a> and
+set the option
+<a href="ssh.html#hardening_client_options-silently_accept_hosts">silently_accept_hosts</a>
+to <code class="inline">false</code>.</p><ul><li>or, write a specialized key handler using the
+<a href="ssh_client_key_api.html">SSH client key API</a> that accesses the pre-shared
+key in some other way.</li></ul></li><li><p><strong>Pre-store the &quot;fingerprint&quot; (checksum) of the host key</strong> - *
+<a href="ssh.html#hardening_client_options-silently_accept_hosts">silently_accept_hosts</a></p><ul><li><a href="ssh.html#t:accept_callback/0"><code class="inline">accept_callback()</code></a></li><li><a href="ssh.html#t:accept_hosts/0"><code class="inline">{HashAlgoSpec, accept_callback()}</code></a></li></ul></li></ul><h2 id="verifying-the-remote-client-in-a-daemon-server" class="section-heading">
+  <a href="#verifying-the-remote-client-in-a-daemon-server" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Verifying the remote client in a daemon (server)</span>
+</h2>
+<ul><li><p><strong>Password checking</strong> - The default password checking is with the list in the
+<a href="ssh.html#option-user_passwords">user_passwords</a> option in the SSH daemon. It
+could be replaced with a <a href="ssh.html#option-pwdfun">pwdfun</a> plugin. The arity
+four variant (<a href="ssh.html#t:pwdfun_4/0"><code class="inline">pwdfun_4()</code></a>) can also be used for
+introducing delays after failed password checking attempts. Here is a simple
+example of such a pwdfun:</p><pre><code class="makeup erlang" translate="no"><span class="nf">fun</span><span class="p" data-group-id="9113964695-1">(</span><span class="n">User</span><span class="p">,</span><span class="w"> </span><span class="n">Password</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">PeerAddress</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="9113964695-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+        </span><span class="k">case</span><span class="w"> </span><span class="nc">lists</span><span class="p">:</span><span class="nf">member</span><span class="p" data-group-id="9113964695-2">(</span><span class="p" data-group-id="9113964695-3">{</span><span class="n">User</span><span class="p">,</span><span class="n">Password</span><span class="p" data-group-id="9113964695-3">}</span><span class="p">,</span><span class="w"> </span><span class="nf">my_user_pwds</span><span class="p" data-group-id="9113964695-4">(</span><span class="p" data-group-id="9113964695-4">)</span><span class="p" data-group-id="9113964695-2">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+            </span><span class="ss">true</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                </span><span class="p" data-group-id="9113964695-5">{</span><span class="ss">true</span><span class="p">,</span><span class="w"> </span><span class="ss">undefined</span><span class="p" data-group-id="9113964695-5">}</span><span class="p">;</span><span class="w"> </span><span class="c1">% Reset delay time</span><span class="w">
+            </span><span class="ss">false</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="n">State</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="ss">undefined</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                </span><span class="nc">timer</span><span class="p">:</span><span class="nf">sleep</span><span class="p" data-group-id="9113964695-6">(</span><span class="mi">1000</span><span class="p" data-group-id="9113964695-6">)</span><span class="p">,</span><span class="w">
+                </span><span class="p" data-group-id="9113964695-7">{</span><span class="ss">false</span><span class="p">,</span><span class="w"> </span><span class="mi">2000</span><span class="p" data-group-id="9113964695-7">}</span><span class="p">;</span><span class="w"> </span><span class="c1">% Next delay is 2000 ms</span><span class="w">
+            </span><span class="ss">false</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="nf">is_integer</span><span class="p" data-group-id="9113964695-8">(</span><span class="n">State</span><span class="p" data-group-id="9113964695-8">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                </span><span class="nc">timer</span><span class="p">:</span><span class="nf">sleep</span><span class="p" data-group-id="9113964695-9">(</span><span class="n">State</span><span class="p" data-group-id="9113964695-9">)</span><span class="p">,</span><span class="w">
+                </span><span class="p" data-group-id="9113964695-10">{</span><span class="ss">false</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="o">*</span><span class="n">State</span><span class="p" data-group-id="9113964695-10">}</span><span class="w"> </span><span class="c1">% Double the delay for each failure</span><span class="w">
+        </span><span class="k">end</span><span class="w">
+</span><span class="k">end</span><span class="p">.</span></code></pre><p>If a public key is used for logging in, there is normally no checking of the
+user name. It could be enabled by setting the option
+<a href="ssh.html#option-pk_check_user"><code class="inline">pk_check_user</code></a> to <code class="inline">true</code>. In that case the
+pwdfun will get the atom <code class="inline">pubkey</code> in the password argument.</p></li></ul><h2 id="hardening-in-the-cryptographic-area" class="section-heading">
+  <a href="#hardening-in-the-cryptographic-area" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Hardening in the cryptographic area</span>
+</h2>
+<h3 id="algorithm-selection" class="section-heading">
+  <a href="#algorithm-selection" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Algorithm selection</span>
+</h3>
+<p>One of the cornerstones of security in SSH is cryptography. The development in
+crypto analysis is fast, and yesterday's secure algorithms are unsafe today.
+Therefore some algorithms are no longer enabled by default and that group grows
+with time. See the
+<a href="ssh_app.html#supported-specifications-and-standards">SSH (App)</a> for a list of
+supported and of disabled algorithms. In the User's Guide the chapter
+<a href="configure_algos.html">Configuring algorithms in SSH</a> describes the options for
+enabling or disabling algorithms -
+<a href="ssh.html#t:preferred_algorithms_common_option/0">preferred_algorithms</a> and
+<a href="ssh.html#t:modify_algorithms_common_option/0">modify_algorithms</a>.</p><h3 id="re-keying" class="section-heading">
+  <a href="#re-keying" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Re-keying</span>
+</h3>
+<p>In the setup of the SSH connection a secret cipher key is generated by
+co-operation of the client and the server. Keeping this key secret is crucial
+for keeping the communication secret. As time passes and encrypted messages are
+exchanged, the probability that a listener could guess that key increases.</p><p>The SSH protocol therefore has a special operation defined - <em>key
+re-negotiation</em> or <em>re-keying</em>. Any side (client or server) could initiate the
+re-keying and the result is a new cipher key. The result is that the
+eves-dropper has to restart its evil and dirty craftmanship.</p><p>See the option <a href="ssh.html#t:rekey_limit_common_option/0">rekey_limit</a> for a
+description.</p><h2 id="hardening-of-the-ssh-protocol-both-daemons-and-clients" class="section-heading">
+  <a href="#hardening-of-the-ssh-protocol-both-daemons-and-clients" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Hardening of the SSH protocol - both daemons and clients</span>
+</h2>
+<h3 id="disabling-shell-and-exec-in-a-daemon" class="section-heading">
+  <a href="#disabling-shell-and-exec-in-a-daemon" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Disabling shell and exec in a daemon</span>
+</h3>
+<p>A daemon has two services for evaluating tasks on behalf of a remote client. The
+<em>exec</em> server-side service takes a string provided by the client, evaluates it
+and returns the result. The <em>shell</em> function enables the client to open a shell
+in the shell host.</p><p>Those service could - and should - be disabled when they are not needed. The
+options <a href="ssh.html#t:exec_daemon_option/0">exec</a> and
+<a href="ssh.html#t:shell_daemon_option/0">shell</a> are enabled per default but could be set
+to <code class="inline">disabled</code> if not needed. The same options could also install handlers for
+the string(s) passed from the client to the server.</p><h3 id="the-id-string" class="section-heading">
+  <a href="#the-id-string" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">The id string</span>
+</h3>
+<p>One way to reduce the risk of intrusion is to not convey which software and
+which version the intruder is connected to. This limits the risk of an intruder
+exploiting known faults or peculiarities learned by reading the public code.</p><p>Each SSH client or daemon presents themselves to each other with brand and
+version. This may look like</p><pre><code class="text">SSH-2.0-Erlang/4.10</code></pre><p>or</p><pre><code class="text">SSH-2.0-OpenSSH_7.6p1 Ubuntu-4ubuntu0.3</code></pre><p>This brand and version may be changed with the option
+<a href="ssh.html#t:id_string_common_option/0">id_string</a>. We start a daemon with that
+option:</p><pre><code class="makeup erlang" translate="no"><span class="err">	</span><span class="nc">ssh</span><span class="p">:</span><span class="nf">daemon</span><span class="p" data-group-id="9749257940-1">(</span><span class="mi">1234</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="9749257940-2">[</span><span class="p" data-group-id="9749257940-3">{</span><span class="ss">id_string</span><span class="p">,</span><span class="s">&quot;hi there&quot;</span><span class="p" data-group-id="9749257940-3">}</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="w"> </span><span class="p" data-group-id="9749257940-2">]</span><span class="p" data-group-id="9749257940-1">)</span><span class="p">.</span></code></pre><p>and the daemon will present itself as:</p><pre><code class="text">SSH-2.0-hi there</code></pre><p>It is possible to replace the string with one randomly generated for each
+connection attempt. See the reference manual for
+<a href="ssh.html#t:id_string_common_option/0">id_string</a>.</p><h2 id="client-connection-options" class="section-heading">
+  <a href="#client-connection-options" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Client connection options</span>
+</h2>
+<p>A client could limit the time for the initial tcp connection establishment with
+the option <a href="ssh.html#t:connect_timeout_client_option/0">connect_timeout</a>. The time
+is in milliseconds, and the initial value is infinity.</p><p>The negotiation (session setup time) time can be limited with the <em>parameter</em>
+<code class="inline">NegotiationTimeout</code> in a call establishing an ssh session, for example
+<a href="ssh.html#connect/3"><code class="inline">ssh:connect/3</code></a>.</p>
+<div class="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="configure_algos.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Configuring algorithms in SSH
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+  </div>
+</div>
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+              <a href="ssh.epub" title="ePub version">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

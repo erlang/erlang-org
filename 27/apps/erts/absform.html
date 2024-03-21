@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="erts v14.3">
+
+
+    <title>The Abstract Format — erts v14.3</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-218663D5.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="erts" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+erts
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v14.3
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of erts</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/erts/doc/guides/absform.md#L1" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+
+  <span>The Abstract Format</span>
+</h1>
+
+<p>This section describes the standard representation of parse trees for Erlang
+programs as Erlang terms. This representation is known as the <em>abstract format</em>.
+Functions dealing with such parse trees are
+<a href="../../apps/compiler/compile.html#forms/1"><code class="inline">compile:forms/1,2</code></a> and functions in the following modules:</p><ul><li><a href="../../apps/stdlib/epp.html"><code class="inline">epp</code></a></li><li><a href="../../apps/stdlib/erl_eval.html"><code class="inline">erl_eval</code></a></li><li><a href="../../apps/stdlib/erl_lint.html"><code class="inline">erl_lint</code></a></li><li><a href="../../apps/stdlib/erl_parse.html"><code class="inline">erl_parse</code></a></li><li><a href="../../apps/stdlib/erl_pp.html"><code class="inline">erl_pp</code></a></li><li><a href="../../apps/stdlib/io.html"><code class="inline">io</code></a></li></ul><p>The functions are also used as input and output for parse transforms, see the
+<a href="../../apps/compiler/compile.html"><code class="inline">compile</code></a> module.</p><p>We use the function <code class="inline">Rep</code> to denote the mapping from an Erlang source construct
+<code class="inline">C</code> to its abstract format representation <code class="inline">R</code>, and write <code class="inline">R = Rep(C)</code>.</p><p>The word <code class="inline">ANNO</code> in this section represents an annotation, and denotes among
+other things the number of the line in the source file where the construction
+occurred. See <a href="../../apps/stdlib/erl_anno.html"><code class="inline">erl_anno</code></a> for details. Several instances of <code class="inline">ANNO</code> in the same
+construction can denote different annotations.</p><p>As operators are not terms in their own right, when operators are mentioned
+below, the representation of an operator is to be taken to be the atom with a
+printname consisting of the same characters as the operator.</p><h2 id="module-declarations-and-forms" class="section-heading">
+  <a href="#module-declarations-and-forms" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Module Declarations and Forms</span>
+</h2>
+<p>A module declaration consists of a sequence of forms, which are either function
+declarations or attributes.</p><ul><li>If D is a module declaration consisting of the forms <code class="inline">F_1</code>, ..., <code class="inline">F_k</code>, then
+Rep(D) = <code class="inline">[Rep(F_1), ..., Rep(F_k)]</code>.</li><li>If F is an attribute <code class="inline">-export([Fun_1/A_1, ..., Fun_k/A_k])</code>, then Rep(F) =
+<code class="inline">{attribute,ANNO,export,[{Fun_1,A_1}, ..., {Fun_k,A_k}]}</code>.</li><li>If F is an attribute <code class="inline">-import(Mod,[Fun_1/A_1, ..., Fun_k/A_k])</code>, then Rep(F) =
+<code class="inline">{attribute,ANNO,import,{Mod,[{Fun_1,A_1}, ..., {Fun_k,A_k}]}}</code>.</li><li>If F is an attribute <code class="inline">-module(Mod)</code>, then Rep(F) =
+<code class="inline">{attribute,ANNO,module,Mod}</code>.</li><li>If F is an attribute <code class="inline">-file(File,Line)</code>, then Rep(F) =
+<code class="inline">{attribute,ANNO,file,{File,Line}}</code>.</li><li>If F is a function declaration <code class="inline">Name Fc_1 ; ... ; Name Fc_k</code>, where each
+<code class="inline">Fc_i</code> is a function clause with a pattern sequence of the same length
+<code class="inline">Arity</code>, then Rep(F) =
+<code class="inline">{function,ANNO,Name,Arity,[Rep(Fc_1), ...,Rep(Fc_k)]}</code>.</li><li>If F is a function specification <code class="inline">-Spec Name Ft_1; ...; Ft_k</code>, where <code class="inline">Spec</code> is
+either the atom <code class="inline">spec</code> or the atom <code class="inline">callback</code>, and each <code class="inline">Ft_i</code> is a possibly
+constrained function type with an argument sequence of the same length
+<code class="inline">Arity</code>, then Rep(F) =
+<code class="inline">{attribute,ANNO,Spec,{{Name,Arity},[Rep(Ft_1), ..., Rep(Ft_k)]}}</code>.</li><li>If F is a function specification <code class="inline">-spec Mod:Name Ft_1; ...; Ft_k</code>, where each
+<code class="inline">Ft_i</code> is a possibly constrained function type with an argument sequence of
+the same length <code class="inline">Arity</code>, then Rep(F) =
+<code class="inline">{attribute,ANNO,spec,{{Mod,Name,Arity},[Rep(Ft_1), ..., Rep(Ft_k)]}}</code>.</li><li>If F is a record declaration <code class="inline">-record(Name,{V_1, ..., V_k})</code>, where each <code class="inline">V_i</code>
+is a record field, then Rep(F) =
+<code class="inline">{attribute,ANNO,record,{Name,[Rep(V_1), ..., Rep(V_k)]}}</code>. For Rep(V), see
+below.</li><li>If F is a type declaration <code class="inline">-Type Name(V_1, ..., V_k) :: T</code>, where <code class="inline">Type</code> is
+either the atom <code class="inline">type</code> or the atom <code class="inline">opaque</code>, each <code class="inline">V_i</code> is a type variable,
+and <code class="inline">T</code> is a type, then Rep(F) =
+<code class="inline">{attribute,ANNO,Type,{Name,Rep(T),[Rep(V_1), ..., Rep(V_k)]}}</code>.</li><li>If F is a wild attribute <code class="inline">-A(T)</code>, then Rep(F) = <code class="inline">{attribute,ANNO,A,T}</code>.</li></ul><h3 id="record-fields" class="section-heading">
+  <a href="#record-fields" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Record Fields</span>
+</h3>
+<p>Each field in a record declaration can have an optional, explicit, default
+initializer expression, and an optional type.</p><ul><li>If V is <code class="inline">A</code>, then Rep(V) = <code class="inline">{record_field,ANNO,Rep(A)}</code>.</li><li>If V is <code class="inline">A = E</code>, where <code class="inline">E</code> is an expression, then Rep(V) =
+<code class="inline">{record_field,ANNO,Rep(A),Rep(E)}</code>.</li><li>If V is <code class="inline">A :: T</code>, where <code class="inline">T</code> is a type, then Rep(V) =
+<code class="inline">{typed_record_field,{record_field,ANNO,Rep(A)},Rep(T)}</code>.</li><li>If V is <code class="inline">A = E :: T</code>, where <code class="inline">E</code> is an expression and <code class="inline">T</code> is a type, then
+Rep(V) = <code class="inline">{typed_record_field,{record_field,ANNO,Rep(A),Rep(E)},Rep(T)}</code>.</li></ul><h3 id="representation-of-parse-errors-and-end-of-file" class="section-heading">
+  <a href="#representation-of-parse-errors-and-end-of-file" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Representation of Parse Errors and End-of-File</span>
+</h3>
+<p>In addition to the representations of forms, the list that represents a module
+declaration (as returned by functions in <a href="../../apps/stdlib/epp.html"><code class="inline">epp</code></a> and <a href="../../apps/stdlib/erl_parse.html"><code class="inline">erl_parse</code></a>) can contain
+the following:</p><ul><li>Tuples <code class="inline">{error,E}</code> and <code class="inline">{warning,W}</code>, denoting syntactically incorrect forms
+and warnings.</li><li><code class="inline">{eof,LOCATION}</code>, denoting an end-of-stream encountered before a complete form
+had been parsed. The word <code class="inline">LOCATION</code> represents a location, and denotes the
+number of the last line, and possibly the number of the last column on that
+line, in the source file. See <a href="../../apps/stdlib/erl_anno.html"><code class="inline">erl_anno</code></a> for details.</li></ul><p>See <a href="../../apps/stdlib/erl_parse.html#t:form_info/0"><code class="inline">the form_info/0</code></a> type in <a href="../../apps/stdlib/erl_parse.html"><code class="inline">erl_parse</code></a> for
+more details about these values.</p><h2 id="atomic-literals" class="section-heading">
+  <a href="#atomic-literals" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Atomic Literals</span>
+</h2>
+<p>There are five kinds of atomic literals, which are represented in the same way
+in patterns, expressions, and guards:</p><ul><li>If L is an atom literal, then Rep(L) = <code class="inline">{atom,ANNO,L}</code>.</li><li>If L is a character literal, then Rep(L) = <code class="inline">{char,ANNO,L}</code>.</li><li>If L is a float literal, then Rep(L) = <code class="inline">{float,ANNO,L}</code>.</li><li>If L is an integer literal, then Rep(L) = <code class="inline">{integer,ANNO,L}</code>.</li><li>If L is a string literal consisting of the characters <code class="inline">C_1</code>, ..., <code class="inline">C_k</code>, then
+Rep(L) = <code class="inline">{string,ANNO,[C_1, ..., C_k]}</code>.</li></ul><p>Notice that negative integer and float literals do not occur as such; they are
+parsed as an application of the unary negation operator.</p><h2 id="patterns" class="section-heading">
+  <a href="#patterns" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Patterns</span>
+</h2>
+<p>If Ps is a sequence of patterns <code class="inline">P_1, ..., P_k</code>, then Rep(Ps) =
+<code class="inline">[Rep(P_1), ..., Rep(P_k)]</code>. Such sequences occur as the list of arguments to a
+function or fun.</p><p>Individual patterns are represented as follows:</p><ul><li>If P is an atomic literal <code class="inline">L</code>, then Rep(P) = Rep(L).</li><li>If P is a bitstring pattern <code class="inline">&lt;&lt;P_1:Size_1/TSL_1, ..., P_k:Size_k/TSL_k&gt;&gt;</code>,
+where each <code class="inline">Size_i</code> is an expression that can be evaluated to an integer, and
+each <code class="inline">TSL_i</code> is a type specificer list, then Rep(P) =
+<code class="inline">{bin,ANNO,[{bin_element,ANNO,Rep(P_1),Rep(Size_1),Rep(TSL_1)}, ..., {bin_element,ANNO,Rep(P_k),Rep(Size_k),Rep(TSL_k)}]}</code>.
+For Rep(TSL), see below. An omitted <code class="inline">Size_i</code> is represented by <code class="inline">default</code>. An
+omitted <code class="inline">TSL_i</code> is represented by <code class="inline">default</code>.</li><li>If P is a compound pattern <code class="inline">P_1 = P_2</code>, then Rep(P) =
+<code class="inline">{match,ANNO,Rep(P_1),Rep(P_2)}</code>.</li><li><p>If P is a cons pattern <code class="inline">[P_h | P_t]</code>, then Rep(P) =
+<code class="inline">{cons,ANNO,Rep(P_h),Rep(P_t)}</code>.</p></li><li>If P is a map pattern <code class="inline">#{A_1, ..., A_k}</code>, where each <code class="inline">A_i</code> is an association
+<code class="inline">P_i_1 := P_i_2</code>, then Rep(P) = <code class="inline">{map,ANNO,[Rep(A_1), ..., Rep(A_k)]}</code>. For
+Rep(A), see below.</li><li>If P is a nil pattern <code class="inline">[]</code>, then Rep(P) = <code class="inline">{nil,ANNO}</code>.</li><li>If P is an operator pattern <code class="inline">P_1 Op P_2</code>, where <code class="inline">Op</code> is a binary operator
+(this is either an occurrence of <code class="inline">++</code> applied to a literal string or character
+list, or an occurrence of an expression that can be evaluated to a number at
+compile time), then Rep(P) = <code class="inline">{op,ANNO,Op,Rep(P_1),Rep(P_2)}</code>.</li><li>If P is an operator pattern <code class="inline">Op P_0</code>, where <code class="inline">Op</code> is a unary operator (this is
+an occurrence of an expression that can be evaluated to a number at compile
+time), then Rep(P) = <code class="inline">{op,ANNO,Op,Rep(P_0)}</code>.</li><li>If P is a parenthesized pattern <code class="inline">( P_0 )</code>, then Rep(P) = <code class="inline">Rep(P_0)</code>, that is,
+parenthesized patterns cannot be distinguished from their bodies.</li><li>If P is a record field index pattern <code class="inline">#Name.Field</code>, where <code class="inline">Field</code> is an atom,
+then Rep(P) = <code class="inline">{record_index,ANNO,Name,Rep(Field)}</code>.</li><li>If P is a record pattern <code class="inline">#Name{Field_1=P_1, ..., Field_k=P_k}</code>, where each
+<code class="inline">Field_i</code> is an atom or <code class="inline">_</code>, then Rep(P) =
+<code class="inline">{record,ANNO,Name,[{record_field,ANNO,Rep(Field_1),Rep(P_1)}, ..., {record_field,ANNO,Rep(Field_k),Rep(P_k)}]}</code>.</li><li>If P is a tuple pattern <code class="inline">{P_1, ..., P_k}</code>, then Rep(P) =
+<code class="inline">{tuple,ANNO,[Rep(P_1), ..., Rep(P_k)]}</code>.</li><li>If P is a universal pattern <code class="inline">_</code>, then Rep(P) = <code class="inline">{var,ANNO,'_'}</code>.</li><li>If P is a variable pattern <code class="inline">V</code>, then Rep(P) = <code class="inline">{var,ANNO,A}</code>, where A is an
+atom with a printname consisting of the same characters as <code class="inline">V</code>.</li></ul><p>Notice that every pattern has the same source form as some expression, and is
+represented in the same way as the corresponding expression.</p><h2 id="expressions" class="section-heading">
+  <a href="#expressions" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Expressions</span>
+</h2>
+<p>A body B is a non-empty sequence of expressions <code class="inline">E_1, ..., E_k</code>, and Rep(B) =
+<code class="inline">[Rep(E_1), ..., Rep(E_k)]</code>.</p><p>An expression E is one of the following:</p><ul><li>If E is an atomic literal <code class="inline">L</code>, then Rep(E) = Rep(L).</li><li>If E is a bitstring comprehension <code class="inline">&lt;&lt;E_0 || Q_1, ..., Q_k&gt;&gt;</code>, where each <code class="inline">Q_i</code>
+is a qualifier, then Rep(E) = <code class="inline">{bc,ANNO,Rep(E_0),[Rep(Q_1), ..., Rep(Q_k)]}</code>.
+For Rep(Q), see below.</li><li>If E is a bitstring constructor <code class="inline">&lt;&lt;E_1:Size_1/TSL_1, ..., E_k:Size_k/TSL_k&gt;&gt;</code>,
+where each <code class="inline">Size_i</code> is an expression and each <code class="inline">TSL_i</code> is a type specificer
+list, then Rep(E) =
+<code class="inline">{bin,ANNO,[{bin_element,ANNO,Rep(E_1),Rep(Size_1),Rep(TSL_1)}, ..., {bin_element,ANNO,Rep(E_k),Rep(Size_k),Rep(TSL_k)}]}</code>.
+For Rep(TSL), see below. An omitted <code class="inline">Size_i</code> is represented by <code class="inline">default</code>. An
+omitted <code class="inline">TSL_i</code> is represented by <code class="inline">default</code>.</li><li>If E is a block expression <code class="inline">begin B end</code>, where <code class="inline">B</code> is a body, then Rep(E) =
+<code class="inline">{block,ANNO,Rep(B)}</code>.</li><li>If E is a case expression <code class="inline">case E_0 of Cc_1 ; ... ; Cc_k end</code>, where <code class="inline">E_0</code> is
+an expression and each <code class="inline">Cc_i</code> is a case clause, then Rep(E) =
+<code class="inline">{'case',ANNO,Rep(E_0),[Rep(Cc_1), ..., Rep(Cc_k)]}</code>.</li><li>If E is a catch expression <code class="inline">catch E_0</code>, then Rep(E) =
+<code class="inline">{'catch',ANNO,Rep(E_0)}</code>.</li><li><p>If E is a cons skeleton <code class="inline">[E_h | E_t]</code>, then Rep(E) =
+<code class="inline">{cons,ANNO,Rep(E_h),Rep(E_t)}</code>.</p></li><li>If E is a fun expression <code class="inline">fun Name/Arity</code>, then Rep(E) =
+<code class="inline">{'fun',ANNO,{function,Name,Arity}}</code>.</li><li>If E is a fun expression <code class="inline">fun Module:Name/Arity</code>, then Rep(E) =
+<code class="inline">{'fun',ANNO,{function,Rep(Module),Rep(Name),Rep(Arity)}}</code>.</li><li>If E is a fun expression <code class="inline">fun Fc_1 ; ... ; Fc_k end</code>, where each <code class="inline">Fc_i</code> is a
+function clause, then Rep(E) =
+<code class="inline">{'fun',ANNO,{clauses,[Rep(Fc_1), ..., Rep(Fc_k)]}}</code>.</li><li>If E is a fun expression <code class="inline">fun Name Fc_1 ; ... ; Name Fc_k end</code>, where <code class="inline">Name</code>
+is a variable and each <code class="inline">Fc_i</code> is a function clause, then Rep(E) =
+<code class="inline">{named_fun,ANNO,Name,[Rep(Fc_1), ..., Rep(Fc_k)]}</code>.</li><li>If E is a function call <code class="inline">E_0(E_1, ..., E_k)</code>, then Rep(E) =
+<code class="inline">{call,ANNO,Rep(E_0),[Rep(E_1), ..., Rep(E_k)]}</code>.</li><li>If E is a function call <code class="inline">E_m:E_0(E_1, ..., E_k)</code>, then Rep(E) =
+<code class="inline">{call,ANNO,{remote,ANNO,Rep(E_m),Rep(E_0)},[Rep(E_1), ..., Rep(E_k)]}</code>.</li><li>If E is an if expression <code class="inline">if Ic_1 ; ... ; Ic_k end</code>, where each <code class="inline">Ic_i</code> is an
+if clause, then Rep(E) = <code class="inline">{'if',ANNO,[Rep(Ic_1), ..., Rep(Ic_k)]}</code>.</li><li>If E is a list comprehension <code class="inline">[E_0 || Q_1, ..., Q_k]</code>, where each <code class="inline">Q_i</code> is a
+qualifier, then Rep(E) = <code class="inline">{lc,ANNO,Rep(E_0),[Rep(Q_1), ..., Rep(Q_k)]}</code>. For
+Rep(Q), see below.</li><li>If E is a map comprehension <code class="inline">#{E_0 || Q_1, ..., Q_k}</code>, where <code class="inline">E_0</code> is an
+association <code class="inline">K =&gt; V</code> and each <code class="inline">Q_i</code> is a qualifier, then Rep(E) =
+<code class="inline">{mc,ANNO,Rep(E_0),[Rep(Q_1), ..., Rep(Q_k)]}</code>. For Rep(E_0) and Rep(Q), see
+below.</li><li>If E is a map creation <code class="inline">#{A_1, ..., A_k}</code>, where each <code class="inline">A_i</code> is an association
+<code class="inline">E_i_1 =&gt; E_i_2</code>, then Rep(E) = <code class="inline">{map,ANNO,[Rep(A_1), ..., Rep(A_k)]}</code>. For
+Rep(A), see below.</li><li>If E is a map update <code class="inline">E_0#{A_1, ..., A_k}</code>, where each <code class="inline">A_i</code> is an association
+<code class="inline">E_i_1 =&gt; E_i_2</code> or <code class="inline">E_i_1 := E_i_2</code>, then Rep(E) =
+<code class="inline">{map,ANNO,Rep(E_0),[Rep(A_1), ..., Rep(A_k)]}</code>. For Rep(A), see below.</li><li>If E is a match operator expression <code class="inline">P = E_0</code>, where <code class="inline">P</code> is a pattern, then
+Rep(E) = <code class="inline">{match,ANNO,Rep(P),Rep(E_0)}</code>.</li><li>If E is a conditional match operator expression <code class="inline">P ?= E_0</code>, where <code class="inline">P</code> is a
+pattern, then Rep(E) = <code class="inline">{maybe_match,ANNO,Rep(P),Rep(E_0)}</code>.</li><li>If E is a maybe expression <code class="inline">maybe B end</code>, where <code class="inline">B</code> is a body then Rep(E) =
+<code class="inline">{'maybe',ANNO,Rep(B)}</code>.</li><li>If E is a maybe expression <code class="inline">maybe B else Ec_1 ; ... ; Ec_k end</code>, where <code class="inline">B</code> is
+a body and each <code class="inline">Ec_i</code> is an else clause then Rep(E) =
+<code class="inline">{'maybe',ANNO,Rep(B),{'else',ANNO,[Rep(Ec_1), ..., Rep(Ec_k)]}}</code>.</li><li>If E is nil, <code class="inline">[]</code>, then Rep(E) = <code class="inline">{nil,ANNO}</code>.</li><li>If E is an operator expression <code class="inline">E_1 Op E_2</code>, where <code class="inline">Op</code> is a binary operator
+other than match operator <code class="inline">=</code>, then Rep(E) = <code class="inline">{op,ANNO,Op,Rep(E_1),Rep(E_2)}</code>.</li><li>If E is an operator expression <code class="inline">Op E_0</code>, where <code class="inline">Op</code> is a unary operator, then
+Rep(E) = <code class="inline">{op,ANNO,Op,Rep(E_0)}</code>.</li><li>If E is a parenthesized expression <code class="inline">( E_0 )</code>, then Rep(E) = <code class="inline">Rep(E_0)</code>, that
+is, parenthesized expressions cannot be distinguished from their bodies.</li><li>If E is a receive expression <code class="inline">receive Cc_1 ; ... ; Cc_k end</code>, where each
+<code class="inline">Cc_i</code> is a case clause, then Rep(E) =
+<code class="inline">{'receive',ANNO,[Rep(Cc_1), ..., Rep(Cc_k)]}</code>.</li><li>If E is a receive expression <code class="inline">receive Cc_1 ; ... ; Cc_k after E_0 -&gt; B_t end</code>,
+where each <code class="inline">Cc_i</code> is a case clause, <code class="inline">E_0</code> is an expression, and <code class="inline">B_t</code> is a
+body, then Rep(E) =
+<code class="inline">{'receive',ANNO,[Rep(Cc_1), ..., Rep(Cc_k)],Rep(E_0),Rep(B_t)}</code>.</li><li>If E is a record creation <code class="inline">#Name{Field_1=E_1, ..., Field_k=E_k}</code>, where each
+<code class="inline">Field_i</code> is an atom or <code class="inline">_</code>, then Rep(E) =
+<code class="inline">{record,ANNO,Name,[{record_field,ANNO,Rep(Field_1),Rep(E_1)}, ..., {record_field,ANNO,Rep(Field_k),Rep(E_k)}]}</code>.</li><li>If E is a record field access <code class="inline">E_0#Name.Field</code>, where <code class="inline">Field</code> is an atom, then
+Rep(E) = <code class="inline">{record_field,ANNO,Rep(E_0),Name,Rep(Field)}</code>.</li><li>If E is a record field index <code class="inline">#Name.Field</code>, where <code class="inline">Field</code> is an atom, then
+Rep(E) = <code class="inline">{record_index,ANNO,Name,Rep(Field)}</code>.</li><li>If E is a record update <code class="inline">E_0#Name{Field_1=E_1, ..., Field_k=E_k}</code>, where each
+<code class="inline">Field_i</code> is an atom, then Rep(E) =
+<code class="inline">{record,ANNO,Rep(E_0),Name,[{record_field,ANNO,Rep(Field_1),Rep(E_1)}, ..., {record_field,ANNO,Rep(Field_k),Rep(E_k)}]}</code>.</li><li>If E is a tuple skeleton <code class="inline">{E_1, ..., E_k}</code>, then Rep(E) =
+<code class="inline">{tuple,ANNO,[Rep(E_1), ..., Rep(E_k)]}</code>.</li><li>If E is a try expression <code class="inline">try B catch Tc_1 ; ... ; Tc_k end</code>, where <code class="inline">B</code> is a
+body and each <code class="inline">Tc_i</code> is a catch clause, then Rep(E) =
+<code class="inline">{'try',ANNO,Rep(B),[],[Rep(Tc_1), ..., Rep(Tc_k)],[]}</code>.</li><li>If E is a try expression
+<code class="inline">try B of Cc_1 ; ... ; Cc_k catch Tc_1 ; ... ; Tc_n end</code>, where <code class="inline">B</code> is a body,
+each <code class="inline">Cc_i</code> is a case clause, and each <code class="inline">Tc_j</code> is a catch clause, then Rep(E) =
+<code class="inline">{'try',ANNO,Rep(B),[Rep(Cc_1), ..., Rep(Cc_k)],[Rep(Tc_1), ..., Rep(Tc_n)],[]}</code>.</li><li>If E is a try expression <code class="inline">try B after A end</code>, where <code class="inline">B</code> and <code class="inline">A</code> are bodies,
+then Rep(E) = <code class="inline">{'try',ANNO,Rep(B),[],[],Rep(A)}</code>.</li><li>If E is a try expression <code class="inline">try B of Cc_1 ; ... ; Cc_k after A end</code>, where <code class="inline">B</code>
+and <code class="inline">A</code> are a bodies, and each <code class="inline">Cc_i</code> is a case clause, then Rep(E) =
+<code class="inline">{'try',ANNO,Rep(B),[Rep(Cc_1), ..., Rep(Cc_k)],[],Rep(A)}</code>.</li><li>If E is a try expression <code class="inline">try B catch Tc_1 ; ... ; Tc_k after A end</code>, where
+<code class="inline">B</code> and <code class="inline">A</code> are bodies, and each <code class="inline">Tc_i</code> is a catch clause, then Rep(E) =
+<code class="inline">{'try',ANNO,Rep(B),[],[Rep(Tc_1), ..., Rep(Tc_k)],Rep(A)}</code>.</li><li>If E is a try expression
+<code class="inline">try B of Cc_1 ; ... ; Cc_k catch Tc_1 ; ... ; Tc_n after A end</code>, where <code class="inline">B</code>
+and <code class="inline">A</code> are a bodies, each <code class="inline">Cc_i</code> is a case clause, and each <code class="inline">Tc_j</code> is a catch
+clause, then Rep(E) =
+<code class="inline">{'try',ANNO,Rep(B),[Rep(Cc_1), ..., Rep(Cc_k)],[Rep(Tc_1), ..., Rep(Tc_n)],Rep(A)}</code>.</li><li>If E is a variable <code class="inline">V</code>, then Rep(E) = <code class="inline">{var,ANNO,A}</code>, where <code class="inline">A</code> is an atom
+with a printname consisting of the same characters as <code class="inline">V</code>.</li></ul><h3 id="qualifiers" class="section-heading">
+  <a href="#qualifiers" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Qualifiers</span>
+</h3>
+<p>A qualifier Q is one of the following:</p><ul><li>If Q is a filter <code class="inline">E</code>, where <code class="inline">E</code> is an expression, then Rep(Q) = <code class="inline">Rep(E)</code>.</li><li>If Q is a list generator <code class="inline">P &lt;- E</code>, where <code class="inline">P</code> is a pattern and <code class="inline">E</code> is an
+expression, then Rep(Q) = <code class="inline">{generate,ANNO,Rep(P),Rep(E)}</code>.</li><li>If Q is a bitstring generator <code class="inline">P &lt;= E</code>, where <code class="inline">P</code> is a pattern and <code class="inline">E</code> is an
+expression, then Rep(Q) = <code class="inline">{b_generate,ANNO,Rep(P),Rep(E)}</code>.</li><li>If Q is a map generator <code class="inline">P &lt;- E</code>, where <code class="inline">P</code> is an association pattern
+<code class="inline">P_1 := P_2</code> and <code class="inline">E</code> is an expression, then Rep(Q) =
+<code class="inline">{m_generate,ANNO,Rep(P),Rep(E)}</code>. For Rep(P), see below.</li></ul><h3 id="bitstring-element-type-specifiers" class="section-heading">
+  <a href="#bitstring-element-type-specifiers" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Bitstring Element Type Specifiers</span>
+</h3>
+<p>A type specifier list TSL for a bitstring element is a sequence of type
+specifiers <code class="inline">TS_1 - ... - TS_k</code>, and Rep(TSL) = <code class="inline">[Rep(TS_1), ..., Rep(TS_k)]</code>.</p><ul><li>If TS is a type specifier <code class="inline">A</code>, where <code class="inline">A</code> is an atom, then Rep(TS) = <code class="inline">A</code>.</li><li>If TS is a type specifier <code class="inline">A:Value</code>, where <code class="inline">A</code> is an atom and <code class="inline">Value</code> is an
+integer, then Rep(TS) = <code class="inline">{A,Value}</code>.</li></ul><h3 id="associations" class="section-heading">
+  <a href="#associations" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Associations</span>
+</h3>
+<p>An association A is one of the following:</p><ul><li>If A is an association <code class="inline">K =&gt; V</code>, then Rep(A) =
+<code class="inline">{map_field_assoc,ANNO,Rep(K),Rep(V)}</code>.</li><li>If A is an association <code class="inline">K := V</code>, then Rep(A) =
+<code class="inline">{map_field_exact,ANNO,Rep(K),Rep(V)}</code>.</li></ul><h2 id="clauses" class="section-heading">
+  <a href="#clauses" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Clauses</span>
+</h2>
+<p>There are function clauses, if clauses, case clauses, and catch clauses.</p><p>A clause C is one of the following:</p><ul><li>If C is a case clause <code class="inline">P -&gt; B</code>, where <code class="inline">P</code> is a pattern and <code class="inline">B</code> is a body, then
+Rep(C) = <code class="inline">{clause,ANNO,[Rep(P)],[],Rep(B)}</code>.</li><li>If C is a case clause <code class="inline">P when Gs -&gt; B</code>, where <code class="inline">P</code> is a pattern, <code class="inline">Gs</code> is a
+guard sequence, and <code class="inline">B</code> is a body, then Rep(C) =
+<code class="inline">{clause,ANNO,[Rep(P)],Rep(Gs),Rep(B)}</code>.</li><li>If C is a catch clause <code class="inline">P -&gt; B</code>, where <code class="inline">P</code> is a pattern and <code class="inline">B</code> is a body,
+then Rep(C) = <code class="inline">{clause,ANNO,[Rep({throw,P,_})],[],Rep(B)}</code>, that is, a catch
+clause with an explicit exception class <code class="inline">throw</code> and with or without an
+explicit stacktrace variable <code class="inline">_</code> cannot be distinguished from a catch clause
+without an explicit exception class and without an explicit stacktrace
+variable.</li><li>If C is a catch clause <code class="inline">X : P -&gt; B</code>, where <code class="inline">X</code> is an atomic literal or a
+variable pattern, <code class="inline">P</code> is a pattern, and <code class="inline">B</code> is a body, then Rep(C) =
+<code class="inline">{clause,ANNO,[Rep({X,P,_})],[],Rep(B)}</code>, that is, a catch clause with an
+explicit exception class and with an explicit stacktrace variable <code class="inline">_</code> cannot
+be distinguished from a catch clause with an explicit exception class and
+without an explicit stacktrace variable.</li><li>If C is a catch clause <code class="inline">X : P : S -&gt; B</code>, where <code class="inline">X</code> is an atomic literal or a
+variable pattern, <code class="inline">P</code> is a pattern, <code class="inline">S</code> is a variable, and <code class="inline">B</code> is a body, then
+Rep(C) = <code class="inline">{clause,ANNO,[Rep({X,P,S})],[],Rep(B)}</code>.</li><li>If C is a catch clause <code class="inline">P when Gs -&gt; B</code>, where <code class="inline">P</code> is a pattern, <code class="inline">Gs</code> is a
+guard sequence, and <code class="inline">B</code> is a body, then Rep(C) =
+<code class="inline">{clause,ANNO,[Rep({throw,P,_})],Rep(Gs),Rep(B)}</code>, that is, a catch clause
+with an explicit exception class <code class="inline">throw</code> and with or without an explicit
+stacktrace variable <code class="inline">_</code> cannot be distinguished from a catch clause without an
+explicit exception class and without an explicit stacktrace variable.</li><li>If C is a catch clause <code class="inline">X : P when Gs -&gt; B</code>, where <code class="inline">X</code> is an atomic literal or
+a variable pattern, <code class="inline">P</code> is a pattern, <code class="inline">Gs</code> is a guard sequence, and <code class="inline">B</code> is a
+body, then Rep(C) = <code class="inline">{clause,ANNO,[Rep({X,P,_})],Rep(Gs),Rep(B)}</code>, that is, a
+catch clause with an explicit exception class and with an explicit stacktrace
+variable <code class="inline">_</code> cannot be distinguished from a catch clause with an explicit
+exception class and without an explicit stacktrace variable.</li><li>If C is a catch clause <code class="inline">X : P : S when Gs -&gt; B</code>, where <code class="inline">X</code> is an atomic
+literal or a variable pattern, <code class="inline">P</code> is a pattern, <code class="inline">Gs</code> is a guard sequence, <code class="inline">S</code>
+is a variable, and <code class="inline">B</code> is a body, then Rep(C) =
+<code class="inline">{clause,ANNO,[Rep({X,P,S})],Rep(Gs),Rep(B)}</code>.</li><li>If C is a function clause <code class="inline">( Ps ) -&gt; B</code>, where <code class="inline">Ps</code> is a pattern sequence and
+<code class="inline">B</code> is a body, then Rep(C) = <code class="inline">{clause,ANNO,Rep(Ps),[],Rep(B)}</code>.</li><li>If C is a function clause <code class="inline">( Ps ) when Gs -&gt; B</code>, where <code class="inline">Ps</code> is a pattern
+sequence, <code class="inline">Gs</code> is a guard sequence and <code class="inline">B</code> is a body, then Rep(C) =
+<code class="inline">{clause,ANNO,Rep(Ps),Rep(Gs),Rep(B)}</code>.</li><li>If C is an if clause <code class="inline">Gs -&gt; B</code>, where <code class="inline">Gs</code> is a guard sequence and <code class="inline">B</code> is a
+body, then Rep(C) = <code class="inline">{clause,ANNO,[],Rep(Gs),Rep(B)}</code>.</li></ul><h2 id="guards" class="section-heading">
+  <a href="#guards" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Guards</span>
+</h2>
+<p>A guard sequence Gs is a sequence of guards <code class="inline">G_1; ...; G_k</code>, and Rep(Gs) =
+<code class="inline">[Rep(G_1), ..., Rep(G_k)]</code>. If the guard sequence is empty, then Rep(Gs) =
+<code class="inline">[]</code>.</p><p>A guard G is a non-empty sequence of guard tests <code class="inline">Gt_1, ..., Gt_k</code>, and Rep(G) =
+<code class="inline">[Rep(Gt_1), ..., Rep(Gt_k)]</code>.</p><p>A guard test Gt is one of the following:</p><ul><li>If Gt is an atomic literal <code class="inline">L</code>, then Rep(Gt) = Rep(L).</li><li>If Gt is a bitstring constructor
+<code class="inline">&lt;&lt;Gt_1:Size_1/TSL_1, ..., Gt_k:Size_k/TSL_k&gt;&gt;</code>, where each <code class="inline">Size_i</code> is a
+guard test and each <code class="inline">TSL_i</code> is a type specificer list, then Rep(Gt) =
+<code class="inline">{bin,ANNO,[{bin_element,ANNO,Rep(Gt_1),Rep(Size_1),Rep(TSL_1)}, ..., {bin_element,ANNO,Rep(Gt_k),Rep(Size_k),Rep(TSL_k)}]}</code>.
+For Rep(TSL), see above. An omitted <code class="inline">Size_i</code> is represented by <code class="inline">default</code>. An
+omitted <code class="inline">TSL_i</code> is represented by <code class="inline">default</code>.</li><li><p>If Gt is a cons skeleton <code class="inline">[Gt_h | Gt_t]</code>, then Rep(Gt) =
+<code class="inline">{cons,ANNO,Rep(Gt_h),Rep(Gt_t)}</code>.</p></li><li>If Gt is a function call <code class="inline">A(Gt_1, ..., Gt_k)</code>, where <code class="inline">A</code> is an atom, then
+Rep(Gt) = <code class="inline">{call,ANNO,Rep(A),[Rep(Gt_1), ..., Rep(Gt_k)]}</code>.</li><li>If Gt is a function call <code class="inline">A_m:A(Gt_1, ..., Gt_k)</code>, where <code class="inline">A_m</code> is the atom
+<code class="inline">erlang</code> and <code class="inline">A</code> is an atom or an operator, then Rep(Gt) =
+<code class="inline">{call,ANNO,{remote,ANNO,Rep(A_m),Rep(A)},[Rep(Gt_1), ..., Rep(Gt_k)]}</code>.</li><li>If Gt is a map creation <code class="inline">#{A_1, ..., A_k}</code>, where each <code class="inline">A_i</code> is an association
+<code class="inline">Gt_i_1 =&gt; Gt_i_2</code>, then Rep(Gt) = <code class="inline">{map,ANNO,[Rep(A_1), ..., Rep(A_k)]}</code>. For
+Rep(A), see above.</li><li>If Gt is a map update <code class="inline">Gt_0#{A_1, ..., A_k}</code>, where each <code class="inline">A_i</code> is an
+association <code class="inline">Gt_i_1 =&gt; Gt_i_2</code> or <code class="inline">Gt_i_1 := Gt_i_2</code>, then Rep(Gt) =
+<code class="inline">{map,ANNO,Rep(Gt_0),[Rep(A_1), ..., Rep(A_k)]}</code>. For Rep(A), see above.</li><li>If Gt is nil, <code class="inline">[]</code>, then Rep(Gt) = <code class="inline">{nil,ANNO}</code>.</li><li>If Gt is an operator guard test <code class="inline">Gt_1 Op Gt_2</code>, where <code class="inline">Op</code> is a binary
+operator other than match operator <code class="inline">=</code>, then Rep(Gt) =
+<code class="inline">{op,ANNO,Op,Rep(Gt_1),Rep(Gt_2)}</code>.</li><li>If Gt is an operator guard test <code class="inline">Op Gt_0</code>, where <code class="inline">Op</code> is a unary operator,
+then Rep(Gt) = <code class="inline">{op,ANNO,Op,Rep(Gt_0)}</code>.</li><li>If Gt is a parenthesized guard test <code class="inline">( Gt_0 )</code>, then Rep(Gt) = <code class="inline">Rep(Gt_0)</code>,
+that is, parenthesized guard tests cannot be distinguished from their bodies.</li><li>If Gt is a record creation <code class="inline">#Name{Field_1=Gt_1, ..., Field_k=Gt_k}</code>, where
+each <code class="inline">Field_i</code> is an atom or <code class="inline">_</code>, then Rep(Gt) =
+<code class="inline">{record,ANNO,Name,[{record_field,ANNO,Rep(Field_1),Rep(Gt_1)}, ..., {record_field,ANNO,Rep(Field_k),Rep(Gt_k)}]}</code>.</li><li>If Gt is a record field access <code class="inline">Gt_0#Name.Field</code>, where <code class="inline">Field</code> is an atom,
+then Rep(Gt) = <code class="inline">{record_field,ANNO,Rep(Gt_0),Name,Rep(Field)}</code>.</li><li>If Gt is a record field index <code class="inline">#Name.Field</code>, where <code class="inline">Field</code> is an atom, then
+Rep(Gt) = <code class="inline">{record_index,ANNO,Name,Rep(Field)}</code>.</li><li>If Gt is a tuple skeleton <code class="inline">{Gt_1, ..., Gt_k}</code>, then Rep(Gt) =
+<code class="inline">{tuple,ANNO,[Rep(Gt_1), ..., Rep(Gt_k)]}</code>.</li><li>If Gt is a variable pattern <code class="inline">V</code>, then Rep(Gt) = <code class="inline">{var,ANNO,A}</code>, where A is an
+atom with a printname consisting of the same characters as <code class="inline">V</code>.</li></ul><p>Notice that every guard test has the same source form as some expression, and is
+represented in the same way as the corresponding expression.</p><h2 id="types" class="section-heading">
+  <a href="#types" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Types</span>
+</h2>
+<ul><li>If T is an annotated type <code class="inline">A :: T_0</code>, where <code class="inline">A</code> is a variable, then Rep(T) =
+<code class="inline">{ann_type,ANNO,[Rep(A),Rep(T_0)]}</code>.</li><li>If T is an atom, a character, or an integer literal L, then Rep(T) = Rep(L).</li><li>If T is a bitstring type <code class="inline">&lt;&lt;_:M,_:_*N&gt;&gt;</code>, where <code class="inline">M</code> and <code class="inline">N</code> are singleton
+integer types, then Rep(T) = <code class="inline">{type,ANNO,binary,[Rep(M),Rep(N)]}</code>.</li><li>If T is the empty list type <code class="inline">[]</code>, then Rep(T) = <code class="inline">{type,ANNO,nil,[]}</code>, that is,
+the empty list type <code class="inline">[]</code> cannot be distinguished from the predefined type
+<a href="erlang.html#t:nil/0"><code class="inline">nil/0</code></a>.</li><li>If T is a fun type <code class="inline">fun()</code>, then Rep(T) = <code class="inline">{type,ANNO,'fun',[]}</code>.</li><li>If T is a fun type <code class="inline">fun((...) -&gt; T_0)</code>, then Rep(T) =
+<code class="inline">{type,ANNO,'fun',[{type,ANNO,any},Rep(T_0)]}</code>.</li><li>If T is a fun type <code class="inline">fun(Ft)</code>, where <code class="inline">Ft</code> is a function type, then Rep(T) =
+<code class="inline">Rep(Ft)</code>. For Rep(Ft), see below.</li><li>If T is an integer range type <code class="inline">L .. H</code>, where <code class="inline">L</code> and <code class="inline">H</code> are singleton
+integer types, then Rep(T) = <code class="inline">{type,ANNO,range,[Rep(L),Rep(H)]}</code>.</li><li>If T is a map type <a href="erlang.html#t:map/0"><code class="inline">map/0</code></a>, then Rep(T) = <code class="inline">{type,ANNO,map,any}</code>.</li><li>If T is a map type <code class="inline">#{A_1, ..., A_k}</code>, where each <code class="inline">A_i</code> is an association
+type, then Rep(T) = <code class="inline">{type,ANNO,map,[Rep(A_1), ..., Rep(A_k)]}</code>. For Rep(A),
+see below.</li><li>If T is an operator type <code class="inline">T_1 Op T_2</code>, where <code class="inline">Op</code> is a binary operator (this
+is an occurrence of an expression that can be evaluated to an integer at
+compile time), then Rep(T) = <code class="inline">{op,ANNO,Op,Rep(T_1),Rep(T_2)}</code>.</li><li>If T is an operator type <code class="inline">Op T_0</code>, where <code class="inline">Op</code> is a unary operator (this is an
+occurrence of an expression that can be evaluated to an integer at compile
+time), then Rep(T) = <code class="inline">{op,ANNO,Op,Rep(T_0)}</code>.</li><li>If T is <code class="inline">( T_0 )</code>, then Rep(T) = <code class="inline">Rep(T_0)</code>, that is, parenthesized types
+cannot be distinguished from their bodies.</li><li>If T is a predefined (or built-in) type <code class="inline">N(T_1, ..., T_k)</code>, then Rep(T) =
+<code class="inline">{type,ANNO,N,[Rep(T_1), ..., Rep(T_k)]}</code>.</li><li>If T is a record type <code class="inline">#Name{F_1, ..., F_k}</code>, where each <code class="inline">F_i</code> is a record
+field type, then Rep(T) =
+<code class="inline">{type,ANNO,record,[Rep(Name),Rep(F_1), ..., Rep(F_k)]}</code>. For Rep(F), see
+below.</li><li>If T is a remote type <code class="inline">M:N(T_1, ..., T_k)</code>, then Rep(T) =
+<code class="inline">{remote_type,ANNO,[Rep(M),Rep(N),[Rep(T_1), ..., Rep(T_k)]]}</code>.</li><li>If T is a tuple type <a href="erlang.html#t:tuple/0"><code class="inline">tuple/0</code></a>, then Rep(T) = <code class="inline">{type,ANNO,tuple,any}</code>.</li><li>If T is a tuple type <code class="inline">{T_1, ..., T_k}</code>, then Rep(T) =
+<code class="inline">{type,ANNO,tuple,[Rep(T_1), ..., Rep(T_k)]}</code>.</li><li><p>If T is a type union <code class="inline">T_1 | ... | T_k</code>, then Rep(T) =
+<code class="inline">{type,ANNO,union,[Rep(T_1), ..., Rep(T_k)]}</code>.</p></li><li>If T is a type variable <code class="inline">V</code>, then Rep(T) = <code class="inline">{var,ANNO,A}</code>, where <code class="inline">A</code> is an
+atom with a printname consisting of the same characters as <code class="inline">V</code>. A type
+variable is any variable except underscore (<code class="inline">_</code>).</li><li>If T is a user-defined type <code class="inline">N(T_1, ..., T_k)</code>, then Rep(T) =
+<code class="inline">{user_type,ANNO,N,[Rep(T_1), ..., Rep(T_k)]}</code>.</li></ul><h3 id="function-types" class="section-heading">
+  <a href="#function-types" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Function Types</span>
+</h3>
+<p>A function type Ft is one of the following:</p><ul><li>If Ft is a constrained function type <code class="inline">Ft_1 when Fc</code>, where <code class="inline">Ft_1</code> is a
+function type and <code class="inline">Fc</code> is a function constraint, then Rep(T) =
+<code class="inline">{type,ANNO,bounded_fun,[Rep(Ft_1),Rep(Fc)]}</code>. For Rep(Fc), see below.</li><li>If Ft is a function type <code class="inline">(T_1, ..., T_n) -&gt; T_0</code>, where each <code class="inline">T_i</code> is a type,
+then Rep(Ft) =
+<code class="inline">{type,ANNO,'fun',[{type,ANNO,product,[Rep(T_1), ..., Rep(T_n)]},Rep(T_0)]}</code>.</li></ul><h3 id="function-constraints" class="section-heading">
+  <a href="#function-constraints" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Function Constraints</span>
+</h3>
+<p>A function constraint Fc is a non-empty sequence of constraints <code class="inline">C_1, ..., C_k</code>,
+and Rep(Fc) = <code class="inline">[Rep(C_1), ..., Rep(C_k)]</code>.</p><ul><li>If C is a constraint <code class="inline">V :: T</code>, where <code class="inline">V</code> is a type variable and <code class="inline">T</code> is a type,
+then Rep(C) =
+<code class="inline">{type,ANNO,constraint,[{atom,ANNO,is_subtype},[Rep(V),Rep(T)]]}</code>.</li></ul><h3 id="association-types" class="section-heading">
+  <a href="#association-types" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Association Types</span>
+</h3>
+<ul><li>If A is an association type <code class="inline">K =&gt; V</code>, where <code class="inline">K</code> and <code class="inline">V</code> are types, then Rep(A)
+= <code class="inline">{type,ANNO,map_field_assoc,[Rep(K),Rep(V)]}</code>.</li><li>If A is an association type <code class="inline">K := V</code>, where <code class="inline">K</code> and <code class="inline">V</code> are types, then Rep(A)
+= <code class="inline">{type,ANNO,map_field_exact,[Rep(K),Rep(V)]}</code>.</li></ul><h3 id="record-field-types" class="section-heading">
+  <a href="#record-field-types" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Record Field Types</span>
+</h3>
+<ul><li>If F is a record field type <code class="inline">Name :: Type</code>, where <code class="inline">Type</code> is a type, then
+Rep(F) = <code class="inline">{type,ANNO,field_type,[Rep(Name),Rep(Type)]}</code>.</li></ul><h2 id="the-abstract-format-after-preprocessing" class="section-heading">
+  <a href="#the-abstract-format-after-preprocessing" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">The Abstract Format after Preprocessing</span>
+</h2>
+<p>The compilation option <code class="inline">debug_info</code> can be specified to the compiler to have the
+abstract code stored in the <code class="inline">abstract_code</code> chunk in the Beam file (for
+debugging purposes).</p><p>As from Erlang/OTP R9C, the <code class="inline">abstract_code</code> chunk contains
+<code class="inline">{raw_abstract_v1,AbstractCode}</code>, where <code class="inline">AbstractCode</code> is the abstract code as
+described in this section.</p><p>In OTP releases before R9C, the abstract code after some more processing was
+stored in the Beam file. The first element of the tuple would be either
+<code class="inline">abstract_v1</code> (in OTP R7B) or <code class="inline">abstract_v2</code> (in OTP R8B).</p>
+<div class="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="alt_disco.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+How to Implement an Alternative Node Discovery for Erlang Distribution
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="tty.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+tty - A Command-Line Interface
+        </span>
+      </a>
+
+  </div>
+</div>
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

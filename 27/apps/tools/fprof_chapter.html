@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="tools v4.0">
+
+
+    <title>fprof - The File Trace Profiler — tools v4.0</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-63A1715E.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="tools" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+tools
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v4.0
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of tools</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/lib/tools/doc/guides/fprof_chapter.md#L1" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+
+  <span>fprof - The File Trace Profiler</span>
+</h1>
+
+<p><code class="inline">fprof</code> is a profiling tool that can be used to get a picture of how much
+processing time different functions consumes and in which processes.</p><p><code class="inline">fprof</code> uses tracing with timestamps to collect profiling data. Therefore there
+is no need for special compilation of any module to be profiled.</p><p><code class="inline">fprof</code> presents wall clock times from the host machine OS, with the assumption
+that OS scheduling will randomly load the profiled functions in a fair way. Both
+<em>own time</em> i.e the time used by a function for its own execution, and
+<em>accumulated time</em> i.e execution time including called functions.</p><p>Profiling is essentially done in 3 steps:</p><ul><li><p><strong><code class="inline">1</code></strong> - Tracing; to file, as mentioned in the previous paragraph.</p></li><li><p><strong><code class="inline">2</code></strong> - Profiling; the trace file is read and raw profile data is collected
+into an internal RAM storage on the node. During this step the trace data may
+be dumped in text format to file or console.</p></li><li><p><strong><code class="inline">3</code></strong> - Analysing; the raw profile data is sorted and dumped in text format
+either to file or console.</p></li></ul><p>Since <code class="inline">fprof</code> uses trace to file, the runtime performance degradation is
+minimized, but still far from negligible, especially not for programs that use
+the filesystem heavily by themselves. Where you place the trace file is also
+important, e.g on Solaris <code class="inline">/tmp</code> is usually a good choice, while any NFS mounted
+disk is a lousy choice.</p><p>Fprof can also skip the file step and trace to a tracer process of its own that
+does the profiling in runtime.</p><p>The following sections show some examples of how to profile with Fprof. See also
+the reference manual <a href="fprof.html"><code class="inline">fprof</code></a>.</p><h2 id="profiling-from-the-source-code" class="section-heading">
+  <a href="#profiling-from-the-source-code" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Profiling from the source code</span>
+</h2>
+<p>If you can edit and recompile the source code, it is convenient to insert
+<code class="inline">fprof:trace(start)</code> and <code class="inline">fprof:trace(stop)</code> before and after the code to be
+profiled. All spawned processes are also traced. If you want some other filename
+than the default try <code class="inline">fprof:trace(start, &quot;my_fprof.trace&quot;)</code>.</p><p>Then read the trace file and create the raw profile data with <code class="inline">fprof:profile()</code>,
+or perhaps <code class="inline">fprof:profile(file, &quot;my_fprof.trace&quot;)</code> for non-default filename.</p><p>Finally create an informative table dumped on the console with
+<code class="inline">fprof:analyse()</code>, or on file with <code class="inline">fprof:analyse(dest, [])</code>, or perhaps even
+<code class="inline">fprof:analyse([{dest, &quot;my_fprof.analysis&quot;}, {cols, 120}])</code> for a wider listing
+on non-default filename.</p><p>See the <a href="fprof.html"><code class="inline">fprof</code></a> manual page for more options and arguments to the functions
+<a href="fprof.html#trace/2">trace</a>, <a href="fprof.html#profile/0">profile</a> and
+<a href="fprof.html#analyse/0">analyse</a>.</p><h2 id="profiling-a-function" class="section-heading">
+  <a href="#profiling-a-function" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Profiling a function</span>
+</h2>
+<p>If you have one function that does the task that you want to profile, and the
+function returns when the profiling should stop, it is convenient to use
+<code class="inline">fprof:apply(Module, Function, Args)</code> and related for the tracing step.</p><p>If the tracing should continue after the function returns, for example if it is
+a start function that spawns processes to be profiled, you can use
+<code class="inline">fprof:apply(M, F, Args, [continue | OtherOpts])</code>. The tracing has to be stopped
+at a suitable later time using <code class="inline">fprof:trace(stop)</code>.</p><h2 id="immediate-profiling" class="section-heading">
+  <a href="#immediate-profiling" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Immediate profiling</span>
+</h2>
+<p>It is also possible to trace immediately into the profiling process that creates
+the raw profile data, that is to short circuit the tracing and profiling steps
+so that the filesystem is not used.</p><p>Do something like this:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="3966496458-1">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">Tracer</span><span class="p" data-group-id="3966496458-1">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">fprof</span><span class="p">:</span><span class="nf">profile</span><span class="p" data-group-id="3966496458-2">(</span><span class="ss">start</span><span class="p" data-group-id="3966496458-2">)</span><span class="p">,</span><span class="w">
+</span><span class="nc">fprof</span><span class="p">:</span><span class="nf">trace</span><span class="p" data-group-id="3966496458-3">(</span><span class="p" data-group-id="3966496458-4">[</span><span class="ss">start</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="3966496458-5">{</span><span class="ss">tracer</span><span class="p">,</span><span class="w"> </span><span class="n">Tracer</span><span class="p" data-group-id="3966496458-5">}</span><span class="p" data-group-id="3966496458-4">]</span><span class="p" data-group-id="3966496458-3">)</span><span class="p">,</span><span class="w">
+</span><span class="c1">%% Code to profile</span><span class="w">
+</span><span class="nc">fprof</span><span class="p">:</span><span class="nf">trace</span><span class="p" data-group-id="3966496458-6">(</span><span class="ss">stop</span><span class="p" data-group-id="3966496458-6">)</span><span class="p">;</span></code></pre><p>This puts less load on the filesystem, but much more on the Erlang runtime
+system.</p>
+<div class="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="erlang_mode_chapter.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+The Erlang mode for Emacs
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="lcnt_chapter.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+lcnt - The Lock Profiler
+        </span>
+      </a>
+
+  </div>
+</div>
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+              <a href="tools.epub" title="ePub version">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

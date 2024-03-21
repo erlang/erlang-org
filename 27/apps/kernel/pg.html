@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="kernel v9.3">
+
+
+    <title>pg — kernel v9.3</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-D60EFF5E.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="modules" class="page-module">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="kernel" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+kernel
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v9.3
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of kernel</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/pg.erl#L55" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+  <span translate="no">pg</span> 
+  <small class="app-vsn" translate="no">(kernel v9.3)</small>
+
+</h1>
+
+
+  <section id="moduledoc">
+<p>Distributed named process groups.</p><p>This module implements process groups. A message can be sent to one, some, or
+all group members.</p><p>Up until OTP 17 there used to exist an experimental <code class="inline">pg</code> module in <code class="inline">stdlib</code>.
+This <code class="inline">pg</code> module is not the same module as that experimental <code class="inline">pg</code> module, and
+only share the same module name.</p><p>A group of processes can be accessed by a common name. For example, if there is
+a group named <code class="inline">foobar</code>, there can be a set of processes (which can be located on
+different nodes) that are all members of the group <code class="inline">foobar</code>. There are no
+special functions for sending a message to the group. Instead, client functions
+are to be written with the functions <a href="#get_members/1"><code class="inline">get_members/1</code></a> and <a href="#get_local_members/1"><code class="inline">get_local_members/1</code></a>
+to determine which processes are members of the group. Then the message can be
+sent to one or more group members.</p><p>If a member terminates, it is automatically removed from the group.</p><p>A process may join multiple groups. It may join the same group multiple times.
+It is only allowed to join processes running on local node.</p><p>Process Groups implement strong eventual consistency. Process Groups membership
+view may temporarily diverge. For example, when processes on <code class="inline">node1</code> and <code class="inline">node2</code>
+join concurrently, <code class="inline">node3</code> and <code class="inline">node4</code> may receive updates in a different order.</p><p>Membership view is not transitive. If <code class="inline">node1</code> is not directly connected to
+<code class="inline">node2</code>, they will not see each other groups. But if both are connected to
+<code class="inline">node3</code>, <code class="inline">node3</code> will have the full view.</p><p>Groups are automatically created when any process joins, and are removed when
+all processes leave the group. Non-existing group is considered empty
+(containing no processes).</p><p>Process groups can be organised into multiple scopes. Scopes are completely
+independent of each other. A process may join any number of groups in any number
+of scopes. Scopes are designed to decouple single mesh into a set of overlay
+networks, reducing amount of traffic required to propagate group membership
+information. Default scope <code class="inline">pg</code> is started automatically when
+<a href="kernel_app.html#start_pg"><code class="inline">kernel(6)</code></a> is configured to do so.</p><blockquote><h4 class="info">Note</h4><p>Scope name is used to register process locally, and to name an ETS table. If
+there is another process registered under this name, or another ETS table
+exists, scope fails to start.</p><p>Local membership is not preserved if scope process exits and restarts.</p><p>A scope can be kept local-only by using a scope name that is unique
+cluster-wide, e.g. the node name:</p><ul><li>____ - <code class="inline">pg:start_link(node()).</code></li></ul></blockquote><h2 id="module-see-also" class="section-heading">
+  <a href="#module-see-also" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">See Also</span>
+</h2>
+<p><a href="kernel_app.html"><code class="inline">kernel(6)</code></a></p>
+  </section>
+
+
+  <section id="summary" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#summary">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Summary</span>
+    </h1>
+<div class="summary-types summary">
+  <h2>
+    <a href="#types">Types</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:group/0" translate="no">group()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>The identifier of a process group.</p></div>
+
+    </div>
+
+</div>
+<div class="summary-functions summary">
+  <h2>
+    <a href="#functions">Functions</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#demonitor/1" translate="no">demonitor(Ref)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#demonitor/2"><code class="inline">demonitor/2</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#demonitor/2" translate="no">demonitor(Scope, Ref)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Unsubscribes the caller from updates (scope or group). Flushes all outstanding
+updates that were already in the message queue of the calling process.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#get_local_members/1" translate="no">get_local_members(Group)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#get_local_members/2"><code class="inline">get_local_members/2</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#get_local_members/2" translate="no">get_local_members(Scope, Group)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns all processes running on the local node in the group <code class="inline">Group</code>. Processes
+are returned in no specific order. This function is optimised for speed.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#get_members/1" translate="no">get_members(Group)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#get_members/2"><code class="inline">get_members/2</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#get_members/2" translate="no">get_members(Scope, Group)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns all processes in the group <code class="inline">Group</code>. Processes are returned in no
+specific order. This function is optimised for speed.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#join/2" translate="no">join(Group, PidOrPids)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#join/3"><code class="inline">join/3</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#join/3" translate="no">join(Scope, Group, PidOrPids)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Joins single process or multiple processes to the group <code class="inline">Group</code>. A process can
+join a group many times and must then leave the group the same number of times.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#leave/2" translate="no">leave(Group, PidOrPids)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#leave/3"><code class="inline">leave/3</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#leave/3" translate="no">leave(Scope, Group, PidOrPids)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Makes the process <code class="inline">PidOrPids</code> leave the group <code class="inline">Group</code>. If the process is not a
+member of the group, <code class="inline">not_joined</code> is returned.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#monitor/1" translate="no">monitor(Group)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#monitor/2"><code class="inline">monitor/2</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#monitor/2" translate="no">monitor(Scope, Group)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Subscribes the caller to updates for the specified group. Returns list of
+processes currently in the group, and a reference to match the upcoming
+notifications.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#monitor_scope/0" translate="no">monitor_scope()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#monitor_scope/1"><code class="inline">monitor_scope/1</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#monitor_scope/1" translate="no">monitor_scope(Scope)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Subscribes the caller to updates from the specified scope. Returns content of
+the entire scope and a reference to match the upcoming notifications.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#start/1" translate="no">start(Scope)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#start_link/1"><code class="inline">start_link/1</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#start_link/0" translate="no">start_link()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Starts the default <code class="inline">pg</code> scope within supervision tree. Kernel may be configured
+to do it automatically, see <a href="kernel_app.html#start_pg"><code class="inline">kernel(6)</code></a> configuration
+manual.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#start_link/1" translate="no">start_link(Scope)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Starts additional scope.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#which_groups/0" translate="no">which_groups()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#which_groups/1"><code class="inline">which_groups/1</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#which_groups/1" translate="no">which_groups(Scope)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns a list of all known groups.</p></div>
+
+    </div>
+
+</div>
+
+  </section>
+
+
+  <section id="types" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#types">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Types</span>
+    </h1>
+    <div class="types-list">
+<section class="detail" id="t:group/0">
+
+  <div class="detail-header">
+    <a href="#t:group/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">group()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/pg.erl#L159" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 23.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> group() :: <a href="../../apps/erts/erlang.html#t:any/0">any</a>().</pre>
+
+      </div>
+
+<p>The identifier of a process group.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+  <section id="functions" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#functions">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Functions</span>
+    </h1>
+    <div class="functions-list">
+<section class="detail" id="demonitor/1">
+
+  <div class="detail-header">
+    <a href="#demonitor/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">demonitor(Ref)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/pg.erl#L310" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 25.1)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> demonitor(Ref :: <a href="../../apps/erts/erlang.html#t:reference/0">reference</a>()) -> ok | false.</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#demonitor/2"><code class="inline">demonitor/2</code></a></p>
+  </section>
+</section>
+<section class="detail" id="demonitor/2">
+
+  <div class="detail-header">
+    <a href="#demonitor/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">demonitor(Scope, Ref)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/pg.erl#L319" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 25.1)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> demonitor(Scope :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), Ref :: <a href="../../apps/erts/erlang.html#t:reference/0">reference</a>()) -> ok | false.</pre>
+
+      </div>
+
+<p>Unsubscribes the caller from updates (scope or group). Flushes all outstanding
+updates that were already in the message queue of the calling process.</p>
+  </section>
+</section>
+<section class="detail" id="get_local_members/1">
+
+  <div class="detail-header">
+    <a href="#get_local_members/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">get_local_members(Group)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/pg.erl#L351" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 23.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> get_local_members(Group :: <a href="#t:group/0">group</a>()) -> [<a href="../../apps/erts/erlang.html#t:pid/0">pid</a>()].</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#get_local_members/2"><code class="inline">get_local_members/2</code></a></p>
+  </section>
+</section>
+<section class="detail" id="get_local_members/2">
+
+  <div class="detail-header">
+    <a href="#get_local_members/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">get_local_members(Scope, Group)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/pg.erl#L360" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 23.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> get_local_members(Scope :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), Group :: <a href="#t:group/0">group</a>()) -> [<a href="../../apps/erts/erlang.html#t:pid/0">pid</a>()].</pre>
+
+      </div>
+
+<p>Returns all processes running on the local node in the group <code class="inline">Group</code>. Processes
+are returned in no specific order. This function is optimised for speed.</p>
+  </section>
+</section>
+<section class="detail" id="get_members/1">
+
+  <div class="detail-header">
+    <a href="#get_members/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">get_members(Group)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/pg.erl#L328" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 23.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> get_members(Group :: <a href="#t:group/0">group</a>()) -> [<a href="../../apps/erts/erlang.html#t:pid/0">pid</a>()].</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#get_members/2"><code class="inline">get_members/2</code></a></p>
+  </section>
+</section>
+<section class="detail" id="get_members/2">
+
+  <div class="detail-header">
+    <a href="#get_members/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">get_members(Scope, Group)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/pg.erl#L337" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 23.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> get_members(Scope :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), Group :: <a href="#t:group/0">group</a>()) -> [<a href="../../apps/erts/erlang.html#t:pid/0">pid</a>()].</pre>
+
+      </div>
+
+<p>Returns all processes in the group <code class="inline">Group</code>. Processes are returned in no
+specific order. This function is optimised for speed.</p>
+  </section>
+</section>
+<section class="detail" id="join/2">
+
+  <div class="detail-header">
+    <a href="#join/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">join(Group, PidOrPids)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/pg.erl#L203" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 23.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> join(Group :: <a href="#t:group/0">group</a>(), PidOrPids :: <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() | [<a href="../../apps/erts/erlang.html#t:pid/0">pid</a>()]) -> ok.</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#join/3"><code class="inline">join/3</code></a></p>
+  </section>
+</section>
+<section class="detail" id="join/3">
+
+  <div class="detail-header">
+    <a href="#join/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">join(Scope, Group, PidOrPids)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/pg.erl#L214" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 23.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> join(Scope :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), Group :: <a href="#t:group/0">group</a>(), PidOrPids :: <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() | [<a href="../../apps/erts/erlang.html#t:pid/0">pid</a>()]) -> ok.</pre>
+
+      </div>
+
+<p>Joins single process or multiple processes to the group <code class="inline">Group</code>. A process can
+join a group many times and must then leave the group the same number of times.</p><p><code class="inline">PidOrPids</code> may contain the same process multiple times.</p>
+  </section>
+</section>
+<section class="detail" id="leave/2">
+
+  <div class="detail-header">
+    <a href="#leave/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">leave(Group, PidOrPids)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/pg.erl#L225" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 23.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> leave(Group :: <a href="#t:group/0">group</a>(), PidOrPids :: <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() | [<a href="../../apps/erts/erlang.html#t:pid/0">pid</a>()]) -> ok.</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#leave/3"><code class="inline">leave/3</code></a></p>
+  </section>
+</section>
+<section class="detail" id="leave/3">
+
+  <div class="detail-header">
+    <a href="#leave/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">leave(Scope, Group, PidOrPids)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/pg.erl#L237" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 23.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> leave(Scope :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), Group :: <a href="#t:group/0">group</a>(), PidOrPids :: <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() | [<a href="../../apps/erts/erlang.html#t:pid/0">pid</a>()]) -> ok | not_joined.</pre>
+
+      </div>
+
+<p>Makes the process <code class="inline">PidOrPids</code> leave the group <code class="inline">Group</code>. If the process is not a
+member of the group, <code class="inline">not_joined</code> is returned.</p><p>When list of processes is passed as <code class="inline">PidOrPids</code>, function returns <code class="inline">not_joined</code>
+only when all processes of the list are not joined.</p>
+  </section>
+</section>
+<section class="detail" id="monitor/1">
+
+  <div class="detail-header">
+    <a href="#monitor/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">monitor(Group)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/pg.erl#L282" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 25.1)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> monitor(Group :: <a href="#t:group/0">group</a>()) -> {<a href="../../apps/erts/erlang.html#t:reference/0">reference</a>(), [<a href="../../apps/erts/erlang.html#t:pid/0">pid</a>()]}.</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#monitor/2"><code class="inline">monitor/2</code></a></p>
+  </section>
+</section>
+<section class="detail" id="monitor/2">
+
+  <div class="detail-header">
+    <a href="#monitor/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">monitor(Scope, Group)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/pg.erl#L300" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 25.1)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> monitor(Scope :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), Group :: <a href="#t:group/0">group</a>()) -> {<a href="../../apps/erts/erlang.html#t:reference/0">reference</a>(), [<a href="../../apps/erts/erlang.html#t:pid/0">pid</a>()]}.</pre>
+
+      </div>
+
+<p>Subscribes the caller to updates for the specified group. Returns list of
+processes currently in the group, and a reference to match the upcoming
+notifications.</p><p>See <a href="#monitor_scope/0"><code class="inline">monitor_scope/0</code></a> for the update message structure.</p>
+  </section>
+</section>
+<section class="detail" id="monitor_scope/0">
+
+  <div class="detail-header">
+    <a href="#monitor_scope/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">monitor_scope()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/pg.erl#L250" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 25.1)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> monitor_scope() -> {<a href="../../apps/erts/erlang.html#t:reference/0">reference</a>(), #{<a href="#t:group/0">group</a>() => [<a href="../../apps/erts/erlang.html#t:pid/0">pid</a>()]}}.</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#monitor_scope/1"><code class="inline">monitor_scope/1</code></a></p>
+  </section>
+</section>
+<section class="detail" id="monitor_scope/1">
+
+  <div class="detail-header">
+    <a href="#monitor_scope/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">monitor_scope(Scope)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/pg.erl#L270" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 25.1)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> monitor_scope(Scope :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>()) -> {<a href="../../apps/erts/erlang.html#t:reference/0">reference</a>(), #{<a href="#t:group/0">group</a>() => [<a href="../../apps/erts/erlang.html#t:pid/0">pid</a>()]}}.</pre>
+
+      </div>
+
+<p>Subscribes the caller to updates from the specified scope. Returns content of
+the entire scope and a reference to match the upcoming notifications.</p><p>Whenever any group membership changes, an update message is sent to the
+subscriber:</p><pre><code class="text">{Ref, join, Group, [JoinPid1, JoinPid2]}</code></pre><pre><code class="text">{Ref, leave, Group, [LeavePid1]}</code></pre>
+  </section>
+</section>
+<section class="detail" id="start/1">
+
+  <div class="detail-header">
+    <a href="#start/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">start(Scope)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/pg.erl#L183" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 23.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> start(Scope :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>()) -> {ok, <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>()} | {error, <a href="../../apps/erts/erlang.html#t:any/0">any</a>()}.</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#start_link/1"><code class="inline">start_link/1</code></a></p>
+  </section>
+</section>
+<section class="detail" id="start_link/0">
+
+  <div class="detail-header">
+    <a href="#start_link/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">start_link()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/pg.erl#L175" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 23.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> start_link() -> {ok, <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>()} | {error, <a href="../../apps/erts/erlang.html#t:any/0">any</a>()}.</pre>
+
+      </div>
+
+<p>Starts the default <code class="inline">pg</code> scope within supervision tree. Kernel may be configured
+to do it automatically, see <a href="kernel_app.html#start_pg"><code class="inline">kernel(6)</code></a> configuration
+manual.</p>
+  </section>
+</section>
+<section class="detail" id="start_link/1">
+
+  <div class="detail-header">
+    <a href="#start_link/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">start_link(Scope)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/pg.erl#L192" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 23.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> start_link(Scope :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>()) -> {ok, <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>()} | {error, <a href="../../apps/erts/erlang.html#t:any/0">any</a>()}.</pre>
+
+      </div>
+
+<p>Starts additional scope.</p>
+  </section>
+</section>
+<section class="detail" id="which_groups/0">
+
+  <div class="detail-header">
+    <a href="#which_groups/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">which_groups()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/pg.erl#L374" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 23.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> which_groups() -> [Group :: <a href="#t:group/0">group</a>()].</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#which_groups/1"><code class="inline">which_groups/1</code></a></p>
+  </section>
+</section>
+<section class="detail" id="which_groups/1">
+
+  <div class="detail-header">
+    <a href="#which_groups/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">which_groups(Scope)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/pg.erl#L380" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 23.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> which_groups(Scope :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>()) -> [Group :: <a href="#t:group/0">group</a>()].</pre>
+
+      </div>
+
+<p>Returns a list of all known groups.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+              <a href="kernel.epub" title="ePub version">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="kernel v9.3">
+
+
+    <title>Logging — kernel v9.3</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-D60EFF5E.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="kernel" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+kernel
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v9.3
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of kernel</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/lib/kernel/doc/guides/logger_chapter.md#L1" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+
+  <span>Logging</span>
+</h1>
+
+<p>Erlang provides a standard API for logging through <code class="inline">Logger</code>, which is part of
+the Kernel application. Logger consists of the API for issuing log events, and a
+customizable backend where log handlers, filters and formatters can be plugged
+in.</p><p>By default, the Kernel application installs one log handler at system start.
+This handler is named <code class="inline">default</code>. It receives and processes standard log events
+produced by the Erlang runtime system, standard behaviours and different
+Erlang/OTP applications. The log events are by default written to the terminal.</p><p>You can also configure the system so that the default handler prints log events
+to a single file, or to a set of wrap logs via <a href="disk_log.html"><code class="inline">disk_log</code></a>.</p><p>By configuration, you can also modify or disable the default handler, replace it
+by a custom handler, and install additional handlers.</p><h2 id="overview" class="section-heading">
+  <a href="#overview" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Overview</span>
+</h2>
+<p>A <em>log event</em> consists of a <em>log level</em>, the <em>message</em> to be logged, and
+<em>metadata</em>.</p><p>The Logger backend forwards log events from the API, first through a set of
+<em>primary filters</em>, then through a set of secondary filters attached to each log
+handler. The secondary filters are in the following named <em>handler filters</em>.</p><p>Each filter set consists of a <em>log level check</em>, followed by zero or more
+<em>filter functions</em>.</p><p>The following figure shows a conceptual overview of Logger. The figure shows two
+log handlers, but any number of handlers can be installed.</p><p><img src="assets/logger_arch.png" alt="Conceptual Overview" title="Conceptual Overview"/></p><p>Log levels are expressed as atoms. Internally in Logger, the atoms are mapped to
+integer values, and a log event passes the log level check if the integer value
+of its log level is less than or equal to the currently configured log level.
+That is, the check passes if the event is equally or more severe than the
+configured level. See section <a href="logger_chapter.html#log_level">Log Level</a> for a
+listing and description of all log levels.</p><p>The primary log level can be overridden by a log level configured per module.
+This is to, for instance, allow more verbose logging from a specific part of the
+system.</p><p>Filter functions can be used for more sophisticated filtering than the log level
+check provides. A filter function can stop or pass a log event, based on any of
+the event's contents. It can also modify all parts of the log event. See section
+<a href="logger_chapter.html#filters">Filters</a> for more details.</p><p>If a log event passes through all primary filters and all handler filters for a
+specific handler, Logger forwards the event to the <em>handler callback</em>. The
+handler formats and prints the event to its destination. See section
+<a href="logger_chapter.html#handlers">Handlers</a> for more details.</p><p>Everything up to and including the call to the handler callbacks is executed on
+the client process, that is, the process where the log event was issued. It is
+up to the handler implementation if other processes are involved or not.</p><p>The handlers are called in sequence, and the order is not defined.</p><p><a href="" id="logger_api"></a></p><h2 id="logger-api" class="section-heading">
+  <a href="#logger-api" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Logger API</span>
+</h2>
+<p>The API for logging consists of a set of <a href="logger.html#module-macros">macros</a>, and a set
+of functions on the form <code class="inline">logger:Level/1,2,3</code>, which are all shortcuts for
+<a href="logger.html#log/2"><code class="inline">logger:log(Level,Arg1[,Arg2[,Arg3]])</code></a>.</p><p>The macros are defined in <code class="inline">logger.hrl</code>, which is included in a module with the
+directive</p><pre><code class="makeup erlang" translate="no"><span class="p">-</span><span class="na">include_lib</span><span class="p" data-group-id="2260933508-1">(</span><span class="s">&quot;kernel/include/logger.hrl&quot;</span><span class="p" data-group-id="2260933508-1">)</span><span class="p">.</span></code></pre><p>The difference between using the macros and the exported functions is that
+macros add location (originator) information to the metadata, and performs lazy
+evaluation by wrapping the logger call in a case statement, so it is only
+evaluated if the log level of the event passes the primary log level check.</p><p><a href="" id="log_level"></a></p><h3 id="log-level" class="section-heading">
+  <a href="#log-level" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Log Level</span>
+</h3>
+<p>The log level indicates the severity of a event. In accordance with the Syslog
+protocol, <a href="https://www.ietf.org/rfc/rfc5424.txt">RFC 5424</a>, eight log levels can
+be specified. The following table lists all possible log levels by name (atom),
+integer value, and description:</p><table><thead><tr><th style="text-align: left;"><strong>Level</strong></th><th style="text-align: left;"><strong>Integer</strong></th><th style="text-align: left;"><strong>Description</strong></th></tr></thead><tbody><tr><td style="text-align: left;">emergency</td><td style="text-align: left;">0</td><td style="text-align: left;">system is unusable</td></tr><tr><td style="text-align: left;">alert</td><td style="text-align: left;">1</td><td style="text-align: left;">action must be taken immediately</td></tr><tr><td style="text-align: left;">critical</td><td style="text-align: left;">2</td><td style="text-align: left;">critical conditions</td></tr><tr><td style="text-align: left;">error</td><td style="text-align: left;">3</td><td style="text-align: left;">error conditions</td></tr><tr><td style="text-align: left;">warning</td><td style="text-align: left;">4</td><td style="text-align: left;">warning conditions</td></tr><tr><td style="text-align: left;">notice</td><td style="text-align: left;">5</td><td style="text-align: left;">normal but significant conditions</td></tr><tr><td style="text-align: left;">info</td><td style="text-align: left;">6</td><td style="text-align: left;">informational messages</td></tr><tr><td style="text-align: left;">debug</td><td style="text-align: left;">7</td><td style="text-align: left;">debug-level messages</td></tr></tbody></table><p><em>Table: Log Levels</em></p><p>Notice that the integer value is only used internally in Logger. In the API, you
+must always use the atom. To compare the severity of two log levels, use
+<a href="logger.html#compare_levels/2"><code class="inline">logger:compare_levels/2</code></a>.</p><p><a href="" id="log_message"></a></p><h3 id="log-message" class="section-heading">
+  <a href="#log-message" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Log Message</span>
+</h3>
+<p>The log message contains the information to be logged. The message can consist
+of a format string and arguments (given as two separate parameters in the Logger
+API), a string or a report.</p><p>Example, format string and arguments:</p><pre><code class="text">logger:error(&quot;The file does not exist: ~ts&quot;,[Filename])</code></pre><p>Example, string:</p><pre><code class="text">logger:notice(&quot;Something strange happened!&quot;)</code></pre><p>A report, which is either a map or a key-value list, is the preferred way to log
+using Logger as it makes it possible for different backends to filter and format
+the log event as it needs to.</p><p>Example, report:</p><pre><code class="text">?LOG_ERROR(#{ user =&gt; joe, filename =&gt; Filename, reason =&gt; enoent })</code></pre><p>Reports can be accompanied by a <em>report callback</em> specified in the log event's
+<a href="logger_chapter.html#metadata">metadata</a>. The report callback is a convenience
+function that the <a href="logger_chapter.html#formatters">formatter</a> can use to convert
+the report to a format string and arguments, or directly to a string. The
+formatter can also use its own conversion function, if no callback is provided,
+or if a customized formatting is desired.</p><p>The report callback must be a fun with one or two arguments. If it takes one
+argument, this is the report itself, and the fun returns a format string and
+arguments:</p><pre><code class="makeup erlang" translate="no"><span class="nf">fun</span><span class="p" data-group-id="1345028918-1">(</span><span class="p" data-group-id="1345028918-2">(</span><span class="nc">logger</span><span class="p">:</span><span class="nf">report</span><span class="p" data-group-id="1345028918-3">(</span><span class="p" data-group-id="1345028918-3">)</span><span class="p" data-group-id="1345028918-2">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="p" data-group-id="1345028918-4">{</span><span class="nc">io</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="1345028918-5">(</span><span class="p" data-group-id="1345028918-5">)</span><span class="p">,</span><span class="p" data-group-id="1345028918-6">[</span><span class="nf">term</span><span class="p" data-group-id="1345028918-7">(</span><span class="p" data-group-id="1345028918-7">)</span><span class="p" data-group-id="1345028918-6">]</span><span class="p" data-group-id="1345028918-4">}</span><span class="p" data-group-id="1345028918-1">)</span></code></pre><p>If it takes two arguments, the first is the report, and the second is a map
+containing extra data that allows direct conversion to a string:</p><pre><code class="makeup erlang" translate="no"><span class="nf">fun</span><span class="p" data-group-id="4453149022-1">(</span><span class="p" data-group-id="4453149022-2">(</span><span class="nc">logger</span><span class="p">:</span><span class="nf">report</span><span class="p" data-group-id="4453149022-3">(</span><span class="p" data-group-id="4453149022-3">)</span><span class="p">,</span><span class="nc">logger</span><span class="p">:</span><span class="nf">report_cb_config</span><span class="p" data-group-id="4453149022-4">(</span><span class="p" data-group-id="4453149022-4">)</span><span class="p" data-group-id="4453149022-2">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">unicode</span><span class="p">:</span><span class="nf">chardata</span><span class="p" data-group-id="4453149022-5">(</span><span class="p" data-group-id="4453149022-5">)</span><span class="p" data-group-id="4453149022-1">)</span></code></pre><p>The fun must obey the <code class="inline">depth</code> and <code class="inline">chars_limit</code> parameters provided in the
+second argument, as the formatter cannot do anything useful of these parameters
+with the returned string. The extra data also contains a field named
+<code class="inline">single_line</code>, indicating if the printed log message may contain line breaks or
+not. This variant is used when the formatting of the report depends on the size
+or single line parameters.</p><p>Example, report, and metadata with report callback:</p><pre><code class="makeup erlang" translate="no"><span class="nc">logger</span><span class="p">:</span><span class="nf">debug</span><span class="p" data-group-id="6174872024-1">(</span><span class="p" data-group-id="6174872024-2">#{</span><span class="ss">got</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">connection_request</span><span class="p">,</span><span class="w"> </span><span class="ss">id</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="n">Id</span><span class="p">,</span><span class="w"> </span><span class="ss">state</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="6174872024-2">}</span><span class="p">,</span><span class="w">
+             </span><span class="p" data-group-id="6174872024-3">#{</span><span class="ss">report_cb</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nf">fun</span><span class="p" data-group-id="6174872024-4">(</span><span class="n">R</span><span class="p" data-group-id="6174872024-4">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="p" data-group-id="6174872024-5">{</span><span class="s">&quot;</span><span class="si">~p</span><span class="s">&quot;</span><span class="p">,</span><span class="p" data-group-id="6174872024-6">[</span><span class="n">R</span><span class="p" data-group-id="6174872024-6">]</span><span class="p" data-group-id="6174872024-5">}</span><span class="w"> </span><span class="k">end</span><span class="p" data-group-id="6174872024-3">}</span><span class="p" data-group-id="6174872024-1">)</span></code></pre><p>The log message can also be provided through a fun for lazy evaluation. The fun
+is only evaluated if the primary log level check passes, and is therefore
+recommended if it is expensive to generate the message. The lazy fun must return
+a string, a report, or a tuple with format string and arguments.</p><h3 id="metadata" class="section-heading">
+  <a href="#metadata" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Metadata</span>
+</h3>
+<p>Metadata contains additional data associated with a log message. Logger inserts
+some metadata fields by default, and the client can add custom metadata in three
+different ways:</p><ul><li><p><strong>Set primary metadata</strong> - Primary metadata applies is the base metadata given
+to all log events. At startup it can be set using the kernel configuration
+parameter <a href="kernel_app.html#logger_metadata">logger_metadata</a>. At run-time it can
+be set and updated using <a href="logger.html#set_primary_config/1"><code class="inline">logger:set_primary_config/1</code></a> and
+<a href="logger.html#update_primary_config/1"><code class="inline">logger:update_primary_config/1</code></a> respectively.</p></li><li><p><strong>Set process metadata</strong> - Process metadata is set and updated with
+<a href="logger.html#set_process_metadata/1"><code class="inline">logger:set_process_metadata/1</code></a> and <a href="logger.html#update_process_metadata/1"><code class="inline">logger:update_process_metadata/1</code></a>,
+respectively. This metadata applies to the process on which these calls are
+made, and Logger adds the metadata to all log events issued on that process.</p></li><li><p><strong>Add metadata to a specific log event</strong> - Metadata associated with one
+specific log event is given as the last parameter to the log macro or Logger
+API function when the event is issued. For example:</p><pre><code class="text">?LOG_ERROR(&quot;Connection closed&quot;,#{context =&gt; server})</code></pre></li></ul><p>See the description of the <a href="logger.html#t:metadata/0"><code class="inline">logger:metadata/0</code></a> type for information about
+which default keys Logger inserts, and how the different metadata maps are
+merged.</p><p><a href="" id="filter"></a></p><h2 id="filters" class="section-heading">
+  <a href="#filters" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Filters</span>
+</h2>
+<p>Filters can be primary, or attached to a specific handler. Logger calls the
+primary filters first, and if they all pass, it calls the handler filters for
+each handler. Logger calls the handler callback only if all filters attached to
+the handler in question also pass.</p><p>A filter is defined as:</p><pre><code class="text">{FilterFun, Extra}</code></pre><p>where <code class="inline">FilterFun</code> is a function of arity 2, and <code class="inline">Extra</code> is any term. When
+applying the filter, Logger calls the function with the log event as the first
+argument, and the value of <code class="inline">Extra</code> as the second argument. See
+<a href="logger.html#t:filter/0"><code class="inline">logger:filter/0</code></a> for type definitions.</p><p>The filter function can return <code class="inline">stop</code>, <code class="inline">ignore</code> or the (possibly modified) log
+event.</p><p>If <code class="inline">stop</code> is returned, the log event is immediately discarded. If the filter is
+primary, no handler filters or callbacks are called. If it is a handler filter,
+the corresponding handler callback is not called, but the log event is forwarded
+to filters attached to the next handler, if any.</p><p>If the log event is returned, the next filter function is called with the
+returned value as the first argument. That is, if a filter function modifies the
+log event, the next filter function receives the modified event. The value
+returned from the last filter function is the value that the handler callback
+receives.</p><p>If the filter function returns <code class="inline">ignore</code>, it means that it did not recognize the
+log event, and thus leaves to other filters to decide the event's destiny.</p><p>The configuration option <code class="inline">filter_default</code> specifies the behaviour if all filter
+functions return <code class="inline">ignore</code>, or if no filters exist. <code class="inline">filter_default</code> is by
+default set to <code class="inline">log</code>, meaning that if all existing filters ignore a log event,
+Logger forwards the event to the handler callback. If <code class="inline">filter_default</code> is set to
+<code class="inline">stop</code>, Logger discards such events.</p><p>Primary filters are added with <a href="logger.html#add_primary_filter/2"><code class="inline">logger:add_primary_filter/2</code></a> and removed with
+<a href="logger.html#remove_primary_filter/1"><code class="inline">logger:remove_primary_filter/1</code></a>. They can also be added at system start via the
+Kernel configuration parameter <a href="logger_chapter.html#logger_parameter"><code class="inline">logger</code></a>.</p><p>Handler filters are added with <a href="logger.html#add_handler_filter/3"><code class="inline">logger:add_handler_filter/3</code></a> and removed with
+<a href="logger.html#remove_handler_filter/2"><code class="inline">logger:remove_handler_filter/2</code></a>. They can also be specified directly in the
+configuration when adding a handler with <a href="logger.html#add_handler/3"><code class="inline">logger:add_handler/3</code></a> or via the
+Kernel configuration parameter <a href="logger_chapter.html#logger_parameter"><code class="inline">logger</code></a>.</p><p>To see which filters are currently installed in the system, use
+<a href="logger.html#get_config/0"><code class="inline">logger:get_config/0</code></a>, or <a href="logger.html#get_primary_config/0"><code class="inline">logger:get_primary_config/0</code></a> and
+<a href="logger.html#get_handler_config/1"><code class="inline">logger:get_handler_config/1</code></a>. Filters are listed in the order they are applied,
+that is, the first filter in the list is applied first, and so on.</p><p>For convenience, the following built-in filters exist:</p><ul><li><p><strong><a href="logger_filters.html#domain/2"><code class="inline">logger_filters:domain/2</code></a></strong> - Provides a way of filtering log events based
+on a <code class="inline">domain</code> field in <code class="inline">Metadata</code>.</p></li><li><p><strong><a href="logger_filters.html#level/2"><code class="inline">logger_filters:level/2</code></a></strong> - Provides a way of filtering log events based on
+the log level.</p></li><li><p><strong><a href="logger_filters.html#progress/2"><code class="inline">logger_filters:progress/2</code></a></strong> - Stops or allows progress reports from
+<code class="inline">supervisor</code> and <code class="inline">application_controller</code>.</p></li><li><p><strong><a href="logger_filters.html#remote_gl/2"><code class="inline">logger_filters:remote_gl/2</code></a></strong> - Stops or allows log events originating from
+a process that has its group leader on a remote node.</p></li></ul><h2 id="handlers" class="section-heading">
+  <a href="#handlers" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Handlers</span>
+</h2>
+<p>A handler is defined as a module exporting at least the following callback
+function:</p><pre><code class="text">log(LogEvent, Config) -&gt; void()</code></pre><p>This function is called when a log event has passed through all primary filters,
+and all handler filters attached to the handler in question. The function call
+is executed on the client process, and it is up to the handler implementation if
+other processes are involved or not.</p><p>Logger allows adding multiple instances of a handler callback. That is, if a
+callback module implementation allows it, you can add multiple handler instances
+using the same callback module. The different instances are identified by unique
+handler identities.</p><p>In addition to the mandatory callback function <code class="inline">log/2</code>, a handler module can
+export the optional callback functions <code class="inline">adding_handler/1</code>, <code class="inline">changing_config/3</code>,
+<code class="inline">filter_config/1</code>, and <code class="inline">removing_handler/1</code>. See <a href="logger_handler.html"><code class="inline">logger_handler</code></a> for more
+information about these function.</p><p>The following built-in handlers exist:</p><ul><li><p><strong><code class="inline">logger_std_h</code></strong> - This is the default handler used by OTP. Multiple
+instances can be started, and each instance will write log events to a given
+destination, terminal or file.</p></li><li><p><strong><code class="inline">logger_disk_log_h</code></strong> - This handler behaves much like <code class="inline">logger_std_h</code>,
+except it uses <a href="disk_log.html"><code class="inline">disk_log</code></a> as its destination.</p></li><li><p><strong><code class="inline" id="ErrorLoggerManager">error_logger</code></strong> - This handler is provided for
+backwards compatibility only. It is not started by default, but will be
+automatically started the first time an <code class="inline">error_logger</code> event handler is added
+with
+<a href="error_logger.html#add_report_handler/1"><code class="inline">error_logger:add_report_handler/1,2</code></a>.</p><p>The old <code class="inline">error_logger</code> event handlers in STDLIB and SASL still exist, but they
+are not added by Erlang/OTP 21.0 or later.</p></li></ul><h2 id="formatters" class="section-heading">
+  <a href="#formatters" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Formatters</span>
+</h2>
+<p>A formatter can be used by the handler implementation to do the final formatting
+of a log event, before printing to the handler's destination. The handler
+callback receives the formatter information as part of the handler
+configuration, which is passed as the second argument to
+<a href="logger_handler.html#c:log/2"><code class="inline">HModule:log/2</code></a>.</p><p>The formatter information consist of a formatter module, <code class="inline">FModule</code> and its
+configuration, <code class="inline">FConfig</code>. <code class="inline">FModule</code> must export the following function, which
+can be called by the handler:</p><pre><code class="text">format(LogEvent,FConfig)
+	-&gt; FormattedLogEntry</code></pre><p>The formatter information for a handler is set as a part of its configuration
+when the handler is added. It can also be changed during runtime with
+<a href="logger.html#set_handler_config/3"><code class="inline">logger:set_handler_config(HandlerId,formatter,{Module,FConfig})</code> </a>,
+which overwrites the current formatter information, or with
+<a href="logger.html#update_formatter_config/2"><code class="inline">logger:update_formatter_config/2,3</code></a>,
+which only modifies the formatter configuration.</p><p>If the formatter module exports the optional callback function
+<a href="logger_formatter.html#c:check_config/1"><code class="inline">check_config(FConfig)</code></a>, Logger calls
+this function when the formatter information is set or modified, to verify the
+validity of the formatter configuration.</p><p>If no formatter information is specified for a handler, Logger uses
+<code class="inline">logger_formatter</code> as default. See the <a href="logger_formatter.html"><code class="inline">logger_formatter</code></a> manual page for more
+information about this module.</p><h2 id="configuration" class="section-heading">
+  <a href="#configuration" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Configuration</span>
+</h2>
+<p>At system start, Logger is configured through Kernel configuration parameters.
+The parameters that apply to Logger are described in section
+<a href="logger_chapter.html#kernel_config_params">Kernel Configuration Parameters</a>.
+Examples are found in section
+<a href="logger_chapter.html#config_examples">Configuration Examples</a>.</p><p>During runtime, Logger configuration is changed via API functions. See section
+<a href="logger.html#configuration-api-functions">Configuration API Functions</a> in the <a href="logger.html"><code class="inline">logger</code></a>
+manual page.</p><h3 id="primary-logger-configuration" class="section-heading">
+  <a href="#primary-logger-configuration" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Primary Logger Configuration</span>
+</h3>
+<p>Logger API functions that apply to the primary Logger configuration are:</p><ul><li><a href="logger.html#get_primary_config/0"><code class="inline">get_primary_config/0</code></a></li><li><a href="logger.html#set_primary_config/1"><code class="inline">set_primary_config/1,2</code></a></li><li><a href="logger.html#update_primary_config/1"><code class="inline">update_primary_config/1</code></a></li><li><a href="logger.html#add_primary_filter/2"><code class="inline">add_primary_filter/2</code></a></li><li><a href="logger.html#remove_primary_filter/1"><code class="inline">remove_primary_filter/1</code></a></li></ul><p>The primary Logger configuration is a map with the following keys:</p><ul><li><p><strong><code class="inline" id="primary_level">level =</code><code class="inline">t:logger:level/0`` | all | none</code></strong> - Specifies
+the primary log level, that is, log event that are equally or more severe than
+this level, are forwarded to the primary filters. Less severe log events are
+immediately discarded.</p><p>See section <a href="logger_chapter.html#log_level">Log Level</a> for a listing and
+description of possible log levels.</p><p>The initial value of this option is set by the Kernel configuration parameter
+<a href="logger_chapter.html#logger_level"><code class="inline">logger_level</code></a>. It is changed during runtime
+with
+<a href="logger.html#set_primary_config/2"><code class="inline">logger:set_primary_config(level,Level)</code></a>.</p><p>Defaults to <code class="inline">notice</code>.</p></li><li><p><strong><code class="inline">filters = [{FilterId,Filter}]</code></strong> - Specifies the primary filters.</p><ul><li><code class="inline">FilterId = ``t:logger:filter_id/0</code></li><li><code class="inline">Filter = ``t:logger:filter/0</code></li></ul><p>The initial value of this option is set by the Kernel configuration parameter
+<a href="logger_chapter.html#logger_parameter"><code class="inline">logger</code></a>. During runtime, primary
+filters are added and removed with <a href="logger.html#add_primary_filter/2"><code class="inline">logger:add_primary_filter/2</code></a> and
+<a href="logger.html#remove_primary_filter/1"><code class="inline">logger:remove_primary_filter/1</code></a>, respectively.</p><p>See section <a href="logger_chapter.html#filters">Filters</a> for more detailed
+information.</p><p>Defaults to <code class="inline">[]</code>.</p></li><li><p><strong><code class="inline">filter_default = log | stop</code></strong> - Specifies what happens to a log event if
+all filters return <code class="inline">ignore</code>, or if no filters exist.</p><p>See section <a href="logger_chapter.html#filters">Filters</a> for more information about
+how this option is used.</p><p>Defaults to <code class="inline">log</code>.</p></li><li><p><strong><code class="inline">metadata =</code><a href="logger.html#t:metadata/0"><code class="inline">metadata()</code></a></strong> - The primary metadata
+to be used for all log calls.</p><p>See section <a href="logger_chapter.html#metadata">Metadata</a> for more information about
+how this option is used.</p><p>Defaults to <code class="inline">#{}</code>.</p></li></ul><p><a href="" id="handler_configuration"></a></p><h3 id="handler-configuration" class="section-heading">
+  <a href="#handler-configuration" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Handler Configuration</span>
+</h3>
+<p>Logger API functions that apply to handler configuration are:</p><ul><li><a href="logger.html#get_handler_config/0"><code class="inline">get_handler_config/0,1</code></a></li><li><a href="logger.html#set_handler_config/2"><code class="inline">set_handler_config/2,3</code></a></li><li><a href="logger.html#update_handler_config/2"><code class="inline">update_handler_config/2,3</code></a></li><li><a href="logger.html#add_handler_filter/3"><code class="inline">add_handler_filter/3</code></a></li><li><a href="logger.html#remove_handler_filter/2"><code class="inline">remove_handler_filter/2</code></a></li><li><a href="logger.html#update_formatter_config/2"><code class="inline">update_formatter_config/2,3</code></a></li></ul><p>The configuration for a handler is a map with the following keys:</p><ul><li><p><strong><code class="inline">id = ``t:logger_handler:id/0</code></strong> - Automatically inserted by Logger. The
+value is the same as the <code class="inline">HandlerId</code> specified when adding the handler, and it
+cannot be changed.</p></li><li><p><strong><code class="inline">module = module()</code></strong> - Automatically inserted by Logger. The value is the
+same as the <code class="inline">Module</code> specified when adding the handler, and it cannot be
+changed.</p></li><li><p><strong><code class="inline">level = ``t:logger:level/0`` | all | none</code></strong> - Specifies the log level for
+the handler, that is, log events that are equally or more severe than this
+level, are forwarded to the handler filters for this handler.</p><p>See section <a href="logger_chapter.html#log_level">Log Level</a> for a listing and
+description of possible log levels.</p><p>The log level is specified when adding the handler, or changed during runtime
+with, for instance,
+<a href="logger.html#set_handler_config/3"><code class="inline">logger:set_handler_config(HandlerId,level,Level)</code></a>.</p><p>Defaults to <code class="inline">all</code>.</p></li><li><p><strong><code class="inline">filters = [{FilterId,Filter}]</code></strong> - Specifies the handler filters.</p><ul><li><code class="inline">FilterId = ``t:logger:filter_id/0</code></li><li><code class="inline">Filter = ``t:logger:filter/0</code></li></ul><p>Handler filters are specified when adding the handler, or added or removed
+during runtime with <a href="logger.html#add_handler_filter/3"><code class="inline">logger:add_handler_filter/3</code></a> and
+<a href="logger.html#remove_handler_filter/2"><code class="inline">logger:remove_handler_filter/2</code></a>, respectively.</p><p>See <a href="logger_chapter.html#filters">Filters</a> for more detailed information.</p><p>Defaults to <code class="inline">[]</code>.</p></li><li><p><strong><code class="inline">filter_default = log | stop</code></strong> - Specifies what happens to a log event if
+all filters return <code class="inline">ignore</code>, or if no filters exist.</p><p>See section <a href="logger_chapter.html#filters">Filters</a> for more information about
+how this option is used.</p><p>Defaults to <code class="inline">log</code>.</p></li><li><p><strong><code class="inline">formatter = {FormatterModule,FormatterConfig}</code></strong> - Specifies a formatter
+that the handler can use for converting the log event term to a printable
+string.</p><ul><li><code class="inline">FormatterModule = module()</code></li><li><code class="inline">FormatterConfig = ``t:logger:formatter_config/0</code></li></ul><p>The formatter information is specified when adding the handler. The formatter
+configuration can be changed during runtime with
+<a href="logger.html#update_formatter_config/2"><code class="inline">logger:update_formatter_config/2,3</code></a>, or
+the complete formatter information can be overwritten with, for instance,
+<a href="logger.html#set_handler_config/3"><code class="inline">logger:set_handler_config/3</code></a>.</p><p>See section <a href="logger_chapter.html#formatters">Formatters</a> for more detailed
+information.</p><p>Defaults to <code class="inline">{logger_formatter,DefaultFormatterConfig}</code>. See the
+<a href="logger_formatter.html"><code class="inline">logger_formatter</code></a> manual page for information about this formatter and its
+default configuration.</p></li><li><p><strong><code class="inline">config = term()</code></strong> - Handler specific configuration, that is, configuration
+data related to a specific handler implementation.</p><p>The configuration for the built-in handlers is described in the
+<a href="logger_std_h.html"><code class="inline">logger_std_h</code></a> and <a href="logger_disk_log_h.html"><code class="inline">logger_disk_log_h</code> </a>manual
+pages.</p></li></ul><p>Notice that <code class="inline">level</code> and <code class="inline">filters</code> are obeyed by Logger itself before forwarding
+the log events to each handler, while <code class="inline">formatter</code> and all handler specific
+options are left to the handler implementation.</p><p><a href="" id="kernel_config_params"></a></p><h3 id="kernel-configuration-parameters" class="section-heading">
+  <a href="#kernel-configuration-parameters" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Kernel Configuration Parameters</span>
+</h3>
+<p>The following Kernel configuration parameters apply to Logger:</p><ul><li><p><strong><code class="inline" id="logger_parameter">logger = [Config]</code></strong> - Specifies the configuration
+for <a href="logger.html">Logger</a>, except the primary log level, which is specified
+with <a href="logger_chapter.html#logger_level"><code class="inline">logger_level</code></a>, and the compatibility
+with <a href="../../apps/sasl/error_logging.html">SASL Error Logging</a>, which is specified with
+<a href="logger_chapter.html#logger_sasl_compatible"><code class="inline">logger_sasl_compatible</code></a>.</p><p>With this parameter, you can modify or disable the default handler, add custom
+handlers and primary logger filters, set log levels per module, and modify the
+<a href="logger_chapter.html#proxy">proxy</a> configuration.</p><p><code class="inline">Config</code> is any (zero or more) of the following:</p><ul><li><p><strong><code class="inline">{handler, default, undefined}</code></strong> - Disables the default handler. This
+allows another application to add its own default handler.</p><p>Only one entry of this type is allowed.</p></li><li><p><strong><code class="inline">{handler, HandlerId, Module, HandlerConfig}</code></strong> - If <code class="inline">HandlerId</code> is
+<code class="inline">default</code>, then this entry modifies the default handler, equivalent to
+calling</p><pre><code class="text">        logger:remove_handler(default)
+</code></pre><p>followed by</p><pre><code class="makeup erlang" translate="no"><span class="w">        </span><span class="nc">logger</span><span class="p">:</span><span class="nf">add_handler</span><span class="p" data-group-id="9265083823-1">(</span><span class="ss">default</span><span class="p">,</span><span class="w"> </span><span class="n">Module</span><span class="p">,</span><span class="w"> </span><span class="n">HandlerConfig</span><span class="p" data-group-id="9265083823-1">)</span><span class="w">
+</span></code></pre><p>For all other values of <code class="inline">HandlerId</code>, this entry adds a new handler,
+equivalent to calling</p><pre><code class="makeup erlang" translate="no"><span class="w">        </span><span class="nc">logger</span><span class="p">:</span><span class="nf">add_handler</span><span class="p" data-group-id="8809815425-1">(</span><span class="n">HandlerId</span><span class="p">,</span><span class="w"> </span><span class="n">Module</span><span class="p">,</span><span class="w"> </span><span class="n">HandlerConfig</span><span class="p" data-group-id="8809815425-1">)</span><span class="w">
+</span></code></pre><p>Multiple entries of this type are allowed.</p></li><li><p><strong><code class="inline">{filters, FilterDefault, [Filter]}</code></strong> - Adds the specified primary
+filters.</p><ul><li><p><code class="inline">FilterDefault = log | stop</code></p></li><li><code class="inline">Filter = {FilterId, {FilterFun, FilterConfig}}</code></li></ul><p>Equivalent to calling</p><pre><code class="makeup erlang" translate="no"><span class="w">        </span><span class="nc">logger</span><span class="p">:</span><span class="nf">add_primary_filter</span><span class="p" data-group-id="7680037029-1">(</span><span class="n">FilterId</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7680037029-2">{</span><span class="n">FilterFun</span><span class="p">,</span><span class="w"> </span><span class="n">FilterConfig</span><span class="p" data-group-id="7680037029-2">}</span><span class="p" data-group-id="7680037029-1">)</span><span class="w">
+</span></code></pre><p>for each <code class="inline">Filter</code>.</p><p><code class="inline">FilterDefault</code> specifies the behaviour if all primary filters return
+<code class="inline">ignore</code>, see section <a href="logger_chapter.html#filters">Filters</a>.</p><p>Only one entry of this type is allowed.</p></li><li><p><strong><code class="inline">{module_level, Level, [Module]}</code></strong> - Sets module log level for the given
+modules. Equivalent to calling</p><pre><code class="makeup erlang" translate="no"><span class="w">        </span><span class="nc">logger</span><span class="p">:</span><span class="nf">set_module_level</span><span class="p" data-group-id="9959725580-1">(</span><span class="n">Module</span><span class="p">,</span><span class="w"> </span><span class="n">Level</span><span class="p" data-group-id="9959725580-1">)</span></code></pre><p>for each <code class="inline">Module</code>.</p><p>Multiple entries of this type are allowed.</p></li><li><p><strong><code class="inline">{proxy, ProxyConfig}</code></strong> - Sets the proxy configuration, equivalent to
+calling</p><pre><code class="text">        logger:set_proxy_config(ProxyConfig)
+</code></pre><p>Only one entry of this type is allowed.</p></li></ul><p>See section <a href="logger_chapter.html#config_examples">Configuration Examples</a> for
+examples using the <code class="inline">logger</code> parameter for system configuration.</p></li><li><p><strong><code class="inline" id="logger_metadata">logger_metadata = map()</code></strong> - Specifies the primary
+metadata. See the <a href="kernel_app.html#logger_metadata"><code class="inline">kernel(6)</code></a> manual page for
+more information about this parameter.</p></li><li><p><strong><code class="inline" id="logger_level">logger_level = Level</code></strong> - Specifies the primary log
+level. See the <a href="kernel_app.html#logger_level"><code class="inline">kernel(6)</code></a> manual page for more
+information about this parameter.</p></li><li><p><strong><code class="inline" id="logger_sasl_compatible">logger_sasl_compatible = true | false</code></strong> -
+Specifies Logger's compatibility with
+<a href="../../apps/sasl/error_logging.html">SASL Error Logging</a>. See the
+<a href="kernel_app.html#logger_sasl_compatible"><code class="inline">kernel(6)</code></a> manual page for more
+information about this parameter.</p></li></ul><p><a href="" id="config_examples"></a></p><h3 id="configuration-examples" class="section-heading">
+  <a href="#configuration-examples" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Configuration Examples</span>
+</h3>
+<p>The value of the Kernel configuration parameter <code class="inline">logger</code> is a list of tuples. It
+is possible to write the term on the command line when starting an erlang node,
+but as the term grows, a better approach is to use the system configuration
+file. See the <a href="config.html"><code class="inline">config(4)</code></a> manual page for more information about
+this file.</p><p>Each of the following examples shows a simple system configuration file that
+configures Logger according to the description.</p><p>Modify the default handler to print to a file instead of
+<a href="../../apps/stdlib/io.html#t:standard_io/0"><code class="inline">standard_io</code></a>:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="7249858195-1">[</span><span class="p" data-group-id="7249858195-2">{</span><span class="ss">kernel</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="7249858195-3">[</span><span class="p" data-group-id="7249858195-4">{</span><span class="ss">logger</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="7249858195-5">[</span><span class="p" data-group-id="7249858195-6">{</span><span class="ss">handler</span><span class="p">,</span><span class="w"> </span><span class="ss">default</span><span class="p">,</span><span class="w"> </span><span class="ss">logger_std_h</span><span class="p">,</span><span class="w">  </span><span class="c1">% {handler, HandlerId, Module,</span><span class="w">
+      </span><span class="p" data-group-id="7249858195-7">#{</span><span class="ss">config</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p" data-group-id="7249858195-8">#{</span><span class="ss">file</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="s">&quot;log/erlang.log&quot;</span><span class="p" data-group-id="7249858195-8">}</span><span class="p" data-group-id="7249858195-7">}</span><span class="p" data-group-id="7249858195-6">}</span><span class="w">  </span><span class="c1">% Config}</span><span class="w">
+    </span><span class="p" data-group-id="7249858195-5">]</span><span class="p" data-group-id="7249858195-4">}</span><span class="p" data-group-id="7249858195-3">]</span><span class="p" data-group-id="7249858195-2">}</span><span class="p" data-group-id="7249858195-1">]</span><span class="p">.</span></code></pre><p>Modify the default handler to print each log event as a single line:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="5526445332-1">[</span><span class="p" data-group-id="5526445332-2">{</span><span class="ss">kernel</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="5526445332-3">[</span><span class="p" data-group-id="5526445332-4">{</span><span class="ss">logger</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="5526445332-5">[</span><span class="p" data-group-id="5526445332-6">{</span><span class="ss">handler</span><span class="p">,</span><span class="w"> </span><span class="ss">default</span><span class="p">,</span><span class="w"> </span><span class="ss">logger_std_h</span><span class="p">,</span><span class="w">
+      </span><span class="p" data-group-id="5526445332-7">#{</span><span class="ss">formatter</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p" data-group-id="5526445332-8">{</span><span class="ss">logger_formatter</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="5526445332-9">#{</span><span class="ss">single_line</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="5526445332-9">}</span><span class="p" data-group-id="5526445332-8">}</span><span class="p" data-group-id="5526445332-7">}</span><span class="p" data-group-id="5526445332-6">}</span><span class="w">
+    </span><span class="p" data-group-id="5526445332-5">]</span><span class="p" data-group-id="5526445332-4">}</span><span class="p" data-group-id="5526445332-3">]</span><span class="p" data-group-id="5526445332-2">}</span><span class="p" data-group-id="5526445332-1">]</span><span class="p">.</span></code></pre><p>Modify the default handler to print the pid of the logging process for each log
+event:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="3980814861-1">[</span><span class="p" data-group-id="3980814861-2">{</span><span class="ss">kernel</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="3980814861-3">[</span><span class="p" data-group-id="3980814861-4">{</span><span class="ss">logger</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="3980814861-5">[</span><span class="p" data-group-id="3980814861-6">{</span><span class="ss">handler</span><span class="p">,</span><span class="w"> </span><span class="ss">default</span><span class="p">,</span><span class="w"> </span><span class="ss">logger_std_h</span><span class="p">,</span><span class="w">
+      </span><span class="p" data-group-id="3980814861-7">#{</span><span class="ss">formatter</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p" data-group-id="3980814861-8">{</span><span class="ss">logger_formatter</span><span class="p">,</span><span class="w">
+                        </span><span class="p" data-group-id="3980814861-9">#{</span><span class="ss">template</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p" data-group-id="3980814861-10">[</span><span class="ss">time</span><span class="p">,</span><span class="s">&quot; &quot;</span><span class="p">,</span><span class="ss">pid</span><span class="p">,</span><span class="s">&quot; &quot;</span><span class="p">,</span><span class="ss">msg</span><span class="p">,</span><span class="s">&quot;\n&quot;</span><span class="p" data-group-id="3980814861-10">]</span><span class="p" data-group-id="3980814861-9">}</span><span class="p" data-group-id="3980814861-8">}</span><span class="p" data-group-id="3980814861-7">}</span><span class="p" data-group-id="3980814861-6">}</span><span class="w">
+    </span><span class="p" data-group-id="3980814861-5">]</span><span class="p" data-group-id="3980814861-4">}</span><span class="p" data-group-id="3980814861-3">]</span><span class="p" data-group-id="3980814861-2">}</span><span class="p" data-group-id="3980814861-1">]</span><span class="p">.</span></code></pre><p>Modify the default handler to only print errors and more severe log events to
+&quot;log/erlang.log&quot;, and add another handler to print all log events to
+&quot;log/debug.log&quot;.</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="6145759005-1">[</span><span class="p" data-group-id="6145759005-2">{</span><span class="ss">kernel</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="6145759005-3">[</span><span class="p" data-group-id="6145759005-4">{</span><span class="ss">logger</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="6145759005-5">[</span><span class="p" data-group-id="6145759005-6">{</span><span class="ss">handler</span><span class="p">,</span><span class="w"> </span><span class="ss">default</span><span class="p">,</span><span class="w"> </span><span class="ss">logger_std_h</span><span class="p">,</span><span class="w">
+      </span><span class="p" data-group-id="6145759005-7">#{</span><span class="ss">level</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">error</span><span class="p">,</span><span class="w">
+        </span><span class="ss">config</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p" data-group-id="6145759005-8">#{</span><span class="ss">file</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="s">&quot;log/erlang.log&quot;</span><span class="p" data-group-id="6145759005-8">}</span><span class="p" data-group-id="6145759005-7">}</span><span class="p" data-group-id="6145759005-6">}</span><span class="p">,</span><span class="w">
+     </span><span class="p" data-group-id="6145759005-9">{</span><span class="ss">handler</span><span class="p">,</span><span class="w"> </span><span class="ss">info</span><span class="p">,</span><span class="w"> </span><span class="ss">logger_std_h</span><span class="p">,</span><span class="w">
+      </span><span class="p" data-group-id="6145759005-10">#{</span><span class="ss">level</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">debug</span><span class="p">,</span><span class="w">
+        </span><span class="ss">config</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p" data-group-id="6145759005-11">#{</span><span class="ss">file</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="s">&quot;log/debug.log&quot;</span><span class="p" data-group-id="6145759005-11">}</span><span class="p" data-group-id="6145759005-10">}</span><span class="p" data-group-id="6145759005-9">}</span><span class="w">
+    </span><span class="p" data-group-id="6145759005-5">]</span><span class="p" data-group-id="6145759005-4">}</span><span class="p" data-group-id="6145759005-3">]</span><span class="p" data-group-id="6145759005-2">}</span><span class="p" data-group-id="6145759005-1">]</span><span class="p">.</span></code></pre><p><a href="" id="compatibility"></a></p><h2 id="backwards-compatibility-with-error_logger" class="section-heading">
+  <a href="#backwards-compatibility-with-error_logger" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Backwards Compatibility with error_logger</span>
+</h2>
+<p>Logger provides backwards compatibility with <code class="inline">error_logger</code> in the following
+ways:</p><ul><li><p><strong>API for Logging</strong> - The <code class="inline">error_logger</code> API still exists, but should only be
+used by legacy code. It will be removed in a later release.</p><p>Calls to <a href="error_logger.html#error_report/1"><code class="inline">error_logger:error_report/1,2</code></a>,
+<a href="error_logger.html#error_msg/1"><code class="inline">error_logger:error_msg/1,2</code></a>, and corresponding
+functions for warning and info messages, are all forwarded to Logger as calls
+to <a href="logger.html#log/3"><code class="inline">logger:log(Level,Report,Metadata)</code></a>.</p><p><code class="inline">Level = error | warning | info</code> and is taken from the function name. <code class="inline">Report</code>
+contains the actual log message, and <code class="inline">Metadata</code> contains additional
+information which can be used for creating backwards compatible events for
+legacy <code class="inline">error_logger</code> event handlers, see section
+<a href="logger_chapter.html#legacy_event_handlers">Legacy Event Handlers</a>.</p></li><li><p><strong>Output Format</strong> - To get log events on the same format as produced by
+<code class="inline">error_logger_tty_h</code> and <code class="inline">error_logger_file_h</code>, use the default formatter,
+<code class="inline">logger_formatter</code>, with configuration parameter <code class="inline">legacy_header</code> set to
+<code class="inline">true</code>. This is the default configuration of the <code class="inline">default</code> handler started by
+Kernel.</p></li><li><p><strong>Default Format of Log Events from OTP</strong> - By default, all log events
+originating from within OTP, except the former so called &quot;SASL reports&quot;, look
+the same as before.</p></li><li><p><strong><a href="" id="sasl_reports"></a> SASL Reports</strong><br/>By SASL reports we mean supervisor reports, crash reports and progress
+reports.</p><p>Prior to Erlang/OTP 21.0, these reports were only logged when the SASL
+application was running, and they were printed through SASL's own event
+handlers <code class="inline">sasl_report_tty_h</code> and <code class="inline">sasl_report_file_h</code>.</p><p>The destination of these log events was configured by
+<a href="../../apps/sasl/sasl_app.html#deprecated_error_logger_config">SASL configuration parameters</a>.</p><p>Due to the specific event handlers, the output format slightly differed from
+other log events.</p><p>As of Erlang/OTP 21.0, the concept of SASL reports is removed, meaning that
+the default behaviour is as follows:</p><ul><li>Supervisor reports, crash reports, and progress reports are no longer
+connected to the SASL application.</li><li>Supervisor reports and crash reports are issued as <code class="inline">error</code> level log events,
+and are logged through the default handler started by Kernel.</li><li>Progress reports are issued as <code class="inline">info</code> level log events, and since the
+default primary log level is <code class="inline">notice</code>, these are not logged by default. To
+enable printing of progress reports, set the
+<a href="logger_chapter.html#primary_level">primary log level</a> to <code class="inline">info</code>.</li><li>The output format is the same for all log events.</li></ul><p>If the old behaviour is preferred, the Kernel configuration parameter
+<a href="kernel_app.html#logger_sasl_compatible"><code class="inline">logger_sasl_compatible</code></a> can be set to
+<code class="inline">true</code>. The
+<a href="../../apps/sasl/sasl_app.html#deprecated_error_logger_config">SASL configuration parameters</a>
+can then be used as before, and the SASL reports will only be printed if the
+SASL application is running, through a second log handler named <code class="inline">sasl</code>.</p><p>All SASL reports have a metadata field <code class="inline">domain</code> which is set to <code class="inline">[otp,sasl]</code>.
+This field can be used by filters to stop or allow the log events.</p><p>See section <a href="../../apps/sasl/error_logging.html">SASL User's Guide</a> for more
+information about the old SASL error logging functionality.</p></li><li><p><strong><a href="" id="legacy_event_handlers"></a> Legacy Event Handlers</strong><br/>To use event handlers written for <code class="inline">error_logger</code>, just add your event handler
+with</p><pre><code class="text">error_logger:add_report_handler/1,2.</code></pre><p>This automatically starts the error logger event manager, and adds
+<code class="inline">error_logger</code> as a handler to Logger, with the following configuration:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="3893459123-1">#{</span><span class="ss">level</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">info</span><span class="p">,</span><span class="w">
+  </span><span class="ss">filter_default</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">log</span><span class="p">,</span><span class="w">
+  </span><span class="ss">filters</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p" data-group-id="3893459123-2">[</span><span class="p" data-group-id="3893459123-2">]</span><span class="p" data-group-id="3893459123-1">}</span><span class="p">.</span></code></pre><blockquote><h4 class="info">Note</h4><p>This handler ignores events that do not originate from the <code class="inline">error_logger</code>
+API, or from within OTP. This means that if your code uses the Logger API
+for logging, then your log events will be discarded by this handler.</p><p>The handler is not overload protected.</p></blockquote></li></ul><h2 id="error-handling" class="section-heading">
+  <a href="#error-handling" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Error Handling</span>
+</h2>
+<p>Logger does, to a certain extent, check its input data before forwarding a log
+event to filters and handlers. It does, however, not evaluate report callbacks,
+or check the validity of format strings and arguments. This means that all
+filters and handlers must be careful when formatting the data of a log event,
+making sure that it does not crash due to bad input data or faulty callbacks.</p><p>If a filter or handler still crashes, Logger will remove the filter or handler
+in question from the configuration, and print a short error message to the
+terminal. A debug event containing the crash reason and other details is also
+issued.</p><p>See section <a href="logger_chapter.html#log_message">Log Message</a> for more information
+about report callbacks and valid forms of log messages.</p><h2 id="example-add-a-handler-to-log-info-events-to-file" class="section-heading">
+  <a href="#example-add-a-handler-to-log-info-events-to-file" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Example: Add a handler to log info events to file</span>
+</h2>
+<p>When starting an Erlang node, the default behaviour is that all log events on
+level <code class="inline">notice</code> or more severe, are logged to the terminal via the default
+handler. To also log info events, you can either change the primary log level to
+<code class="inline">info</code>:</p><pre><code class="text">1&gt; logger:set_primary_config(level, info).
+ok</code></pre><p>or set the level for one or a few modules only:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">2&gt; </span><span class="nc">logger</span><span class="p">:</span><span class="nf">set_module_level</span><span class="p" data-group-id="1894387676-1">(</span><span class="ss">mymodule</span><span class="p">,</span><span class="w"> </span><span class="ss">info</span><span class="p" data-group-id="1894387676-1">)</span><span class="p">.</span><span class="w">
+</span><span class="ss">ok</span></code></pre><p>This allows info events to pass through to the default handler, and be printed
+to the terminal as well. If there are many info events, it can be useful to
+print these to a file instead.</p><p>First, set the log level of the default handler to <code class="inline">notice</code>, preventing it from
+printing info events to the terminal:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">3&gt; </span><span class="nc">logger</span><span class="p">:</span><span class="nf">set_handler_config</span><span class="p" data-group-id="6830874442-1">(</span><span class="ss">default</span><span class="p">,</span><span class="w"> </span><span class="ss">level</span><span class="p">,</span><span class="w"> </span><span class="ss">notice</span><span class="p" data-group-id="6830874442-1">)</span><span class="p">.</span><span class="w">
+</span><span class="ss">ok</span></code></pre><p>Then, add a new handler which prints to file. You can use the handler module
+<a href="logger_std_h.html"><code class="inline">logger_std_h</code></a>, and configure it to log to file:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">4&gt; </span><span class="n">Config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="4143706581-1">#{</span><span class="ss">config</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p" data-group-id="4143706581-2">#{</span><span class="ss">file</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="s">&quot;./info.log&quot;</span><span class="p" data-group-id="4143706581-2">}</span><span class="p">,</span><span class="w"> </span><span class="ss">level</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">info</span><span class="p" data-group-id="4143706581-1">}</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="4143706581-3">#{</span><span class="ss">config</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p" data-group-id="4143706581-4">#{</span><span class="ss">file</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="s">&quot;./info.log&quot;</span><span class="p" data-group-id="4143706581-4">}</span><span class="p">,</span><span class="ss">level</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">info</span><span class="p" data-group-id="4143706581-3">}</span><span class="gp unselectable">
+5&gt; </span><span class="nc">logger</span><span class="p">:</span><span class="nf">add_handler</span><span class="p" data-group-id="4143706581-5">(</span><span class="ss">myhandler</span><span class="p">,</span><span class="w"> </span><span class="ss">logger_std_h</span><span class="p">,</span><span class="w"> </span><span class="n">Config</span><span class="p" data-group-id="4143706581-5">)</span><span class="p">.</span><span class="w">
+</span><span class="ss">ok</span></code></pre><p>Since <code class="inline">filter_default</code> defaults to <code class="inline">log</code>, this handler now receives all log
+events. If you want info events only in the file, you must add a filter to stop
+all non-info events. The built-in filter <a href="logger_filters.html#level/2"><code class="inline">logger_filters:level/2</code></a> can do this:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">6&gt; </span><span class="nc">logger</span><span class="p">:</span><span class="nf">add_handler_filter</span><span class="p" data-group-id="3641548597-1">(</span><span class="ss">myhandler</span><span class="p">,</span><span class="w"> </span><span class="ss">stop_non_info</span><span class="p">,</span><span class="w">
+                             </span><span class="p" data-group-id="3641548597-2">{</span><span class="k">fun</span><span class="w"> </span><span class="nc">logger_filters</span><span class="p">:</span><span class="ss">level</span><span class="p">/</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="3641548597-3">{</span><span class="ss">stop</span><span class="p">,</span><span class="w"> </span><span class="ss">neq</span><span class="p">,</span><span class="w"> </span><span class="ss">info</span><span class="p" data-group-id="3641548597-3">}</span><span class="p" data-group-id="3641548597-2">}</span><span class="p" data-group-id="3641548597-1">)</span><span class="p">.</span><span class="w">
+</span><span class="ss">ok</span></code></pre><p>See section <a href="logger_chapter.html#filters">Filters</a> for more information about the
+filters and the <code class="inline">filter_default</code> configuration parameter.</p><h2 id="example-implement-a-handler" class="section-heading">
+  <a href="#example-implement-a-handler" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Example: Implement a handler</span>
+</h2>
+<p><a href="logger_handler.html"><code class="inline">logger_handler</code></a> describes the callback functions that can be implemented for
+a Logger handler.</p><p>A handler callback module must export:</p><ul><li><code class="inline">log(Log, Config)</code></li></ul><p>It can optionally also export some, or all, of the following:</p><ul><li><code class="inline">adding_handler(Config)</code></li><li><code class="inline">removing_handler(Config)</code></li><li><code class="inline">changing_config(SetOrUpdate, OldConfig, NewConfig)</code></li><li><code class="inline">filter_config(Config)</code></li></ul><p>When a handler is added, by for example a call to
+<a href="logger.html#add_handler/3"><code class="inline">logger:add_handler(Id, HModule, Config)</code></a>, Logger
+first calls <code class="inline">HModule:adding_handler(Config)</code>. If this function returns
+<code class="inline">{ok,Config1}</code>, Logger writes <code class="inline">Config1</code> to the configuration database, and the
+<a href="logger.html#add_handler/3"><code class="inline">logger:add_handler/3</code></a> call returns. After this, the handler is installed and
+must be ready to receive log events as calls to <code class="inline">HModule:log/2</code>.</p><p>A handler can be removed by calling
+<a href="logger.html#remove_handler/1"><code class="inline">logger:remove_handler(Id)</code></a>. Logger calls
+<code class="inline">HModule:removing_handler(Config)</code>, and removes the handler's configuration from
+the configuration database.</p><p>When <a href="logger.html#set_handler_config/2"><code class="inline">logger:set_handler_config/2,3</code></a> or
+<a href="logger.html#update_handler_config/2"><code class="inline">logger:update_handler_config/2,3</code></a> is
+called, Logger calls
+<code class="inline">HModule:changing_config(SetOrUpdate, OldConfig, NewConfig)</code>. If this function
+returns <code class="inline">{ok,NewConfig1}</code>, Logger writes <code class="inline">NewConfig1</code> to the configuration
+database.</p><p>When <a href="logger.html#get_config/0"><code class="inline">logger:get_config/0</code></a> or
+<a href="logger.html#get_handler_config/0"><code class="inline">logger:get_handler_config/0,1</code></a> is called,
+Logger calls <code class="inline">HModule:filter_config(Config)</code>. This function must return the
+handler configuration where internal data is removed.</p><p>A simple handler that prints to the terminal can be implemented as follows:</p><pre><code class="makeup erlang" translate="no"><span class="p">-</span><span class="na">module</span><span class="p" data-group-id="5228781701-1">(</span><span class="ss">myhandler1</span><span class="p" data-group-id="5228781701-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="5228781701-2">(</span><span class="p" data-group-id="5228781701-3">[</span><span class="ss">log</span><span class="p">/</span><span class="mi">2</span><span class="p" data-group-id="5228781701-3">]</span><span class="p" data-group-id="5228781701-2">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">log</span><span class="p" data-group-id="5228781701-4">(</span><span class="n">LogEvent</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="5228781701-5">#{</span><span class="ss">formatter</span><span class="w"> </span><span class="p">:=</span><span class="w"> </span><span class="p" data-group-id="5228781701-6">{</span><span class="n">FModule</span><span class="p">,</span><span class="w"> </span><span class="n">FConfig</span><span class="p" data-group-id="5228781701-6">}</span><span class="p" data-group-id="5228781701-5">}</span><span class="p" data-group-id="5228781701-4">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">put_chars</span><span class="p" data-group-id="5228781701-7">(</span><span class="n">FModule</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="5228781701-8">(</span><span class="n">LogEvent</span><span class="p">,</span><span class="w"> </span><span class="n">FConfig</span><span class="p" data-group-id="5228781701-8">)</span><span class="p" data-group-id="5228781701-7">)</span><span class="p">.</span></code></pre><p>Notice that the above handler does not have any overload protection, and all log
+events are printed directly from the client process.</p><p>For information and examples of overload protection, please refer to section
+<a href="logger_chapter.html#overload_protection">Protecting the Handler from Overload</a>,
+and the implementation of <a href="logger_std_h.html"><code class="inline">logger_std_h</code></a> and
+<a href="logger_disk_log_h.html"><code class="inline">logger_disk_log_h</code> </a>.</p><p>The following is a simpler example of a handler which logs to a file through one
+single process:</p><pre><code class="makeup erlang" translate="no"><span class="p">-</span><span class="na">module</span><span class="p" data-group-id="5046894188-1">(</span><span class="ss">myhandler2</span><span class="p" data-group-id="5046894188-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="5046894188-2">(</span><span class="p" data-group-id="5046894188-3">[</span><span class="ss">adding_handler</span><span class="p">/</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="ss">removing_handler</span><span class="p">/</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="ss">log</span><span class="p">/</span><span class="mi">2</span><span class="p" data-group-id="5046894188-3">]</span><span class="p" data-group-id="5046894188-2">)</span><span class="p">.</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="5046894188-4">(</span><span class="p" data-group-id="5046894188-5">[</span><span class="ss">init</span><span class="p">/</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="ss">handle_call</span><span class="p">/</span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="ss">handle_cast</span><span class="p">/</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="ss">terminate</span><span class="p">/</span><span class="mi">2</span><span class="p" data-group-id="5046894188-5">]</span><span class="p" data-group-id="5046894188-4">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">adding_handler</span><span class="p" data-group-id="5046894188-6">(</span><span class="n">Config</span><span class="p" data-group-id="5046894188-6">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">MyConfig</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">maps</span><span class="p">:</span><span class="nf">get</span><span class="p" data-group-id="5046894188-7">(</span><span class="ss">config</span><span class="p">,</span><span class="n">Config</span><span class="p">,</span><span class="p" data-group-id="5046894188-8">#{</span><span class="ss">file</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="s">&quot;myhandler2.log&quot;</span><span class="p" data-group-id="5046894188-8">}</span><span class="p" data-group-id="5046894188-7">)</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="5046894188-9">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">Pid</span><span class="p" data-group-id="5046894188-9">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">gen_server</span><span class="p">:</span><span class="nf">start</span><span class="p" data-group-id="5046894188-10">(</span><span class="o">?</span><span class="n">MODULE</span><span class="p">,</span><span class="w"> </span><span class="n">MyConfig</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="5046894188-11">[</span><span class="p" data-group-id="5046894188-11">]</span><span class="p" data-group-id="5046894188-10">)</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="5046894188-12">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">Config</span><span class="p" data-group-id="5046894188-13">#{</span><span class="ss">config</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="n">MyConfig</span><span class="p" data-group-id="5046894188-14">#{</span><span class="ss">pid</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="n">Pid</span><span class="p" data-group-id="5046894188-14">}</span><span class="p" data-group-id="5046894188-13">}</span><span class="p" data-group-id="5046894188-12">}</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">removing_handler</span><span class="p" data-group-id="5046894188-15">(</span><span class="p" data-group-id="5046894188-16">#{</span><span class="ss">config</span><span class="w"> </span><span class="p">:=</span><span class="w"> </span><span class="p" data-group-id="5046894188-17">#{</span><span class="ss">pid</span><span class="w"> </span><span class="p">:=</span><span class="w"> </span><span class="n">Pid</span><span class="p" data-group-id="5046894188-17">}</span><span class="p" data-group-id="5046894188-16">}</span><span class="p" data-group-id="5046894188-15">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">gen_server</span><span class="p">:</span><span class="nf">stop</span><span class="p" data-group-id="5046894188-18">(</span><span class="n">Pid</span><span class="p" data-group-id="5046894188-18">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">log</span><span class="p" data-group-id="5046894188-19">(</span><span class="n">LogEvent</span><span class="p">,</span><span class="p" data-group-id="5046894188-20">#{</span><span class="ss">config</span><span class="w"> </span><span class="p">:=</span><span class="w"> </span><span class="p" data-group-id="5046894188-21">#{</span><span class="ss">pid</span><span class="w"> </span><span class="p">:=</span><span class="w"> </span><span class="n">Pid</span><span class="p" data-group-id="5046894188-21">}</span><span class="p" data-group-id="5046894188-20">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Config</span><span class="p" data-group-id="5046894188-19">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">gen_server</span><span class="p">:</span><span class="nf">cast</span><span class="p" data-group-id="5046894188-22">(</span><span class="n">Pid</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="5046894188-23">{</span><span class="ss">log</span><span class="p">,</span><span class="w"> </span><span class="n">LogEvent</span><span class="p">,</span><span class="w"> </span><span class="n">Config</span><span class="p" data-group-id="5046894188-23">}</span><span class="p" data-group-id="5046894188-22">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">init</span><span class="p" data-group-id="5046894188-24">(</span><span class="p" data-group-id="5046894188-25">#{</span><span class="ss">file</span><span class="w"> </span><span class="p">:=</span><span class="w"> </span><span class="n">File</span><span class="p" data-group-id="5046894188-25">}</span><span class="p" data-group-id="5046894188-24">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="5046894188-26">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">Fd</span><span class="p" data-group-id="5046894188-26">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">file</span><span class="p">:</span><span class="nf">open</span><span class="p" data-group-id="5046894188-27">(</span><span class="n">File</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="5046894188-28">[</span><span class="ss">append</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="5046894188-29">{</span><span class="ss">encoding</span><span class="p">,</span><span class="w"> </span><span class="ss">utf8</span><span class="p" data-group-id="5046894188-29">}</span><span class="p" data-group-id="5046894188-28">]</span><span class="p" data-group-id="5046894188-27">)</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="5046894188-30">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="5046894188-31">#{</span><span class="ss">file</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="n">File</span><span class="p">,</span><span class="w"> </span><span class="ss">fd</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="n">Fd</span><span class="p" data-group-id="5046894188-31">}</span><span class="p" data-group-id="5046894188-30">}</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">handle_call</span><span class="p" data-group-id="5046894188-32">(</span><span class="p">_</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="5046894188-32">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="5046894188-33">{</span><span class="ss">reply</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="5046894188-34">{</span><span class="ss">error</span><span class="p">,</span><span class="w"> </span><span class="ss">bad_request</span><span class="p" data-group-id="5046894188-34">}</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="5046894188-33">}</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">handle_cast</span><span class="p" data-group-id="5046894188-35">(</span><span class="p" data-group-id="5046894188-36">{</span><span class="ss">log</span><span class="p">,</span><span class="w"> </span><span class="n">LogEvent</span><span class="p">,</span><span class="w"> </span><span class="n">Config</span><span class="p" data-group-id="5046894188-36">}</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="5046894188-37">#{</span><span class="ss">fd</span><span class="w"> </span><span class="p">:=</span><span class="w"> </span><span class="n">Fd</span><span class="p" data-group-id="5046894188-37">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="5046894188-35">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">do_log</span><span class="p" data-group-id="5046894188-38">(</span><span class="n">Fd</span><span class="p">,</span><span class="w"> </span><span class="n">LogEvent</span><span class="p">,</span><span class="w"> </span><span class="n">Config</span><span class="p" data-group-id="5046894188-38">)</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="5046894188-39">{</span><span class="ss">noreply</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="5046894188-39">}</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">terminate</span><span class="p" data-group-id="5046894188-40">(</span><span class="p">_</span><span class="n">Reason</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="5046894188-41">#{</span><span class="ss">fd</span><span class="w"> </span><span class="p">:=</span><span class="w"> </span><span class="n">Fd</span><span class="p" data-group-id="5046894188-41">}</span><span class="p" data-group-id="5046894188-40">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p">_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">file</span><span class="p">:</span><span class="nf">close</span><span class="p" data-group-id="5046894188-42">(</span><span class="n">Fd</span><span class="p" data-group-id="5046894188-42">)</span><span class="p">,</span><span class="w">
+    </span><span class="ss">ok</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">do_log</span><span class="p" data-group-id="5046894188-43">(</span><span class="n">Fd</span><span class="p">,</span><span class="w"> </span><span class="n">LogEvent</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="5046894188-44">#{</span><span class="ss">formatter</span><span class="w"> </span><span class="p">:=</span><span class="w"> </span><span class="p" data-group-id="5046894188-45">{</span><span class="n">FModule</span><span class="p">,</span><span class="w"> </span><span class="n">FConfig</span><span class="p" data-group-id="5046894188-45">}</span><span class="p" data-group-id="5046894188-44">}</span><span class="p" data-group-id="5046894188-43">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">String</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">FModule</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="5046894188-46">(</span><span class="n">LogEvent</span><span class="p">,</span><span class="w"> </span><span class="n">FConfig</span><span class="p" data-group-id="5046894188-46">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">put_chars</span><span class="p" data-group-id="5046894188-47">(</span><span class="n">Fd</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="p" data-group-id="5046894188-47">)</span><span class="p">.</span></code></pre><p><a href="" id="overload_protection"></a></p><h2 id="protecting-the-handler-from-overload" class="section-heading">
+  <a href="#protecting-the-handler-from-overload" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Protecting the Handler from Overload</span>
+</h2>
+<p>The default handlers, <a href="logger_std_h.html"><code class="inline">logger_std_h</code></a> and <a href="logger_disk_log_h.html"><code class="inline">logger_disk_log_h</code></a>, feature an
+overload protection mechanism, which makes it possible for the handlers to
+survive, and stay responsive, during periods of high load (when huge numbers of
+incoming log requests must be handled). The mechanism works as follows:</p><h3 id="message-queue-length" class="section-heading">
+  <a href="#message-queue-length" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Message Queue Length</span>
+</h3>
+<p>The handler process keeps track of the length of its message queue and takes
+some form of action when the current length exceeds a configurable threshold.
+The purpose is to keep the handler in, or to as quickly as possible get the
+handler into, a state where it can keep up with the pace of incoming log events.
+The memory use of the handler must never grow larger and larger, since that will
+eventually cause the handler to crash. These three thresholds, with associated
+actions, exist:</p><ul><li><p><strong><code class="inline">sync_mode_qlen</code></strong> - As long as the length of the message queue is lower
+than this value, all log events are handled asynchronously. This means that
+the client process sending the log event, by calling a log function in the
+<a href="logger_chapter.html#logger_api">Logger API</a>, does not wait for a response from
+the handler but continues executing immediately after the event is sent. It is
+not affected by the time it takes the handler to print the event to the log
+device. If the message queue grows larger than this value, the handler starts
+handling log events synchronously instead, meaning that the client process
+sending the event must wait for a response. When the handler reduces the
+message queue to a level below the <code class="inline">sync_mode_qlen</code> threshold, asynchronous
+operation is resumed. The switch from asynchronous to synchronous mode can
+slow down the logging tempo of one, or a few, busy senders, but cannot protect
+the handler sufficiently in a situation of many busy concurrent senders.</p><p>Defaults to <code class="inline">10</code> messages.</p></li><li><p><strong><code class="inline">drop_mode_qlen</code></strong> - When the message queue grows larger than this
+threshold, the handler switches to a mode in which it drops all new events
+that senders want to log. Dropping an event in this mode means that the call
+to the log function never results in a message being sent to the handler, but
+the function returns without taking any action. The handler keeps logging the
+events that are already in its message queue, and when the length of the
+message queue is reduced to a level below the threshold, synchronous or
+asynchronous mode is resumed. Notice that when the handler activates or
+deactivates drop mode, information about it is printed in the log.</p><p>Defaults to <code class="inline">200</code> messages.</p></li><li><p><strong><code class="inline">flush_qlen</code></strong> - If the length of the message queue grows larger than this
+threshold, a flush (delete) operation takes place. To flush events, the
+handler discards the messages in the message queue by receiving them in a loop
+without logging. Client processes waiting for a response from a synchronous
+log request receive a reply from the handler indicating that the request is
+dropped. The handler process increases its priority during the flush loop to
+make sure that no new events are received during the operation. Notice that
+after the flush operation is performed, the handler prints information in the
+log about how many events have been deleted.</p><p>Defaults to <code class="inline">1000</code> messages.</p></li></ul><p>For the overload protection algorithm to work properly, it is required that:</p><p><code class="inline">sync_mode_qlen =&lt; drop_mode_qlen =&lt; flush_qlen</code></p><p>and that:</p><p><code class="inline">drop_mode_qlen &gt; 1</code></p><p>To disable certain modes, do the following:</p><ul><li>If <code class="inline">sync_mode_qlen</code> is set to <code class="inline">0</code>, all log events are handled synchronously.
+That is, asynchronous logging is disabled.</li><li>If <code class="inline">sync_mode_qlen</code> is set to the same value as <code class="inline">drop_mode_qlen</code>, synchronous
+mode is disabled. That is, the handler always runs in asynchronous mode,
+unless dropping or flushing is invoked.</li><li>If <code class="inline">drop_mode_qlen</code> is set to the same value as <code class="inline">flush_qlen</code>, drop mode is
+disabled and can never occur.</li></ul><p>During high load scenarios, the length of the handler message queue rarely grows
+in a linear and predictable way. Instead, whenever the handler process is
+scheduled in, it can have an almost arbitrary number of messages waiting in the
+message queue. It is for this reason that the overload protection mechanism is
+focused on acting quickly, and quite drastically, such as immediately dropping
+or flushing messages, when a large queue length is detected.</p><p>The values of the previously listed thresholds can be specified by the user.
+This way, a handler can be configured to, for example, not drop or flush
+messages unless the message queue length of the handler process grows extremely
+large. Notice that large amounts of memory can be required for the node under
+such circumstances. Another example of user configuration is when, for
+performance reasons, the client processes must never be blocked by synchronous
+log requests. It is possible, perhaps, that dropping or flushing events is still
+acceptable, since it does not affect the performance of the client processes
+sending the log events.</p><p>A configuration example:</p><pre><code class="makeup erlang" translate="no"><span class="nc">logger</span><span class="p">:</span><span class="nf">add_handler</span><span class="p" data-group-id="1158373461-1">(</span><span class="ss">my_standard_h</span><span class="p">,</span><span class="w"> </span><span class="ss">logger_std_h</span><span class="p">,</span><span class="w">
+                   </span><span class="p" data-group-id="1158373461-2">#{</span><span class="ss">config</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p" data-group-id="1158373461-3">#{</span><span class="ss">file</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="s">&quot;./system_info.log&quot;</span><span class="p">,</span><span class="w">
+                                 </span><span class="ss">sync_mode_qlen</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span><span class="w">
+                                 </span><span class="ss">drop_mode_qlen</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span><span class="w">
+                                 </span><span class="ss">flush_qlen</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">2000</span><span class="p" data-group-id="1158373461-3">}</span><span class="p" data-group-id="1158373461-2">}</span><span class="p" data-group-id="1158373461-1">)</span><span class="p">.</span></code></pre><h3 id="controlling-bursts-of-log-requests" class="section-heading">
+  <a href="#controlling-bursts-of-log-requests" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Controlling Bursts of Log Requests</span>
+</h3>
+<p>Large bursts of log events - many events received by the handler under a short
+period of time - can potentially cause problems, such as:</p><ul><li>Log files grow very large, very quickly.</li><li>Circular logs wrap too quickly so that important data is overwritten.</li><li>Write buffers grow large, which slows down file sync operations.</li></ul><p>For this reason, both built-in handlers offer the possibility to specify the
+maximum number of events to be handled within a certain time frame. With this
+burst control feature enabled, the handler can avoid choking the log with
+massive amounts of printouts. The configuration parameters are:</p><ul><li><p><strong><code class="inline">burst_limit_enable</code></strong> - Value <code class="inline">true</code> enables burst control and <code class="inline">false</code>
+disables it.</p><p>Defaults to <code class="inline">true</code>.</p></li><li><p><strong><code class="inline">burst_limit_max_count</code></strong> - This is the maximum number of events to handle
+within a <code class="inline">burst_limit_window_time</code> time frame. After the limit is reached,
+successive events are dropped until the end of the time frame.</p><p>Defaults to <code class="inline">500</code> events.</p></li><li><p><strong><code class="inline">burst_limit_window_time</code></strong> - See the previous description of
+<code class="inline">burst_limit_max_count</code>.</p><p>Defaults to <code class="inline">1000</code> milliseconds.</p></li></ul><p>A configuration example:</p><pre><code class="makeup erlang" translate="no"><span class="nc">logger</span><span class="p">:</span><span class="nf">add_handler</span><span class="p" data-group-id="0158500017-1">(</span><span class="ss">my_disk_log_h</span><span class="p">,</span><span class="w"> </span><span class="ss">logger_disk_log_h</span><span class="p">,</span><span class="w">
+                   </span><span class="p" data-group-id="0158500017-2">#{</span><span class="ss">config</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p" data-group-id="0158500017-3">#{</span><span class="ss">file</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="s">&quot;./my_disk_log&quot;</span><span class="p">,</span><span class="w">
+                                 </span><span class="ss">burst_limit_enable</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">true</span><span class="p">,</span><span class="w">
+                                 </span><span class="ss">burst_limit_max_count</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">20</span><span class="p">,</span><span class="w">
+                                 </span><span class="ss">burst_limit_window_time</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">500</span><span class="p" data-group-id="0158500017-3">}</span><span class="p" data-group-id="0158500017-2">}</span><span class="p" data-group-id="0158500017-1">)</span><span class="p">.</span></code></pre><h3 id="terminating-an-overloaded-handler" class="section-heading">
+  <a href="#terminating-an-overloaded-handler" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Terminating an Overloaded Handler</span>
+</h3>
+<p>It is possible that a handler, even if it can successfully manage peaks of high
+load without crashing, can build up a large message queue, or use a large amount
+of memory. The overload protection mechanism includes an automatic termination
+and restart feature for the purpose of guaranteeing that a handler does not grow
+out of bounds. The feature is configured with the following parameters:</p><ul><li><p><strong><code class="inline">overload_kill_enable</code></strong> - Value <code class="inline">true</code> enables the feature and <code class="inline">false</code>
+disables it.</p><p>Defaults to <code class="inline">false</code>.</p></li><li><p><strong><code class="inline">overload_kill_qlen</code></strong> - This is the maximum allowed queue length. If the
+message queue grows larger than this, the handler process is terminated.</p><p>Defaults to <code class="inline">20000</code> messages.</p></li><li><p><strong><code class="inline">overload_kill_mem_size</code></strong> - This is the maximum memory size that the
+handler process is allowed to use. If the handler grows larger than this, the
+process is terminated.</p><p>Defaults to <code class="inline">3000000</code> bytes.</p></li><li><p><strong><code class="inline">overload_kill_restart_after</code></strong> - If the handler is terminated, it restarts
+automatically after a delay specified in milliseconds. The value <code class="inline">infinity</code>
+prevents restarts.</p><p>Defaults to <code class="inline">5000</code> milliseconds.</p></li></ul><p>If the handler process is terminated because of overload, it prints information
+about it in the log. It also prints information about when a restart has taken
+place, and the handler is back in action.</p><blockquote><h4 class="info">Note</h4><p>The sizes of the log events affect the memory needs of the handler. For
+information about how to limit the size of log events, see the
+<a href="logger_formatter.html"><code class="inline">logger_formatter</code></a> manual page.</p></blockquote><p><a href="" id="proxy"></a></p><h2 id="logger-proxy" class="section-heading">
+  <a href="#logger-proxy" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Logger Proxy</span>
+</h2>
+<p>The Logger proxy is an Erlang process which is part of the Kernel application's
+supervision tree. During startup, the proxy process registers itself as the
+<code class="inline">system_logger</code>, meaning that log events produced by the emulator are sent to
+this process.</p><p>When a log event is issued on a process which has its group leader on a remote
+node, Logger automatically forwards the log event to the group leader's node. To
+achieve this, it first sends the log event as an Erlang message from the
+original client process to the proxy on the local node, and the proxy in turn
+forwards the event to the proxy on the remote node.</p><p>When receiving a log event, either from the emulator or from a remote node, the
+proxy calls the Logger API to log the event.</p><p>The proxy process is overload protected in the same way as described in section
+<a href="logger_chapter.html#overload_protection">Protecting the Handler from Overload</a>,
+but with the following default values:</p><pre><code class="makeup erlang" translate="no"><span class="w">    </span><span class="p" data-group-id="7860272591-1">#{</span><span class="ss">sync_mode_qlen</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">500</span><span class="p">,</span><span class="w">
+      </span><span class="ss">drop_mode_qlen</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span><span class="w">
+      </span><span class="ss">flush_qlen</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">5000</span><span class="p">,</span><span class="w">
+      </span><span class="ss">burst_limit_enable</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">false</span><span class="p">,</span><span class="w">
+      </span><span class="ss">overload_kill_enable</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">false</span><span class="p" data-group-id="7860272591-1">}</span></code></pre><p>For log events from the emulator, synchronous message passing mode is not
+applicable, since all messages are passed asynchronously by the emulator. Drop
+mode is achieved by setting the <code class="inline">system_logger</code> to <code class="inline">undefined</code>, forcing the
+emulator to drop events until it is set back to the proxy pid again.</p><p>The proxy uses <a href="../../apps/erts/erlang.html#send_nosuspend/2"><code class="inline">erlang:send_nosuspend/2</code></a> when sending log events to a remote
+node. If the message could not be sent without suspending the sender, it is
+dropped. This is to avoid blocking the proxy process.</p><h2 id="see-also" class="section-heading">
+  <a href="#see-also" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">See Also</span>
+</h2>
+<p><a href="disk_log.html"><code class="inline">disk_log</code></a>, <a href="../../apps/erts/erlang.html"><code class="inline">erlang</code></a>, <a href="error_logger.html"><code class="inline">error_logger</code></a>, <a href="logger.html"><code class="inline">logger</code></a>, <a href="logger_disk_log_h.html"><code class="inline">logger_disk_log_h</code></a>,
+<a href="logger_filters.html"><code class="inline">logger_filters</code></a>, <a href="logger_formatter.html"><code class="inline">logger_formatter</code></a>, <a href="logger_std_h.html"><code class="inline">logger_std_h</code></a>,
+<a href="../../apps/sasl/sasl_app.html"><code class="inline">sasl(6)</code></a></p>
+<div class="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="socket_usage.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Socket Usage
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="logger_cookbook.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+Logging Cookbook
+        </span>
+      </a>
+
+  </div>
+</div>
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+              <a href="kernel.epub" title="ePub version">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

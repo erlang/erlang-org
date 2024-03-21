@@ -1,0 +1,1890 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="tools v4.0">
+
+
+    <title>tprof — tools v4.0</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-63A1715E.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="modules" class="page-module">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="tools" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+tools
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v4.0
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of tools</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/tprof.erl#L23" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+  <span translate="no">tprof</span> 
+  <small class="app-vsn" translate="no">(tools v4.0)</small>
+
+</h1>
+
+
+  <section id="moduledoc">
+<p>Process Tracing Profiling Tool</p><p><code class="inline">tprof</code> provides convenience helpers for Erlang process profiling. Underlying
+mechanism is the Erlang trace BIFs.</p><blockquote><h4 class="warning">Warning</h4><p>This module aims to replace <code class="inline">eprof</code> and <code class="inline">cprof</code> into a unified API for
+measuring call count, time, and allocation. It is experimental in Erlang/OTP
+27.0.</p></blockquote><p>It is possible to analyze the number of calls, the time spent by function, and
+heap allocations by function. Profiling can be done ad-hoc or run in a
+server-aided mode for deeper introspection of the code running in production.</p><blockquote><h4 class="warning">Warning</h4><p>Avoid hot code reload for modules that are participating in the tracing.
+Reloading a module turns tracing off, discarding accumulated statistics.
+<code class="inline">tprof</code> may not report correct amounts when code reload happened during
+profiling session.</p></blockquote><p>The <code class="inline">type</code> option controls which type of profiling to perform. You can choose
+between <code class="inline">call_count</code>, <code class="inline">call_time</code>, and <code class="inline">call_memory</code>. The default is
+<code class="inline">call_count</code>, it has the smallest footprint on the system but it does not
+support per-process profiling. For this reason, all of the examples below use
+<code class="inline">call_memory</code>, which measures heap allocation, and provide a more complex
+feature set to demonstrate.</p><p>Heap allocations happen for all Erlang terms that do not fit a single machine
+word. For example, a function returning tuple of 2 elements needs to allocate
+this tuple on the process heap. Actual consumption is more than 2 machine words,
+because Erlang runtime needs to store tuple size and other internal information.</p><blockquote><h4 class="info">Note</h4><p>When profiling is enabled, expect a slowdown in the program execution.</p><p>For profiling convenience, measurements are accumulated for functions that are
+not enabled in trace pattern. Consider this call stack example:</p><pre><code class="text">top_traced_function(...)
+not_traced_function()
+bottom_traced_function()</code></pre><p>Allocations that happened within <code class="inline">not_traced_function</code> will be accounted into
+<code class="inline">top_traced_function</code>. However allocations happened within
+<code class="inline">bottom_traced_function</code> are not included in the <code class="inline">top_traced_function</code>. If you
+want to account only own allocations, you need to trace all functions.</p></blockquote><h2 id="module-ad-hoc-profiling" class="section-heading">
+  <a href="#module-ad-hoc-profiling" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Ad-hoc profiling</span>
+</h2>
+<p>Basic profiling providing accumulated memory allocation data. You can choose to
+print per-process statistics, total statistics, or omit printing and extract
+machine-readable data that you can later sort/print:</p><pre><code class="text">1&gt; tprof:profile(lists, seq, [1, 16], #{type =&gt; call_memory}).
+
+****** Process &lt;0.179.0&gt;    -- 100.00 % of total allocations ***
+FUNCTION          CALLS  WORDS  PER CALL  [     %]
+lists:seq_loop/3      5     32         6  [100.00]
+32            [ 100.0]
+ok</code></pre><p>By default tracing is enabled for all functions of all modules. When functions
+are created in the interactive shell, parts of shell code are also traced. It is
+however possible to limit the trace to specific functions or modules:</p><pre><code class="text">1&gt; tprof:profile(fun() -&gt; lists:seq(1, 16) end, #{type =&gt; call_memory}).
+
+****** Process &lt;0.224.0&gt;    -- 100.00 % of total allocations ***
+FUNCTION                   CALLS  WORDS  PER CALL  [    %]
+erl_eval:match_list/6          1      3         3  [ 3.19]
+erl_eval:do_apply/7            1      3         3  [ 3.19]
+lists:reverse/1                1      4         4  [ 4.26]
+erl_eval:add_bindings/2        1      5         5  [ 5.32]
+erl_eval:expr_list/7           3      7         2  [ 7.45]
+erl_eval:ret_expr/3            4     16         4  [17.02]
+erl_eval:merge_bindings/4      3     24         8  [25.53]
+lists:seq_loop/3               5     32         6  [34.04]
+
+2&gt; tprof:profile(fun() -&gt; lists:seq(1, 16) end,
+                 #{type =&gt; call_memory, pattern =&gt; [{lists, seq_loop, '_'}]}).
+****** Process &lt;0.247.0&gt;    -- 100.00 % of total allocations ***
+FUNCTION          CALLS  WORDS  PER CALL  [     %]
+lists:seq_loop/3      5     32         6  [100.00]</code></pre><p>Ad-hoc profiling results may be printed in a few different ways. Following
+examples are using <code class="inline">test</code> module defined like this:</p><pre><code class="makeup erlang" translate="no"><span class="p">-</span><span class="na">module</span><span class="p" data-group-id="9402675092-1">(</span><span class="ss">test</span><span class="p" data-group-id="9402675092-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="9402675092-2">(</span><span class="p" data-group-id="9402675092-3">[</span><span class="ss">test_spawn</span><span class="p">/</span><span class="mi">0</span><span class="p" data-group-id="9402675092-3">]</span><span class="p" data-group-id="9402675092-2">)</span><span class="p">.</span><span class="w">
+</span><span class="nf">test_spawn</span><span class="p" data-group-id="9402675092-4">(</span><span class="p" data-group-id="9402675092-4">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="9402675092-5">{</span><span class="n">Pid</span><span class="p">,</span><span class="w"> </span><span class="n">MRef</span><span class="p" data-group-id="9402675092-5">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">spawn_monitor</span><span class="p" data-group-id="9402675092-6">(</span><span class="nf">fun</span><span class="w"> </span><span class="p" data-group-id="9402675092-7">(</span><span class="p" data-group-id="9402675092-7">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">lists</span><span class="p">:</span><span class="nf">seq</span><span class="p" data-group-id="9402675092-8">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">32</span><span class="p" data-group-id="9402675092-8">)</span><span class="w"> </span><span class="k">end</span><span class="p" data-group-id="9402675092-6">)</span><span class="p">,</span><span class="w">
+    </span><span class="k">receive</span><span class="w">
+        </span><span class="p" data-group-id="9402675092-9">{</span><span class="ss">&#39;DOWN&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">MRef</span><span class="p">,</span><span class="w"> </span><span class="ss">process</span><span class="p">,</span><span class="w"> </span><span class="n">Pid</span><span class="p">,</span><span class="w"> </span><span class="ss">normal</span><span class="p" data-group-id="9402675092-9">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="ss">done</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span></code></pre><p>Default format prints per-process statistics.</p><pre><code class="text">2&gt; tprof:profile(test, test_spawn, [], #{type =&gt; call_memory}).
+
+****** Process &lt;0.176.0&gt;    -- 23.66 % of total allocations ***
+FUNCTION                CALLS  WORDS  PER CALL  [    %]
+erlang:spawn_monitor/1      1      2         2  [ 9.09]
+erlang:spawn_opt/4          1      6         6  [27.27]
+test:test_spawn/0           1     14        14  [63.64]
+                                    22            [100.0]
+
+****** Process &lt;0.177.0&gt;    -- 76.34 % of total allocations ***
+FUNCTION           CALLS  WORDS  PER CALL  [    %]
+erlang:apply/2         1      7         7  [ 9.86]
+lists:seq_loop/3       9     64         7  [90.14]
+                             71            [100.0]</code></pre><p>This example prints the combined memory allocation of all processes, sorted by
+total allocated words in the descending order</p><pre><code class="text">5&gt; tprof:profile(test, test_spawn, [],
+                 #{type =&gt; call_memory, report =&gt; {total, {measurement, descending}}}).
+
+FUNCTION                CALLS  WORDS  PER CALL  [    %]
+lists:seq_loop/3            9     64         7  [68.82]
+test:test_spawn/0           1     14        14  [15.05]
+erlang:apply/2              1      7         7  [ 7.53]
+erlang:spawn_opt/4          1      6         6  [ 6.45]
+erlang:spawn_monitor/1      1      2         2  [ 2.15]
+                                  93            [100.0]</code></pre><p>You can also collect the profile for further inspection.</p><pre><code class="text">6&gt; {done, ProfileData} = tprof:profile(fun test:test_spawn/0,
+                                       #{type =&gt; call_memory, report =&gt; return}).
+&lt;...&gt;
+7&gt; tprof:format(tprof:inspect(ProfileData, process, {percent, descending})).
+
+****** Process &lt;0.223.0&gt;    -- 23.66 % of total allocations ***
+FUNCTION                CALLS  WORDS  PER CALL  [    %]
+test:test_spawn/0           1     14        14  [63.64]
+erlang:spawn_opt/4          1      6         6  [27.27]
+erlang:spawn_monitor/1      1      2         2  [ 9.09]
+22            [100.0]
+
+****** Process &lt;0.224.0&gt;    -- 76.34 % of total allocations ***
+FUNCTION           CALLS  WORDS  PER CALL  [    %]
+lists:seq_loop/3       9     64         7  [90.14]
+erlang:apply/2         1      7         7  [ 9.86]
+71            [100.0]</code></pre><p>The processes which are profiled depends on the profiling type. <code class="inline">call_count</code>,
+the default, will count calls across all processes. The other types, <code class="inline">call_time</code>
+and <code class="inline">call_memory</code>, take into account all processes spawned from the
+user-provided function (using <code class="inline">set_on_spawn</code> argument for trace/3 BIF). You
+cannot restrict the profiled processes for <code class="inline">call_count</code>, but you can limit the
+trace to a single process for the other two:</p><pre><code class="text">2&gt; tprof:profile(test, test_spawn, [],
+                 #{type =&gt; call_memory, set_on_spawn =&gt; false}).
+
+****** Process &lt;0.183.0&gt;    -- 100.00 % of total allocations ***
+FUNCTION                CALLS  WORDS  PER CALL  [    %]
+erlang:spawn_monitor/1      1      2         2  [ 9.09]
+erlang:spawn_opt/4          1      6         6  [27.27]
+test:test_spawn/0           1     14        14  [63.64]</code></pre><p><a href="" id="pg_example"></a></p><p>Erlang programs may perform expensive operations in processes that are different
+from the original one. You can include multiple, new or even all processes in
+the trace when measuring time or memory:</p><pre><code class="text">7&gt; pg:start_link().
+{ok,&lt;0.252.0&gt;}
+8&gt; tprof:profile(fun() -&gt; pg:join(group, self()) end,
+                 #{type =&gt; call_memory, rootset =&gt; [pg]}).
+****** Process &lt;0.252.0&gt;    -- 52.86 % of total allocations ***
+FUNCTION                      CALLS  WORDS  PER CALL  [    %]
+pg:leave_local_update_ets/5       1      2         2  [ 1.80]
+gen:reply/2                       1      3         3  [ 2.70]
+erlang:monitor/2                  1      3         3  [ 2.70]
+gen_server:try_handle_call/4      1      3         3  [ 2.70]
+gen_server:try_dispatch/4         1      3         3  [ 2.70]
+maps:iterator/1                   2      4         2  [ 3.60]
+maps:take/2                       1      6         6  [ 5.41]
+pg:join_local_update_ets/5        1      8         8  [ 7.21]
+pg:handle_info/2                  1      8         8  [ 7.21]
+pg:handle_call/3                  1      9         9  [ 8.11]
+gen_server:loop/7                 2      9         4  [ 8.11]
+ets:lookup/2                      2     10         5  [ 9.01]
+pg:join_local/3                   1     11        11  [ 9.91]
+pg:notify_group/5                 2     16         8  [14.41]
+erlang:setelement/3               2     16         8  [14.41]
+111            [100.0]
+
+****** Process &lt;0.255.0&gt;    -- 47.14 % of total allocations ***
+FUNCTION                   CALLS  WORDS  PER CALL  [    %]
+erl_eval:match_list/6          1      3         3  [ 3.03]
+erlang:monitor/2               1      3         3  [ 3.03]
+lists:reverse/1                2      4         2  [ 4.04]
+pg:join/3                      1      4         4  [ 4.04]
+erl_eval:add_bindings/2        1      5         5  [ 5.05]
+erl_eval:do_apply/7            2      6         3  [ 6.06]
+gen:call/4                     1      8         8  [ 8.08]
+erl_eval:expr_list/7           4     10         2  [10.10]
+gen:do_call/4                  1     16        16  [16.16]
+erl_eval:ret_expr/3            4     16         4  [16.16]
+erl_eval:merge_bindings/4      3     24         8  [24.24]
+99            [100.0]</code></pre><p>There is no default limit on the profiling time. It is possible to define such
+limit for ad-hoc profile. If function being profiled does not return in a
+specified amount of time, process is terminated with <code class="inline">kill</code> reason. Any unlinked
+children started by the user-supplied function are kept, it is developer's
+responsibility to ensure cleanup.</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">9&gt; </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">profile</span><span class="p" data-group-id="3646194949-1">(</span><span class="ss">timer</span><span class="p">,</span><span class="w"> </span><span class="ss">sleep</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="3646194949-2">[</span><span class="mi">100000</span><span class="p" data-group-id="3646194949-2">]</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="3646194949-3">#{</span><span class="ss">timeout</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">1000</span><span class="p" data-group-id="3646194949-3">}</span><span class="p" data-group-id="3646194949-1">)</span><span class="p">.</span></code></pre><p>By default, only one ad-hoc or server-aided profiling session is allowed at any
+point in time. It is possible to force multiple ad-hoc sessions concurrently,
+but it is developer responsibility to ensure non-overlapping trace patterns.</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">1&gt; </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">profile</span><span class="p" data-group-id="7289845418-1">(</span><span class="nf">fun</span><span class="p" data-group-id="7289845418-2">(</span><span class="p" data-group-id="7289845418-2">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">lists</span><span class="p">:</span><span class="nf">seq</span><span class="p" data-group-id="7289845418-3">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">32</span><span class="p" data-group-id="7289845418-3">)</span><span class="w"> </span><span class="k">end</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="7289845418-4">#{</span><span class="ss">registered</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">false</span><span class="p">,</span><span class="w"> </span><span class="ss">pattern</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p" data-group-id="7289845418-5">[</span><span class="p" data-group-id="7289845418-6">{</span><span class="ss">lists</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;_&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;_&#39;</span><span class="p" data-group-id="7289845418-6">}</span><span class="p" data-group-id="7289845418-5">]</span><span class="p" data-group-id="7289845418-4">}</span><span class="p" data-group-id="7289845418-1">)</span><span class="p">.</span></code></pre><h2 id="module-server-aided-profiling" class="section-heading">
+  <a href="#module-server-aided-profiling" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Server-aided profiling</span>
+</h2>
+<p>Memory profiling can be done when your system is up and running. You can start
+the <code class="inline">tprof</code> server, add trace patterns and processes to trace while your system
+handles actual traffic. You can extract the data any time, inspect, and print.
+The example below traces activity of all processes supervised by kernel:</p><pre><code class="text">1&gt; tprof:start(#{type =&gt; call_memory}).
+{ok,&lt;0.200.0&gt;}
+2&gt; tprof:enable_trace({all_children, kernel_sup}).
+34
+3&gt; tprof:set_pattern('_', '_' , '_').
+16728
+4&gt; Sample = tprof:collect().
+[{gen_server,try_dispatch,4,[{&lt;0.154.0&gt;,2,6}]},
+{erlang,iolist_to_iovec,1,[{&lt;0.161.0&gt;,1,8}]},
+&lt;...&gt;
+5 &gt; tprof:format(tprof:inspect(Sample)).
+
+****** Process &lt;0.154.0&gt;    -- 14.21 % of total allocations ***
+FUNCTION                   CALLS  WORDS  PER CALL  [    %]
+maps:iterator/1                2      4         2  [15.38]
+gen_server:try_dispatch/4      2      6         3  [23.08]
+net_kernel:handle_info/2       2     16         8  [61.54]
+                                     26            [100.0]
+
+****** Process &lt;0.161.0&gt;    -- 85.79 % of total allocations ***
+FUNCTION                        CALLS  WORDS  PER CALL  [    %]
+disk_log:handle/2                   2      2         1  [ 1.27]
+disk_log_1:maybe_start_timer/1      1      3         3  [ 1.91]
+disk_log_1:mf_write_cache/1         1      3         3  [ 1.91]
+&lt;...&gt;</code></pre><p><a href="" id="inspect_example"></a></p><p>It is possible to profile the entire running system, and then examine individual
+processes:</p><pre><code class="text">1&gt; tprof:start(#{type =&gt; call_memory}).
+2&gt; tprof:enable_trace(processes), tprof:set_pattern('_', '_' , '_').
+9041
+3&gt; timer:sleep(10000), tprof:disable_trace(processes), Sample = tprof:collect().
+[{user_drv,server,3,[{&lt;0.64.0&gt;,12,136}]},
+{user_drv,contains_ctrl_g_or_ctrl_c,1,[{&lt;0.64.0&gt;,80,10}]},
+&lt;...&gt;
+4&gt; Inspected = tprof:inspect(Sample, process, words), Shell = maps:get(self(), Inspected).
+{2743,
+[{shell,{enc,0},1,2,2,0.07291286912139992},
+&lt;...&gt;
+5&gt; tprof:format(Shell).
+
+FUNCTION                           CALLS  WORDS  PER CALL  [    %]
+&lt;...&gt;
+erl_lint:start/2                       2    300       150  [10.94]
+shell:used_records/1                 114    342         3  [12.47]</code></pre>
+  </section>
+
+
+  <section id="summary" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#summary">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Summary</span>
+    </h1>
+<div class="summary-types summary">
+  <h2>
+    <a href="#types">Types</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:column/0" translate="no">column()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Column to sort by <a href="#inspect/3"><code class="inline">inspect/3</code></a>, or <a href="#profile/2"><code class="inline">profile</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:process/0" translate="no">process()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Either process identified (pid), or a registered process name.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:profile_line/0" translate="no">profile_line()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Inspected data for a single function of the specified <code class="inline">Module</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:profile_options/0" translate="no">profile_options()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Ad-hoc profiler options, see <a href="#profile/2"><code class="inline">profile</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:profile_result/0" translate="no">profile_result()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Profile of a single process, or combined profile of multiple processes, sorted
+by a selected column.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:rootset/0" translate="no">rootset()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:sort_by/0" translate="no">sort_by()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:trace_info/0" translate="no">trace_info()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Raw data extracted from tracing BIFs.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:trace_map/0" translate="no">trace_map()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Traced functions (with their arities) grouped by module name,
+or <code class="inline">all</code> if all code is traced.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:trace_options/0" translate="no">trace_options()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Options for enabling profiling of the selected processes, see <a href="#enable_trace/2"><code class="inline">enable_trace/2</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:trace_pattern/0" translate="no">trace_pattern()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:trace_type/0" translate="no">trace_type()</a>
+
+      </div>
+
+    </div>
+
+</div>
+<div class="summary-functions summary">
+  <h2>
+    <a href="#functions">Functions</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#clear_pattern/3" translate="no">clear_pattern(Mod, Fun, Arity)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Turns tracing off for the supplied pattern.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#continue/0" translate="no">continue()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Resumes previously paused profiling.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#disable_trace/1" translate="no">disable_trace(Rootset)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>The same as
+<a href="#disable_trace/2"><code class="inline">disable_trace</code> </a><code class="inline">(Spec, #{set_on_spawn =&gt; true})</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#disable_trace/2" translate="no">disable_trace/2</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Stops accumulating traces for specified processes. See <a href="#enable_trace/2"><code class="inline">enable_trace/2</code></a> for
+options description.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#enable_trace/1" translate="no">enable_trace(Rootset)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>The same as
+<a href="#enable_trace/2"><code class="inline">enable_trace</code> </a><code class="inline">(Spec, #{set_on_spawn =&gt; true})</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#enable_trace/2" translate="no">enable_trace/2</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Similar to <a href="../../apps/erts/erlang.html#trace/3"><code class="inline">erlang:trace/3</code></a>, but supports a few more options for tracing
+convenience. Tracing per process is not supported by <code class="inline">call_count</code> profilers.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#format/1" translate="no">format(Inspected)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#format/2"><code class="inline">format/2</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#format/2" translate="no">format(IoDevice, Inspected)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Formats profile transformed with <a href="#inspect/3"><code class="inline">inspect</code> </a>to a specified device.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#get_trace_map/0" translate="no">get_trace_map()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns a map of module names to functions with their arities.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#inspect/1" translate="no">inspect(Profile)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>The same as <a href="#inspect/3"><code class="inline">inspect</code> </a><code class="inline">(Profile, process, percent)</code>. Transforms
+raw profile into a map of process identifiers to a tuple containing total count
+of words allocated, and a list of all traced functions sorted in the ascending
+order by the allocation percentage.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#inspect/3" translate="no">inspect/3</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Transforms raw data returned by tracing BIFs into a form convenient for
+subsequent analysis and formatting.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#pause/0" translate="no">pause()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Pauses trace collection for all currently traced functions, keeping all traces
+intact. Use <a href="#continue/0"><code class="inline">continue/0</code></a> to resume trace collection.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#profile/1" translate="no">profile(Fun)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#profile/4"><code class="inline">profile/4</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#profile/2" translate="no">profile(Fun, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#profile/4"><code class="inline">profile/4</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#profile/3" translate="no">profile(Module, Function, Args)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#profile/4"><code class="inline">profile/4</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#profile/4" translate="no">profile(Module, Function, Args, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Produces ad-hoc profile for function <code class="inline">Fun</code> or <code class="inline">Module</code>:<code class="inline">Function</code> call. By
+default, result is formatted to the output device, use <code class="inline">report</code> option to change
+this behaviour.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#restart/0" translate="no">restart()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Clears accumulated profiles. If profiling was paused prior to calling <code class="inline">restart</code>,
+it gets continued.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#set_pattern/3" translate="no">set_pattern(Mod, Fun, Arity)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Turns tracing on for the supplied pattern. Requires running <code class="inline">tprof</code>. Patterns
+are additive, following the same rules as <a href="../../apps/erts/erlang.html#trace_pattern/3"><code class="inline">erlang:trace_pattern/3</code></a>. Returns
+number of functions matching the supplied pattern.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#start/0" translate="no">start()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Starts the server, not supervised. Profiling server stores current trace
+patterns and ensures a single instance of profiler is running.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#start_link/0" translate="no">start_link()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Starts the server, supervised by the calling process.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#stop/0" translate="no">stop()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Stops the <code class="inline">tprof</code>, disabling tracing that has been enabled.</p></div>
+
+    </div>
+
+</div>
+
+  </section>
+
+
+  <section id="types" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#types">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Types</span>
+    </h1>
+    <div class="types-list">
+<section class="detail" id="t:column/0">
+
+  <div class="detail-header">
+    <a href="#t:column/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">column()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/tprof.erl#L422" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> column() :: module | function | calls | measurement | measurement_per_call | percent.</pre>
+
+      </div>
+
+<p>Column to sort by <a href="#inspect/3"><code class="inline">inspect/3</code></a>, or <a href="#profile/2"><code class="inline">profile</code></a>.</p><ul><li><p><strong><code class="inline">module</code></strong> - Module name.</p></li><li><p><strong><code class="inline">function</code></strong> - Function name.</p></li><li><p><strong><code class="inline">calls</code></strong> - Number of calls to the function.</p></li><li><p><strong><code class="inline">measurement</code></strong> - Total measurement (call count, time, or heap allocation)
+throughout all calls to the function.</p></li><li><p><strong><code class="inline">measurement_per_call</code></strong> - Measurement (call count, time, or heap
+allocation) on average per function call.</p></li><li><p><strong><code class="inline">percent</code></strong> - Percentage of measurement to total amount during the entire
+profile collection.</p></li></ul>
+  </section>
+</section>
+<section class="detail" id="t:process/0">
+
+  <div class="detail-header">
+    <a href="#t:process/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">process()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/tprof.erl#L546" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> process() :: <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() | <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>().</pre>
+
+      </div>
+
+<p>Either process identified (pid), or a registered process name.</p>
+  </section>
+</section>
+<section class="detail" id="t:profile_line/0">
+
+  <div class="detail-header">
+    <a href="#t:profile_line/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">profile_line()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/tprof.erl#L393" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> profile_line() ::
+    {<a href="../../apps/erts/erlang.html#t:module/0">module</a>(),
+     Function :: {<a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), <a href="../../apps/erts/erlang.html#t:arity/0">arity</a>()},
+     Count :: <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer</a>(),
+     Measurement :: <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer</a>(),
+     MeasurementPerCall :: <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(),
+     Percent :: <a href="../../apps/erts/erlang.html#t:float/0">float</a>()}.</pre>
+
+      </div>
+
+<p>Inspected data for a single function of the specified <code class="inline">Module</code>.</p>
+  </section>
+</section>
+<section class="detail" id="t:profile_options/0">
+
+  <div class="detail-header">
+    <a href="#t:profile_options/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">profile_options()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/tprof.erl#L440" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> profile_options() ::
+    #{type => <a href="#t:trace_type/0">trace_type</a>(),
+      timeout => <a href="../../apps/erts/erlang.html#t:timeout/0">timeout</a>(),
+      pattern => <a href="#t:trace_pattern/0">trace_pattern</a>() | [<a href="#t:trace_pattern/0">trace_pattern</a>()],
+      set_on_spawn => <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>(),
+      rootset => <a href="#t:rootset/0">rootset</a>(),
+      report => return | process | total | {process, <a href="#t:sort_by/0">sort_by</a>()} | {total, <a href="#t:sort_by/0">sort_by</a>()},
+      device => <a href="../../apps/stdlib/io.html#t:device/0">io:device</a>(),
+      registered => false | {local, <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>()}}.</pre>
+
+      </div>
+
+<p>Ad-hoc profiler options, see <a href="#profile/2"><code class="inline">profile</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="t:profile_result/0">
+
+  <div class="detail-header">
+    <a href="#t:profile_result/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">profile_result()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/tprof.erl#L401" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> profile_result() :: {<a href="#t:trace_type/0">trace_type</a>(), TotalMeasurement :: <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(), [<a href="#t:profile_line/0">profile_line</a>()]}.</pre>
+
+      </div>
+
+<p>Profile of a single process, or combined profile of multiple processes, sorted
+by a selected column.</p>
+  </section>
+</section>
+<section class="detail" id="t:rootset/0">
+
+  <div class="detail-header">
+    <a href="#t:rootset/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">rootset()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/tprof.erl#L434" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> rootset() :: [<a href="#t:process/0">process</a>()] | processes | existing_processes | new_processes.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:sort_by/0">
+
+  <div class="detail-header">
+    <a href="#t:sort_by/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">sort_by()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/tprof.erl#L425" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> sort_by() :: <a href="#t:column/0">column</a>() | {<a href="#t:column/0">column</a>(), ascending} | {<a href="#t:column/0">column</a>(), descending}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:trace_info/0">
+
+  <div class="detail-header">
+    <a href="#t:trace_info/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">trace_info()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/tprof.erl#L388" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> trace_info() ::
+    {<a href="../../apps/erts/erlang.html#t:module/0">module</a>(),
+     Fun :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(),
+     Arity :: <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(),
+     [{<a href="../../apps/erts/erlang.html#t:pid/0">pid</a>(), Count :: <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer</a>(), Measurement :: <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer</a>()}]}.</pre>
+
+      </div>
+
+<p>Raw data extracted from tracing BIFs.</p>
+  </section>
+</section>
+<section class="detail" id="t:trace_map/0">
+
+  <div class="detail-header">
+    <a href="#t:trace_map/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">trace_map()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/tprof.erl#L384" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> trace_map() :: #{<a href="../../apps/erts/erlang.html#t:module/0">module</a>() => [{Fun :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), <a href="../../apps/erts/erlang.html#t:arity/0">arity</a>()}]} | all.</pre>
+
+      </div>
+
+<p>Traced functions (with their arities) grouped by module name,
+or <code class="inline">all</code> if all code is traced.</p>
+  </section>
+</section>
+<section class="detail" id="t:trace_options/0">
+
+  <div class="detail-header">
+    <a href="#t:trace_options/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">trace_options()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/tprof.erl#L429" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> trace_options() :: #{set_on_spawn => <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>()}.</pre>
+
+      </div>
+
+<p>Options for enabling profiling of the selected processes, see <a href="#enable_trace/2"><code class="inline">enable_trace/2</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="t:trace_pattern/0">
+
+  <div class="detail-header">
+    <a href="#t:trace_pattern/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">trace_pattern()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/tprof.erl#L377" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> trace_pattern() :: {<a href="../../apps/erts/erlang.html#t:module/0">module</a>(), Fun :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), <a href="../../apps/erts/erlang.html#t:arity/0">arity</a>() | '_'}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:trace_type/0">
+
+  <div class="detail-header">
+    <a href="#t:trace_type/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">trace_type()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/tprof.erl#L374" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> trace_type() :: call_count | call_time | call_memory.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+
+    </div>
+  </section>
+
+  <section id="functions" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#functions">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Functions</span>
+    </h1>
+    <div class="functions-list">
+<section class="detail" id="clear_pattern/3">
+
+  <div class="detail-header">
+    <a href="#clear_pattern/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">clear_pattern(Mod, Fun, Arity)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/tprof.erl#L528" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> clear_pattern(<a href="../../apps/erts/erlang.html#t:module/0">module</a>(), <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), <a href="../../apps/erts/erlang.html#t:arity/0">arity</a>() | '_') -> ok.</pre>
+
+      </div>
+
+<p>Turns tracing off for the supplied pattern.</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">1&gt; </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">set_pattern</span><span class="p" data-group-id="9416533894-1">(</span><span class="ss">lists</span><span class="p">,</span><span class="w"> </span><span class="ss">seq</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;_&#39;</span><span class="p" data-group-id="9416533894-1">)</span><span class="p">.</span><span class="w">
+</span><span class="mi">2</span><span class="gp unselectable">
+2&gt; </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">clear_pattern</span><span class="p" data-group-id="9416533894-2">(</span><span class="ss">lists</span><span class="p">,</span><span class="w"> </span><span class="ss">seq</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p" data-group-id="9416533894-2">)</span><span class="p">.</span><span class="w">
+</span><span class="mi">1</span><span class="gp unselectable">
+3&gt; </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">get_trace_map</span><span class="p" data-group-id="9416533894-3">(</span><span class="p" data-group-id="9416533894-3">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="9416533894-4">#{</span><span class="ss">lists</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p" data-group-id="9416533894-5">[</span><span class="p" data-group-id="9416533894-6">{</span><span class="ss">seq</span><span class="p">,</span><span class="mi">2</span><span class="p" data-group-id="9416533894-6">}</span><span class="p" data-group-id="9416533894-5">]</span><span class="p" data-group-id="9416533894-4">}</span></code></pre>
+  </section>
+</section>
+<section class="detail" id="continue/0">
+
+  <div class="detail-header">
+    <a href="#continue/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">continue()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/tprof.erl#L677" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> continue() -> ok | not_paused.</pre>
+
+      </div>
+
+<p>Resumes previously paused profiling.</p>
+  </section>
+</section>
+<section class="detail" id="disable_trace/1">
+
+  <div class="detail-header">
+    <a href="#disable_trace/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">disable_trace(Rootset)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/tprof.erl#L633" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> disable_trace(Spec) -> <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()
+                 when
+                     Spec ::
+                         <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() |
+                         processes | new_processes | existing_processes |
+                         {children | all_children, <a href="#t:process/0">process</a>()};
+             ([<a href="#t:process/0">process</a>()]) -> <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>() | {<a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(), [<a href="#t:process/0">process</a>()]}.</pre>
+
+      </div>
+
+<p>The same as
+<a href="#disable_trace/2"><code class="inline">disable_trace</code> </a><code class="inline">(Spec, #{set_on_spawn =&gt; true})</code>.</p>
+  </section>
+</section>
+<section class="detail" id="disable_trace/2">
+
+  <div class="detail-header">
+    <a href="#disable_trace/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">disable_trace/2</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/tprof.erl#L653" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> disable_trace(Spec, <a href="#t:trace_options/0">trace_options</a>()) -> <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()
+                 when
+                     Spec ::
+                         <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() |
+                         processes | new_processes | existing_processes |
+                         {children | all_children, <a href="#t:process/0">process</a>()};
+             ([<a href="#t:process/0">process</a>()], <a href="#t:trace_options/0">trace_options</a>()) ->
+                 <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>() | {<a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(), [<a href="#t:process/0">process</a>()]}.</pre>
+
+      </div>
+
+<p>Stops accumulating traces for specified processes. See <a href="#enable_trace/2"><code class="inline">enable_trace/2</code></a> for
+options description.</p><p>Profile accumulated before process is removed from the traced list is retained.
+This allows to enable tracing for many or even all processes in the system,
+sleep for a short period of time, then disable tracing for all processes,
+avoiding system overload, but keeping profile data.</p>
+  </section>
+</section>
+<section class="detail" id="enable_trace/1">
+
+  <div class="detail-header">
+    <a href="#enable_trace/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">enable_trace(Rootset)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/tprof.erl#L563" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> enable_trace(Spec) -> <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()
+                when
+                    Spec ::
+                        <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() |
+                        processes | new_processes | existing_processes |
+                        {children | all_children, <a href="#t:process/0">process</a>()};
+            ([<a href="#t:process/0">process</a>()]) -> <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>() | {<a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(), [<a href="#t:process/0">process</a>()]}.</pre>
+
+      </div>
+
+<p>The same as
+<a href="#enable_trace/2"><code class="inline">enable_trace</code> </a><code class="inline">(Spec, #{set_on_spawn =&gt; true})</code>.</p>
+  </section>
+</section>
+<section class="detail" id="enable_trace/2">
+
+  <div class="detail-header">
+    <a href="#enable_trace/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">enable_trace/2</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/tprof.erl#L611" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> enable_trace(Spec, <a href="#t:trace_options/0">trace_options</a>()) -> <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()
+                when
+                    Spec ::
+                        <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() |
+                        processes | new_processes | existing_processes |
+                        {children | all_children, <a href="#t:process/0">process</a>()};
+            ([<a href="#t:process/0">process</a>()], <a href="#t:trace_options/0">trace_options</a>()) -> <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>() | {<a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(), [<a href="#t:process/0">process</a>()]}.</pre>
+
+      </div>
+
+<p>Similar to <a href="../../apps/erts/erlang.html#trace/3"><code class="inline">erlang:trace/3</code></a>, but supports a few more options for tracing
+convenience. Tracing per process is not supported by <code class="inline">call_count</code> profilers.</p><p><code class="inline">Spec</code> is either a process identifier (pid) for a local process, one of the
+following atoms, or a list of local process identifiers or their registered
+names:</p><ul><li><p><strong><code class="inline">processes</code></strong> - All currently existing processes and all that will be
+created in the future.</p></li><li><p><strong><code class="inline">existing_processes</code></strong> - All currently existing processes.</p></li><li><p><strong><code class="inline">new_processes</code></strong> - All processes that will be created in the future.</p></li><li><p><strong><code class="inline">children</code></strong> - All currently running processes that were directly spawned by
+the specified process. This mode is helpful for tracing workers of a single
+supervisor.</p></li><li><p><strong><code class="inline">all_children</code></strong> - All currently running processes that were spawned by the
+specified process, or any recursive descendant of it. This mode is designed to
+facilitate tracing of supervision trees.</p></li></ul><blockquote><h4 class="info">Note</h4><p>The profiling server does not keep track of processes that were added to the
+tracing set. It is permitted to stop the profiling server (wiping out any
+accumulated data), restart the server, set entirely different tracing pattern
+keeping the list of traced processes for future use. Use
+<a href="#disable_trace/2"><code class="inline">disable_trace</code>(processes)</a> to clear the list of traced
+processes.</p></blockquote><p>Specify <code class="inline">Options</code> to modify tracing behaviour:</p><ul><li><strong><code class="inline">set_on_spawn</code></strong> - Automatically start tracing for processes spawned by the
+traced process. On by default.</li></ul>
+  </section>
+</section>
+<section class="detail" id="format/1">
+
+  <div class="detail-header">
+    <a href="#format/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">format(Inspected)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/tprof.erl#L736" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> format(#{<a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() | all => <a href="#t:profile_result/0">profile_result</a>()}) -> ok.</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#format/2"><code class="inline">format/2</code></a></p>
+  </section>
+</section>
+<section class="detail" id="format/2">
+
+  <div class="detail-header">
+    <a href="#format/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">format(IoDevice, Inspected)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/tprof.erl#L742" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> format(<a href="../../apps/stdlib/io.html#t:device/0">io:device</a>(), #{<a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() | all => <a href="#t:profile_result/0">profile_result</a>()}) -> ok.</pre>
+
+      </div>
+
+<p>Formats profile transformed with <a href="#inspect/3"><code class="inline">inspect</code> </a>to a specified device.</p>
+  </section>
+</section>
+<section class="detail" id="get_trace_map/0">
+
+  <div class="detail-header">
+    <a href="#get_trace_map/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">get_trace_map()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/tprof.erl#L535" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> get_trace_map() -> <a href="#t:trace_map/0">trace_map</a>().</pre>
+
+      </div>
+
+<p>Returns a map of module names to functions with their arities.</p>
+  </section>
+</section>
+<section class="detail" id="inspect/1">
+
+  <div class="detail-header">
+    <a href="#inspect/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">inspect(Profile)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/tprof.erl#L703" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> inspect({<a href="#t:trace_type/0">trace_type</a>(), [<a href="#t:trace_info/0">trace_info</a>()]}) -> #{<a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() | all => <a href="#t:profile_result/0">profile_result</a>()}.</pre>
+
+      </div>
+
+<p>The same as <a href="#inspect/3"><code class="inline">inspect</code> </a><code class="inline">(Profile, process, percent)</code>. Transforms
+raw profile into a map of process identifiers to a tuple containing total count
+of words allocated, and a list of all traced functions sorted in the ascending
+order by the allocation percentage.</p>
+  </section>
+</section>
+<section class="detail" id="inspect/3">
+
+  <div class="detail-header">
+    <a href="#inspect/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">inspect/3</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/tprof.erl#L722" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> inspect({<a href="#t:trace_type/0">trace_type</a>(), [<a href="#t:trace_info/0">trace_info</a>()]}, process | total, <a href="#t:sort_by/0">sort_by</a>()) ->
+           #{<a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() | all => <a href="#t:profile_result/0">profile_result</a>()}.</pre>
+
+      </div>
+
+<p>Transforms raw data returned by tracing BIFs into a form convenient for
+subsequent analysis and formatting.</p><p>When <code class="inline">process</code> is given as second argument, it returns a map of process
+identifiers with corresponding profiling results sorted by the selected column.
+When the second argument is <code class="inline">total</code> or when profiling by <code class="inline">call_count</code>, the
+returned map has a single <code class="inline">all</code> key with profiling results from all processes.</p><p>Inspected profile can be leveraged to
+<a href="tprof.html#inspect_example">print profiling results</a>.</p>
+  </section>
+</section>
+<section class="detail" id="pause/0">
+
+  <div class="detail-header">
+    <a href="#pause/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">pause()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/tprof.erl#L670" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> pause() -> ok | not_running.</pre>
+
+      </div>
+
+<p>Pauses trace collection for all currently traced functions, keeping all traces
+intact. Use <a href="#continue/0"><code class="inline">continue/0</code></a> to resume trace collection.</p>
+  </section>
+</section>
+<section class="detail" id="profile/1">
+
+  <div class="detail-header">
+    <a href="#profile/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">profile(Fun)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/tprof.erl#L752" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> profile(fun(() -> <a href="../../apps/erts/erlang.html#t:term/0">term</a>())) -> ok | {<a href="../../apps/erts/erlang.html#t:term/0">term</a>(), [<a href="#t:trace_info/0">trace_info</a>()]}.</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#profile/4"><code class="inline">profile/4</code></a></p>
+  </section>
+</section>
+<section class="detail" id="profile/2">
+
+  <div class="detail-header">
+    <a href="#profile/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">profile(Fun, Options)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/tprof.erl#L758" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> profile(fun(() -> <a href="../../apps/erts/erlang.html#t:term/0">term</a>()), <a href="#t:profile_options/0">profile_options</a>()) -> ok | {<a href="../../apps/erts/erlang.html#t:term/0">term</a>(), [<a href="#t:trace_info/0">trace_info</a>()]}.</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#profile/4"><code class="inline">profile/4</code></a></p>
+  </section>
+</section>
+<section class="detail" id="profile/3">
+
+  <div class="detail-header">
+    <a href="#profile/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">profile(Module, Function, Args)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/tprof.erl#L764" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> profile(<a href="../../apps/erts/erlang.html#t:module/0">module</a>(), Fun :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), Args :: [<a href="../../apps/erts/erlang.html#t:term/0">term</a>()]) -> ok | {<a href="../../apps/erts/erlang.html#t:term/0">term</a>(), [<a href="#t:trace_info/0">trace_info</a>()]}.</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#profile/4"><code class="inline">profile/4</code></a></p>
+  </section>
+</section>
+<section class="detail" id="profile/4">
+
+  <div class="detail-header">
+    <a href="#profile/4" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">profile(Module, Function, Args, Options)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/tprof.erl#L809" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> profile(<a href="../../apps/erts/erlang.html#t:module/0">module</a>(), Fun :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), Args :: [<a href="../../apps/erts/erlang.html#t:term/0">term</a>()], <a href="#t:profile_options/0">profile_options</a>()) ->
+           ok | {<a href="../../apps/erts/erlang.html#t:term/0">term</a>(), [<a href="#t:trace_info/0">trace_info</a>()]}.</pre>
+
+      </div>
+
+<p>Produces ad-hoc profile for function <code class="inline">Fun</code> or <code class="inline">Module</code>:<code class="inline">Function</code> call. By
+default, result is formatted to the output device, use <code class="inline">report</code> option to change
+this behaviour.</p><p>Ad-hoc profiling starts a new instance of <code class="inline">tprof</code> server, runs the profiling
+routine, extracts results and shuts the server down. If <code class="inline">tprof</code> is already
+running (for server-aided profiling), default ad-hoc profiler options block this
+call to avoid mixing results from several independent instances. Use
+<code class="inline">registered =&gt; false</code> option to override this behaviour.</p><p>Ad-hoc profiler supports following<code class="inline">Options</code>:</p><ul><li><p><strong><code class="inline">type</code></strong> - The type of profiling to perform.</p></li><li><p><strong><code class="inline">device</code></strong> - Specifies I/O devices to print the profile to. Useful to
+redirect text output to console or <code class="inline">standard_error</code>.</p></li><li><p><strong><code class="inline">pattern</code></strong> - Specifies trace pattern, or a list of trace patterns to
+enable. By default, all functions (<code class="inline">{'_', '_', '_'}</code>) are traced.</p></li><li><p><strong><code class="inline">registered</code></strong> - Specifies <code class="inline">tprof</code> registered process name. Use <code class="inline">false</code> to
+leave the process unregistered, or <code class="inline">{local, myname}</code> to register the process
+under a different name.</p></li><li><p><strong><code class="inline">report</code></strong> - Controls output format. The default is <code class="inline">process</code>, printing
+per-process profiling data sorted by percentage of the total allocation.
+Specify <code class="inline">report =&gt; return</code> to suppress printing and get the raw data for
+further evaluation with <a href="#inspect/3"><code class="inline">inspect/3</code></a> and formatting with <a href="#format/2"><code class="inline">format/2</code></a>.</p></li><li><p><strong><code class="inline">rootset</code></strong> - Includes extra processes in the trace list. Useful for
+profiling allocations for <a href="../../apps/stdlib/gen_server.html"><code class="inline">gen_server</code></a>, calls, or other allocations caused
+by inter-process communications. See <a href="tprof.html#pg_example">example</a>.</p></li><li><p><strong><code class="inline">set_on_spawn</code></strong> - Automatically start tracing for processes spawned by the
+traced process. On by default.</p></li><li><p><strong><code class="inline">timeout</code></strong> - Terminate profiling after the specified amount of time
+(milliseconds).</p></li></ul>
+  </section>
+</section>
+<section class="detail" id="restart/0">
+
+  <div class="detail-header">
+    <a href="#restart/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">restart()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/tprof.erl#L688" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> restart() -> ok.</pre>
+
+      </div>
+
+<p>Clears accumulated profiles. If profiling was paused prior to calling <code class="inline">restart</code>,
+it gets continued.</p>
+  </section>
+</section>
+<section class="detail" id="set_pattern/3">
+
+  <div class="detail-header">
+    <a href="#set_pattern/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">set_pattern(Mod, Fun, Arity)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/tprof.erl#L510" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> set_pattern(<a href="../../apps/erts/erlang.html#t:module/0">module</a>(), <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), <a href="../../apps/erts/erlang.html#t:arity/0">arity</a>() | '_') -> ok | {error, {trace_pattern, <a href="#t:trace_pattern/0">trace_pattern</a>()}}.</pre>
+
+      </div>
+
+<p>Turns tracing on for the supplied pattern. Requires running <code class="inline">tprof</code>. Patterns
+are additive, following the same rules as <a href="../../apps/erts/erlang.html#trace_pattern/3"><code class="inline">erlang:trace_pattern/3</code></a>. Returns
+number of functions matching the supplied pattern.</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">1&gt; </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">set_pattern</span><span class="p" data-group-id="3913116543-1">(</span><span class="ss">lists</span><span class="p">,</span><span class="w"> </span><span class="ss">seq</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;_&#39;</span><span class="p" data-group-id="3913116543-1">)</span><span class="p">.</span><span class="w">
+</span><span class="mi">2</span><span class="gp unselectable">
+2&gt; </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">set_pattern</span><span class="p" data-group-id="3913116543-2">(</span><span class="ss">lists</span><span class="p">,</span><span class="w"> </span><span class="ss">keyfind</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p" data-group-id="3913116543-2">)</span><span class="p">.</span><span class="w">
+</span><span class="mi">1</span><span class="gp unselectable">
+3&gt; </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">get_trace_map</span><span class="p" data-group-id="3913116543-3">(</span><span class="p" data-group-id="3913116543-3">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="3913116543-4">#{</span><span class="ss">lists</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p" data-group-id="3913116543-5">[</span><span class="p" data-group-id="3913116543-6">{</span><span class="ss">keyfind</span><span class="p">,</span><span class="mi">3</span><span class="p" data-group-id="3913116543-6">}</span><span class="p">,</span><span class="p" data-group-id="3913116543-7">{</span><span class="ss">seq</span><span class="p">,</span><span class="mi">2</span><span class="p" data-group-id="3913116543-7">}</span><span class="p">,</span><span class="p" data-group-id="3913116543-8">{</span><span class="ss">seq</span><span class="p">,</span><span class="mi">3</span><span class="p" data-group-id="3913116543-8">}</span><span class="p" data-group-id="3913116543-5">]</span><span class="p" data-group-id="3913116543-4">}</span></code></pre><p>If there are no functions matching the pattern, error is returned</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">&gt; </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">set_pattern</span><span class="p" data-group-id="2418869616-1">(</span><span class="ss">no_module</span><span class="p">,</span><span class="w"> </span><span class="ss">func</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;_&#39;</span><span class="p" data-group-id="2418869616-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="2418869616-2">{</span><span class="ss">error</span><span class="p">,</span><span class="p" data-group-id="2418869616-3">{</span><span class="nb">trace_pattern</span><span class="p">,</span><span class="ss">no_module</span><span class="p">,</span><span class="ss">func</span><span class="p">,</span><span class="ss">&#39;_&#39;</span><span class="p" data-group-id="2418869616-3">}</span><span class="p" data-group-id="2418869616-2">}</span></code></pre>
+  </section>
+</section>
+<section class="detail" id="start/0">
+
+  <div class="detail-header">
+    <a href="#start/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">start()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/tprof.erl#L459" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> start() -> {ok, Pid} | {error, Reason} when Pid :: <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>(), Reason :: {already_started, Pid}.</pre>
+
+      </div>
+
+<p>Starts the server, not supervised. Profiling server stores current trace
+patterns and ensures a single instance of profiler is running.</p>
+  </section>
+</section>
+<section class="detail" id="start_link/0">
+
+  <div class="detail-header">
+    <a href="#start_link/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">start_link()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/tprof.erl#L472" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> start_link() -> {ok, Pid} | {error, Reason} when Pid :: <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>(), Reason :: {already_started, Pid}.</pre>
+
+      </div>
+
+<p>Starts the server, supervised by the calling process.</p>
+  </section>
+</section>
+<section class="detail" id="stop/0">
+
+  <div class="detail-header">
+    <a href="#stop/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">stop()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/tprof.erl#L484" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> stop() -> ok.</pre>
+
+      </div>
+
+<p>Stops the <code class="inline">tprof</code>, disabling tracing that has been enabled.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+              <a href="tools.epub" title="ePub version">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

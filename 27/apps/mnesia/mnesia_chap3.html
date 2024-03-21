@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="mnesia v4.23.1">
+
+
+    <title>Build a Mnesia Database — mnesia v4.23.1</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-1AFE0CAA.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="mnesia" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+mnesia
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v4.23.1
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of mnesia</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/lib/mnesia/doc/guides/mnesia_chap3.md#L1" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+
+  <span>Build a Mnesia Database</span>
+</h1>
+
+<p>This section describes the basic steps when designing a <code class="inline">Mnesia</code> database and
+the programming constructs that make different solutions available to the
+programmer. The following topics are included:</p><ul><li>Define a schema</li><li>Data model</li><li>Start <code class="inline">Mnesia</code></li><li>Create tables</li></ul><p><a href="" id="def_schema"></a></p><h2 id="define-a-schema" class="section-heading">
+  <a href="#define-a-schema" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Define a Schema</span>
+</h2>
+<p>The configuration of a <code class="inline">Mnesia</code> system is described in a schema. The schema is a
+special table that includes information such as the table names and the storage
+type of each table (that is, whether a table is to be stored in RAM, on disc, or
+on both, as well as its location).</p><p>Unlike data tables, information in schema tables can only be accessed and
+modified by using the schema-related functions described in this section.</p><p><code class="inline">Mnesia</code> has various functions for defining the database schema. Tables can be
+moved or deleted, and the table layout can be reconfigured.</p><p>An important aspect of these functions is that the system can access a table
+while it is being reconfigured. For example, it is possible to move a table and
+simultaneously perform write operations to the same table. This feature is
+essential for applications that require continuous service.</p><p>This section describes the functions available for schema management, all which
+return either of the following tuples:</p><ul><li><code class="inline">{atomic, ok}</code> if successful</li><li><code class="inline">{aborted, Reason}</code> if unsuccessful</li></ul><h3 id="schema-functions" class="section-heading">
+  <a href="#schema-functions" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Schema Functions</span>
+</h3>
+<p>The schema functions are as follows:</p><ul><li><p><a href="mnesia.html#create_schema/1">mnesia:create_schema(NodeList)</a> initializes a new,
+empty schema. This is a mandatory requirement before <code class="inline">Mnesia</code> can be started.
+<code class="inline">Mnesia</code> is a truly distributed DBMS and the schema is a system table that is
+replicated on all nodes in a <code class="inline">Mnesia</code> system. This function fails if a schema
+is already present on any of the nodes in <code class="inline">NodeList</code>. The function requires
+<code class="inline">Mnesia</code> to be stopped on the all <code class="inline">db_nodes</code> contained in parameter
+<code class="inline">NodeList</code>. Applications call this function only once, as it is usually a
+one-time activity to initialize a new database.</p></li><li><p><a href="mnesia.html#delete_schema/1">mnesia:delete_schema(DiscNodeList)</a> erases any old
+schemas on the nodes in <code class="inline">DiscNodeList</code>. It also removes all old tables
+together with all data. This function requires <code class="inline">Mnesia</code> to be stopped on all
+<code class="inline">db_nodes</code>.</p></li><li><p><a href="mnesia.html#delete_table/1">mnesia:delete_table(Tab)</a> permanently deletes all
+replicas of table <code class="inline">Tab</code>.</p></li><li><p><a href="mnesia.html#clear_table/1">mnesia:clear_table(Tab)</a> permanently deletes all
+entries in table <code class="inline">Tab</code>.</p></li><li><p><a href="mnesia.html#move_table_copy/3">mnesia:move_table_copy(Tab, From, To)</a> moves the
+copy of table <code class="inline">Tab</code> from node <code class="inline">From</code> to node <code class="inline">To</code>. The table storage type
+<code class="inline">{type}</code> is preserved, so if a RAM table is moved from one node to another, it
+remains a RAM table on the new node. Other transactions can still perform read
+and write operation to the table while it is being moved.</p></li><li><p><a href="mnesia.html#add_table_copy/3">mnesia:add_table_copy(Tab, Node, Type)</a> creates a
+replica of table <code class="inline">Tab</code> at node <code class="inline">Node</code>. Argument <code class="inline">Type</code> must be either of the
+atoms <code class="inline">ram_copies</code>, <code class="inline">disc_copies</code>, or <code class="inline">disc_only_copies</code>. If you add a copy of
+the system table <code class="inline">schema</code> to a node, you want the <code class="inline">Mnesia</code> schema to reside
+there as well. This action extends the set of nodes that comprise this
+particular <code class="inline">Mnesia</code> system.</p></li><li><p><a href="mnesia.html#del_table_copy/2">mnesia:del_table_copy(Tab, Node)</a> deletes the
+replica of table <code class="inline">Tab</code> at node <code class="inline">Node</code>. When the last replica of a table is
+removed, the table is deleted.</p></li><li><p><a href="mnesia.html#transform_table/4">mnesia:transform_table(Tab, Fun, NewAttributeList, NewRecordName)</a>
+changes the format on all records in table <code class="inline">Tab</code>. It applies argument <code class="inline">Fun</code> to
+all records in the table. <code class="inline">Fun</code> must be a function that takes a record of the
+old type, and returns the record of the new type. The table key must not be
+changed.</p><p><em>Example:</em></p><pre><code class="makeup erlang" translate="no"><span class="p">-</span><span class="na">record</span><span class="p" data-group-id="2701083670-1">(</span><span class="ss">old</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2701083670-2">{</span><span class="ss">key</span><span class="p">,</span><span class="w"> </span><span class="ss">val</span><span class="p" data-group-id="2701083670-2">}</span><span class="p" data-group-id="2701083670-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p">-</span><span class="na">record</span><span class="p" data-group-id="2701083670-3">(</span><span class="ss">new</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2701083670-4">{</span><span class="ss">key</span><span class="p">,</span><span class="w"> </span><span class="ss">val</span><span class="p">,</span><span class="w"> </span><span class="ss">extra</span><span class="p" data-group-id="2701083670-4">}</span><span class="p" data-group-id="2701083670-3">)</span><span class="p">.</span><span class="w">
+
+</span><span class="n">Transformer</span><span class="w"> </span><span class="o">=</span><span class="w">
+   </span><span class="nf">fun</span><span class="p" data-group-id="2701083670-5">(</span><span class="n">X</span><span class="p" data-group-id="2701083670-5">)</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="nf">record</span><span class="p" data-group-id="2701083670-6">(</span><span class="n">X</span><span class="p">,</span><span class="w"> </span><span class="ss">old</span><span class="p" data-group-id="2701083670-6">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+      </span><span class="o">#</span><span class="ss">new</span><span class="p" data-group-id="2701083670-7">{</span><span class="ss">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">X</span><span class="o">#</span><span class="ss">old</span><span class="p">.</span><span class="ss">key</span><span class="p">,</span><span class="w">
+           </span><span class="ss">val</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">X</span><span class="o">#</span><span class="ss">old</span><span class="p">.</span><span class="ss">val</span><span class="p">,</span><span class="w">
+           </span><span class="ss">extra</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">42</span><span class="p" data-group-id="2701083670-7">}</span><span class="w">
+   </span><span class="k">end</span><span class="p">,</span><span class="w">
+</span><span class="p" data-group-id="2701083670-8">{</span><span class="ss">atomic</span><span class="p">,</span><span class="w"> </span><span class="ss">ok</span><span class="p" data-group-id="2701083670-8">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">transform_table</span><span class="p" data-group-id="2701083670-9">(</span><span class="ss">foo</span><span class="p">,</span><span class="w"> </span><span class="n">Transformer</span><span class="p">,</span><span class="w">
+                                      </span><span class="nf">record_info</span><span class="p" data-group-id="2701083670-10">(</span><span class="ss">fields</span><span class="p">,</span><span class="w"> </span><span class="ss">new</span><span class="p" data-group-id="2701083670-10">)</span><span class="p">,</span><span class="w">
+                                      </span><span class="ss">new</span><span class="p" data-group-id="2701083670-9">)</span><span class="p">,</span></code></pre><p>Argument <code class="inline">Fun</code> can also be the atom <code class="inline">ignore</code>, which indicates that only the
+metadata about the table is updated. Use of <code class="inline">ignore</code> is not recommended (as it
+creates inconsistencies between the metadata and the actual data) but it is
+included as a possibility for the user do to an own (offline) transform.</p></li><li><p><code class="inline">change_table_copy_type(Tab, Node, ToType)</code> changes the storage type of a
+table. For example, a RAM table is changed to a <code class="inline">disc_table</code> at the node
+specified as <code class="inline">Node</code>.</p></li></ul><h2 id="data-model" class="section-heading">
+  <a href="#data-model" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Data Model</span>
+</h2>
+<p>The data model employed by <code class="inline">Mnesia</code> is an extended relational data model. Data
+is organized as a set of tables and relations between different data records can
+be modeled as more tables describing the relationships. Each table contains
+instances of Erlang records. The records are represented as Erlang tuples.</p><p>Each Object Identifier (OID) is made up of a table name and a key. For example,
+if an employee record is represented by the tuple
+<code class="inline">{employee, 104732, klacke, 7, male, 98108, {221, 015}}</code>, this record has an
+OID, which is the tuple <code class="inline">{employee, 104732}</code>.</p><p>Thus, each table is made up of records, where the first element is a record name
+and the second element of the table is a key, which identifies the particular
+record in that table. The combination of the table name and a key is an arity
+two tuple <code class="inline">{Tab, Key}</code> called the OID. For more information about the
+relationship between the record name and the table name, see
+<a href="mnesia_chap4.html#recordnames_tablenames">Record Names versus Table Names</a>.</p><p>What makes the <code class="inline">Mnesia</code> data model an extended relational model is the ability
+to store arbitrary Erlang terms in the attribute fields. One attribute value
+can, for example, be a whole tree of OIDs leading to other terms in other
+tables. This type of record is difficult to model in traditional relational
+DBMSs.</p><p><a href="" id="start_mnesia"></a></p><h2 id="start-mnesia" class="section-heading">
+  <a href="#start-mnesia" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Start Mnesia</span>
+</h2>
+<p>Before starting <code class="inline">Mnesia</code>, the following must be done:</p><ul><li>An empty schema must be initialized on all the participating nodes.</li><li>The Erlang system must be started.</li><li>Nodes with disc database schema must be defined and implemented with the
+function <a href="mnesia.html#create_schema/1">mnesia:create_schema(NodeList)</a>.</li></ul><p>When running a distributed system with two or more participating nodes, the
+function <a href="mnesia.html#start/0">mnesia:start()</a> must be executed on each
+participating node. This would typically be part of the boot script in an
+embedded environment. In a test environment or an interactive environment,
+<code class="inline">mnesia:start()</code> can also be used either from the Erlang shell or another
+program.</p><h3 id="initialize-a-schema-and-start-mnesia" class="section-heading">
+  <a href="#initialize-a-schema-and-start-mnesia" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Initialize a Schema and Start Mnesia</span>
+</h3>
+<p>Let us use the example database <code class="inline">Company</code>, described in
+<a href="mnesia_chap2.html#getting_started">Getting Started</a> to illustrate how to run a
+database on two separate nodes, called <code class="inline">a@gin</code> and <code class="inline">b@skeppet</code>. Each of these
+nodes must have a <code class="inline">Mnesia</code> directory and an initialized schema before <code class="inline">Mnesia</code>
+can be started. There are two ways to specify the <code class="inline">Mnesia</code> directory to be used:</p><ul><li><p>Specify the <code class="inline">Mnesia</code> directory by providing an application parameter either
+when starting the Erlang shell or in the application script. Previously, the
+following example was used to create the directory for the <code class="inline">Company</code> database:</p><pre><code class="text">%erl -mnesia dir '&quot;/ldisc/scratch/Mnesia.Company&quot;'</code></pre></li><li><p>If no command-line flag is entered, the <code class="inline">Mnesia</code> directory becomes the current
+working directory on the node where the Erlang shell is started.</p></li></ul><p>To start the <code class="inline">Company</code> database and get it running on the two specified nodes,
+enter the following commands:</p><ol><li>On the node <code class="inline">a@gin</code>:</li></ol><pre><code class="text"> gin %erl -sname a  -mnesia dir '&quot;/ldisc/scratch/Mnesia.company&quot;'</code></pre><ol><li>On the node <code class="inline">b@skeppet</code>:</li></ol><pre><code class="text">skeppet %erl -sname b -mnesia dir '&quot;/ldisc/scratch/Mnesia.company&quot;'</code></pre><ol><li>On one of the two nodes:</li></ol><pre><code class="text">(a@gin)1&gt;mnesia:create_schema([a@gin, b@skeppet]).</code></pre><ol><li>The function <a href="mnesia.html#start/0">mnesia:start()</a> is called on both nodes.</li><li>To initialize the database, execute the following code on one of the two
+nodes:</li></ol><pre><code class="makeup erlang" translate="no"><span class="w">
+
+</span><span class="nf">dist_init</span><span class="p" data-group-id="2833015107-1">(</span><span class="p" data-group-id="2833015107-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">create_table</span><span class="p" data-group-id="2833015107-2">(</span><span class="ss">employee</span><span class="p">,</span><span class="w">
+                         </span><span class="p" data-group-id="2833015107-3">[</span><span class="p" data-group-id="2833015107-4">{</span><span class="ss">ram_copies</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2833015107-5">[</span><span class="ss">a@gin</span><span class="p">,</span><span class="w"> </span><span class="ss">b@skeppet</span><span class="p" data-group-id="2833015107-5">]</span><span class="p" data-group-id="2833015107-4">}</span><span class="p">,</span><span class="w">
+                          </span><span class="p" data-group-id="2833015107-6">{</span><span class="ss">attributes</span><span class="p">,</span><span class="w"> </span><span class="nf">record_info</span><span class="p" data-group-id="2833015107-7">(</span><span class="ss">fields</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="w">   </span><span class="ss">employee</span><span class="p" data-group-id="2833015107-7">)</span><span class="p" data-group-id="2833015107-6">}</span><span class="p" data-group-id="2833015107-3">]</span><span class="p" data-group-id="2833015107-2">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">create_table</span><span class="p" data-group-id="2833015107-8">(</span><span class="ss">dept</span><span class="p">,</span><span class="w">
+                         </span><span class="p" data-group-id="2833015107-9">[</span><span class="p" data-group-id="2833015107-10">{</span><span class="ss">ram_copies</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2833015107-11">[</span><span class="ss">a@gin</span><span class="p">,</span><span class="w"> </span><span class="ss">b@skeppet</span><span class="p" data-group-id="2833015107-11">]</span><span class="p" data-group-id="2833015107-10">}</span><span class="p">,</span><span class="w">
+                          </span><span class="p" data-group-id="2833015107-12">{</span><span class="ss">attributes</span><span class="p">,</span><span class="w"> </span><span class="nf">record_info</span><span class="p" data-group-id="2833015107-13">(</span><span class="ss">fields</span><span class="p">,</span><span class="w"> </span><span class="ss">dept</span><span class="p" data-group-id="2833015107-13">)</span><span class="p" data-group-id="2833015107-12">}</span><span class="p" data-group-id="2833015107-9">]</span><span class="p" data-group-id="2833015107-8">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">create_table</span><span class="p" data-group-id="2833015107-14">(</span><span class="ss">project</span><span class="p">,</span><span class="w">
+                         </span><span class="p" data-group-id="2833015107-15">[</span><span class="p" data-group-id="2833015107-16">{</span><span class="ss">ram_copies</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2833015107-17">[</span><span class="ss">a@gin</span><span class="p">,</span><span class="w"> </span><span class="ss">b@skeppet</span><span class="p" data-group-id="2833015107-17">]</span><span class="p" data-group-id="2833015107-16">}</span><span class="p">,</span><span class="w">
+                          </span><span class="p" data-group-id="2833015107-18">{</span><span class="ss">attributes</span><span class="p">,</span><span class="w"> </span><span class="nf">record_info</span><span class="p" data-group-id="2833015107-19">(</span><span class="ss">fields</span><span class="p">,</span><span class="w"> </span><span class="ss">project</span><span class="p" data-group-id="2833015107-19">)</span><span class="p" data-group-id="2833015107-18">}</span><span class="p" data-group-id="2833015107-15">]</span><span class="p" data-group-id="2833015107-14">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">create_table</span><span class="p" data-group-id="2833015107-20">(</span><span class="ss">manager</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2833015107-21">[</span><span class="p" data-group-id="2833015107-22">{</span><span class="ss">type</span><span class="p">,</span><span class="w"> </span><span class="ss">bag</span><span class="p" data-group-id="2833015107-22">}</span><span class="p">,</span><span class="w">
+                                  </span><span class="p" data-group-id="2833015107-23">{</span><span class="ss">ram_copies</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2833015107-24">[</span><span class="ss">a@gin</span><span class="p">,</span><span class="w"> </span><span class="ss">b@skeppet</span><span class="p" data-group-id="2833015107-24">]</span><span class="p" data-group-id="2833015107-23">}</span><span class="p">,</span><span class="w">
+                                  </span><span class="p" data-group-id="2833015107-25">{</span><span class="ss">attributes</span><span class="p">,</span><span class="w"> </span><span class="nf">record_info</span><span class="p" data-group-id="2833015107-26">(</span><span class="ss">fields</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="w">   </span><span class="ss">manager</span><span class="p" data-group-id="2833015107-26">)</span><span class="p" data-group-id="2833015107-25">}</span><span class="p" data-group-id="2833015107-21">]</span><span class="p" data-group-id="2833015107-20">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">create_table</span><span class="p" data-group-id="2833015107-27">(</span><span class="ss">at_dep</span><span class="p">,</span><span class="w">
+                         </span><span class="p" data-group-id="2833015107-28">[</span><span class="p" data-group-id="2833015107-29">{</span><span class="ss">ram_copies</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2833015107-30">[</span><span class="ss">a@gin</span><span class="p">,</span><span class="w"> </span><span class="ss">b@skeppet</span><span class="p" data-group-id="2833015107-30">]</span><span class="p" data-group-id="2833015107-29">}</span><span class="p">,</span><span class="w">
+                          </span><span class="p" data-group-id="2833015107-31">{</span><span class="ss">attributes</span><span class="p">,</span><span class="w"> </span><span class="nf">record_info</span><span class="p" data-group-id="2833015107-32">(</span><span class="ss">fields</span><span class="p">,</span><span class="w"> </span><span class="ss">at_dep</span><span class="p" data-group-id="2833015107-32">)</span><span class="p" data-group-id="2833015107-31">}</span><span class="p" data-group-id="2833015107-28">]</span><span class="p" data-group-id="2833015107-27">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">create_table</span><span class="p" data-group-id="2833015107-33">(</span><span class="ss">in_proj</span><span class="p">,</span><span class="w">
+                        </span><span class="p" data-group-id="2833015107-34">[</span><span class="p" data-group-id="2833015107-35">{</span><span class="ss">type</span><span class="p">,</span><span class="w"> </span><span class="ss">bag</span><span class="p" data-group-id="2833015107-35">}</span><span class="p">,</span><span class="w">
+                         </span><span class="p" data-group-id="2833015107-36">{</span><span class="ss">ram_copies</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2833015107-37">[</span><span class="ss">a@gin</span><span class="p">,</span><span class="w"> </span><span class="ss">b@skeppet</span><span class="p" data-group-id="2833015107-37">]</span><span class="p" data-group-id="2833015107-36">}</span><span class="p">,</span><span class="w">
+                         </span><span class="p" data-group-id="2833015107-38">{</span><span class="ss">attributes</span><span class="p">,</span><span class="w"> </span><span class="nf">record_info</span><span class="p" data-group-id="2833015107-39">(</span><span class="ss">fields</span><span class="p">,</span><span class="w"> </span><span class="ss">in_proj</span><span class="p" data-group-id="2833015107-39">)</span><span class="p" data-group-id="2833015107-38">}</span><span class="p" data-group-id="2833015107-34">]</span><span class="p" data-group-id="2833015107-33">)</span><span class="p">.</span></code></pre><p>As illustrated, the two directories reside on different nodes, because
+<code class="inline">/ldisc/scratch</code> (the &quot;local&quot; disc) exists on the two different nodes.</p><p>By executing these commands, two Erlang nodes are configured to run the
+<code class="inline">Company</code> database, and therefore, initialize the database. This is required
+only once when setting up. The next time the system is started,
+<a href="mnesia.html#start/0">mnesia:start()</a> is called on both nodes, to initialize the
+system from disc.</p><p>In a system of <code class="inline">Mnesia</code> nodes, every node is aware of the current location of
+all tables. In this example, data is replicated on both nodes and functions that
+manipulate the data in the tables can be executed on either of the two nodes.
+Code that manipulate <code class="inline">Mnesia</code> data behaves identically regardless of where the
+data resides.</p><p>The function <a href="mnesia.html#stop/0">mnesia:stop()</a> stops <code class="inline">Mnesia</code> on the node where
+the function is executed. The functions <a href="mnesia.html#start/0"><code class="inline">mnesia:start/0</code></a> and <a href="mnesia.html#stop/0"><code class="inline">mnesia:stop/0</code></a>
+work on the &quot;local&quot; <code class="inline">Mnesia</code> system. No functions start or stop a set of nodes.</p><h3 id="startup-procedure" class="section-heading">
+  <a href="#startup-procedure" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Startup Procedure</span>
+</h3>
+<p>Start <code class="inline">Mnesia</code> by calling the following function:</p><pre><code class="text">          mnesia:start().</code></pre><p>This function initiates the DBMS locally.</p><p>The choice of configuration alters the location and load order of the tables.
+The alternatives are as follows:</p><ol><li>Tables that are only stored locally are initialized from the local <code class="inline">Mnesia</code>
+directory.</li><li>Replicated tables that reside locally as well as somewhere else are either
+initiated from disc or by copying the entire table from the other node,
+depending on which of the different replicas are the most recent. <code class="inline">Mnesia</code>
+determines which of the tables are the most recent.</li><li>Tables that reside on remote nodes are available to other nodes as soon as
+they are loaded.</li></ol><p>Table initialization is asynchronous. The function call
+<a href="mnesia.html#start/0">mnesia:start()</a> returns the atom <code class="inline">ok</code> and then starts to
+initialize the different tables. Depending on the size of the database, this can
+take some time, and the application programmer must wait for the tables that the
+application needs before they can be used. This is achieved by using the
+function <a href="mnesia.html#wait_for_tables/2">mnesia:wait_for_tables(TabList, Timeout)</a>,
+which suspends the caller until all tables specified in <code class="inline">TabList</code> are properly
+initiated.</p><p>A problem can arise if a replicated table on one node is initiated, but <code class="inline">Mnesia</code>
+deduces that another (remote) replica is more recent than the replica existing
+on the local node, and the initialization procedure does not proceed. In this
+situation, a call to <a href="mnesia.html#wait_for_tables/2"><code class="inline">mnesia:wait_for_tables/2</code></a>, suspends the caller until the
+remote node has initialized the table from its local disc and the node has
+copied the table over the network to the local node.</p><p>However, this procedure can be time-consuming, the shortcut function
+<a href="mnesia.html#force_load_table/1">mnesia:force_load_table(Tab)</a> loads all the tables
+from disc at a faster rate. The function forces tables to be loaded from disc
+regardless of the network situation.</p><p>Thus, it can be assumed that if an application wants to use tables <code class="inline">a</code> and <code class="inline">b</code>,
+the application must perform some action similar to following before it can use
+the tables:</p><pre><code class="makeup erlang" translate="no"><span class="w">          </span><span class="k">case</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">wait_for_tables</span><span class="p" data-group-id="7511293391-1">(</span><span class="p" data-group-id="7511293391-2">[</span><span class="ss">a</span><span class="p">,</span><span class="w"> </span><span class="ss">b</span><span class="p" data-group-id="7511293391-2">]</span><span class="p">,</span><span class="w"> </span><span class="mi">20000</span><span class="p" data-group-id="7511293391-1">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+            </span><span class="p" data-group-id="7511293391-3">{</span><span class="ss">timeout</span><span class="p">,</span><span class="w">   </span><span class="n">RemainingTabs</span><span class="p" data-group-id="7511293391-3">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+              </span><span class="nf">panic</span><span class="p" data-group-id="7511293391-4">(</span><span class="n">RemainingTabs</span><span class="p" data-group-id="7511293391-4">)</span><span class="p">;</span><span class="w">
+            </span><span class="ss">ok</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+              </span><span class="ss">synced</span><span class="w">
+          </span><span class="k">end</span><span class="p">.</span></code></pre><blockquote><h4 class="warning">Warning</h4><p>When tables are forcefully loaded from the local disc, all operations that
+were performed on the replicated table while the local node was down, and the
+remote replica was alive, are lost. This can cause the database to become
+inconsistent.</p></blockquote><p>If the startup procedure fails, the function <a href="mnesia.html#start/0">mnesia:start()</a>
+returns the cryptic tuple
+<code class="inline">{error,{shutdown, {mnesia_sup,start_link,[normal,[]]}}}</code>. To get more
+information about the start failure, use command-line arguments
+<code class="inline">-boot start_sasl</code> as argument to the <code class="inline">erl</code> script.</p><p><a href="" id="create_tables"></a></p><h2 id="create-tables" class="section-heading">
+  <a href="#create-tables" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Create Tables</span>
+</h2>
+<p>The function <a href="mnesia.html#create_table/2">mnesia:create_table(Name, ArgList)</a>
+creates tables. When executing this function, it returns one of the following
+responses:</p><ul><li><code class="inline">{atomic, ok}</code> if the function executes successfully</li><li><code class="inline">{aborted, Reason}</code> if the function fails</li></ul><p>The function arguments are as follows:</p><ul><li><code class="inline">Name</code> is the name of the table. It is usually the same name as the name of
+the records that constitute the table. For details, see <code class="inline">record_name</code>.</li><li><code class="inline">ArgList</code> is a list of <code class="inline">{Key,Value}</code> tuples. The following arguments are
+valid:<ul><li><p><code class="inline">{type, Type}</code>, where <code class="inline">Type</code> must be either of the atoms <code class="inline">set</code>,
+<code class="inline">ordered_set</code>, or <code class="inline">bag</code>. Default is <code class="inline">set</code>.</p><p>Notice that currently <code class="inline">ordered_set</code> is not supported for <code class="inline">disc_only_copies</code>
+tables.</p><p>A table of type <code class="inline">set</code> or <code class="inline">ordered_set</code> has either zero or one record per
+key, whereas a table of type <code class="inline">bag</code> can have an arbitrary number of records
+per key. The key for each record is always the first attribute of the
+record.</p><p>The following example illustrates the difference between type <code class="inline">set</code> and
+<code class="inline">bag</code>:</p><pre><code class="makeup erlang" translate="no"><span class="w"> </span><span class="nf">f</span><span class="p" data-group-id="8760453844-1">(</span><span class="p" data-group-id="8760453844-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">F</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">fun</span><span class="p" data-group-id="8760453844-2">(</span><span class="p" data-group-id="8760453844-2">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+          </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">write</span><span class="p" data-group-id="8760453844-3">(</span><span class="p" data-group-id="8760453844-4">{</span><span class="ss">foo</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p" data-group-id="8760453844-4">}</span><span class="p" data-group-id="8760453844-3">)</span><span class="p">,</span><span class="w">
+          </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">write</span><span class="p" data-group-id="8760453844-5">(</span><span class="p" data-group-id="8760453844-6">{</span><span class="ss">foo</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p" data-group-id="8760453844-6">}</span><span class="p" data-group-id="8760453844-5">)</span><span class="p">,</span><span class="w">
+          </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">read</span><span class="p" data-group-id="8760453844-7">(</span><span class="p" data-group-id="8760453844-8">{</span><span class="ss">foo</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p" data-group-id="8760453844-8">}</span><span class="p" data-group-id="8760453844-7">)</span><span class="w">
+        </span><span class="k">end</span><span class="p">,</span><span class="w">
+    </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">transaction</span><span class="p" data-group-id="8760453844-9">(</span><span class="n">F</span><span class="p" data-group-id="8760453844-9">)</span><span class="p">.</span></code></pre><p>This transaction returns the list <code class="inline">[{foo,1,3}]</code> if table <code class="inline">foo</code> is of type
+<code class="inline">set</code>. However, the list <code class="inline">[{foo,1,2}, {foo,1,3}]</code> is returned if the table
+is of type <code class="inline">bag</code>.</p><p><code class="inline">Mnesia</code> tables can never contain duplicates of the same record in the same
+table. Duplicate records have attributes with the same contents and key.</p></li><li><p><code class="inline">{disc_copies, NodeList}</code>, where <code class="inline">NodeList</code> is a list of the nodes where
+this table is to reside on disc.</p><p>Write operations to a table replica of type <code class="inline">disc_copies</code> write data to the
+disc copy and to the RAM copy of the table.</p><p>It is possible to have a replicated table of type <code class="inline">disc_copies</code> on one node,
+and the same table stored as a different type on another node. Default is
+<code class="inline">[]</code>. This arrangement is desirable if the following operational
+characteristics are required:</p><ol><li>Read operations must be fast and performed in RAM.</li><li>All write operations must be written to persistent storage.</li></ol><p>A write operation on a <code class="inline">disc_copies</code> table replica is performed in two
+steps. First the write operation is appended to a log file, then the actual
+operation is performed in RAM.</p></li><li><p><code class="inline">{ram_copies, NodeList}</code>, where <code class="inline">NodeList</code> is a list of the nodes where this
+table is stored in RAM. Default is <code class="inline">[node()]</code>. If the default value is used
+to create a table, it is located on the local node only.</p><p>Table replicas of type <code class="inline">ram_copies</code> can be dumped to disc with the function
+<a href="mnesia.html#dump_tables/1">mnesia:dump_tables(TabList)</a>.</p></li><li><p><code class="inline">{disc_only_copies, NodeList}</code>. These table replicas are stored on disc only
+and are therefore slower to access. However, a disc-only replica consumes
+less memory than a table replica of the other two storage types.</p></li><li><p><code class="inline">{index, AttributeNameList}</code>, where <code class="inline">AttributeNameList</code> is a list of atoms
+specifying the names of the attributes <code class="inline">Mnesia</code> is to build and maintain. An
+index table exists for every element in the list. The first field of a
+<code class="inline">Mnesia</code> record is the key and thus need no extra index.</p><p>The first field of a record is the second element of the tuple, which is the
+representation of the record.</p></li><li><p><code class="inline">{snmp, SnmpStruct}</code>. <code class="inline">SnmpStruct</code> is described in the
+<a href="../../apps/snmp/index.html">SNMP</a> User's Guide. Basically, if this attribute is
+present in <code class="inline">ArgList</code> of <a href="mnesia.html#create_table/2"><code class="inline">mnesia:create_table/2</code></a>, the table is immediately
+accessible the SNMP.</p><p>It is easy to design applications that use SNMP to manipulate and control
+the system. <code class="inline">Mnesia</code> provides a direct mapping between the logical tables
+that make up an SNMP control application and the physical data that makes up
+a <code class="inline">Mnesia</code> table. The default value is <code class="inline">[]</code>.</p></li><li><p><code class="inline">{local_content, true}</code>. When an application needs a table whose contents is
+to be locally unique on each node, <code class="inline">local_content</code> tables can be used. The
+name of the table is known to all <code class="inline">Mnesia</code> nodes, but its contents is unique
+for each node. Access to this type of table must be done locally.</p></li><li><p><code class="inline">{attributes, AtomList}</code> is a list of the attribute names for the records
+that are supposed to populate the table. Default is the list <code class="inline">[key, val]</code>.
+The table must at least have one extra attribute besides the key. When
+accessing single attributes in a record, it is not recommended to hard code
+the attribute names as atoms. Use the construct
+<code class="inline">record_info(fields, record_name)</code> instead.</p><p>The expression <code class="inline">record_info(fields, record_name)</code> is processed by the Erlang
+preprocessor and returns a list of the record field names. With the record
+definition <code class="inline">-record(foo, {x,y,z}).</code>, the expression
+<code class="inline">record_info(fields,foo)</code> is expanded to the list <code class="inline">[x,y,z]</code>. It is therefore
+possible for you to provide the attribute names or to use the
+<code class="inline">record_info/2</code> notation.</p><p>It is recommended to use the <code class="inline">record_info/2</code> notation, as it becomes easier
+to maintain the program and the program becomes more robust with regards to
+future record changes.</p></li><li><p><code class="inline">{record_name, Atom}</code> specifies the common name of all records stored in the
+table. All records stored in the table must have this name as their first
+element. <code class="inline">record_name</code> defaults to the name of the table. For more
+information, see
+<a href="mnesia_chap4.html#recordnames_tablenames">Record Names versus Table Names</a>.</p></li></ul></li></ul><p>As an example, consider the following record definition:</p><pre><code class="makeup erlang" translate="no"><span class="w">      </span><span class="p">-</span><span class="na">record</span><span class="p" data-group-id="8692354038-1">(</span><span class="ss">funky</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="8692354038-2">{</span><span class="ss">x</span><span class="p">,</span><span class="w"> </span><span class="ss">y</span><span class="p" data-group-id="8692354038-2">}</span><span class="p" data-group-id="8692354038-1">)</span><span class="p">.</span></code></pre><p>The following call would create a table that is replicated on two nodes, has an
+extra index on attribute <code class="inline">y</code>, and is of type <code class="inline">bag</code>.</p><pre><code class="makeup erlang" translate="no"><span class="w">      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">create_table</span><span class="p" data-group-id="7285629915-1">(</span><span class="ss">funky</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7285629915-2">[</span><span class="p" data-group-id="7285629915-3">{</span><span class="ss">disc_copies</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7285629915-4">[</span><span class="n">N1</span><span class="p">,</span><span class="w"> </span><span class="n">N2</span><span class="p" data-group-id="7285629915-4">]</span><span class="p" data-group-id="7285629915-3">}</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7285629915-5">{</span><span class="ss">index</span><span class="p">,</span><span class="w">
+      </span><span class="p" data-group-id="7285629915-6">[</span><span class="ss">y</span><span class="p" data-group-id="7285629915-6">]</span><span class="p" data-group-id="7285629915-5">}</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7285629915-7">{</span><span class="ss">type</span><span class="p">,</span><span class="w"> </span><span class="ss">bag</span><span class="p" data-group-id="7285629915-7">}</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7285629915-8">{</span><span class="ss">attributes</span><span class="p">,</span><span class="w"> </span><span class="nf">record_info</span><span class="p" data-group-id="7285629915-9">(</span><span class="ss">fields</span><span class="p">,</span><span class="w"> </span><span class="ss">funky</span><span class="p" data-group-id="7285629915-9">)</span><span class="p" data-group-id="7285629915-8">}</span><span class="p" data-group-id="7285629915-2">]</span><span class="p" data-group-id="7285629915-1">)</span><span class="p">.</span></code></pre><p>Whereas a call to the following default code values would return a table with a
+RAM copy on the local node, no extra indexes, and the attributes defaulted to
+the list <code class="inline">[key,val]</code>.</p><pre><code class="text">mnesia:create_table(stuff, [])</code></pre>
+<div class="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="mnesia_chap2.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Getting Started
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="mnesia_chap4.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+Transactions and Other Access Contexts
+        </span>
+      </a>
+
+  </div>
+</div>
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+              <a href="mnesia.epub" title="ePub version">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

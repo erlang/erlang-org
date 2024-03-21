@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="erts v14.3">
+
+
+    <title>BeamAsm, the Erlang JIT — erts v14.3</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-218663D5.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="erts" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+erts
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v14.3
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of erts</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/erts/emulator/internal_doc/BeamAsm.md#L1" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+
+  <span>BeamAsm, the Erlang JIT</span>
+</h1>
+
+<p>BeamAsm provides load-time conversion of Erlang BEAM instructions into
+native code on x86-64 and aarch64. This allows the loader to eliminate any
+instruction dispatching overhead and also specialize each instruction on their
+argument types.</p><p>BeamAsm does hardly any cross instruction optimizations and the <code class="inline">x</code> and <code class="inline">y</code>
+register arrays work the same as when interpreting BEAM instructions.
+This allows the Erlang run-time system to be largely unchanged except for
+places that need to work with loaded BEAM instructions like code loading,
+tracing, and a few others.</p><p>BeamAsm uses <a href="https://github.com/asmjit/asmjit">asmjit</a> to generate native code
+in run-time. Only small parts of the
+<a href="https://asmjit.com/doc/group__asmjit__assembler.html">Assembler API</a> of
+<a href="https://github.com/asmjit/asmjit">asmjit</a> is used. At the moment
+<a href="https://github.com/asmjit/asmjit">asmjit</a> only supports x86 32/64 bit and
+aarch64 assembler.</p><h2 id="loading-code" class="section-heading">
+  <a href="#loading-code" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Loading Code</span>
+</h2>
+<p>The code is loaded very similarly to how it is loaded for the interpreter. Each beam
+file is parsed and then optimized through the transformations described in
+<a href="beam_makeops.html#defining-transformation-rules">beam_makeops</a>. The transformations
+used in BeamAsm are much simpler than the interpreter's, as most of the
+transformations for the interpreter are done only to eliminate the instruction
+dispatch overhead.</p><p>Then each instruction is encoded using the C++ functions in the
+<code class="inline">jit/$ARCH/instr_*.cpp</code> files. For example:</p><pre><code class="makeup erlang" translate="no"><span class="ss">void</span><span class="w"> </span><span class="n">BeamModuleAssembler</span><span class="p">:</span><span class="p">:</span><span class="nf">emit_is_nonempty_list</span><span class="p" data-group-id="2189182587-1">(</span><span class="ss">const</span><span class="w"> </span><span class="n">ArgVal</span><span class="w"> </span><span class="err">&amp;</span><span class="n">Fail</span><span class="p">,</span><span class="w"> </span><span class="ss">const</span><span class="w"> </span><span class="n">ArgVal</span><span class="w"> </span><span class="err">&amp;</span><span class="n">Src</span><span class="p" data-group-id="2189182587-1">)</span><span class="w"> </span><span class="p" data-group-id="2189182587-2">{</span><span class="w">
+  </span><span class="ss">a</span><span class="p">.</span><span class="nf">test</span><span class="p" data-group-id="2189182587-3">(</span><span class="nf">getArgRef</span><span class="p" data-group-id="2189182587-4">(</span><span class="n">Src</span><span class="p" data-group-id="2189182587-4">)</span><span class="p">,</span><span class="w"> </span><span class="nf">imm</span><span class="p" data-group-id="2189182587-5">(</span><span class="p">_</span><span class="n">TAG_PRIMARY_MASK</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">TAG_PRIMARY_LIST</span><span class="p" data-group-id="2189182587-5">)</span><span class="p" data-group-id="2189182587-3">)</span><span class="p">;</span><span class="w">
+  </span><span class="ss">a</span><span class="p">.</span><span class="nf">jne</span><span class="p" data-group-id="2189182587-6">(</span><span class="ss">labels</span><span class="p" data-group-id="2189182587-7">[</span><span class="n">Fail</span><span class="p">.</span><span class="nf">getLabel</span><span class="p" data-group-id="2189182587-8">(</span><span class="p" data-group-id="2189182587-8">)</span><span class="p" data-group-id="2189182587-7">]</span><span class="p" data-group-id="2189182587-6">)</span><span class="p">;</span><span class="w">
+</span><span class="p" data-group-id="2189182587-2">}</span></code></pre><p><a href="https://github.com/asmjit/asmjit">asmjit</a> provides a fairly straightforward
+mapping from a C++ function call to the x86 assembly instruction. The above
+instruction tests if the value in the <code class="inline">Src</code> register is a non-empty list and if
+it is not then it jumps to the fail label.</p><p>For comparison, the interpreter has 8 combinations and specializations of
+this implementation to minimize the instruction dispatch overhead for
+common patterns.</p><p>The original register allocation done by the Erlang compiler is used to manage the
+liveness of values and the physical registers are statically allocated to keep
+the necessary process state. At the moment this is the static register
+allocation on x86-64:</p><pre><code class="makeup erlang" translate="no"><span class="nc">rbx</span><span class="p">:</span><span class="w"> </span><span class="n">ErtsSchedulerRegisters</span><span class="w"> </span><span class="nf">struct</span><span class="w"> </span><span class="p" data-group-id="9159098525-1">(</span><span class="ss">contains</span><span class="w"> </span><span class="ss">x</span><span class="o">/</span><span class="nb">float</span><span class="w"> </span><span class="ss">registers</span><span class="w"> </span><span class="ow">and</span><span class="w"> </span><span class="ss">some</span><span class="w"> </span><span class="ss">metadata</span><span class="p" data-group-id="9159098525-1">)</span><span class="w">
+</span><span class="nc">rbp</span><span class="p">:</span><span class="w"> </span><span class="n">Current</span><span class="w"> </span><span class="ss">frame</span><span class="w"> </span><span class="ss">pointer</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="err">`</span><span class="ss">perf</span><span class="err">`</span><span class="w"> </span><span class="ss">support</span><span class="w"> </span><span class="ss">is</span><span class="w"> </span><span class="ss">enabled</span><span class="p">,</span><span class="w"> </span><span class="ss">otherwise</span><span class="w"> </span><span class="ss">this</span><span class="w">
+     </span><span class="ss">is</span><span class="w"> </span><span class="ss">an</span><span class="w"> </span><span class="ss">optional</span><span class="w"> </span><span class="ss">save</span><span class="w"> </span><span class="ss">slot</span><span class="w"> </span><span class="ss">for</span><span class="w"> </span><span class="ss">the</span><span class="w"> </span><span class="n">Erlang</span><span class="w"> </span><span class="ss">stack</span><span class="w"> </span><span class="ss">pointer</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="ss">executing</span><span class="w"> </span><span class="n">C</span><span class="w">
+     </span><span class="ss">code</span><span class="p">.</span><span class="w">
+</span><span class="nc">r12</span><span class="p">:</span><span class="w"> </span><span class="n">Active</span><span class="w"> </span><span class="ss">code</span><span class="w"> </span><span class="ss">index</span><span class="w">
+</span><span class="nc">r13</span><span class="p">:</span><span class="w"> </span><span class="n">Current</span><span class="w"> </span><span class="ss">running</span><span class="w"> </span><span class="ss">process</span><span class="w">
+</span><span class="nc">r14</span><span class="p">:</span><span class="w"> </span><span class="n">Remaining</span><span class="w"> </span><span class="ss">reductions</span><span class="w">
+</span><span class="nc">r15</span><span class="p">:</span><span class="w"> </span><span class="n">Erlang</span><span class="w"> </span><span class="ss">heap</span><span class="w"> </span><span class="ss">pointer</span></code></pre><p>Note that all of these are callee save registers under the System V and Windows
+ABIs which means that BeamAsm never has to spill any of these when making C
+function calls.</p><p>The caller save registers are used as scratch registers within instructions but
+usually do not carry information between them. For some frequent instruction
+sequences such as tuple matching cross instruction optimization <em>are</em> done to avoid
+fetching the base address of the tuple in every <code class="inline">get_tuple_element</code> instruction.</p><h3 id="reducing-code-size-and-load-time" class="section-heading">
+  <a href="#reducing-code-size-and-load-time" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Reducing code size and load time</span>
+</h3>
+<p>One of the strengths of the interpreter is that it uses relatively little memory
+for loaded code. This is because the implementation of each loaded instruction is
+shared and only the arguments to the instructions vary. Using as little memory as
+possible has many advantages; less memory is used, loading time decreases,
+higher cache hit-rate.</p><p>In BeamAsm we need to achieve something similar since the load-time of a module
+scales almost linearly with the amount of memory it uses. Early BeamAsm prototypes
+used about double the amount of memory for code as the interpreter, while current
+versions use about 10% more. How was this achieved?</p><p>In BeamAsm we heavily use shared code fragments to try to emit as much code as
+possible as global shared fragments instead of duplicating the code unnecessarily.
+For instance, the return instruction looks something like this:</p><pre><code class="makeup erlang" translate="no"><span class="n">Label</span><span class="w"> </span><span class="ss">yield</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">a</span><span class="p">.</span><span class="nf">newLabel</span><span class="p" data-group-id="2080285895-1">(</span><span class="p" data-group-id="2080285895-1">)</span><span class="p">;</span><span class="w">
+
+</span><span class="o">/</span><span class="o">*</span><span class="w"> </span><span class="n">Decrement</span><span class="w"> </span><span class="ss">reduction</span><span class="w"> </span><span class="ss">counter</span><span class="w"> </span><span class="o">*</span><span class="o">/</span><span class="w">
+</span><span class="ss">a</span><span class="p">.</span><span class="nf">dec</span><span class="p" data-group-id="2080285895-2">(</span><span class="n">FCALLS</span><span class="p" data-group-id="2080285895-2">)</span><span class="p">;</span><span class="w">
+</span><span class="o">/</span><span class="o">*</span><span class="w"> </span><span class="n">If</span><span class="w"> </span><span class="n">FCALLS</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="ss">jump</span><span class="w"> </span><span class="ss">to</span><span class="w"> </span><span class="ss">the</span><span class="w"> </span><span class="ss">yield</span><span class="o">-</span><span class="ss">on</span><span class="o">-</span><span class="ss">return</span><span class="w"> </span><span class="ss">fragment</span><span class="w"> </span><span class="o">*</span><span class="o">/</span><span class="w">
+</span><span class="ss">a</span><span class="p">.</span><span class="nf">jl</span><span class="p" data-group-id="2080285895-3">(</span><span class="nf">resolve_fragment</span><span class="p" data-group-id="2080285895-4">(</span><span class="ss">ga</span><span class="p">-&gt;</span><span class="nf">get_dispatch_return</span><span class="p" data-group-id="2080285895-5">(</span><span class="p" data-group-id="2080285895-5">)</span><span class="p" data-group-id="2080285895-4">)</span><span class="p" data-group-id="2080285895-3">)</span><span class="p">;</span><span class="w">
+</span><span class="ss">a</span><span class="p">.</span><span class="nf">ret</span><span class="p" data-group-id="2080285895-6">(</span><span class="p" data-group-id="2080285895-6">)</span><span class="p">;</span></code></pre><p>The code above is not exactly what is emitted, but close enough. The thing to note
+is that the code for doing the context switch is never emitted. Instead, we jump
+to a global fragment that all return instructions share. This greatly reduces
+the amount of code that has to be emitted for each module.</p><h2 id="running-erlang-code" class="section-heading">
+  <a href="#running-erlang-code" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Running Erlang code</span>
+</h2>
+<p>Running BeamAsm code is very similar to running the interpreter, except that
+native code is executed instead of interpreted code.</p><p>We had to tweak the way the Erlang stack works in order to execute native
+instructions on it. While the interpreter uses a stack slot for
+the current frame's return address (setting it to <code class="inline">[]</code> when unused), the
+native code merely reserves enough space for it as the x86 <code class="inline">call</code> and <code class="inline">ret</code>
+instructions bump the stack pointer when executed.</p><p>This only affects the <em>current stack frame</em>, and is functionally identical
+aside from two caveats:</p><ol><li><p>Exceptions must not be thrown when the return address is reserved.</p><p> It's hard to tell where the stack will end up after an exception; the return
+ address won't be on the stack if we crash in the <em>current stack frame</em>, but
+ will be if we crash in a function we call. Telling these apart turned out to
+ rather complicated, so we decided to require the return address to be used
+ when an exception is thrown.</p><p> <code class="inline">emit_handle_error</code> handles this for you, and shared fragments that have been
+ called (rather than jumped to) satisfy this requirement by default.</p></li><li><p>Garbage collection needs to take return addresses into account.</p><p> If we're about to create a term we have to make sure that there's enough
+ space for this term <em>and</em> a potential return address, or else the next
+ <code class="inline">call</code> will clobber said term. This is taken care of in <code class="inline">emit_gc_test</code> and
+ you generally don't need to think about it.</p></li></ol><p>In addition to the above, we ensure that there's always at least <code class="inline">S_REDZONE</code>
+free words on the stack so we can make calls to shared fragments or trace
+handlers even when we lack a stack frame. This is merely a reservation and has
+no effect on how the stack works, and all values stored there must be valid
+Erlang terms in case of a garbage collection.</p><h2 id="frame-pointers" class="section-heading">
+  <a href="#frame-pointers" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Frame pointers</span>
+</h2>
+<p>To aid debuggers and sampling profilers, we support running Erlang code with
+native frame pointers. At the time of writing, this is only enabled together
+with <code class="inline">perf</code> support (<code class="inline">+JPperf true</code>) to save stack space, but we may add a flag
+to explicitly enable it in the future.</p><p>When enabled, continuation pointers (CP) have both a return address <em>and</em> a
+frame pointer that points at the previous CP. CPs must form a valid chain at
+all times, and it's illegal to have &quot;half&quot; a CP when the stack is inspected.</p><p>Frame pointers are pushed when entering an Erlang function and popped before
+leaving it, including on tail calls as the callee will immediately push the
+frame pointer on entry. This has a slight overhead but saves us the headache of
+having multiple entry points for each function depending on whether it's tail-
+or body-called, which would get very tricky once breakpoints enter the picture.</p><h2 id="running-c-code" class="section-heading">
+  <a href="#running-c-code" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Running C code</span>
+</h2>
+<p>As Erlang stacks can be very small, we have to switch over to a different stack
+when we need to execute C code (which may expect a much larger stack). This is
+done through <code class="inline">emit_enter_runtime</code> and <code class="inline">emit_leave_runtime</code>, for example:</p><pre><code class="makeup erlang" translate="no"><span class="nf">mov_arg</span><span class="p" data-group-id="4736570750-1">(</span><span class="n">ARG4</span><span class="p">,</span><span class="w"> </span><span class="n">NumFree</span><span class="p" data-group-id="4736570750-1">)</span><span class="p">;</span><span class="w">
+
+</span><span class="o">/</span><span class="o">*</span><span class="w"> </span><span class="n">Move</span><span class="w"> </span><span class="ss">to</span><span class="w"> </span><span class="ss">the</span><span class="w"> </span><span class="n">C</span><span class="w"> </span><span class="ss">stack</span><span class="w"> </span><span class="ow">and</span><span class="w"> </span><span class="ss">swap</span><span class="w"> </span><span class="ss">out</span><span class="w"> </span><span class="ss">our</span><span class="w"> </span><span class="ss">current</span><span class="w"> </span><span class="ss">reductions</span><span class="p">,</span><span class="w"> </span><span class="ss">stack</span><span class="o">-</span><span class="p">,</span><span class="w"> </span><span class="ow">and</span><span class="w">
+ </span><span class="o">*</span><span class="w"> </span><span class="ss">heap</span><span class="w"> </span><span class="ss">pointer</span><span class="w"> </span><span class="ss">to</span><span class="w"> </span><span class="ss">the</span><span class="w"> </span><span class="ss">process</span><span class="w"> </span><span class="ss">structure</span><span class="p">.</span><span class="w"> </span><span class="o">*</span><span class="o">/</span><span class="w">
+</span><span class="ss">emit_enter_runtime</span><span class="o">&lt;</span><span class="n">Update</span><span class="p">:</span><span class="p">:</span><span class="ss">eReductions</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="n">Update</span><span class="p">:</span><span class="p">:</span><span class="ss">eStack</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="n">Update</span><span class="p">:</span><span class="p">:</span><span class="ss">eHeap</span><span class="o">&gt;</span><span class="p" data-group-id="4736570750-2">(</span><span class="p" data-group-id="4736570750-2">)</span><span class="p">;</span><span class="w">
+
+</span><span class="ss">a</span><span class="p">.</span><span class="nf">mov</span><span class="p" data-group-id="4736570750-3">(</span><span class="n">ARG1</span><span class="p">,</span><span class="w"> </span><span class="ss">c_p</span><span class="p" data-group-id="4736570750-3">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">load_x_reg_array</span><span class="p" data-group-id="4736570750-4">(</span><span class="n">ARG2</span><span class="p" data-group-id="4736570750-4">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">make_move_patch</span><span class="p" data-group-id="4736570750-5">(</span><span class="n">ARG3</span><span class="p">,</span><span class="w"> </span><span class="ss">lambdas</span><span class="p" data-group-id="4736570750-6">[</span><span class="n">Fun</span><span class="p">.</span><span class="nf">getValue</span><span class="p" data-group-id="4736570750-7">(</span><span class="p" data-group-id="4736570750-7">)</span><span class="p" data-group-id="4736570750-6">]</span><span class="p">.</span><span class="ss">patches</span><span class="p" data-group-id="4736570750-5">)</span><span class="p">;</span><span class="w">
+
+</span><span class="o">/</span><span class="o">*</span><span class="w"> </span><span class="n">Call</span><span class="w"> </span><span class="err">`</span><span class="ss">new_fun</span><span class="err">`</span><span class="p">,</span><span class="w"> </span><span class="ss">asserting</span><span class="w"> </span><span class="ss">that</span><span class="w"> </span><span class="ss">we</span><span class="err">&#39;</span><span class="ss">re</span><span class="w"> </span><span class="ss">on</span><span class="w"> </span><span class="ss">the</span><span class="w"> </span><span class="n">C</span><span class="w"> </span><span class="ss">stack</span><span class="p">.</span><span class="w"> </span><span class="o">*</span><span class="o">/</span><span class="w">
+</span><span class="ss">runtime_call</span><span class="o">&lt;</span><span class="mi">4</span><span class="o">&gt;</span><span class="p" data-group-id="4736570750-8">(</span><span class="ss">new_fun</span><span class="p" data-group-id="4736570750-8">)</span><span class="p">;</span><span class="w">
+
+</span><span class="o">/</span><span class="o">*</span><span class="w"> </span><span class="n">Move</span><span class="w"> </span><span class="ss">back</span><span class="w"> </span><span class="ss">to</span><span class="w"> </span><span class="ss">the</span><span class="w"> </span><span class="n">C</span><span class="w"> </span><span class="ss">stack</span><span class="p">,</span><span class="w"> </span><span class="ow">and</span><span class="w"> </span><span class="ss">read</span><span class="w"> </span><span class="ss">the</span><span class="w"> </span><span class="ss">updated</span><span class="w"> </span><span class="ss">values</span><span class="w"> </span><span class="ss">from</span><span class="w"> </span><span class="ss">the</span><span class="w"> </span><span class="ss">process</span><span class="w">
+ </span><span class="o">*</span><span class="w"> </span><span class="ss">structure</span><span class="w"> </span><span class="o">*</span><span class="o">/</span><span class="w">
+</span><span class="ss">emit_leave_runtime</span><span class="o">&lt;</span><span class="n">Update</span><span class="p">:</span><span class="p">:</span><span class="ss">eReductions</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="n">Update</span><span class="p">:</span><span class="p">:</span><span class="ss">eStack</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="n">Update</span><span class="p">:</span><span class="p">:</span><span class="ss">eHeap</span><span class="o">&gt;</span><span class="p" data-group-id="4736570750-9">(</span><span class="p" data-group-id="4736570750-9">)</span><span class="p">;</span><span class="w">
+
+</span><span class="ss">a</span><span class="p">.</span><span class="nf">mov</span><span class="p" data-group-id="4736570750-10">(</span><span class="nf">getXRef</span><span class="p" data-group-id="4736570750-11">(</span><span class="mi">0</span><span class="p" data-group-id="4736570750-11">)</span><span class="p">,</span><span class="w"> </span><span class="n">RET</span><span class="p" data-group-id="4736570750-10">)</span><span class="p">;</span></code></pre><p>All combinations of the <code class="inline">Update</code> constants are legal, but the ones given to
+<code class="inline">emit_leave_runtime</code> <em>must</em> be the same as those given to <code class="inline">emit_enter_runtime</code>.</p><h2 id="tracing-and-nif-loading" class="section-heading">
+  <a href="#tracing-and-nif-loading" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Tracing and NIF Loading</span>
+</h2>
+<p>To make tracing and NIF loading work there needs to be a way to intercept
+any function call. In the interpreter, this is done by rewriting the loaded
+BEAM code, but this is more complicated in BeamAsm as we want to have a fast
+and compact way to do this. This is solved by emitting the code below at the
+start of each function (x86 variant below):</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="mi">0</span><span class="nc">x0</span><span class="p">:</span><span class="w"> </span><span class="ss">short</span><span class="w"> </span><span class="ss">jmp</span><span class="w"> </span><span class="mi">6</span><span class="w"> </span><span class="p" data-group-id="1659921831-1">(</span><span class="ss">address</span><span class="w"> </span><span class="mi">0</span><span class="ss">x8</span><span class="p" data-group-id="1659921831-1">)</span><span class="w">
+  </span><span class="mi">0</span><span class="nc">x2</span><span class="p">:</span><span class="w"> </span><span class="ss">nop</span><span class="w">
+  </span><span class="mi">0</span><span class="nc">x3</span><span class="p">:</span><span class="w"> </span><span class="ss">relative</span><span class="w"> </span><span class="ss">near</span><span class="w"> </span><span class="ss">call</span><span class="w"> </span><span class="ss">to</span><span class="w"> </span><span class="ss">shared</span><span class="w"> </span><span class="ss">breakpoint</span><span class="w"> </span><span class="ss">fragment</span><span class="w">
+  </span><span class="mi">0</span><span class="nc">x8</span><span class="p">:</span><span class="w"> </span><span class="ss">actual</span><span class="w"> </span><span class="ss">code</span><span class="w"> </span><span class="ss">for</span><span class="w"> </span><span class="ss">function</span></code></pre><p>When code starts to execute it will simply see the <code class="inline">short jmp 6</code> instruction
+which skips the prologue and starts to execute the code directly.</p><p>When we want to enable a certain breakpoint we set the jmp target to be 1,
+which means it will land on the call to the shared breakpoint fragment. This
+fragment checks the current <code class="inline">breakpoint_flag</code> stored in the ErtsCodeInfo of
+this function, and then calls <code class="inline">erts_call_nif_early</code> and
+<code class="inline">erts_generic_breakpoint</code> accordingly.</p><p>Note that the update of the branch and <code class="inline">breakpoint_flag</code> does not need to be
+atomic: it's fine if a process only sees one of these being updated, as the
+code that sets breakpoints/loads NIFs doesn't rely on the trampoline being
+active until thread progress has been made.</p><p>The solution for AArch64 is similar.</p><h3 id="updating-code" class="section-heading">
+  <a href="#updating-code" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Updating code</span>
+</h3>
+<p>Because many environments enforce <a href="https://en.wikipedia.org/wiki/W%5EX" title="">W^X</a> it's not always possible to write
+directly to the code pages. Because of this we map code twice: once with an
+executable page and once with a writable page. Since they're backed by the
+same memory, writes to the writable page appear magically in the executable
+one.</p><p>The <code class="inline">erts_writable_code_ptr</code> function can be used to get writable pointers
+given a module instance, provided that it has been unsealed first:</p><pre><code class="makeup erlang" translate="no"><span class="nf">for</span><span class="w"> </span><span class="p" data-group-id="2113557076-1">(</span><span class="ss">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="ss">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="ss">n</span><span class="p">;</span><span class="w"> </span><span class="ss">i</span><span class="o">++</span><span class="p" data-group-id="2113557076-1">)</span><span class="w"> </span><span class="p" data-group-id="2113557076-2">{</span><span class="w">
+    </span><span class="ss">const</span><span class="w"> </span><span class="n">ErtsCodeInfo</span><span class="o">*</span><span class="w"> </span><span class="ss">ci_exec</span><span class="p">;</span><span class="w">
+    </span><span class="n">ErtsCodeInfo</span><span class="o">*</span><span class="w"> </span><span class="ss">ci_rw</span><span class="p">;</span><span class="w">
+    </span><span class="ss">void</span><span class="w"> </span><span class="o">*</span><span class="ss">w_ptr</span><span class="p">;</span><span class="w">
+
+    </span><span class="nf">erts_unseal_module</span><span class="p" data-group-id="2113557076-3">(</span><span class="err">&amp;</span><span class="ss">modp</span><span class="p">-&gt;</span><span class="ss">curr</span><span class="p" data-group-id="2113557076-3">)</span><span class="p">;</span><span class="w">
+
+    </span><span class="ss">ci_exec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">code_hdr</span><span class="p">-&gt;</span><span class="ss">functions</span><span class="p" data-group-id="2113557076-4">[</span><span class="ss">i</span><span class="p" data-group-id="2113557076-4">]</span><span class="p">;</span><span class="w">
+    </span><span class="ss">w_ptr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">erts_writable_code_ptr</span><span class="p" data-group-id="2113557076-5">(</span><span class="err">&amp;</span><span class="ss">modp</span><span class="p">-&gt;</span><span class="ss">curr</span><span class="p">,</span><span class="w"> </span><span class="ss">ci_exec</span><span class="p" data-group-id="2113557076-5">)</span><span class="p">;</span><span class="w">
+    </span><span class="ss">ci_rw</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="2113557076-6">(</span><span class="n">ErtsCodeInfo</span><span class="o">*</span><span class="p" data-group-id="2113557076-6">)</span><span class="ss">w_ptr</span><span class="p">;</span><span class="w">
+
+    </span><span class="nf">uninstall_breakpoint</span><span class="p" data-group-id="2113557076-7">(</span><span class="ss">ci_rw</span><span class="p">,</span><span class="w"> </span><span class="ss">ci_exec</span><span class="p" data-group-id="2113557076-7">)</span><span class="p">;</span><span class="w">
+    </span><span class="nf">consolidate_bp_data</span><span class="p" data-group-id="2113557076-8">(</span><span class="ss">modp</span><span class="p">,</span><span class="w"> </span><span class="ss">ci_rw</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p" data-group-id="2113557076-8">)</span><span class="p">;</span><span class="w">
+    </span><span class="n">ASSERT</span><span class="p" data-group-id="2113557076-9">(</span><span class="ss">ci_rw</span><span class="p">-&gt;</span><span class="ss">gen_bp</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">NULL</span><span class="p" data-group-id="2113557076-9">)</span><span class="p">;</span><span class="w">
+
+    </span><span class="nf">erts_seal_module</span><span class="p" data-group-id="2113557076-10">(</span><span class="err">&amp;</span><span class="ss">modp</span><span class="p">-&gt;</span><span class="ss">curr</span><span class="p" data-group-id="2113557076-10">)</span><span class="p">;</span><span class="w">
+</span><span class="p" data-group-id="2113557076-2">}</span></code></pre><p>Without the module instance there's no reliable way to figure out the writable
+address of a code page, and we rely on <em>address space layout randomization</em>
+(ASLR) to make it difficult to guess. On some platforms, security is further
+enhanced by protecting the writable area from writes until the module has been
+unsealed by <code class="inline">erts_unseal_module</code>.</p><h3 id="export-tracing" class="section-heading">
+  <a href="#export-tracing" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Export tracing</span>
+</h3>
+<p>Unlike the interpreter, we don't execute code inside export entries as that's
+very annoying to do in the face of <a href="https://en.wikipedia.org/wiki/W%5EX" title="">W^X</a>. When tracing is enabled, we instead
+point to a fragment that looks at the current export entry and decides what to
+do.</p><p>This fragment is shared between all export entries, and the export entry to
+operate on is assumed to be in a certain register (<code class="inline">RET</code> as of writing). This
+means that all remote calls <em>must</em> place the export entry in said register,
+even when we don't know beforehand that the call is remote, such as when
+calling a fun.</p><p>This is pretty easy to do in assembler and the <code class="inline">emit_setup_dispatchable_call</code>
+helper handles it nicely for us, but we can't set registers when trapping out
+from C code. When trapping to an export entry from C code one must set
+<code class="inline">c_p-&gt;current</code> to the <code class="inline">ErtsCodeMFA</code> inside the export entry in question, and
+then set <code class="inline">c_p-&gt;i</code> to <code class="inline">beam_bif_export_trap</code>.</p><p>The <code class="inline">BIF_TRAP</code> macros handle this for you, so you generally don't need to
+think about it.</p><h2 id="description-of-each-file" class="section-heading">
+  <a href="#description-of-each-file" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Description of each file</span>
+</h2>
+<p>The BeamAsm implementation resides in the <code class="inline">$ERL_TOP/erts/emulator/beam/jit</code> folder.
+The files are:</p><ul><li><code class="inline">asm_load.c</code><ul><li>BeamAsm specific functions for loading code</li></ul></li><li><code class="inline">beam_asm.h</code><ul><li>Header file describing the C -&gt; C++ api</li></ul></li><li><code class="inline">beam_jit_metadata.cpp</code><ul><li><code class="inline">gdb</code> and Linux <code class="inline">perf</code> support for BeamAsm</li></ul></li><li><code class="inline">load.h</code><ul><li>BeamAsm specific header for loading code</li></ul></li><li><code class="inline">$ARCH/beam_asm.hpp</code><ul><li>Header file describing the structs and classes used by BeamAsm.</li></ul></li><li><code class="inline">$ARCH/beam_asm.cpp</code><ul><li>The BeamAsm initialization code</li><li>The C -&gt; C++ interface functions.</li></ul></li><li><code class="inline">$ARCH/generators.tab</code>, <code class="inline">$ARCH/predicates.tab</code>, <code class="inline">$ARCH/ops.tab</code><ul><li>BeamAsm specific transformations for instructions. See
+<a href="beam_makeops.html">beam_makeops</a> for more details.</li></ul></li><li><code class="inline">$ARCH/beam_asm_module.cpp</code><ul><li>The code for the BeamAsm module code generator logic</li></ul></li><li><code class="inline">$ARCH/beam_asm_global.cpp</code><ul><li>Global code fragments that are used by multiple instructions, e.g. error
+handling code.</li></ul></li><li><code class="inline">$ARCH/instr_*.cpp</code><ul><li>Implementation of individual instructions grouped into files by area</li></ul></li><li><code class="inline">$ARCH/process_main.cpp</code><ul><li>Implementation of the main process loop</li></ul></li></ul><h2 id="linux-perf-support" class="section-heading">
+  <a href="#linux-perf-support" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Linux perf support</span>
+</h2>
+<p>The JIT can provide symbols to the Linux profiler <code class="inline">perf</code>, making it possible to
+profile Erlang code with it. Depending on the mode used, <code class="inline">perf</code> will provide
+functionality similar to <a href="https://erlang.org/doc/man/eprof.html">eprof</a> or
+<a href="https://erlang.org/doc/man/fprof.html">fprof</a> but with much lower (and
+configurable) overhead.</p><p>You can run perf on BeamAsm like this:</p><pre><code class="makeup erlang" translate="no"><span class="p">#</span><span class="w"> </span><span class="n">Start</span><span class="w"> </span><span class="n">Erlang</span><span class="w"> </span><span class="ss">under</span><span class="w"> </span><span class="ss">perf</span><span class="w">
+</span><span class="ss">perf</span><span class="w"> </span><span class="ss">record</span><span class="w"> </span><span class="o">--</span><span class="w"> </span><span class="ss">erl</span><span class="w"> </span><span class="o">+</span><span class="n">JPperf</span><span class="w"> </span><span class="ss">true</span><span class="w">
+</span><span class="p">#</span><span class="w"> </span><span class="n">Record</span><span class="w"> </span><span class="ss">a</span><span class="w"> </span><span class="ss">running</span><span class="w"> </span><span class="ss">instance</span><span class="w"> </span><span class="ss">started</span><span class="w"> </span><span class="ss">with</span><span class="w"> </span><span class="err">`</span><span class="o">+</span><span class="n">JPperf</span><span class="w"> </span><span class="ss">true</span><span class="err">`</span><span class="w"> </span><span class="ss">for</span><span class="w"> </span><span class="mi">10</span><span class="ss">s</span><span class="w">
+</span><span class="ss">perf</span><span class="w"> </span><span class="ss">record</span><span class="w"> </span><span class="o">--</span><span class="ss">pid</span><span class="w"> </span><span class="sc">$B</span><span class="n">EAM_PID</span><span class="w"> </span><span class="o">--</span><span class="w"> </span><span class="ss">sleep</span><span class="w"> </span><span class="mi">10</span><span class="w">
+</span><span class="p">#</span><span class="w"> </span><span class="n">Record</span><span class="w"> </span><span class="ss">a</span><span class="w"> </span><span class="ss">running</span><span class="w"> </span><span class="ss">instance</span><span class="w"> </span><span class="ss">started</span><span class="w"> </span><span class="ss">with</span><span class="w"> </span><span class="err">`</span><span class="o">+</span><span class="n">JPperf</span><span class="w"> </span><span class="ss">true</span><span class="err">`</span><span class="w"> </span><span class="ss">until</span><span class="w"> </span><span class="ss">interrupted</span><span class="w">
+</span><span class="ss">perf</span><span class="w"> </span><span class="ss">record</span><span class="w"> </span><span class="o">--</span><span class="ss">pid</span><span class="w"> </span><span class="sc">$B</span><span class="n">EAM_PID</span></code></pre><p>and then look at the results using <code class="inline">perf report</code> as you normally would with
+perf.</p><p>Frame pointers are enabled when the <code class="inline">+JPperf true</code> option is passed, so you can
+use <code class="inline">perf record --call-graph=fp</code> to get more context, making the results
+similar to that of <code class="inline">fprof</code>. This will give you accurate call graphs for pure
+Erlang code, but in rare cases it fails to track transitions from Erlang to C
+code and back. <a href="https://lwn.net/Articles/680985/"><code class="inline">perf record --call-graph=lbr</code></a>
+may work better in those cases, but it's worse at tracking in general.</p><p>For example, you can run perf to analyze dialyzer building a PLT like this:</p><pre><code class="makeup erlang" translate="no"><span class="w"> </span><span class="n">ERL_FLAGS</span><span class="o">=</span><span class="s">&quot;+JPperf true +S 1&quot;</span><span class="w"> </span><span class="ss">perf</span><span class="w"> </span><span class="ss">record</span><span class="w"> </span><span class="o">--</span><span class="ss">call</span><span class="o">-</span><span class="ss">graph</span><span class="o">=</span><span class="ss">fp</span><span class="w"> </span><span class="err">\</span><span class="w">
+   </span><span class="ss">dialyzer</span><span class="w"> </span><span class="o">--</span><span class="ss">build_plt</span><span class="w"> </span><span class="o">-</span><span class="n">Wunknown</span><span class="w"> </span><span class="o">--</span><span class="ss">apps</span><span class="w"> </span><span class="ss">compiler</span><span class="w"> </span><span class="ss">crypto</span><span class="w"> </span><span class="ss">erts</span><span class="w"> </span><span class="ss">kernel</span><span class="w"> </span><span class="ss">stdlib</span><span class="w"> </span><span class="err">\</span><span class="w">
+   </span><span class="ss">syntax_tools</span><span class="w"> </span><span class="ss">asn1</span><span class="w"> </span><span class="ss">edoc</span><span class="w"> </span><span class="ss">et</span><span class="w"> </span><span class="ss">ftp</span><span class="w"> </span><span class="ss">inets</span><span class="w"> </span><span class="ss">mnesia</span><span class="w"> </span><span class="ss">observer</span><span class="w"> </span><span class="ss">public_key</span><span class="w"> </span><span class="err">\</span><span class="w">
+   </span><span class="ss">sasl</span><span class="w"> </span><span class="ss">runtime_tools</span><span class="w"> </span><span class="ss">snmp</span><span class="w"> </span><span class="ss">ssl</span><span class="w"> </span><span class="ss">tftp</span><span class="w"> </span><span class="ss">wx</span><span class="w"> </span><span class="ss">xmerl</span><span class="w"> </span><span class="ss">tools</span></code></pre><p>The above code is run using <code class="inline">+S 1</code> to make the perf output easier to understand.
+If you then run <code class="inline">perf report -f --no-children</code> you may get something similar to
+this:</p><p><img src="assets/perf-beamasm.png" alt="Linux Perf report: dialyzer PLT build"/></p><p>Any Erlang function in the report is prefixed with a <code class="inline">$</code> and all C functions have
+their normal names. Any Erlang function that has the prefix <code class="inline">$global::</code> refers
+to a global shared fragment.</p><p>So in the above, we can see that we spend the most time doing <code class="inline">eq</code>, i.e. comparing two terms.
+By expanding it and looking at its parents we can see that it is the function
+<code class="inline">erl_types:t_is_equal/2</code> that contributes the most to this value. Go and have a look
+at it in the source code to see if you can figure out why so much time is spent there.</p><p>After <code class="inline">eq</code> we see the function <code class="inline">erl_types:t_has_var/1</code> where we spend almost
+5% of the entire execution in. A while further down you can see <code class="inline">copy_struct_x</code>
+which is the function used to copy terms. If we expand it to view the parents
+we find that it is mostly <a href="../../apps/stdlib/ets.html#lookup_element/3"><code class="inline">ets:lookup_element/3</code></a> that contributes to this time
+via the Erlang function <code class="inline">dialyzer_plt:ets_table_lookup/2</code>.</p><h3 id="flame-graph" class="section-heading">
+  <a href="#flame-graph" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Flame Graph</span>
+</h3>
+<p>You can also create a Flame Graph from the perf output. Flame Graphs are basically
+just another way to look at the same data as the <code class="inline">perf report</code> output, but can
+be more easily shared with others and manipulated to give a graph tailor-made for
+your needs. For instance, if we run dialyzer with all schedulers:</p><pre><code class="makeup erlang" translate="no"><span class="p">#</span><span class="p">#</span><span class="w"> </span><span class="n">Run</span><span class="w"> </span><span class="ss">dialyzer</span><span class="w"> </span><span class="ss">with</span><span class="w"> </span><span class="ss">multiple</span><span class="w"> </span><span class="ss">schedulers</span><span class="w">
+</span><span class="n">ERL_FLAGS</span><span class="o">=</span><span class="s">&quot;+JPperf true&quot;</span><span class="w"> </span><span class="ss">perf</span><span class="w"> </span><span class="ss">record</span><span class="w"> </span><span class="o">--</span><span class="ss">call</span><span class="o">-</span><span class="ss">graph</span><span class="o">=</span><span class="ss">fp</span><span class="w"> </span><span class="err">\</span><span class="w">
+  </span><span class="ss">dialyzer</span><span class="w"> </span><span class="o">--</span><span class="ss">build_plt</span><span class="w"> </span><span class="o">-</span><span class="n">Wunknown</span><span class="w"> </span><span class="o">--</span><span class="ss">apps</span><span class="w"> </span><span class="ss">compiler</span><span class="w"> </span><span class="ss">crypto</span><span class="w"> </span><span class="ss">erts</span><span class="w"> </span><span class="ss">kernel</span><span class="w"> </span><span class="ss">stdlib</span><span class="w"> </span><span class="err">\</span><span class="w">
+  </span><span class="ss">syntax_tools</span><span class="w"> </span><span class="ss">asn1</span><span class="w"> </span><span class="ss">edoc</span><span class="w"> </span><span class="ss">et</span><span class="w"> </span><span class="ss">ftp</span><span class="w"> </span><span class="ss">inets</span><span class="w"> </span><span class="ss">mnesia</span><span class="w"> </span><span class="ss">observer</span><span class="w"> </span><span class="ss">public_key</span><span class="w"> </span><span class="err">\</span><span class="w">
+  </span><span class="ss">sasl</span><span class="w"> </span><span class="ss">runtime_tools</span><span class="w"> </span><span class="ss">snmp</span><span class="w"> </span><span class="ss">ssl</span><span class="w"> </span><span class="ss">tftp</span><span class="w"> </span><span class="ss">wx</span><span class="w"> </span><span class="ss">xmerl</span><span class="w"> </span><span class="ss">tools</span><span class="w"> </span><span class="o">--</span><span class="nb">statistics</span></code></pre><p>And then use the scripts found at Brendan Gregg's <a href="https://www.brendangregg.com/FlameGraphs/cpuflamegraphs.html">CPU Flame Graphs</a>
+web page as follows:</p><pre><code class="makeup erlang" translate="no"><span class="p">#</span><span class="p">#</span><span class="w"> </span><span class="n">Collect</span><span class="w"> </span><span class="ss">the</span><span class="w"> </span><span class="ss">results</span><span class="w">
+</span><span class="ss">perf</span><span class="w"> </span><span class="ss">script</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="ss">out</span><span class="p">.</span><span class="ss">perf</span><span class="w">
+</span><span class="p">#</span><span class="p">#</span><span class="w"> </span><span class="ss">run</span><span class="w"> </span><span class="ss">stackcollapse</span><span class="w">
+</span><span class="ss">stackcollapse</span><span class="o">-</span><span class="ss">perf</span><span class="p">.</span><span class="ss">pl</span><span class="w"> </span><span class="ss">out</span><span class="p">.</span><span class="ss">perf</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="ss">out</span><span class="p">.</span><span class="ss">folded</span><span class="w">
+</span><span class="p">#</span><span class="p">#</span><span class="w"> </span><span class="n">Create</span><span class="w"> </span><span class="ss">the</span><span class="w"> </span><span class="ss">svg</span><span class="w">
+</span><span class="ss">flamegraph</span><span class="p">.</span><span class="ss">pl</span><span class="w"> </span><span class="ss">out</span><span class="p">.</span><span class="ss">folded</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="ss">out</span><span class="p">.</span><span class="ss">svg</span></code></pre><p>We get a graph that would look something like this:</p><p><img src="assets/perf-beamasm.svg" alt="Linux Perf FlameGraph: dialyzer PLT build"/></p><p>You can view a larger version <a href="assets/perf-beamasm.svg">here</a>. It contains
+the same information, but it is easier to share with others as it does
+not need the symbols in the executable.</p><p>Using the same data we can also produce a graph where the scheduler profile data
+has been merged by using <code class="inline">sed</code>:</p><pre><code class="makeup erlang" translate="no"><span class="p">#</span><span class="p">#</span><span class="w"> </span><span class="n">Strip</span><span class="w"> </span><span class="p" data-group-id="1931192164-1">[</span><span class="mi">0</span><span class="o">-</span><span class="mi">9</span><span class="p" data-group-id="1931192164-1">]</span><span class="o">+</span><span class="p">_</span><span class="w"> </span><span class="ow">and</span><span class="o">/</span><span class="ow">or</span><span class="w"> </span><span class="p">_</span><span class="p" data-group-id="1931192164-2">[</span><span class="mi">0</span><span class="o">-</span><span class="mi">9</span><span class="p" data-group-id="1931192164-2">]</span><span class="o">+</span><span class="w"> </span><span class="ss">from</span><span class="w"> </span><span class="ss">all</span><span class="w"> </span><span class="ss">scheduler</span><span class="w"> </span><span class="ss">names</span><span class="w">
+</span><span class="p">#</span><span class="p">#</span><span class="w"> </span><span class="ss">scheduler</span><span class="w"> </span><span class="ss">names</span><span class="w"> </span><span class="ss">changed</span><span class="w"> </span><span class="ss">in</span><span class="w"> </span><span class="n">OTP26</span><span class="p">,</span><span class="w"> </span><span class="ss">hence</span><span class="w"> </span><span class="ss">two</span><span class="w"> </span><span class="ss">expressions</span><span class="w">
+</span><span class="ss">sed</span><span class="w"> </span><span class="o">-</span><span class="ss">e</span><span class="w"> </span><span class="ss">&#39;s/^[0-9]\+_//&#39;</span><span class="w"> </span><span class="o">-</span><span class="ss">e</span><span class="w"> </span><span class="ss">&#39;s/^erts_\([^_]\+\)_[0-9]\+/erts_\1/&#39;</span><span class="w"> </span><span class="ss">out</span><span class="p">.</span><span class="ss">folded</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="ss">out</span><span class="p">.</span><span class="ss">folded_sched</span><span class="w">
+</span><span class="p">#</span><span class="p">#</span><span class="w"> </span><span class="n">Create</span><span class="w"> </span><span class="ss">the</span><span class="w"> </span><span class="ss">svg</span><span class="w">
+</span><span class="ss">flamegraph</span><span class="p">.</span><span class="ss">pl</span><span class="w"> </span><span class="ss">out</span><span class="p">.</span><span class="ss">folded_sched</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="ss">out_sched</span><span class="p">.</span><span class="ss">svg</span></code></pre><p><img src="assets/perf-beamasm-merged.svg" alt="Linux Perf FlameGraph: dialyzer PLT build"/></p><p>You can view a larger version <a href="assets/perf-beamasm-merged.svg">here</a>.
+There are many different transformations that you can do to make the graph show
+you what you want.</p><h3 id="annotate-perf-functions" class="section-heading">
+  <a href="#annotate-perf-functions" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Annotate perf functions</span>
+</h3>
+<p>If you want to be able to use the <code class="inline">perf annotate</code> functionality (and in extension
+the annotate functionality in the <code class="inline">perf report</code> gui) you need to use a monotonic
+clock when calling <code class="inline">perf record</code>, i.e. <code class="inline">perf record -k mono</code>. So for a dialyzer
+run you would do this:</p><pre><code class="makeup erlang" translate="no"><span class="n">ERL_FLAGS</span><span class="o">=</span><span class="s">&quot;+JPperf true +S 1&quot;</span><span class="w"> </span><span class="ss">perf</span><span class="w"> </span><span class="ss">record</span><span class="w"> </span><span class="o">-</span><span class="ss">k</span><span class="w"> </span><span class="ss">mono</span><span class="w"> </span><span class="o">--</span><span class="ss">call</span><span class="o">-</span><span class="ss">graph</span><span class="o">=</span><span class="ss">fp</span><span class="w"> </span><span class="err">\</span><span class="w">
+  </span><span class="ss">dialyzer</span><span class="w"> </span><span class="o">--</span><span class="ss">build_plt</span><span class="w"> </span><span class="o">-</span><span class="n">Wunknown</span><span class="w"> </span><span class="o">--</span><span class="ss">apps</span><span class="w"> </span><span class="ss">compiler</span><span class="w"> </span><span class="ss">crypto</span><span class="w"> </span><span class="ss">erts</span><span class="w"> </span><span class="ss">kernel</span><span class="w"> </span><span class="ss">stdlib</span><span class="w"> </span><span class="err">\</span><span class="w">
+  </span><span class="ss">syntax_tools</span><span class="w"> </span><span class="ss">asn1</span><span class="w"> </span><span class="ss">edoc</span><span class="w"> </span><span class="ss">et</span><span class="w"> </span><span class="ss">ftp</span><span class="w"> </span><span class="ss">inets</span><span class="w"> </span><span class="ss">mnesia</span><span class="w"> </span><span class="ss">observer</span><span class="w"> </span><span class="ss">public_key</span><span class="w"> </span><span class="err">\</span><span class="w">
+  </span><span class="ss">sasl</span><span class="w"> </span><span class="ss">runtime_tools</span><span class="w"> </span><span class="ss">snmp</span><span class="w"> </span><span class="ss">ssl</span><span class="w"> </span><span class="ss">tftp</span><span class="w"> </span><span class="ss">wx</span><span class="w"> </span><span class="ss">xmerl</span><span class="w"> </span><span class="ss">tools</span></code></pre><p>In order to use the <code class="inline">perf.data</code> produced by this record you need to first call
+<code class="inline">perf inject --jit</code> like this:</p><pre><code class="makeup erlang" translate="no"><span class="ss">perf</span><span class="w"> </span><span class="ss">inject</span><span class="w"> </span><span class="o">--</span><span class="ss">jit</span><span class="w"> </span><span class="o">-</span><span class="ss">i</span><span class="w"> </span><span class="ss">perf</span><span class="p">.</span><span class="ss">data</span><span class="w"> </span><span class="o">-</span><span class="ss">o</span><span class="w"> </span><span class="ss">perf</span><span class="p">.</span><span class="ss">jitted</span><span class="p">.</span><span class="ss">data</span></code></pre><p>and then you can view an annotated function like this:</p><pre><code class="makeup erlang" translate="no"><span class="ss">perf</span><span class="w"> </span><span class="ss">annotate</span><span class="w"> </span><span class="o">-</span><span class="n">M</span><span class="w"> </span><span class="ss">intel</span><span class="w"> </span><span class="o">-</span><span class="ss">i</span><span class="w"> </span><span class="ss">perf</span><span class="p">.</span><span class="ss">jitted</span><span class="p">.</span><span class="ss">data</span><span class="w"> </span><span class="nc">erl_types</span><span class="p">:</span><span class="ss">t_has_var</span><span class="p">/</span><span class="mi">1</span></code></pre><p>or by pressing <code class="inline">a</code> in the <code class="inline">perf report</code> ui. Then you get something like this:</p><p><img src="assets/beamasm-perf-annotate.png" alt="Linux Perf FlameGraph: dialyzer PLT build"/></p><p><code class="inline">perf annotate</code> will interleave the listing with the original source code
+whenever possible. You can use the <code class="inline">+{source,Filename}</code> or <code class="inline">+absolute_paths</code>
+compiler options to tell <code class="inline">perf</code> where to find the source code.</p><blockquote><p><em>WARNING</em>: Calling <code class="inline">perf inject --jit</code> will create a lot of files in <code class="inline">/tmp/</code>
+and in <code class="inline">~/.debug/tmp/</code>. So make sure to cleanup in those directories from time to
+time or you may run out of inodes.</p></blockquote><h3 id="inspecting-perf-data-on-another-host" class="section-heading">
+  <a href="#inspecting-perf-data-on-another-host" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Inspecting perf data on another host</span>
+</h3>
+<p>Sometimes it's not possible or desirable to inspect a recording on the target
+machine, which gets a bit tricky because <code class="inline">perf report</code> relies on having all
+symbols available.</p><p>To inspect recordings on another machine, you can use the <code class="inline">perf archive</code>
+command to bundle all the required symbols into an archive. This requires that
+the recording is made with the <code class="inline">-k mono</code> flag and that it has been processed
+with <code class="inline">perf inject --jit</code>:</p><pre><code class="makeup erlang" translate="no"><span class="ss">perf</span><span class="w"> </span><span class="ss">inject</span><span class="w"> </span><span class="o">--</span><span class="ss">jit</span><span class="w"> </span><span class="o">-</span><span class="ss">i</span><span class="w"> </span><span class="ss">perf</span><span class="p">.</span><span class="ss">data</span><span class="w"> </span><span class="o">-</span><span class="ss">o</span><span class="w"> </span><span class="ss">perf</span><span class="p">.</span><span class="ss">jitted</span><span class="p">.</span><span class="ss">data</span><span class="w">
+</span><span class="ss">perf</span><span class="w"> </span><span class="ss">archive</span><span class="w"> </span><span class="ss">perf</span><span class="p">.</span><span class="ss">jitted</span><span class="p">.</span><span class="ss">data</span></code></pre><p>Once you have the archive, move it together with the processed recording to
+the host you wish to inspect the recording on, and extract the archive to
+<code class="inline">~/.debug</code>. You can then use <code class="inline">perf report -i perf.jitted.data</code> as usual.</p><p>If you get an error message along the lines of:</p><p>   perf: 'archive' is not a perf-command. See 'perf --help'.</p><p>Then your <code class="inline">perf</code> version is too old, and you should use
+<a href="https://github.com/torvalds/linux/blob/master/tools/perf/perf-archive.sh">this bash script</a>
+instead.</p><h3 id="perf-tips-and-tricks" class="section-heading">
+  <a href="#perf-tips-and-tricks" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">perf tips and tricks</span>
+</h3>
+<p>You can do a lot of neat things with <code class="inline">perf</code>. Below is a list of some of the options
+we have found useful:</p><ul><li><code class="inline">perf report --no-children</code>
+  Do not include the accumulation of all children in a call.</li><li><code class="inline">perf report --call-graph callee</code>
+  Show the callee rather than the caller when expanding a function call.</li><li><code class="inline">perf report</code> gives &quot;failed to process sample&quot; and/or &quot;failed to process type: 68&quot;
+  This probably means that you are running a bugged version of perf. We have
+  seen this when running Ubuntu 18.04 with kernel version 4. If you update
+  to Ubuntu 20.04 or use Ubuntu 18.04 with kernel version 5 the problem
+  should go away.</li></ul><h2 id="faq" class="section-heading">
+  <a href="#faq" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">FAQ</span>
+</h2>
+<h3 id="how-do-i-know-that-i-m-running-a-jit-enabled-erlang" class="section-heading">
+  <a href="#how-do-i-know-that-i-m-running-a-jit-enabled-erlang" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">How do I know that I'm running a JIT enabled Erlang?</span>
+</h3>
+<p>You will see a banner containing <code class="inline">[jit]</code> shell when you start. You can also use
+<code class="inline">erlang:system_info(emu_flavor)</code> to check the flavor and it should be <code class="inline">jit</code>.</p><p>There are two major reasons why when building Erlang/OTP you would not get the
+JIT.</p><ul><li>You are not building a 64-bit emulator for x86 or ARM</li><li>You do not have a C++ compiler that supports C++-17</li></ul><p>If you run <code class="inline">./configure --enable-jit</code> configure will abort when it discovers that
+your system cannot build the JIT.</p><h3 id="is-the-interpreter-still-available" class="section-heading">
+  <a href="#is-the-interpreter-still-available" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Is the interpreter still available?</span>
+</h3>
+<p>Yes, you can still build the interpreter if you want to. In fact, it is what is used
+on platforms where BeamAsm does not yet work. You can either completely disable
+BeamAsm by passing <code class="inline">--disable-jit</code> to configure. Or you can build the
+interpreter using <code class="inline">make FLAVOR=emu</code> and then run it using <code class="inline">erl -emu_flavor emu</code>.</p><p>It is possible to have both the JIT and interpreter available at the same time.</p><h3 id="how-much-of-a-speedup-should-i-expect-from-beamasm-compared-to-the-interpreter" class="section-heading">
+  <a href="#how-much-of-a-speedup-should-i-expect-from-beamasm-compared-to-the-interpreter" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">How much of a speedup should I expect from BeamAsm compared to the interpreter?</span>
+</h3>
+<p>It depends a lot on what your application does. Anything from no difference to up to
+four times as fast is possible.</p><p>BeamAsm tries very hard to not be slower than the interpreter, but there can be cases
+when that happens. One such could be very short-lived small scripts. If you come across
+any scenarios when this happens, please open a bug report at
+<a href="https://github.com/erlang/otp/issues">the Erlang/OTP bug tracker</a>.</p><h3 id="would-it-be-possible-to-add-support-for-beamasm-on-other-cpu-architectures" class="section-heading">
+  <a href="#would-it-be-possible-to-add-support-for-beamasm-on-other-cpu-architectures" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Would it be possible to add support for BeamAsm on other CPU architectures?</span>
+</h3>
+<p>Any new architecture needs support in the assembler as well. Since we use
+<a href="https://github.com/asmjit/asmjit">asmjit</a> for this, that means we need support
+in <a href="https://github.com/asmjit/asmjit">asmjit</a>. BeamAsm uses relatively few
+instructions (mostly, <code class="inline">mov</code>, <code class="inline">jmp</code>, <code class="inline">cmp</code>, <code class="inline">sub</code>, <code class="inline">add</code>), so it would not need
+to have full support of all instructions.</p><p>Another approach would be to not use <a href="https://github.com/asmjit/asmjit">asmjit</a>
+for the new architecture, but instead use something different to assemble code
+during load-time.</p><h3 id="would-it-be-possible-to-add-support-for-beamasm-on-another-os" class="section-heading">
+  <a href="#would-it-be-possible-to-add-support-for-beamasm-on-another-os" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Would it be possible to add support for BeamAsm on another OS?</span>
+</h3>
+<p>Adding a new OS that runs x86-64 or aarch64 should not need any large changes
+if the OS supports mapping of memory as executable. If the ABI used by the
+OS is not supported changes related to calling C-functions also have to
+be made.</p><p>As a reference, it took us about 2-3 weeks to implement support for Windows,
+and about three months to finish the aarch64 port.</p>
+<div class="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="automaticyieldingofccode.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Automatic Yielding of C Code
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="carriermigration.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+Carrier Migration
+        </span>
+      </a>
+
+  </div>
+</div>
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

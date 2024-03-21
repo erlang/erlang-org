@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="erts v14.3">
+
+
+    <title>Match Specifications in Erlang — erts v14.3</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-218663D5.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="erts" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+erts
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v14.3
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of erts</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/erts/doc/guides/match_spec.md#L1" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+
+  <span>Match Specifications in Erlang</span>
+</h1>
+
+<p>A &quot;match specification&quot; (<code class="inline">match_spec</code>) is an Erlang term describing a small
+&quot;program&quot; that tries to match something. It can be used to either control
+tracing with <a href="erlang.html#trace_pattern/3"><code class="inline">erlang:trace_pattern/3</code></a> or to search for objects in an ETS table
+with for example <a href="../../apps/stdlib/ets.html#select/2"><code class="inline">ets:select/2</code></a>. The match specification in many ways works like
+a small function in Erlang, but is interpreted/compiled by the Erlang runtime
+system to something much more efficient than calling an Erlang function. The
+match specification is also very limited compared to the expressiveness of real
+Erlang functions.</p><p>The most notable difference between a match specification and an Erlang fun is
+the syntax. Match specifications are Erlang terms, not Erlang code. Also, a
+match specification has a strange concept of exceptions:</p><ul><li>An exception (such as <code class="inline">badarg</code>) in the <code class="inline">MatchCondition</code> part, which resembles
+an Erlang guard, generates immediate failure.</li><li>An exception in the <code class="inline">MatchBody</code> part, which resembles the body of an Erlang
+function, is implicitly caught and results in the single atom <code class="inline">'EXIT'</code>.</li></ul><h2 id="grammar" class="section-heading">
+  <a href="#grammar" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Grammar</span>
+</h2>
+<p>A match specification used in tracing can be described in the following
+<em>informal</em> grammar:</p><ul><li>MatchExpression ::= [ MatchFunction, ... ]</li><li>MatchFunction ::= { MatchHead, MatchConditions, MatchBody }</li><li><p>MatchHead ::= MatchVariable | <code class="inline">'_'</code> | [ MatchHeadPart, ... ]</p></li><li><p>MatchHeadPart ::= <a href="erlang.html#t:term/0">term()</a> | MatchVariable | <code class="inline">'_'</code></p></li><li>MatchVariable ::= '$&lt;number&gt;'</li><li><p>MatchConditions ::= [ MatchCondition, ...] | <code class="inline">[]</code></p></li><li><p>MatchCondition ::= { GuardFunction } | { GuardFunction,
+ConditionExpression, ... }</p></li><li><p>BoolFunction ::= <code class="inline">is_atom</code> | <code class="inline">is_float</code> | <code class="inline">is_integer</code> | <code class="inline">is_list</code> |
+<code class="inline">is_number</code> | <code class="inline">is_pid</code> | <code class="inline">is_port</code> | <code class="inline">is_reference</code> | <code class="inline">is_tuple</code> | <code class="inline">is_map</code> |
+<code class="inline">is_map_key</code> | <code class="inline">is_binary</code> | <code class="inline">is_bitstring</code> | <code class="inline">is_boolean</code> | <code class="inline">is_function</code> |
+<code class="inline">is_record</code> | <code class="inline">is_seq_trace</code> | <code class="inline">'and'</code> | <code class="inline">'or'</code> | <code class="inline">'not'</code> | <code class="inline">'xor'</code> |
+<code class="inline">'andalso'</code> | <code class="inline">'orelse'</code></p></li><li><p>ConditionExpression ::= ExprMatchVariable | { GuardFunction } | {
+GuardFunction, ConditionExpression, ... } | TermConstruct</p></li><li><p>ExprMatchVariable ::= MatchVariable (bound in the MatchHead) | <code class="inline">'$_'</code> | <code class="inline">'$$'</code></p></li><li><p>TermConstruct = {{}} | {{ ConditionExpression, ... }} | <code class="inline">[]</code> |
+[ConditionExpression, ...] | <code class="inline">#{}</code> | #{<a href="erlang.html#t:term/0">term()</a> =&gt; ConditionExpression, ...}
+| NonCompositeTerm | Constant</p></li><li>NonCompositeTerm ::= <a href="erlang.html#t:term/0">term()</a> (not list or tuple or map)</li><li>Constant ::= {<code class="inline">const</code>, <a href="erlang.html#t:term/0">term()</a>}</li><li><p>GuardFunction ::= BoolFunction | <code class="inline">abs</code> | <code class="inline">element</code> | <code class="inline">hd</code> | <code class="inline">length</code> |
+<code class="inline">map_get</code> | <code class="inline">map_size</code> | <code class="inline">max</code> | <code class="inline">min</code> | <code class="inline">node</code> | <code class="inline">float</code> | <code class="inline">round</code> | <code class="inline">floor</code>
+| <code class="inline">ceil</code> | <code class="inline">size</code> | <code class="inline">bit_size</code> | <code class="inline">byte_size</code> | <code class="inline">tuple_size</code> | <code class="inline">tl</code> | <code class="inline">trunc</code> |
+<code class="inline">binary_part</code> | <code class="inline">'+'</code> | <code class="inline">'-'</code> | <code class="inline">'*'</code> | <code class="inline">'div'</code> | <code class="inline">'rem'</code> | <code class="inline">'band'</code> | <code class="inline">'bor'</code>
+| <code class="inline">'bxor'</code> | <code class="inline">'bnot'</code> | <code class="inline">'bsl'</code> | <code class="inline">'bsr'</code> | <code class="inline">'&gt;'</code> | <code class="inline">'&gt;='</code> | <code class="inline">'&lt;'</code> | <code class="inline">'=&lt;'</code> |
+<code class="inline">'=:='</code> | <code class="inline">'=='</code> | <code class="inline">'=/='</code> | <code class="inline">'/='</code> | <code class="inline">self</code> | <code class="inline">get_tcw</code></p></li><li>MatchBody ::= [ ActionTerm ]</li><li><p>ActionTerm ::= ConditionExpression | ActionCall</p></li><li><p>ActionCall ::= {ActionFunction} | {ActionFunction, ActionTerm, ...}</p></li><li><p>ActionFunction ::= <code class="inline">set_seq_token</code> | <code class="inline">get_seq_token</code> | <code class="inline">message</code> |
+<code class="inline">return_trace</code> | <code class="inline">exception_trace</code> | <code class="inline">process_dump</code> | <code class="inline">enable_trace</code> |
+<code class="inline">disable_trace</code> | <code class="inline">trace</code> | <code class="inline">display</code> | <code class="inline">caller</code> | <code class="inline">caller_line</code> |
+<code class="inline">current_stacktrace</code> | <code class="inline">set_tcw</code> | <code class="inline">silent</code></p></li></ul><p>A match specification used in <a href="../../apps/stdlib/ets.html"><code class="inline">ets</code></a> can be described in the following
+<em>informal</em> grammar:</p><ul><li>MatchExpression ::= [ MatchFunction, ... ]</li><li>MatchFunction ::= { MatchHead, MatchConditions, MatchBody }</li><li><p>MatchHead ::= MatchVariable | <code class="inline">'_'</code> | { MatchHeadPart, ... }</p></li><li><p>MatchHeadPart ::= <a href="erlang.html#t:term/0">term()</a> | MatchVariable | <code class="inline">'_'</code></p></li><li>MatchVariable ::= '$&lt;number&gt;'</li><li><p>MatchConditions ::= [ MatchCondition, ...] | <code class="inline">[]</code></p></li><li><p>MatchCondition ::= { GuardFunction } | { GuardFunction,
+ConditionExpression, ... }</p></li><li><p>BoolFunction ::= <code class="inline">is_atom</code> | <code class="inline">is_float</code> | <code class="inline">is_integer</code> | <code class="inline">is_list</code> |
+<code class="inline">is_number</code> | <code class="inline">is_pid</code> | <code class="inline">is_port</code> | <code class="inline">is_reference</code> | <code class="inline">is_tuple</code> | <code class="inline">is_map</code> |
+<code class="inline">is_map_key</code> | <code class="inline">is_binary</code> | <code class="inline">is_bitstring</code> | <code class="inline">is_boolean</code> | <code class="inline">is_function</code> |
+<code class="inline">is_record</code> | <code class="inline">'and'</code> | <code class="inline">'or'</code> | <code class="inline">'not'</code> | <code class="inline">'xor'</code> | <code class="inline">'andalso'</code> | <code class="inline">'orelse'</code></p></li><li><p>ConditionExpression ::= ExprMatchVariable | { GuardFunction } | {
+GuardFunction, ConditionExpression, ... } | TermConstruct</p></li><li><p>ExprMatchVariable ::= MatchVariable (bound in the MatchHead) | <code class="inline">'$_'</code> | <code class="inline">'$$'</code></p></li><li><p>TermConstruct = {{}} | {{ ConditionExpression, ... }} | <code class="inline">[]</code> |
+[ConditionExpression, ...] | #{} | #{<a href="erlang.html#t:term/0">term()</a> =&gt; ConditionExpression, ...}
+| NonCompositeTerm | Constant</p></li><li>NonCompositeTerm ::= <a href="erlang.html#t:term/0">term()</a> (not list or tuple or map)</li><li>Constant ::= {<code class="inline">const</code>, <a href="erlang.html#t:term/0">term()</a>}</li><li><p>GuardFunction ::= BoolFunction | <code class="inline">abs</code> | <code class="inline">element</code> | <code class="inline">hd</code> | <code class="inline">length</code> |
+<code class="inline">map_get</code> | <code class="inline">map_size</code> | <code class="inline">max</code> | <code class="inline">min</code> | <code class="inline">node</code> | <code class="inline">float</code> | <code class="inline">round</code> | <code class="inline">floor</code>
+| <code class="inline">ceil</code> | <code class="inline">size</code> | <code class="inline">bit_size</code> | <code class="inline">byte_size</code> | <code class="inline">tuple_size</code> | <code class="inline">tl</code> | <code class="inline">trunc</code> |
+<code class="inline">binary_part</code> | <code class="inline">'+'</code> | <code class="inline">'-'</code> | <code class="inline">'*'</code> | <code class="inline">'div'</code> | <code class="inline">'rem'</code> | <code class="inline">'band'</code> | <code class="inline">'bor'</code>
+| <code class="inline">'bxor'</code> | <code class="inline">'bnot'</code> | <code class="inline">'bsl'</code> | <code class="inline">'bsr'</code> | <code class="inline">'&gt;'</code> | <code class="inline">'&gt;='</code> | <code class="inline">'&lt;'</code> | <code class="inline">'=&lt;'</code> |
+<code class="inline">'=:='</code> | <code class="inline">'=='</code> | <code class="inline">'=/='</code> | <code class="inline">'/='</code> | <code class="inline">self</code></p></li><li>MatchBody ::= [ ConditionExpression, ... ]</li></ul><h2 id="function-descriptions" class="section-heading">
+  <a href="#function-descriptions" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Function Descriptions</span>
+</h2>
+<h3 id="functions-allowed-in-all-types-of-match-specifications" class="section-heading">
+  <a href="#functions-allowed-in-all-types-of-match-specifications" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Functions Allowed in All Types of Match Specifications</span>
+</h3>
+<p>The functions allowed in <code class="inline">match_spec</code> work as follows:</p><ul><li><p><strong><code class="inline">is_atom</code>, <code class="inline">is_boolean</code>, <code class="inline">is_float</code>, <code class="inline">is_integer</code>, <code class="inline">is_list</code>, <code class="inline">is_number</code>,
+<code class="inline">is_pid</code>, <code class="inline">is_port</code>, <code class="inline">is_reference</code>, <code class="inline">is_tuple</code>, <code class="inline">is_map</code>, <code class="inline">is_binary</code>,
+<code class="inline">is_bitstring</code>, <code class="inline">is_function</code></strong> - Same as the corresponding guard tests in
+Erlang, return <code class="inline">true</code> or <code class="inline">false</code>.</p></li><li><p><strong><code class="inline">is_record</code></strong> - Takes an additional parameter, which <em>must</em> be the result of
+<code class="inline">record_info(size, &lt;record_type&gt;)</code>, like in
+<code class="inline">{is_record, '$1', rectype, record_info(size, rectype)}</code>.</p></li><li><p><strong><code class="inline">'not'</code></strong> - Negates its single argument (anything other than <code class="inline">false</code> gives
+<code class="inline">false</code>).</p></li><li><p><strong><code class="inline">'and'</code></strong> - Returns <code class="inline">true</code> if all its arguments (variable length argument
+list) evaluate to <code class="inline">true</code>, otherwise <code class="inline">false</code>. Evaluation order is undefined.</p></li><li><p><strong><code class="inline">'or'</code></strong> - Returns <code class="inline">true</code> if any of its arguments evaluates to <code class="inline">true</code>.
+Variable length argument list. Evaluation order is undefined.</p></li><li><p><strong><code class="inline">'andalso'</code></strong> - Works as <code class="inline">'and'</code>, but quits evaluating its arguments when
+one argument evaluates to something else than <code class="inline">true</code>. Arguments are evaluated
+left to right.</p></li><li><p><strong><code class="inline">'orelse'</code></strong> - Works as <code class="inline">'or'</code>, but quits evaluating as soon as one of its
+arguments evaluates to <code class="inline">true</code>. Arguments are evaluated left to right.</p></li><li><p><strong><code class="inline">'xor'</code></strong> - Only two arguments, of which one must be <code class="inline">true</code> and the other
+<code class="inline">false</code> to return <code class="inline">true</code>; otherwise <code class="inline">'xor'</code> returns false.</p></li><li><p><strong><code class="inline">abs</code>, <code class="inline">element</code>, <code class="inline">hd</code>, <code class="inline">length</code>, <code class="inline">map_get</code>, <code class="inline">map_size</code>, <code class="inline">max</code>, <code class="inline">min</code>,
+<code class="inline">node</code>, <code class="inline">round</code>, <code class="inline">ceil</code>, <code class="inline">floor</code>, <code class="inline">float</code>, <code class="inline">size</code>, <code class="inline">bit_size</code>, <code class="inline">byte_size</code>,
+<code class="inline">tuple_size</code>, <code class="inline">tl</code>, <code class="inline">trunc</code>, <code class="inline">binary_part</code>, <code class="inline">'+'</code>, <code class="inline">'-'</code>, <code class="inline">'*'</code>, <code class="inline">'div'</code>,
+<code class="inline">'rem'</code>, <code class="inline">'band'</code>, <code class="inline">'bor'</code>, <code class="inline">'bxor'</code>, <code class="inline">'bnot'</code>, <code class="inline">'bsl'</code>, <code class="inline">'bsr'</code>, <code class="inline">'&gt;'</code>,
+<code class="inline">'&gt;='</code>, <code class="inline">'&lt;'</code>, <code class="inline">'=&lt;'</code>, <code class="inline">'=:='</code>, <code class="inline">'=='</code>, <code class="inline">'=/='</code>, <code class="inline">'/='</code>, <code class="inline">self</code></strong> - Same as
+the corresponding Erlang BIFs (or operators). In case of bad arguments, the
+result depends on the context. In the <code class="inline">MatchConditions</code> part of the
+expression, the test fails immediately (like in an Erlang guard). In the
+<code class="inline">MatchBody</code> part, exceptions are implicitly caught and the call results in the
+atom <code class="inline">'EXIT'</code>.</p></li></ul><h3 id="functions-allowed-only-for-tracing" class="section-heading">
+  <a href="#functions-allowed-only-for-tracing" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Functions Allowed Only for Tracing</span>
+</h3>
+<p>The functions allowed only for tracing work as follows:</p><ul><li><p><strong><code class="inline">is_seq_trace</code></strong> - Returns <code class="inline">true</code> if a sequential trace token is set for the
+current process, otherwise <code class="inline">false</code>.</p></li><li><p><strong><code class="inline">set_seq_token</code></strong> - Works as <a href="../../apps/kernel/seq_trace.html#set_token/2"><code class="inline">seq_trace:set_token/2</code></a>, but returns <code class="inline">true</code> on
+success, and <code class="inline">'EXIT'</code> on error or bad argument. Only allowed in the
+<code class="inline">MatchBody</code> part and only allowed when tracing.</p></li><li><p><strong><code class="inline">get_seq_token</code></strong> - Same as <a href="../../apps/kernel/seq_trace.html#get_token/0"><code class="inline">seq_trace:get_token/0</code></a> and only allowed in the
+<code class="inline">MatchBody</code> part when tracing.</p></li><li><p><strong><code class="inline">message</code></strong> - Sets an additional message appended to the trace message sent.
+One can only set one additional message in the body. Later calls replace the
+appended message.</p><p>As a special case, <code class="inline">{message, false}</code> disables sending of trace messages
+('call' and 'return_to') for this function call, just like if the match
+specification had not matched. This can be useful if only the side effects of
+the <code class="inline">MatchBody</code> part are desired.</p><p>Another special case is <code class="inline">{message, true}</code>, which sets the default behavior, as
+if the function had no match specification; trace message is sent with no
+extra information (if no other calls to <code class="inline">message</code> are placed before
+<code class="inline">{message, true}</code>, it is in fact a &quot;noop&quot;).</p><p>Takes one argument: the message. Returns <code class="inline">true</code> and can only be used in the
+<code class="inline">MatchBody</code> part and when tracing.</p></li><li><p><strong><code class="inline">return_trace</code></strong> - Causes a <code class="inline">return_from</code> trace message to be sent upon
+return from the current function. Takes no arguments, returns <code class="inline">true</code> and can
+only be used in the <code class="inline">MatchBody</code> part when tracing. If the process trace flag
+<code class="inline">silent</code> is active, the <code class="inline">return_from</code> trace message is inhibited.</p><p><em>Warning:</em> If the traced function is tail-recursive, this match specification
+function destroys that property. Hence, if a match specification executing
+this function is used on a perpetual server process, it can only be active for
+a limited period of time, or the emulator will eventually use all memory in
+the host machine and crash. If this match specification function is inhibited
+using process trace flag <code class="inline">silent</code>, tail-recursiveness still remains.</p></li><li><p><strong><code class="inline">exception_trace</code></strong> - Works as <code class="inline">return_trace</code> plus; if the traced function
+exits because of an exception, an <code class="inline">exception_from</code> trace message is generated,
+regardless of the exception is caught or not.</p></li><li><p><strong><code class="inline">process_dump</code></strong> - Returns some textual information about the current
+process as a binary. Takes no arguments and is only allowed in the <code class="inline">MatchBody</code>
+part when tracing.</p></li><li><p><strong><code class="inline">enable_trace</code></strong> - With one parameter this function turns on tracing like
+the Erlang call <code class="inline">erlang:trace(self(), true, [P2])</code>, where <code class="inline">P2</code> is the
+parameter to <code class="inline">enable_trace</code>.</p><p>With two parameters, the first parameter is to be either a process identifier
+or the registered name of a process. In this case tracing is turned on for the
+designated process in the same way as in the Erlang call
+<code class="inline">erlang:trace(P1, true, [P2])</code>, where <code class="inline">P1</code> is the first and <code class="inline">P2</code> is the second
+argument. The process <code class="inline">P1</code> gets its trace messages sent to the same tracer as
+the process executing the statement uses. <code class="inline">P1</code> <em>cannot</em> be one of the atoms
+<code class="inline">all</code>, <code class="inline">new</code> or <code class="inline">existing</code> (unless they are registered names). <code class="inline">P2</code> <em>cannot</em>
+be <code class="inline">cpu_timestamp</code> or <code class="inline">tracer</code>.</p><p>Returns <code class="inline">true</code> and can only be used in the <code class="inline">MatchBody</code> part when tracing.</p></li><li><p><strong><code class="inline">disable_trace</code></strong> - With one parameter this function disables tracing like
+the Erlang call <code class="inline">erlang:trace(self(), false, [P2])</code>, where <code class="inline">P2</code> is the
+parameter to <code class="inline">disable_trace</code>.</p><p>With two parameters this function works as the Erlang call
+<code class="inline">erlang:trace(P1, false, [P2])</code>, where <code class="inline">P1</code> can be either a process identifier
+or a registered name and is specified as the first argument to the match
+specification function. <code class="inline">P2</code> <em>cannot</em> be <code class="inline">cpu_timestamp</code> or <code class="inline">tracer</code>.</p><p>Returns <code class="inline">true</code> and can only be used in the <code class="inline">MatchBody</code> part when tracing.</p></li><li><p><strong><code class="inline">trace</code></strong> - With two parameters this function takes a list of trace flags to
+disable as first parameter and a list of trace flags to enable as second
+parameter. Logically, the disable list is applied first, but effectively all
+changes are applied atomically. The trace flags are the same as for
+<a href="erlang.html#trace/3"><code class="inline">erlang:trace/3</code></a>, not including <code class="inline">cpu_timestamp</code>, but including <code class="inline">tracer</code>.</p><p>If a tracer is specified in both lists, the tracer in the enable list takes
+precedence. If no tracer is specified, the same tracer as the process
+executing the match specification is used (not the meta tracer). If that
+process doesn't have tracer either, then trace flags are ignored.</p><p>When using a <a href="erl_tracer.html">tracer module</a>, the module must be loaded before
+the match specification is executed. If it is not loaded, the match fails.</p><p>With three parameters to this function, the first is either a process
+identifier or the registered name of a process to set trace flags on, the
+second is the disable list, and the third is the enable list.</p><p>Returns <code class="inline">true</code> if any trace property was changed for the trace target process,
+otherwise <code class="inline">false</code>. Can only be used in the <code class="inline">MatchBody</code> part when tracing.</p></li><li><p><strong><code class="inline">caller</code></strong> - Returns the calling function as a tuple
+<code class="inline">{Module, Function, Arity}</code> or the atom <code class="inline">undefined</code> if the calling function
+cannot be determined. Can only be used in the <code class="inline">MatchBody</code> part when tracing.</p><p>Notice that if a &quot;technically built in function&quot; (that is, a function not
+written in Erlang) is traced, the <code class="inline">caller</code> function sometimes returns the atom
+<code class="inline">undefined</code>. The calling Erlang function is not available during such calls.</p></li><li><p><strong><code class="inline">caller_line</code></strong> - Similar to <code class="inline">caller</code> but returns additional information
+about the source code location of the function call-site within the caller
+function. Returns the calling function as a tuple
+<code class="inline">{Module, Function, Arity, {File, Line}}</code>. <code class="inline">File</code> is the
+<a href="../../system/data_types.html#string">string</a> file name while <code class="inline">Line</code> is source
+line number. If the <code class="inline">File</code> and <code class="inline">Line</code> cannot be determined,
+<code class="inline">{Module, Function, Arity, undefined}</code> is returned. If the calling function
+cannot be determined, the atom <code class="inline">undefined</code> is returned. Can only be used in
+the <code class="inline">MatchBody</code> part when tracing.</p><p>Notice that if a &quot;technically built in function&quot; (that is, a function not
+written in Erlang) is traced, the <code class="inline">caller_line</code> function sometimes returns the
+atom <code class="inline">undefined</code>. The calling Erlang function is not available during such
+calls.</p></li><li><p><strong><code class="inline">current_stacktrace</code></strong> - Returns the current call stack back-trace
+(<a href="erlang.html#t:stacktrace/0">stacktrace</a>) of the calling function. The stack has
+the same format as in the <code class="inline">catch</code> part of a <code class="inline">try</code>. See
+<a href="../../system/errors.html#stacktrace">The call-stack back trace (stacktrace)</a>. The
+depth of the stacktrace is truncated according to the <code class="inline">backtrace_depth</code> system
+flag setting.</p><p>Accepts a depth parameter. The depth value will be <code class="inline">backtrace_depth</code> if the
+argument is greater.</p></li><li><p><strong><code class="inline">display</code></strong> - For debugging purposes only. Displays the single argument as
+an Erlang term on <code class="inline">stdout</code>, which is seldom what is wanted. Returns <code class="inline">true</code> and
+can only be used in the <code class="inline">MatchBody</code> part when tracing.</p></li><li><p><strong><code class="inline" id="get_tcw">get_tcw</code></strong> - Takes no argument and returns the value of the
+node's trace control word. The same is done by
+<code class="inline">erlang:system_info(trace_control_word)</code>.</p><p>The trace control word is a 32-bit unsigned integer intended for generic trace
+control. The trace control word can be tested and set both from within trace
+match specifications and with BIFs. This call is only allowed when tracing.</p></li><li><p><strong><code class="inline" id="set_tcw">set_tcw</code></strong> - Takes one unsigned integer argument, sets the
+value of the node's trace control word to the value of the argument, and
+returns the previous value. The same is done by
+<code class="inline">erlang:system_flag(trace_control_word, Value)</code>. It is only allowed to use
+<code class="inline">set_tcw</code> in the <code class="inline">MatchBody</code> part when tracing.</p></li><li><p><strong><code class="inline">silent</code></strong> - Takes one argument. If the argument is <code class="inline">true</code>, the call trace
+message mode for the current process is set to silent for this call and all
+later calls, that is, call trace messages are inhibited even if
+<code class="inline">{message, true}</code> is called in the <code class="inline">MatchBody</code> part for a traced function.</p><p>This mode can also be activated with flag <code class="inline">silent</code> to <a href="erlang.html#trace/3"><code class="inline">erlang:trace/3</code></a>.</p><p>If the argument is <code class="inline">false</code>, the call trace message mode for the current
+process is set to normal (non-silent) for this call and all later calls.</p><p>If the argument is not <code class="inline">true</code> or <code class="inline">false</code>, the call trace message mode is
+unaffected.</p></li></ul><blockquote><h4 class="info">Note</h4><p>All &quot;function calls&quot; must be tuples, even if they take no arguments. The value
+of <code class="inline">self</code> is the atom() <code class="inline">self</code>, but the value of <code class="inline">{self}</code> is the pid() of the
+current process.</p></blockquote><p><a href="" id="match_target"></a></p><h2 id="match-target" class="section-heading">
+  <a href="#match-target" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Match target</span>
+</h2>
+<p>Each execution of a match specification is done against a match target term. The
+format and content of the target term depends on the context in which the match
+is done. The match target for ETS is always a full table tuple. The match target
+for call trace is always a list of all function arguments. The match target for
+event trace depends on the event type, see table below.</p><table><thead><tr><th style="text-align: left;">Context</th><th style="text-align: left;">Type</th><th style="text-align: left;">Match target</th><th style="text-align: left;">Description</th></tr></thead><tbody><tr><td style="text-align: left;">ETS</td><td style="text-align: left;"></td><td style="text-align: left;">{Key, Value1, Value2, ...}</td><td style="text-align: left;">A table object</td></tr><tr><td style="text-align: left;">Trace</td><td style="text-align: left;">call</td><td style="text-align: left;">[Arg1, Arg2, ...]</td><td style="text-align: left;">Function arguments</td></tr><tr><td style="text-align: left;">Trace</td><td style="text-align: left;">send</td><td style="text-align: left;">[Receiver, Message]</td><td style="text-align: left;">Receiving process/port and message term</td></tr><tr><td style="text-align: left;">Trace</td><td style="text-align: left;">'receive'</td><td style="text-align: left;">[Node, Sender, Message]</td><td style="text-align: left;">Sending node, process/port and message term</td></tr></tbody></table><p><em>Table: Match target depending on context</em></p><h2 id="variables-and-literals" class="section-heading">
+  <a href="#variables-and-literals" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Variables and Literals</span>
+</h2>
+<p>Variables take the form <code class="inline">'$&lt;number&gt;'</code>, where <code class="inline">&lt;number&gt;</code> is an integer between 0
+and 100,000,000 (1e+8). The behavior if the number is outside these limits is
+<em>undefined</em>. In the <code class="inline">MatchHead</code> part, the special variable <code class="inline">'_'</code> matches
+anything, and never gets bound (like <code class="inline">_</code> in Erlang).</p><ul><li>In the <code class="inline">MatchCondition/MatchBody</code> parts, no unbound variables are allowed, so
+<code class="inline">'_'</code> is interpreted as itself (an atom). Variables can only be bound in the
+<code class="inline">MatchHead</code> part.</li><li>In the <code class="inline">MatchBody</code> and <code class="inline">MatchCondition</code> parts, only variables bound previously
+can be used.</li><li>As a special case, the following apply in the <code class="inline">MatchCondition/MatchBody</code>
+parts:<ul><li>The variable <code class="inline">'$_'</code> expands to the whole
+<a href="match_spec.html#match_target">match target</a> term.</li><li>The variable <code class="inline">'$$'</code> expands to a list of the values of all bound variables
+in order (that is, <code class="inline">['$1','$2', ...]</code>).</li></ul></li></ul><p>In the <code class="inline">MatchHead</code> part, all literals (except the variables above) are
+interpreted &quot;as is&quot;.</p><p>In the <code class="inline">MatchCondition/MatchBody</code> parts, the interpretation is in some ways
+different. Literals in these parts can either be written &quot;as is&quot;, which works
+for all literals except tuples, or by using the special form <code class="inline">{const, T}</code>, where
+<code class="inline">T</code> is any Erlang term.</p><p>For tuple literals in the match specification, double tuple parentheses can also
+be used, that is, construct them as a tuple of arity one containing a single
+tuple, which is the one to be constructed. The &quot;double tuple parenthesis&quot; syntax
+is useful to construct tuples from already bound variables, like in
+<code class="inline">{{'$1', [a,b,'$2']}}</code>. Examples:</p><table><thead><tr><th style="text-align: left;">Expression</th><th style="text-align: left;">Variable Bindings</th><th style="text-align: left;">Result</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">{{'$1','$2'}}</code></td><td style="text-align: left;">'$1' = a, '$2' = b</td><td style="text-align: left;"><code class="inline">{a,b}</code></td></tr><tr><td style="text-align: left;"><code class="inline">{const, {'$1', '$2'}}</code></td><td style="text-align: left;">Irrelevant</td><td style="text-align: left;"><code class="inline">{'$1', '$2'}</code></td></tr><tr><td style="text-align: left;"><code class="inline">a</code></td><td style="text-align: left;">Irrelevant</td><td style="text-align: left;"><code class="inline">a</code></td></tr><tr><td style="text-align: left;"><code class="inline">'$1'</code></td><td style="text-align: left;">'$1' = []</td><td style="text-align: left;"><code class="inline">[]</code></td></tr><tr><td style="text-align: left;"><code class="inline">[{{a}}]</code></td><td style="text-align: left;">Irrelevant</td><td style="text-align: left;"><code class="inline">[{a}]</code></td></tr><tr><td style="text-align: left;"><code class="inline">['$1']</code></td><td style="text-align: left;">'$1' = []</td><td style="text-align: left;"><code class="inline">[[]]</code></td></tr><tr><td style="text-align: left;"><code class="inline">42</code></td><td style="text-align: left;">Irrelevant</td><td style="text-align: left;"><code class="inline">42</code></td></tr><tr><td style="text-align: left;"><code class="inline">&quot;hello&quot;</code></td><td style="text-align: left;">Irrelevant</td><td style="text-align: left;"><code class="inline">&quot;hello&quot;</code></td></tr><tr><td style="text-align: left;"><code class="inline">$1</code></td><td style="text-align: left;">Irrelevant</td><td style="text-align: left;"><code class="inline">49</code> (the ASCII value for character '1')</td></tr></tbody></table><p><em>Table: Literals in MatchCondition/MatchBody Parts of a Match Specification</em></p><h2 id="execution-of-the-match" class="section-heading">
+  <a href="#execution-of-the-match" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Execution of the Match</span>
+</h2>
+<p>The execution of the match expression, when the runtime system decides whether a
+trace message is to be sent, is as follows:</p><p>For each tuple in the <code class="inline">MatchExpression</code> list and while no match has succeeded:</p><ol><li>Match the <code class="inline">MatchHead</code> part against the match target term, binding the
+<code class="inline">'$&lt;number&gt;'</code> variables (much like in <a href="../../apps/stdlib/ets.html#match/2"><code class="inline">ets:match/2</code></a>). If the <code class="inline">MatchHead</code> part
+cannot match the arguments, the match fails.</li><li>Evaluate each <code class="inline">MatchCondition</code> (where only <code class="inline">'$&lt;number&gt;'</code> variables previously
+bound in the <code class="inline">MatchHead</code> part can occur) and expect it to return the atom
+<code class="inline">true</code>. When a condition does not evaluate to <code class="inline">true</code>, the match fails. If any
+BIF call generates an exception, the match also fails.</li><li>Two cases can occur:</li></ol><ul><li><p>If the match specification is executing when tracing:</p><p>Evaluate each <code class="inline">ActionTerm</code> in the same way as the <code class="inline">MatchConditions</code>, but
+ignore the return values. Regardless of what happens in this part, the match
+has succeeded.</p></li><li><p>If the match specification is executed when selecting objects from an ETS
+table:</p><p>Evaluate the expressions in order and return the value of the last expression
+(typically there is only one expression in this context).</p></li></ul><p><a href="" id="differences_ets_tracing"></a></p><h2 id="differences-between-match-specifications-in-ets-and-tracing" class="section-heading">
+  <a href="#differences-between-match-specifications-in-ets-and-tracing" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Differences between Match Specifications in ETS and Tracing</span>
+</h2>
+<p>ETS match specifications produce a return value. Usually the <code class="inline">MatchBody</code>
+contains one single <code class="inline">ConditionExpression</code> that defines the return value without
+any side effects. Calls with side effects are not allowed in the ETS context.</p><p>When tracing there is no return value to produce, the match specification either
+matches or does not. The effect when the expression matches is a trace message
+rather than a returned term. The <code class="inline">ActionTerm</code>s are executed as in an imperative
+language, that is, for their side effects. Functions with side effects are also
+allowed when tracing.</p><h2 id="tracing-examples" class="section-heading">
+  <a href="#tracing-examples" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Tracing Examples</span>
+</h2>
+<p>Match an argument list of three, where the first and third arguments are equal:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="1479317065-1">[</span><span class="p" data-group-id="1479317065-2">{</span><span class="p" data-group-id="1479317065-3">[</span><span class="ss">&#39;$1&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;_&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;$1&#39;</span><span class="p" data-group-id="1479317065-3">]</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="1479317065-4">[</span><span class="p" data-group-id="1479317065-4">]</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="1479317065-5">[</span><span class="p" data-group-id="1479317065-5">]</span><span class="p" data-group-id="1479317065-2">}</span><span class="p" data-group-id="1479317065-1">]</span></code></pre><p>Match an argument list of three, where the second argument is a number &gt; 3:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="4892600644-1">[</span><span class="p" data-group-id="4892600644-2">{</span><span class="p" data-group-id="4892600644-3">[</span><span class="ss">&#39;_&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;$1&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;_&#39;</span><span class="p" data-group-id="4892600644-3">]</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="4892600644-4">[</span><span class="p" data-group-id="4892600644-5">{</span><span class="w"> </span><span class="ss">&#39;&gt;&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;$1&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p" data-group-id="4892600644-5">}</span><span class="p" data-group-id="4892600644-4">]</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="4892600644-6">[</span><span class="p" data-group-id="4892600644-6">]</span><span class="p" data-group-id="4892600644-2">}</span><span class="p" data-group-id="4892600644-1">]</span></code></pre><p>Match an argument list of three, where the third argument is either a tuple
+containing argument one and two, <em>or</em> a list beginning with argument one and two
+(that is, <code class="inline">[a,b,[a,b,c]]</code> or <code class="inline">[a,b,{a,b}]</code>):</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="6401531431-1">[</span><span class="p" data-group-id="6401531431-2">{</span><span class="p" data-group-id="6401531431-3">[</span><span class="ss">&#39;$1&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;$2&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;$3&#39;</span><span class="p" data-group-id="6401531431-3">]</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="6401531431-4">[</span><span class="p" data-group-id="6401531431-5">{</span><span class="ss">&#39;orelse&#39;</span><span class="p">,</span><span class="w">
+      </span><span class="p" data-group-id="6401531431-6">{</span><span class="ss">&#39;=:=&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;$3&#39;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6401531431-7">{</span><span class="p" data-group-id="6401531431-8">{</span><span class="ss">&#39;$1&#39;</span><span class="p">,</span><span class="ss">&#39;$2&#39;</span><span class="p" data-group-id="6401531431-8">}</span><span class="p" data-group-id="6401531431-7">}</span><span class="p" data-group-id="6401531431-6">}</span><span class="p">,</span><span class="w">
+      </span><span class="p" data-group-id="6401531431-9">{</span><span class="ss">&#39;and&#39;</span><span class="p">,</span><span class="w">
+        </span><span class="p" data-group-id="6401531431-10">{</span><span class="ss">&#39;=:=&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;$1&#39;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6401531431-11">{</span><span class="nb">hd</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;$3&#39;</span><span class="p" data-group-id="6401531431-11">}</span><span class="p" data-group-id="6401531431-10">}</span><span class="p">,</span><span class="w">
+        </span><span class="p" data-group-id="6401531431-12">{</span><span class="ss">&#39;=:=&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;$2&#39;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6401531431-13">{</span><span class="nb">hd</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6401531431-14">{</span><span class="nb">tl</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;$3&#39;</span><span class="p" data-group-id="6401531431-14">}</span><span class="p" data-group-id="6401531431-13">}</span><span class="p" data-group-id="6401531431-12">}</span><span class="p" data-group-id="6401531431-9">}</span><span class="p" data-group-id="6401531431-5">}</span><span class="p" data-group-id="6401531431-4">]</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="6401531431-15">[</span><span class="p" data-group-id="6401531431-15">]</span><span class="p" data-group-id="6401531431-2">}</span><span class="p" data-group-id="6401531431-1">]</span></code></pre><p>The above problem can also be solved as follows:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="1150298849-1">[</span><span class="p" data-group-id="1150298849-2">{</span><span class="p" data-group-id="1150298849-3">[</span><span class="ss">&#39;$1&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;$2&#39;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1150298849-4">{</span><span class="ss">&#39;$1&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;$2}], [], []},
+ {[&#39;</span><span class="sc">$1</span><span class="ss">&#39;, &#39;</span><span class="sc">$2</span><span class="ss">&#39;, [&#39;</span><span class="sc">$1</span><span class="ss">&#39;, &#39;</span><span class="sc">$2</span><span class="ss">&#39; | &#39;</span><span class="p">_</span><span class="err">&#39;</span><span class="p">]</span><span class="p">]</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1150298849-5">[</span><span class="p" data-group-id="1150298849-5">]</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1150298849-6">[</span><span class="p" data-group-id="1150298849-6">]</span><span class="p" data-group-id="1150298849-4">}</span><span class="p" data-group-id="1150298849-3">]</span></code></pre><p>Match two arguments, where the first is a tuple beginning with a list that in
+turn begins with the second argument times two (that is, <code class="inline">[{[4,x],y},2]</code> or
+<code class="inline">[{[8], y, z},4])</code>:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="8410597970-1">[</span><span class="p" data-group-id="8410597970-2">{</span><span class="p" data-group-id="8410597970-3">[</span><span class="ss">&#39;$1&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;$2&#39;</span><span class="p" data-group-id="8410597970-3">]</span><span class="p">,</span><span class="p" data-group-id="8410597970-4">[</span><span class="p" data-group-id="8410597970-5">{</span><span class="ss">&#39;=:=&#39;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="8410597970-6">{</span><span class="ss">&#39;*&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;$2&#39;</span><span class="p" data-group-id="8410597970-6">}</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="8410597970-7">{</span><span class="nb">hd</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="8410597970-8">{</span><span class="nb">element</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;$1&#39;</span><span class="p" data-group-id="8410597970-8">}</span><span class="p" data-group-id="8410597970-7">}</span><span class="p" data-group-id="8410597970-5">}</span><span class="p" data-group-id="8410597970-4">]</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="8410597970-9">[</span><span class="p" data-group-id="8410597970-9">]</span><span class="p" data-group-id="8410597970-2">}</span><span class="p" data-group-id="8410597970-1">]</span></code></pre><p>Match three arguments. When all three are equal and are numbers, append the
+process dump to the trace message, otherwise let the trace message be &quot;as is&quot;,
+but set the sequential trace token label to 4711:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="3055990113-1">[</span><span class="p" data-group-id="3055990113-2">{</span><span class="p" data-group-id="3055990113-3">[</span><span class="ss">&#39;$1&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;$1&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;$1&#39;</span><span class="p" data-group-id="3055990113-3">]</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="3055990113-4">[</span><span class="p" data-group-id="3055990113-5">{</span><span class="nb">is_number</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;$1&#39;</span><span class="p" data-group-id="3055990113-5">}</span><span class="p" data-group-id="3055990113-4">]</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="3055990113-6">[</span><span class="p" data-group-id="3055990113-7">{</span><span class="ss">message</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="3055990113-8">{</span><span class="ss">process_dump</span><span class="p" data-group-id="3055990113-8">}</span><span class="p" data-group-id="3055990113-7">}</span><span class="p" data-group-id="3055990113-6">]</span><span class="p" data-group-id="3055990113-2">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="3055990113-9">{</span><span class="ss">&#39;_&#39;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="3055990113-10">[</span><span class="p" data-group-id="3055990113-10">]</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="3055990113-11">[</span><span class="p" data-group-id="3055990113-12">{</span><span class="ss">set_seq_token</span><span class="p">,</span><span class="w"> </span><span class="ss">label</span><span class="p">,</span><span class="w"> </span><span class="mi">4711</span><span class="p" data-group-id="3055990113-12">}</span><span class="p" data-group-id="3055990113-11">]</span><span class="p" data-group-id="3055990113-9">}</span><span class="p" data-group-id="3055990113-1">]</span></code></pre><p>As can be noted above, the parameter list can be matched against a single
+<code class="inline">MatchVariable</code> or an <code class="inline">'_'</code>. To replace the whole parameter list with a single
+variable is a special case. In all other cases the <code class="inline">MatchHead</code> must be a
+<em>proper</em> list.</p><p>Generate a trace message only if the trace control word is set to 1:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="2181628997-1">[</span><span class="p" data-group-id="2181628997-2">{</span><span class="ss">&#39;_&#39;</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="2181628997-3">[</span><span class="p" data-group-id="2181628997-4">{</span><span class="ss">&#39;==&#39;</span><span class="p">,</span><span class="p" data-group-id="2181628997-5">{</span><span class="ss">get_tcw</span><span class="p" data-group-id="2181628997-5">}</span><span class="p">,</span><span class="p" data-group-id="2181628997-6">{</span><span class="ss">const</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p" data-group-id="2181628997-6">}</span><span class="p" data-group-id="2181628997-4">}</span><span class="p" data-group-id="2181628997-3">]</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="2181628997-7">[</span><span class="p" data-group-id="2181628997-7">]</span><span class="p" data-group-id="2181628997-2">}</span><span class="p" data-group-id="2181628997-1">]</span></code></pre><p>Generate a trace message only if there is a <code class="inline">seq_trace</code> token:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="8772072174-1">[</span><span class="p" data-group-id="8772072174-2">{</span><span class="ss">&#39;_&#39;</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="8772072174-3">[</span><span class="p" data-group-id="8772072174-4">{</span><span class="ss">&#39;==&#39;</span><span class="p">,</span><span class="p" data-group-id="8772072174-5">{</span><span class="ss">is_seq_trace</span><span class="p" data-group-id="8772072174-5">}</span><span class="p">,</span><span class="p" data-group-id="8772072174-6">{</span><span class="ss">const</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p" data-group-id="8772072174-6">}</span><span class="p" data-group-id="8772072174-4">}</span><span class="p" data-group-id="8772072174-3">]</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="8772072174-7">[</span><span class="p" data-group-id="8772072174-7">]</span><span class="p" data-group-id="8772072174-2">}</span><span class="p" data-group-id="8772072174-1">]</span></code></pre><p>Remove the <code class="inline">'silent'</code> trace flag when the first argument is <code class="inline">'verbose'</code>, and add
+it when it is <code class="inline">'silent':</code></p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="6141195677-1">[</span><span class="p" data-group-id="6141195677-2">{</span><span class="ss">&#39;$1&#39;</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="6141195677-3">[</span><span class="p" data-group-id="6141195677-4">{</span><span class="ss">&#39;==&#39;</span><span class="p">,</span><span class="p" data-group-id="6141195677-5">{</span><span class="nb">hd</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;$1&#39;</span><span class="p" data-group-id="6141195677-5">}</span><span class="p">,</span><span class="ss">verbose</span><span class="p" data-group-id="6141195677-4">}</span><span class="p" data-group-id="6141195677-3">]</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="6141195677-6">[</span><span class="p" data-group-id="6141195677-7">{</span><span class="nb">trace</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6141195677-8">[</span><span class="ss">silent</span><span class="p" data-group-id="6141195677-8">]</span><span class="p">,</span><span class="p" data-group-id="6141195677-9">[</span><span class="p" data-group-id="6141195677-9">]</span><span class="p" data-group-id="6141195677-7">}</span><span class="p" data-group-id="6141195677-6">]</span><span class="p" data-group-id="6141195677-2">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="6141195677-10">{</span><span class="ss">&#39;$1&#39;</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="6141195677-11">[</span><span class="p" data-group-id="6141195677-12">{</span><span class="ss">&#39;==&#39;</span><span class="p">,</span><span class="p" data-group-id="6141195677-13">{</span><span class="nb">hd</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;$1&#39;</span><span class="p" data-group-id="6141195677-13">}</span><span class="p">,</span><span class="ss">silent</span><span class="p" data-group-id="6141195677-12">}</span><span class="p" data-group-id="6141195677-11">]</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="6141195677-14">[</span><span class="p" data-group-id="6141195677-15">{</span><span class="nb">trace</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6141195677-16">[</span><span class="p" data-group-id="6141195677-16">]</span><span class="p">,</span><span class="p" data-group-id="6141195677-17">[</span><span class="ss">silent</span><span class="p" data-group-id="6141195677-17">]</span><span class="p" data-group-id="6141195677-15">}</span><span class="p" data-group-id="6141195677-14">]</span><span class="p" data-group-id="6141195677-10">}</span><span class="p" data-group-id="6141195677-1">]</span></code></pre><p>Add a <code class="inline">return_trace</code> message if the function is of arity 3:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="0621027863-1">[</span><span class="p" data-group-id="0621027863-2">{</span><span class="ss">&#39;$1&#39;</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="0621027863-3">[</span><span class="p" data-group-id="0621027863-4">{</span><span class="ss">&#39;==&#39;</span><span class="p">,</span><span class="p" data-group-id="0621027863-5">{</span><span class="nb">length</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;$1&#39;</span><span class="p" data-group-id="0621027863-5">}</span><span class="p">,</span><span class="mi">3</span><span class="p" data-group-id="0621027863-4">}</span><span class="p" data-group-id="0621027863-3">]</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="0621027863-6">[</span><span class="p" data-group-id="0621027863-7">{</span><span class="ss">return_trace</span><span class="p" data-group-id="0621027863-7">}</span><span class="p" data-group-id="0621027863-6">]</span><span class="p" data-group-id="0621027863-2">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="0621027863-8">{</span><span class="ss">&#39;_&#39;</span><span class="p">,</span><span class="p" data-group-id="0621027863-9">[</span><span class="p" data-group-id="0621027863-9">]</span><span class="p">,</span><span class="p" data-group-id="0621027863-10">[</span><span class="p" data-group-id="0621027863-10">]</span><span class="p" data-group-id="0621027863-8">}</span><span class="p" data-group-id="0621027863-1">]</span></code></pre><p>Generate a trace message only if the function is of arity 3 and the first
+argument is <code class="inline">'trace'</code>:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="1271583421-1">[</span><span class="p" data-group-id="1271583421-2">{</span><span class="p" data-group-id="1271583421-3">[</span><span class="ss">&#39;trace&#39;</span><span class="p">,</span><span class="ss">&#39;$2&#39;</span><span class="p">,</span><span class="ss">&#39;$3&#39;</span><span class="p" data-group-id="1271583421-3">]</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="1271583421-4">[</span><span class="p" data-group-id="1271583421-4">]</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="1271583421-5">[</span><span class="p" data-group-id="1271583421-5">]</span><span class="p" data-group-id="1271583421-2">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="1271583421-6">{</span><span class="ss">&#39;_&#39;</span><span class="p">,</span><span class="p" data-group-id="1271583421-7">[</span><span class="p" data-group-id="1271583421-7">]</span><span class="p">,</span><span class="p" data-group-id="1271583421-8">[</span><span class="p" data-group-id="1271583421-8">]</span><span class="p" data-group-id="1271583421-6">}</span><span class="p" data-group-id="1271583421-1">]</span></code></pre><h2 id="ets-examples" class="section-heading">
+  <a href="#ets-examples" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">ETS Examples</span>
+</h2>
+<p>Match all objects in an ETS table, where the first element is the atom
+<code class="inline">'strider'</code> and the tuple arity is 3, and return the whole object:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="6573165672-1">[</span><span class="p" data-group-id="6573165672-2">{</span><span class="p" data-group-id="6573165672-3">{</span><span class="ss">strider</span><span class="p">,</span><span class="ss">&#39;_&#39;</span><span class="p">,</span><span class="ss">&#39;_&#39;</span><span class="p" data-group-id="6573165672-3">}</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="6573165672-4">[</span><span class="p" data-group-id="6573165672-4">]</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="6573165672-5">[</span><span class="ss">&#39;$_&#39;</span><span class="p" data-group-id="6573165672-5">]</span><span class="p" data-group-id="6573165672-2">}</span><span class="p" data-group-id="6573165672-1">]</span></code></pre><p>Match all objects in an ETS table with arity &gt; 1 and the first element is
+'gandalf', and return element 2:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="7148250849-1">[</span><span class="p" data-group-id="7148250849-2">{</span><span class="ss">&#39;$1&#39;</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="7148250849-3">[</span><span class="p" data-group-id="7148250849-4">{</span><span class="ss">&#39;==&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">gandalf</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7148250849-5">{</span><span class="nb">element</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;$1&#39;</span><span class="p" data-group-id="7148250849-5">}</span><span class="p" data-group-id="7148250849-4">}</span><span class="p">,</span><span class="p" data-group-id="7148250849-6">{</span><span class="ss">&#39;&gt;=&#39;</span><span class="p">,</span><span class="p" data-group-id="7148250849-7">{</span><span class="nb">size</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;$1&#39;</span><span class="p" data-group-id="7148250849-7">}</span><span class="p">,</span><span class="mi">2</span><span class="p" data-group-id="7148250849-6">}</span><span class="p" data-group-id="7148250849-3">]</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="7148250849-8">[</span><span class="p" data-group-id="7148250849-9">{</span><span class="nb">element</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="ss">&#39;$1&#39;</span><span class="p" data-group-id="7148250849-9">}</span><span class="p" data-group-id="7148250849-8">]</span><span class="p" data-group-id="7148250849-2">}</span><span class="p" data-group-id="7148250849-1">]</span></code></pre><p>In this example, if the first element had been the key, it is much more
+efficient to match that key in the <code class="inline">MatchHead</code> part than in the
+<code class="inline">MatchConditions</code> part. The search space of the tables is restricted with
+regards to the <code class="inline">MatchHead</code> so that only objects with the matching key are
+searched.</p><p>Match tuples of three elements, where the second element is either <code class="inline">'merry'</code> or
+<code class="inline">'pippin'</code>, and return the whole objects:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="6302235026-1">[</span><span class="p" data-group-id="6302235026-2">{</span><span class="p" data-group-id="6302235026-3">{</span><span class="ss">&#39;_&#39;</span><span class="p">,</span><span class="ss">merry</span><span class="p">,</span><span class="ss">&#39;_&#39;</span><span class="p" data-group-id="6302235026-3">}</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="6302235026-4">[</span><span class="p" data-group-id="6302235026-4">]</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="6302235026-5">[</span><span class="ss">&#39;$_&#39;</span><span class="p" data-group-id="6302235026-5">]</span><span class="p" data-group-id="6302235026-2">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="6302235026-6">{</span><span class="p" data-group-id="6302235026-7">{</span><span class="ss">&#39;_&#39;</span><span class="p">,</span><span class="ss">pippin</span><span class="p">,</span><span class="ss">&#39;_&#39;</span><span class="p" data-group-id="6302235026-7">}</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="6302235026-8">[</span><span class="p" data-group-id="6302235026-8">]</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="6302235026-9">[</span><span class="ss">&#39;$_&#39;</span><span class="p" data-group-id="6302235026-9">]</span><span class="p" data-group-id="6302235026-6">}</span><span class="p" data-group-id="6302235026-1">]</span></code></pre><p>Function <a href="../../apps/stdlib/ets.html#test_ms/2"><code class="inline">ets:test_ms/2</code></a> can be useful for testing complicated ETS matches.</p>
+<div class="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="time_correction.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Time and Time Correction in Erlang
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="crash_dump.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+How to Interpret the Erlang Crash Dumps
+        </span>
+      </a>
+
+  </div>
+</div>
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

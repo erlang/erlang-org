@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="mnesia v4.23.1">
+
+
+    <title>Appendix A: Backup Callback Interface — mnesia v4.23.1</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-1AFE0CAA.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="mnesia" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+mnesia
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v4.23.1
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of mnesia</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/lib/mnesia/doc/guides/mnesia_app_a.md#L1" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+
+  <span>Appendix A: Backup Callback Interface</span>
+</h1>
+
+<h2 id="mnesia_backup-callback-behavior" class="section-heading">
+  <a href="#mnesia_backup-callback-behavior" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">mnesia_backup Callback Behavior</span>
+</h2>
+<pre><code class="makeup erlang" translate="no"><span class="w">
+
+</span><span class="c1">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span><span class="w">
+</span><span class="c1">%%</span><span class="w">
+</span><span class="c1">%% This module contains one implementation of callback functions</span><span class="w">
+</span><span class="c1">%% used by Mnesia at backup and restore. The user may however</span><span class="w">
+</span><span class="c1">%% write an own module the same interface as mnesia_backup and</span><span class="w">
+</span><span class="c1">%% configure Mnesia so the alternate module performs the actual</span><span class="w">
+</span><span class="c1">%% accesses to the backup media. This means that the user may put</span><span class="w">
+</span><span class="c1">%% the backup on media that Mnesia does not know about, possibly</span><span class="w">
+</span><span class="c1">%% on hosts where Erlang is not running.</span><span class="w">
+</span><span class="c1">%%</span><span class="w">
+</span><span class="c1">%% The OpaqueData argument is never interpreted by other parts of</span><span class="w">
+</span><span class="c1">%% Mnesia. It is the property of this module. Alternate implementations</span><span class="w">
+</span><span class="c1">%% of this module may have different interpretations of OpaqueData.</span><span class="w">
+</span><span class="c1">%% The OpaqueData argument given to open_write/1 and open_read/1</span><span class="w">
+</span><span class="c1">%% are forwarded directly from the user.</span><span class="w">
+</span><span class="c1">%%</span><span class="w">
+</span><span class="c1">%% All functions must return {ok, NewOpaqueData} or {error, Reason}.</span><span class="w">
+</span><span class="c1">%%</span><span class="w">
+</span><span class="c1">%% The NewOpaqueData arguments returned by backup callback functions will</span><span class="w">
+</span><span class="c1">%% be given as input when the next backup callback function is invoked.</span><span class="w">
+</span><span class="c1">%% If any return value does not match {ok, _} the backup will be aborted.</span><span class="w">
+</span><span class="c1">%%</span><span class="w">
+</span><span class="c1">%% The NewOpaqueData arguments returned by restore callback functions will</span><span class="w">
+</span><span class="c1">%% be given as input when the next restore callback function is invoked</span><span class="w">
+</span><span class="c1">%% If any return value does not match {ok, _} the restore will be aborted.</span><span class="w">
+</span><span class="c1">%%</span><span class="w">
+</span><span class="c1">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span><span class="w">
+</span><span class="w">
+</span><span class="p">-</span><span class="na">module</span><span class="p" data-group-id="4184856086-1">(</span><span class="ss">mnesia_backup</span><span class="p" data-group-id="4184856086-1">)</span><span class="p">.</span><span class="w">
+</span><span class="w">
+</span><span class="p">-</span><span class="na">include_lib</span><span class="p" data-group-id="4184856086-2">(</span><span class="s">&quot;kernel/include/file.hrl&quot;</span><span class="p" data-group-id="4184856086-2">)</span><span class="p">.</span><span class="w">
+</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="4184856086-3">(</span><span class="p" data-group-id="4184856086-4">[</span><span class="w">
+</span><span class="err">	</span><span class="w"> </span><span class="c1">%% Write access</span><span class="w">
+         </span><span class="ss">open_write</span><span class="p">/</span><span class="mi">1</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w"> </span><span class="ss">write</span><span class="p">/</span><span class="mi">2</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w"> </span><span class="ss">commit_write</span><span class="p">/</span><span class="mi">1</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w"> </span><span class="ss">abort_write</span><span class="p">/</span><span class="mi">1</span><span class="p">,</span><span class="w">
+
+</span><span class="err">	</span><span class="w"> </span><span class="c1">%% Read access</span><span class="w">
+         </span><span class="ss">open_read</span><span class="p">/</span><span class="mi">1</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w"> </span><span class="ss">read</span><span class="p">/</span><span class="mi">1</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w"> </span><span class="ss">close_read</span><span class="p">/</span><span class="mi">1</span><span class="w">
+        </span><span class="p" data-group-id="4184856086-4">]</span><span class="p" data-group-id="4184856086-3">)</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span><span class="w">
+</span><span class="c1">%% Backup callback interface</span><span class="w">
+</span><span class="p">-</span><span class="na">record</span><span class="p" data-group-id="4184856086-5">(</span><span class="ss">backup</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="4184856086-6">{</span><span class="ss">tmp_file</span><span class="p">,</span><span class="w"> </span><span class="ss">file</span><span class="p">,</span><span class="w"> </span><span class="ss">file_desc</span><span class="p" data-group-id="4184856086-6">}</span><span class="p" data-group-id="4184856086-5">)</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%% Opens backup media for write</span><span class="w">
+</span><span class="c1">%%</span><span class="w">
+</span><span class="c1">%% Returns {ok, OpaqueData} or {error, Reason}</span><span class="w">
+</span><span class="nf">open_write</span><span class="p" data-group-id="4184856086-7">(</span><span class="n">OpaqueData</span><span class="p" data-group-id="4184856086-7">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">File</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">OpaqueData</span><span class="p">,</span><span class="w">
+    </span><span class="n">Tmp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">lists</span><span class="p">:</span><span class="nf">concat</span><span class="p" data-group-id="4184856086-8">(</span><span class="p" data-group-id="4184856086-9">[</span><span class="n">File</span><span class="p">,</span><span class="s">&quot;.BUPTMP&quot;</span><span class="p" data-group-id="4184856086-9">]</span><span class="p" data-group-id="4184856086-8">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">file</span><span class="p">:</span><span class="nf">delete</span><span class="p" data-group-id="4184856086-10">(</span><span class="n">Tmp</span><span class="p" data-group-id="4184856086-10">)</span><span class="p">,</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="nc">disk_log</span><span class="p">:</span><span class="nf">open</span><span class="p" data-group-id="4184856086-11">(</span><span class="p" data-group-id="4184856086-12">[</span><span class="p" data-group-id="4184856086-13">{</span><span class="ss">name</span><span class="p">,</span><span class="w"> </span><span class="nf">make_ref</span><span class="p" data-group-id="4184856086-14">(</span><span class="p" data-group-id="4184856086-14">)</span><span class="p" data-group-id="4184856086-13">}</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="p" data-group-id="4184856086-15">{</span><span class="ss">file</span><span class="p">,</span><span class="w"> </span><span class="n">Tmp</span><span class="p" data-group-id="4184856086-15">}</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="p" data-group-id="4184856086-16">{</span><span class="ss">repair</span><span class="p">,</span><span class="w"> </span><span class="ss">false</span><span class="p" data-group-id="4184856086-16">}</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="p" data-group-id="4184856086-17">{</span><span class="ss">linkto</span><span class="p">,</span><span class="w"> </span><span class="nf">self</span><span class="p" data-group-id="4184856086-18">(</span><span class="p" data-group-id="4184856086-18">)</span><span class="p" data-group-id="4184856086-17">}</span><span class="p" data-group-id="4184856086-12">]</span><span class="p" data-group-id="4184856086-11">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+</span><span class="err">	</span><span class="p" data-group-id="4184856086-19">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">Fd</span><span class="p" data-group-id="4184856086-19">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="p" data-group-id="4184856086-20">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="o">#</span><span class="ss">backup</span><span class="p" data-group-id="4184856086-21">{</span><span class="ss">tmp_file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Tmp</span><span class="p">,</span><span class="w"> </span><span class="ss">file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">File</span><span class="p">,</span><span class="w"> </span><span class="ss">file_desc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Fd</span><span class="p" data-group-id="4184856086-21">}</span><span class="p" data-group-id="4184856086-20">}</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="p" data-group-id="4184856086-22">{</span><span class="ss">error</span><span class="p">,</span><span class="w"> </span><span class="n">Reason</span><span class="p" data-group-id="4184856086-22">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="p" data-group-id="4184856086-23">{</span><span class="ss">error</span><span class="p">,</span><span class="w"> </span><span class="n">Reason</span><span class="p" data-group-id="4184856086-23">}</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%% Writes BackupItems to the backup media</span><span class="w">
+</span><span class="c1">%%</span><span class="w">
+</span><span class="c1">%% Returns {ok, OpaqueData} or {error, Reason}</span><span class="w">
+</span><span class="nf">write</span><span class="p" data-group-id="4184856086-24">(</span><span class="n">OpaqueData</span><span class="p">,</span><span class="w"> </span><span class="n">BackupItems</span><span class="p" data-group-id="4184856086-24">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">B</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">OpaqueData</span><span class="p">,</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="nc">disk_log</span><span class="p">:</span><span class="nf">log_terms</span><span class="p" data-group-id="4184856086-25">(</span><span class="n">B</span><span class="o">#</span><span class="ss">backup</span><span class="p">.</span><span class="ss">file_desc</span><span class="p">,</span><span class="w"> </span><span class="n">BackupItems</span><span class="p" data-group-id="4184856086-25">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+        </span><span class="ss">ok</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="p" data-group-id="4184856086-26">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">B</span><span class="p" data-group-id="4184856086-26">}</span><span class="p">;</span><span class="w">
+        </span><span class="p" data-group-id="4184856086-27">{</span><span class="ss">error</span><span class="p">,</span><span class="w"> </span><span class="n">Reason</span><span class="p" data-group-id="4184856086-27">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="nf">abort_write</span><span class="p" data-group-id="4184856086-28">(</span><span class="n">B</span><span class="p" data-group-id="4184856086-28">)</span><span class="p">,</span><span class="w">
+            </span><span class="p" data-group-id="4184856086-29">{</span><span class="ss">error</span><span class="p">,</span><span class="w"> </span><span class="n">Reason</span><span class="p" data-group-id="4184856086-29">}</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%% Closes the backup media after a successful backup</span><span class="w">
+</span><span class="c1">%%</span><span class="w">
+</span><span class="c1">%% Returns {ok, ReturnValueToUser} or {error, Reason}</span><span class="w">
+</span><span class="nf">commit_write</span><span class="p" data-group-id="4184856086-30">(</span><span class="n">OpaqueData</span><span class="p" data-group-id="4184856086-30">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">B</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">OpaqueData</span><span class="p">,</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="nc">disk_log</span><span class="p">:</span><span class="nf">sync</span><span class="p" data-group-id="4184856086-31">(</span><span class="n">B</span><span class="o">#</span><span class="ss">backup</span><span class="p">.</span><span class="ss">file_desc</span><span class="p" data-group-id="4184856086-31">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+        </span><span class="ss">ok</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="k">case</span><span class="w"> </span><span class="nc">disk_log</span><span class="p">:</span><span class="nf">close</span><span class="p" data-group-id="4184856086-32">(</span><span class="n">B</span><span class="o">#</span><span class="ss">backup</span><span class="p">.</span><span class="ss">file_desc</span><span class="p" data-group-id="4184856086-32">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+                </span><span class="ss">ok</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                    </span><span class="nc">file</span><span class="p">:</span><span class="nf">delete</span><span class="p" data-group-id="4184856086-33">(</span><span class="n">B</span><span class="o">#</span><span class="ss">backup</span><span class="p">.</span><span class="ss">file</span><span class="p" data-group-id="4184856086-33">)</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="nc">file</span><span class="p">:</span><span class="nf">rename</span><span class="p" data-group-id="4184856086-34">(</span><span class="n">B</span><span class="o">#</span><span class="ss">backup</span><span class="p">.</span><span class="ss">tmp_file</span><span class="p">,</span><span class="w"> </span><span class="n">B</span><span class="o">#</span><span class="ss">backup</span><span class="p">.</span><span class="ss">file</span><span class="p" data-group-id="4184856086-34">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">       </span><span class="ss">ok</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="w">    </span><span class="p" data-group-id="4184856086-35">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">B</span><span class="o">#</span><span class="ss">backup</span><span class="p">.</span><span class="ss">file</span><span class="p" data-group-id="4184856086-35">}</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">       </span><span class="p" data-group-id="4184856086-36">{</span><span class="ss">error</span><span class="p">,</span><span class="w"> </span><span class="n">Reason</span><span class="p" data-group-id="4184856086-36">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="w">    </span><span class="p" data-group-id="4184856086-37">{</span><span class="ss">error</span><span class="p">,</span><span class="w"> </span><span class="n">Reason</span><span class="p" data-group-id="4184856086-37">}</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">    </span><span class="k">end</span><span class="p">;</span><span class="w">
+                </span><span class="p" data-group-id="4184856086-38">{</span><span class="ss">error</span><span class="p">,</span><span class="w"> </span><span class="n">Reason</span><span class="p" data-group-id="4184856086-38">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">    </span><span class="p" data-group-id="4184856086-39">{</span><span class="ss">error</span><span class="p">,</span><span class="w"> </span><span class="n">Reason</span><span class="p" data-group-id="4184856086-39">}</span><span class="w">
+            </span><span class="k">end</span><span class="p">;</span><span class="w">
+        </span><span class="p" data-group-id="4184856086-40">{</span><span class="ss">error</span><span class="p">,</span><span class="w"> </span><span class="n">Reason</span><span class="p" data-group-id="4184856086-40">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="p" data-group-id="4184856086-41">{</span><span class="ss">error</span><span class="p">,</span><span class="w"> </span><span class="n">Reason</span><span class="p" data-group-id="4184856086-41">}</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%% Closes the backup media after an interrupted backup</span><span class="w">
+</span><span class="c1">%%</span><span class="w">
+</span><span class="c1">%% Returns {ok, ReturnValueToUser} or {error, Reason}</span><span class="w">
+</span><span class="nf">abort_write</span><span class="p" data-group-id="4184856086-42">(</span><span class="n">BackupRef</span><span class="p" data-group-id="4184856086-42">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">Res</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">disk_log</span><span class="p">:</span><span class="nf">close</span><span class="p" data-group-id="4184856086-43">(</span><span class="n">BackupRef</span><span class="o">#</span><span class="ss">backup</span><span class="p">.</span><span class="ss">file_desc</span><span class="p" data-group-id="4184856086-43">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">file</span><span class="p">:</span><span class="nf">delete</span><span class="p" data-group-id="4184856086-44">(</span><span class="n">BackupRef</span><span class="o">#</span><span class="ss">backup</span><span class="p">.</span><span class="ss">tmp_file</span><span class="p" data-group-id="4184856086-44">)</span><span class="p">,</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="n">Res</span><span class="w"> </span><span class="k">of</span><span class="w">
+        </span><span class="ss">ok</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="p" data-group-id="4184856086-45">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">BackupRef</span><span class="o">#</span><span class="ss">backup</span><span class="p">.</span><span class="ss">file</span><span class="p" data-group-id="4184856086-45">}</span><span class="p">;</span><span class="w">
+        </span><span class="p" data-group-id="4184856086-46">{</span><span class="ss">error</span><span class="p">,</span><span class="w"> </span><span class="n">Reason</span><span class="p" data-group-id="4184856086-46">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="p" data-group-id="4184856086-47">{</span><span class="ss">error</span><span class="p">,</span><span class="w"> </span><span class="n">Reason</span><span class="p" data-group-id="4184856086-47">}</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span><span class="w">
+</span><span class="c1">%% Restore callback interface</span><span class="w">
+</span><span class="w">
+</span><span class="p">-</span><span class="na">record</span><span class="p" data-group-id="4184856086-48">(</span><span class="ss">restore</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="4184856086-49">{</span><span class="ss">file</span><span class="p">,</span><span class="w"> </span><span class="ss">file_desc</span><span class="p">,</span><span class="w"> </span><span class="ss">cont</span><span class="p" data-group-id="4184856086-49">}</span><span class="p" data-group-id="4184856086-48">)</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%% Opens backup media for read</span><span class="w">
+</span><span class="c1">%%</span><span class="w">
+</span><span class="c1">%% Returns {ok, OpaqueData} or {error, Reason}</span><span class="w">
+</span><span class="nf">open_read</span><span class="p" data-group-id="4184856086-50">(</span><span class="n">OpaqueData</span><span class="p" data-group-id="4184856086-50">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">File</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">OpaqueData</span><span class="p">,</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="nc">file</span><span class="p">:</span><span class="nf">read_file_info</span><span class="p" data-group-id="4184856086-51">(</span><span class="n">File</span><span class="p" data-group-id="4184856086-51">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+</span><span class="err">	</span><span class="p" data-group-id="4184856086-52">{</span><span class="ss">error</span><span class="p">,</span><span class="w"> </span><span class="n">Reason</span><span class="p" data-group-id="4184856086-52">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="p" data-group-id="4184856086-53">{</span><span class="ss">error</span><span class="p">,</span><span class="w"> </span><span class="n">Reason</span><span class="p" data-group-id="4184856086-53">}</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="p">_</span><span class="n">FileInfo</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="c1">%% file exists</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="nc">disk_log</span><span class="p">:</span><span class="nf">open</span><span class="p" data-group-id="4184856086-54">(</span><span class="p" data-group-id="4184856086-55">[</span><span class="p" data-group-id="4184856086-56">{</span><span class="ss">file</span><span class="p">,</span><span class="w"> </span><span class="n">File</span><span class="p" data-group-id="4184856086-56">}</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="p" data-group-id="4184856086-57">{</span><span class="ss">name</span><span class="p">,</span><span class="w"> </span><span class="nf">make_ref</span><span class="p" data-group-id="4184856086-58">(</span><span class="p" data-group-id="4184856086-58">)</span><span class="p" data-group-id="4184856086-57">}</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="p" data-group-id="4184856086-59">{</span><span class="ss">repair</span><span class="p">,</span><span class="w"> </span><span class="ss">false</span><span class="p" data-group-id="4184856086-59">}</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="p" data-group-id="4184856086-60">{</span><span class="ss">mode</span><span class="p">,</span><span class="w"> </span><span class="ss">read_only</span><span class="p" data-group-id="4184856086-60">}</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="p" data-group-id="4184856086-61">{</span><span class="ss">linkto</span><span class="p">,</span><span class="w"> </span><span class="nf">self</span><span class="p" data-group-id="4184856086-62">(</span><span class="p" data-group-id="4184856086-62">)</span><span class="p" data-group-id="4184856086-61">}</span><span class="p" data-group-id="4184856086-55">]</span><span class="p" data-group-id="4184856086-54">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="p" data-group-id="4184856086-63">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">Fd</span><span class="p" data-group-id="4184856086-63">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">    </span><span class="p" data-group-id="4184856086-64">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="o">#</span><span class="ss">restore</span><span class="p" data-group-id="4184856086-65">{</span><span class="ss">file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">File</span><span class="p">,</span><span class="w"> </span><span class="ss">file_desc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Fd</span><span class="p">,</span><span class="w"> </span><span class="ss">cont</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">start</span><span class="p" data-group-id="4184856086-65">}</span><span class="p" data-group-id="4184856086-64">}</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="p" data-group-id="4184856086-66">{</span><span class="ss">repaired</span><span class="p">,</span><span class="w"> </span><span class="n">Fd</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="4184856086-67">{</span><span class="ss">badbytes</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p" data-group-id="4184856086-67">}</span><span class="p" data-group-id="4184856086-66">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">    </span><span class="p" data-group-id="4184856086-68">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="o">#</span><span class="ss">restore</span><span class="p" data-group-id="4184856086-69">{</span><span class="ss">file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">File</span><span class="p">,</span><span class="w"> </span><span class="ss">file_desc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Fd</span><span class="p">,</span><span class="w"> </span><span class="ss">cont</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">start</span><span class="p" data-group-id="4184856086-69">}</span><span class="p" data-group-id="4184856086-68">}</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="p" data-group-id="4184856086-70">{</span><span class="ss">repaired</span><span class="p">,</span><span class="w"> </span><span class="n">Fd</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="p" data-group-id="4184856086-70">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">    </span><span class="p" data-group-id="4184856086-71">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="o">#</span><span class="ss">restore</span><span class="p" data-group-id="4184856086-72">{</span><span class="ss">file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">File</span><span class="p">,</span><span class="w"> </span><span class="ss">file_desc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Fd</span><span class="p">,</span><span class="w"> </span><span class="ss">cont</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">start</span><span class="p" data-group-id="4184856086-72">}</span><span class="p" data-group-id="4184856086-71">}</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="p" data-group-id="4184856086-73">{</span><span class="ss">error</span><span class="p">,</span><span class="w"> </span><span class="n">Reason</span><span class="p" data-group-id="4184856086-73">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">    </span><span class="p" data-group-id="4184856086-74">{</span><span class="ss">error</span><span class="p">,</span><span class="w"> </span><span class="n">Reason</span><span class="p" data-group-id="4184856086-74">}</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="k">end</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%% Reads BackupItems from the backup media</span><span class="w">
+</span><span class="c1">%%</span><span class="w">
+</span><span class="c1">%% Returns {ok, OpaqueData, BackupItems} or {error, Reason}</span><span class="w">
+</span><span class="c1">%%</span><span class="w">
+</span><span class="c1">%% BackupItems == [] is interpreted as eof</span><span class="w">
+</span><span class="nf">read</span><span class="p" data-group-id="4184856086-75">(</span><span class="n">OpaqueData</span><span class="p" data-group-id="4184856086-75">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">R</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">OpaqueData</span><span class="p">,</span><span class="w">
+    </span><span class="n">Fd</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">R</span><span class="o">#</span><span class="ss">restore</span><span class="p">.</span><span class="ss">file_desc</span><span class="p">,</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="nc">disk_log</span><span class="p">:</span><span class="nf">chunk</span><span class="p" data-group-id="4184856086-76">(</span><span class="n">Fd</span><span class="p">,</span><span class="w"> </span><span class="n">R</span><span class="o">#</span><span class="ss">restore</span><span class="p">.</span><span class="ss">cont</span><span class="p" data-group-id="4184856086-76">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+        </span><span class="p" data-group-id="4184856086-77">{</span><span class="ss">error</span><span class="p">,</span><span class="w"> </span><span class="n">Reason</span><span class="p" data-group-id="4184856086-77">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="p" data-group-id="4184856086-78">{</span><span class="ss">error</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="4184856086-79">{</span><span class="s">&quot;Possibly truncated&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">Reason</span><span class="p" data-group-id="4184856086-79">}</span><span class="p" data-group-id="4184856086-78">}</span><span class="p">;</span><span class="w">
+        </span><span class="ss">eof</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="p" data-group-id="4184856086-80">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">R</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="4184856086-81">[</span><span class="p" data-group-id="4184856086-81">]</span><span class="p" data-group-id="4184856086-80">}</span><span class="p">;</span><span class="w">
+        </span><span class="p" data-group-id="4184856086-82">{</span><span class="n">Cont</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="4184856086-83">[</span><span class="p" data-group-id="4184856086-83">]</span><span class="p" data-group-id="4184856086-82">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="nf">read</span><span class="p" data-group-id="4184856086-84">(</span><span class="n">R</span><span class="o">#</span><span class="ss">restore</span><span class="p" data-group-id="4184856086-85">{</span><span class="ss">cont</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Cont</span><span class="p" data-group-id="4184856086-85">}</span><span class="p" data-group-id="4184856086-84">)</span><span class="p">;</span><span class="w">
+        </span><span class="p" data-group-id="4184856086-86">{</span><span class="n">Cont</span><span class="p">,</span><span class="w"> </span><span class="n">BackupItems</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">BadBytes</span><span class="p" data-group-id="4184856086-86">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="p" data-group-id="4184856086-87">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">R</span><span class="o">#</span><span class="ss">restore</span><span class="p" data-group-id="4184856086-88">{</span><span class="ss">cont</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Cont</span><span class="p" data-group-id="4184856086-88">}</span><span class="p">,</span><span class="w"> </span><span class="n">BackupItems</span><span class="p" data-group-id="4184856086-87">}</span><span class="p">;</span><span class="w">
+        </span><span class="p" data-group-id="4184856086-89">{</span><span class="n">Cont</span><span class="p">,</span><span class="w"> </span><span class="n">BackupItems</span><span class="p" data-group-id="4184856086-89">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="p" data-group-id="4184856086-90">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">R</span><span class="o">#</span><span class="ss">restore</span><span class="p" data-group-id="4184856086-91">{</span><span class="ss">cont</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Cont</span><span class="p" data-group-id="4184856086-91">}</span><span class="p">,</span><span class="w"> </span><span class="n">BackupItems</span><span class="p" data-group-id="4184856086-90">}</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%% Closes the backup media after restore</span><span class="w">
+</span><span class="c1">%%</span><span class="w">
+</span><span class="c1">%% Returns {ok, ReturnValueToUser} or {error, Reason}</span><span class="w">
+</span><span class="nf">close_read</span><span class="p" data-group-id="4184856086-92">(</span><span class="n">OpaqueData</span><span class="p" data-group-id="4184856086-92">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">R</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">OpaqueData</span><span class="p">,</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="nc">disk_log</span><span class="p">:</span><span class="nf">close</span><span class="p" data-group-id="4184856086-93">(</span><span class="n">R</span><span class="o">#</span><span class="ss">restore</span><span class="p">.</span><span class="ss">file_desc</span><span class="p" data-group-id="4184856086-93">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+        </span><span class="ss">ok</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="p" data-group-id="4184856086-94">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">R</span><span class="o">#</span><span class="ss">restore</span><span class="p">.</span><span class="ss">file</span><span class="p" data-group-id="4184856086-94">}</span><span class="p">;</span><span class="w">
+        </span><span class="p" data-group-id="4184856086-95">{</span><span class="ss">error</span><span class="p">,</span><span class="w"> </span><span class="n">Reason</span><span class="p" data-group-id="4184856086-95">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="p" data-group-id="4184856086-96">{</span><span class="ss">error</span><span class="p">,</span><span class="w"> </span><span class="n">Reason</span><span class="p" data-group-id="4184856086-96">}</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span></code></pre>
+<div class="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="mnesia_chap8.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Combine Mnesia with SNMP
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="mnesia_app_b.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+Appendix B: Activity Access Callback Interface
+        </span>
+      </a>
+
+  </div>
+</div>
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+              <a href="mnesia.epub" title="ePub version">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

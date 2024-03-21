@@ -1,0 +1,1881 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="tools v4.0">
+
+
+    <title>lcnt — tools v4.0</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-63A1715E.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="modules" class="page-module">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="tools" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+tools
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v4.0
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of tools</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L21" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+  <span translate="no">lcnt</span> 
+  <small class="app-vsn" translate="no">(tools v4.0)</small>
+
+</h1>
+
+
+  <section id="moduledoc">
+<p>A runtime system Lock Profiling tool.</p><p>The <code class="inline">lcnt</code> module is used to profile the internal ethread locks in the Erlang
+Runtime System. With <code class="inline">lcnt</code> enabled, internal counters in the runtime system are
+updated each time a lock is taken. The counters stores information about the
+number of acquisition tries and the number of collisions that has occurred
+during the acquisition tries. The counters also record the waiting time a lock
+has caused for a blocked thread when a collision has occurred.</p><p>The data produced by the lock counters will give an estimate on how well the
+runtime system will behave from a parallelizable view point for the scenarios
+tested. This tool was mainly developed to help Erlang runtime developers iron
+out potential and generic bottlenecks.</p><p>Locks in the emulator are named after what type of resource they protect and
+where in the emulator they are initialized, those are lock 'classes'. Most of
+those locks are also instantiated several times, and given unique identifiers,
+to increase locking granularity. Typically an instantiated lock protects a
+disjunct set of the resource, for example ets tables, processes or ports. In
+other cases it protects a specific range of a resource, for example <code class="inline">pix_lock</code>
+which protects index to process mappings, and is given a unique number within
+the class. A unique lock in <code class="inline">lcnt</code> is referenced by a name (class) and an
+identifier: <code class="inline">{Name, Id}</code>.</p><p>Some locks in the system are static and protects global resources, for example
+<code class="inline">bif_timers</code> and the <code class="inline">run_queue</code> locks. Other locks are dynamic and not
+necessarily long lived, for example process locks and ets-table locks. The
+statistics data from short lived locks can be stored separately when the locks
+are deleted. This behavior is by default turned off to save memory but can be
+turned on via <code class="inline">lcnt:rt_opt({copy_save, true})</code>. The <code class="inline">lcnt:apply/1,2,3</code> functions
+enables this behavior during profiling.</p><h2 id="module-see-also" class="section-heading">
+  <a href="#module-see-also" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">See Also</span>
+</h2>
+<p><a href="lcnt_chapter.html">LCNT User's Guide</a></p>
+  </section>
+
+
+  <section id="summary" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#summary">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Summary</span>
+    </h1>
+<div class="summary-types summary">
+  <h2>
+    <a href="#types">Types</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:category_atom/0" translate="no">category_atom()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:lock_counter_data/0" translate="no">lock_counter_data()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:option/0" translate="no">option()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:print/0" translate="no">print()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:sort/0" translate="no">sort()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:threshold/0" translate="no">threshold()</a>
+
+      </div>
+
+    </div>
+
+</div>
+<div class="summary-convenience-functions summary">
+  <h2>
+    <a href="#convenience-functions">Convenience functions</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#apply/1" translate="no">apply(Fun)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Same as <a href="#apply/2"><code class="inline">apply(Fun, [])</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#apply/2" translate="no">apply(Fun, Args)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Clears the lock counters and then setups the instrumentation to save all
+destroyed locks. After setup the function is called, passing the elements in
+<code class="inline">Args</code> as arguments. When the function returns the statistics are immediately
+collected to the server. After the collection the instrumentation is returned to
+its previous behavior. The result of the applied function is returned.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#apply/3" translate="no">apply(Module, Function, Args)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Same as <a href="#apply/1"><code class="inline">apply(fun() -&gt; erlang:apply(Module, Function, Args) end)</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#pid/2" translate="no">pid(Id, Serial)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Same as <a href="#pid/3"><code class="inline">pid(node(), Id, Serial)</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#pid/3" translate="no">pid(Node, Id, Serial)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Creates a process id with creation 0.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#port/1" translate="no">port(Id)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Same as <a href="#port/2"><code class="inline">port(node(), Id)</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#port/2" translate="no">port(Node, Id)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Creates a port id with creation 0.</p></div>
+
+    </div>
+
+</div>
+<div class="summary-internal-runtime-lock-counter-controllers summary">
+  <h2>
+    <a href="#internal-runtime-lock-counter-controllers">Internal runtime lock counter controllers</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#rt_clear/0" translate="no">rt_clear()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Same as <a href="#rt_clear/1"><code class="inline">rt_clear(node())</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#rt_clear/1" translate="no">rt_clear(Node)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Clear the internal counters. Same as <a href="#clear/1"><code class="inline">lcnt:clear(Node)</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#rt_collect/0" translate="no">rt_collect()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Same as <a href="#rt_collect/1"><code class="inline">rt_collect(node())</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#rt_collect/1" translate="no">rt_collect(Node)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns a list of raw lock counter data.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#rt_mask/0" translate="no">rt_mask()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Same as <a href="#rt_mask/1"><code class="inline">rt_mask(node())</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#rt_mask/1" translate="no">rt_mask/1</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Refer to <a href="#rt_mask/2"><code class="inline">rt_mask/2</code></a>. for a list of valid categories. All categories are enabled
+by default.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#rt_mask/2" translate="no">rt_mask(Node, Categories)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Sets the lock category mask to the given categories.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#rt_opt/1" translate="no">rt_opt(Option)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Same as <a href="#rt_opt/2"><code class="inline">rt_opt(node(), {Type, Value})</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#rt_opt/2" translate="no">rt_opt(Node, Option)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Option description</p></div>
+
+    </div>
+
+</div>
+<div class="summary-functions summary">
+  <h2>
+    <a href="#functions">Functions</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#clear/0" translate="no">clear()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Same as <a href="#clear/1"><code class="inline">clear(node())</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#clear/1" translate="no">clear(Node)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Clears the internal lock statistics from the runtime system. This does not clear
+the data on the server only on runtime system. All counters for static locks are
+zeroed, all dynamic locks currently alive are zeroed and all saved locks now
+destroyed are removed. It also resets the duration timer.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#collect/0" translate="no">collect()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Same as <a href="#collect/1"><code class="inline">collect(node())</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#collect/1" translate="no">collect(Node)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Collects lock statistics from the runtime system. The function starts a server
+if it is not already started. It then populates the server with lock statistics.
+If the server held any lock statistics data before the collect then that data is
+lost.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#conflicts/0" translate="no">conflicts()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Same as <a href="#conflicts/1"><code class="inline">conflicts([])</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#conflicts/1" translate="no">conflicts(Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Prints a list of internal locks and its statistics.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#information/0" translate="no">information()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Prints lcnt server state and generic information about collected lock
+statistics.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#inspect/1" translate="no">inspect(Lock)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Same as <a href="#inspect/2"><code class="inline">inspect(Lock, [])</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#inspect/2" translate="no">inspect(Lock, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Prints a list of internal lock counters for a specific lock.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#load/1" translate="no">load(Filename)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Restores previously saved data to the server.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#locations/0" translate="no">locations()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Same as <a href="#locations/1"><code class="inline">locations([])</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#locations/1" translate="no">locations(Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Prints a list of internal lock counters by source code locations.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#save/1" translate="no">save(Filename)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Saves the collected data to file.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#start/0" translate="no">start()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Starts the lock profiler server. The server only act as a medium for the user
+and performs filtering and printing of data collected by <a href="#collect/1"><code class="inline">lcnt:collect/1</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#stop/0" translate="no">stop()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Stops the lock profiler server.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#swap_pid_keys/0" translate="no">swap_pid_keys()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Swaps places on <code class="inline">Name</code> and <code class="inline">Id</code> space for ports and processes.</p></div>
+
+    </div>
+
+</div>
+
+  </section>
+
+
+  <section id="types" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#types">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Types</span>
+    </h1>
+    <div class="types-list">
+<section class="detail" id="t:category_atom/0">
+
+  <div class="detail-header">
+    <a href="#t:category_atom/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">category_atom()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L230" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP R13B04)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> category_atom() :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:lock_counter_data/0">
+
+  <div class="detail-header">
+    <a href="#t:lock_counter_data/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">lock_counter_data()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L263" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP R13B04)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> lock_counter_data() :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:option/0">
+
+  <div class="detail-header">
+    <a href="#t:option/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">option()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L429" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP R13B04)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> option() ::
+    {sort, Sort :: <a href="#t:sort/0">sort</a>()} |
+    {reverse, <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>()} |
+    {locations, <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>()} |
+    {thresholds, Thresholds :: [<a href="#t:threshold/0">threshold</a>()]} |
+    {print, PrintOptions :: [<a href="#t:print/0">print</a>() | {<a href="#t:print/0">print</a>(), <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()}]} |
+    {max_locks, MaxLocks :: <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>() | none} |
+    {combine, <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:print/0">
+
+  <div class="detail-header">
+    <a href="#t:print/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">print()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L426" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP R13B04)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> print() :: colls | duration | entry | id | name | ratio | time | tries | type.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:sort/0">
+
+  <div class="detail-header">
+    <a href="#t:sort/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">sort()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L419" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP R13B04)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> sort() :: colls | entry | id | name | ratio | time | tries | type.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:threshold/0">
+
+  <div class="detail-header">
+    <a href="#t:threshold/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">threshold()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L422" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP R13B04)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> threshold() :: {colls, <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()} | {time, <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()} | {tries, <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+
+    </div>
+  </section>
+
+  <section id="convenience-functions" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#convenience-functions">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Convenience functions</span>
+    </h1>
+    <div class="convenience-functions-list">
+<section class="detail" id="apply/1">
+
+  <div class="detail-header">
+    <a href="#apply/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">apply(Fun)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L604" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP R13B04)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> apply(Fun) -> <a href="../../apps/erts/erlang.html#t:term/0">term</a>() when Fun :: fun().</pre>
+
+      </div>
+
+<p>Same as <a href="#apply/2"><code class="inline">apply(Fun, [])</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="apply/2">
+
+  <div class="detail-header">
+    <a href="#apply/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">apply(Fun, Args)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L625" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP R13B04)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> apply(Fun, Args) -> <a href="../../apps/erts/erlang.html#t:term/0">term</a>() when Fun :: fun(), Args :: [<a href="../../apps/erts/erlang.html#t:term/0">term</a>()].</pre>
+
+      </div>
+
+<p>Clears the lock counters and then setups the instrumentation to save all
+destroyed locks. After setup the function is called, passing the elements in
+<code class="inline">Args</code> as arguments. When the function returns the statistics are immediately
+collected to the server. After the collection the instrumentation is returned to
+its previous behavior. The result of the applied function is returned.</p><blockquote><h4 class="warning">Warning</h4><p>This function should only be used for micro-benchmarks; it sets <code class="inline">copy_save</code> to
+<code class="inline">true</code> for the duration of the call, which can quickly lead to running out of
+memory.</p></blockquote>
+  </section>
+</section>
+<section class="detail" id="apply/3">
+
+  <div class="detail-header">
+    <a href="#apply/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">apply(Module, Function, Args)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L594" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP R13B04)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> apply(Module, Function, Args) -> <a href="../../apps/erts/erlang.html#t:term/0">term</a>()
+         when Module :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>(), Function :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), Args :: [<a href="../../apps/erts/erlang.html#t:term/0">term</a>()].</pre>
+
+      </div>
+
+<p>Same as <a href="#apply/1"><code class="inline">apply(fun() -&gt; erlang:apply(Module, Function, Args) end)</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="pid/2">
+
+  <div class="detail-header">
+    <a href="#pid/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">pid(Id, Serial)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L647" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP R13B04)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> pid(Id, Serial) -> <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() when Id :: <a href="../../apps/erts/erlang.html#t:integer/0">integer</a>(), Serial :: <a href="../../apps/erts/erlang.html#t:integer/0">integer</a>().</pre>
+
+      </div>
+
+<p>Same as <a href="#pid/3"><code class="inline">pid(node(), Id, Serial)</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="pid/3">
+
+  <div class="detail-header">
+    <a href="#pid/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">pid(Node, Id, Serial)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L656" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP R13B04)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> pid(Node, Id, Serial) -> <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() when Node :: <a href="../../apps/erts/erlang.html#t:node/0">node</a>(), Id :: <a href="../../apps/erts/erlang.html#t:integer/0">integer</a>(), Serial :: <a href="../../apps/erts/erlang.html#t:integer/0">integer</a>().</pre>
+
+      </div>
+
+<p>Creates a process id with creation 0.</p>
+  </section>
+</section>
+<section class="detail" id="port/1">
+
+  <div class="detail-header">
+    <a href="#port/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">port(Id)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L667" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP R13B04)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> port(Id) -> <a href="../../apps/erts/erlang.html#t:port/0">port</a>() when Id :: <a href="../../apps/erts/erlang.html#t:integer/0">integer</a>().</pre>
+
+      </div>
+
+<p>Same as <a href="#port/2"><code class="inline">port(node(), Id)</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="port/2">
+
+  <div class="detail-header">
+    <a href="#port/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">port(Node, Id)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L675" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP R13B04)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> port(Node, Id) -> <a href="../../apps/erts/erlang.html#t:port/0">port</a>() when Node :: <a href="../../apps/erts/erlang.html#t:node/0">node</a>(), Id :: <a href="../../apps/erts/erlang.html#t:integer/0">integer</a>().</pre>
+
+      </div>
+
+<p>Creates a port id with creation 0.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+  <section id="internal-runtime-lock-counter-controllers" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#internal-runtime-lock-counter-controllers">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Internal runtime lock counter controllers</span>
+    </h1>
+    <div class="internal-runtime-lock-counter-controllers-list">
+<section class="detail" id="rt_clear/0">
+
+  <div class="detail-header">
+    <a href="#rt_clear/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">rt_clear()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L296" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP R13B04)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> rt_clear() -> ok.</pre>
+
+      </div>
+
+<p>Same as <a href="#rt_clear/1"><code class="inline">rt_clear(node())</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="rt_clear/1">
+
+  <div class="detail-header">
+    <a href="#rt_clear/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">rt_clear(Node)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L288" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP R13B04)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> rt_clear(Node) -> ok when Node :: <a href="../../apps/erts/erlang.html#t:node/0">node</a>().</pre>
+
+      </div>
+
+<p>Clear the internal counters. Same as <a href="#clear/1"><code class="inline">lcnt:clear(Node)</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="rt_collect/0">
+
+  <div class="detail-header">
+    <a href="#rt_collect/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">rt_collect()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L279" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP R13B04)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> rt_collect() -> [<a href="#t:lock_counter_data/0">lock_counter_data</a>()].</pre>
+
+      </div>
+
+<p>Same as <a href="#rt_collect/1"><code class="inline">rt_collect(node())</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="rt_collect/1">
+
+  <div class="detail-header">
+    <a href="#rt_collect/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">rt_collect(Node)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L271" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP R13B04)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> rt_collect(Node) -> [<a href="#t:lock_counter_data/0">lock_counter_data</a>()] when Node :: <a href="../../apps/erts/erlang.html#t:node/0">node</a>().</pre>
+
+      </div>
+
+<p>Returns a list of raw lock counter data.</p>
+  </section>
+</section>
+<section class="detail" id="rt_mask/0">
+
+  <div class="detail-header">
+    <a href="#rt_mask/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">rt_mask()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L260" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 20.1)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> rt_mask() -> [<a href="#t:category_atom/0">category_atom</a>()].</pre>
+
+      </div>
+
+<p>Same as <a href="#rt_mask/1"><code class="inline">rt_mask(node())</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="rt_mask/1">
+
+  <div class="detail-header">
+    <a href="#rt_mask/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">rt_mask/1</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L245" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 20.1)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> rt_mask(Node) -> [<a href="#t:category_atom/0">category_atom</a>()] when Node :: <a href="../../apps/erts/erlang.html#t:node/0">node</a>();
+       (Categories) -> ok | {error, copy_save_enabled} when Categories :: [<a href="#t:category_atom/0">category_atom</a>()].</pre>
+
+      </div>
+
+<p>Refer to <a href="#rt_mask/2"><code class="inline">rt_mask/2</code></a>. for a list of valid categories. All categories are enabled
+by default.</p><p>Same as <a href="#rt_mask/2"><code class="inline">rt_mask(node(), Categories)</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="rt_mask/2">
+
+  <div class="detail-header">
+    <a href="#rt_mask/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">rt_mask(Node, Categories)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L227" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 20.1)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> rt_mask(Node, Categories) -> ok | {error, copy_save_enabled}
+           when Node :: <a href="../../apps/erts/erlang.html#t:node/0">node</a>(), Categories :: [<a href="#t:category_atom/0">category_atom</a>()].</pre>
+
+      </div>
+
+<p>Sets the lock category mask to the given categories.</p><p>This will fail if the <code class="inline">copy_save</code> option is enabled; see
+<a href="#rt_opt/2"><code class="inline">lcnt:rt_opt/2</code></a>.</p><p>Valid categories are:</p><ul><li><code class="inline">allocator</code></li><li><code class="inline">db</code> (ETS tables)</li><li><code class="inline">debug</code></li><li><code class="inline">distribution</code></li><li><code class="inline">generic</code></li><li><code class="inline">io</code></li><li><code class="inline">process</code></li><li><code class="inline">scheduler</code></li></ul><p>This list is subject to change at any time, as is the category any given lock
+may belong to.</p>
+  </section>
+</section>
+<section class="detail" id="rt_opt/1">
+
+  <div class="detail-header">
+    <a href="#rt_opt/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">rt_opt(Option)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L335" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP R13B04)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> rt_opt(Option) -> <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>()
+          when Option :: {Type, Value :: <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>()}, Type :: copy_save | process_locks.</pre>
+
+      </div>
+
+<p>Same as <a href="#rt_opt/2"><code class="inline">rt_opt(node(), {Type, Value})</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="rt_opt/2">
+
+  <div class="detail-header">
+    <a href="#rt_opt/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">rt_opt(Node, Option)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L323" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP R13B04)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> rt_opt(Node, Option) -> <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>()
+          when
+              Node :: <a href="../../apps/erts/erlang.html#t:node/0">node</a>(),
+              Option :: {Type, Value :: <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>()},
+              Type :: copy_save | process_locks.</pre>
+
+      </div>
+
+<p>Option description:</p><ul><li><p><strong><code class="inline">{copy_save, boolean()}</code></strong> - Retains the statistics of destroyed locks.<br/>Default: <code class="inline">false</code></p><blockquote><h4 class="warning">Warning</h4><p>This option will use a lot of memory when enabled, which must be reclaimed
+with <code class="inline">lcnt:rt_clear</code>. Note that it makes no distinction between locks that
+were destroyed and locks for which counting was disabled, so enabling this
+option will disable changes to the lock category mask.</p></blockquote></li><li><p><strong><code class="inline">{process_locks, boolean()}</code></strong> - Profile process locks, equal to adding
+<code class="inline">process</code> to the lock category mask; see <a href="#rt_mask/2"><code class="inline">lcnt:rt_mask/2</code></a><br/>Default: <code class="inline">true</code></p></li></ul>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+  <section id="functions" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#functions">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Functions</span>
+    </h1>
+    <div class="functions-list">
+<section class="detail" id="clear/0">
+
+  <div class="detail-header">
+    <a href="#clear/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">clear()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L364" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP R13B04)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> clear() -> ok.</pre>
+
+      </div>
+
+<p>Same as <a href="#clear/1"><code class="inline">clear(node())</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="clear/1">
+
+  <div class="detail-header">
+    <a href="#clear/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">clear(Node)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L376" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP R13B04)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> clear(Node) -> ok when Node :: <a href="../../apps/erts/erlang.html#t:node/0">node</a>().</pre>
+
+      </div>
+
+<p>Clears the internal lock statistics from the runtime system. This does not clear
+the data on the server only on runtime system. All counters for static locks are
+zeroed, all dynamic locks currently alive are zeroed and all saved locks now
+destroyed are removed. It also resets the duration timer.</p>
+  </section>
+</section>
+<section class="detail" id="collect/0">
+
+  <div class="detail-header">
+    <a href="#collect/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">collect()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L382" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP R13B04)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> collect() -> ok.</pre>
+
+      </div>
+
+<p>Same as <a href="#collect/1"><code class="inline">collect(node())</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="collect/1">
+
+  <div class="detail-header">
+    <a href="#collect/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">collect(Node)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L394" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP R13B04)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> collect(Node) -> ok when Node :: <a href="../../apps/erts/erlang.html#t:node/0">node</a>().</pre>
+
+      </div>
+
+<p>Collects lock statistics from the runtime system. The function starts a server
+if it is not already started. It then populates the server with lock statistics.
+If the server held any lock statistics data before the collect then that data is
+lost.</p>
+  </section>
+</section>
+<section class="detail" id="conflicts/0">
+
+  <div class="detail-header">
+    <a href="#conflicts/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">conflicts()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L417" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP R13B04)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> conflicts() -> ok.</pre>
+
+      </div>
+
+<p>Same as <a href="#conflicts/1"><code class="inline">conflicts([])</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="conflicts/1">
+
+  <div class="detail-header">
+    <a href="#conflicts/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">conflicts(Options)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L447" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP R13B04)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> conflicts(Options) -> ok when Options :: [<a href="#t:option/0">option</a>()].</pre>
+
+      </div>
+
+<p>Prints a list of internal locks and its statistics.</p><p>For option description, see <a href="#inspect/2"><code class="inline">lcnt:inspect/2</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="information/0">
+
+  <div class="detail-header">
+    <a href="#information/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">information()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L548" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP R13B04)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> information() -> ok.</pre>
+
+      </div>
+
+<p>Prints lcnt server state and generic information about collected lock
+statistics.</p>
+  </section>
+</section>
+<section class="detail" id="inspect/1">
+
+  <div class="detail-header">
+    <a href="#inspect/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">inspect(Lock)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L456" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP R13B04)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> inspect(Lock) -> ok
+           when
+               Lock :: Name | {Name, Id | [Id]},
+               Name :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>() | <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() | <a href="../../apps/erts/erlang.html#t:port/0">port</a>(),
+               Id :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>() | <a href="../../apps/erts/erlang.html#t:integer/0">integer</a>() | <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() | <a href="../../apps/erts/erlang.html#t:port/0">port</a>().</pre>
+
+      </div>
+
+<p>Same as <a href="#inspect/2"><code class="inline">inspect(Lock, [])</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="inspect/2">
+
+  <div class="detail-header">
+    <a href="#inspect/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">inspect(Lock, Options)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L534" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP R13B04)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> inspect(Lock, Options) -> ok
+           when
+               Lock :: Name | {Name, Id | [Id]},
+               Name :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>() | <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() | <a href="../../apps/erts/erlang.html#t:port/0">port</a>(),
+               Id :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>() | <a href="../../apps/erts/erlang.html#t:integer/0">integer</a>() | <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() | <a href="../../apps/erts/erlang.html#t:port/0">port</a>(),
+               Options :: [<a href="#t:option/0">option</a>()].</pre>
+
+      </div>
+
+<p>Prints a list of internal lock counters for a specific lock.</p><p>Lock <code class="inline">Name</code> and <code class="inline">Id</code> for ports and processes are interchangeable with the use of
+<a href="#swap_pid_keys/0"><code class="inline">lcnt:swap_pid_keys/0</code></a> and is the reason why <a href="../../apps/erts/erlang.html#t:pid/0"><code class="inline">pid/0</code></a> and
+<a href="../../apps/erts/erlang.html#t:port/0"><code class="inline">port/0</code></a> options can be used in both <code class="inline">Name</code> and <code class="inline">Id</code> space. Both pids and
+ports are special identifiers with stripped creation and can be recreated with
+<a href="#pid/3"><code class="inline">lcnt:pid/2,3</code></a> and <a href="#port/2"><code class="inline">lcnt:port/1,2</code></a>.</p><p>Option description:</p><ul><li><p><strong><code class="inline">{combine, boolean()}</code></strong> - Combine the statistics from different instances
+of a lock class.<br/>Default: <code class="inline">true</code></p></li><li><p><strong><code class="inline">{locations, boolean()}</code></strong> - Print the statistics by source file and line
+numbers.<br/>Default: <code class="inline">false</code></p></li><li><p><strong><code class="inline">{max_locks, MaxLocks}</code></strong> - Maximum number of locks printed or no limit with
+<code class="inline">none</code>.<br/>Default: <code class="inline">20</code></p></li><li><p><strong><code class="inline">{print, PrintOptions}</code></strong> - Printing options:</p><ul><li><p><strong><code class="inline">name</code></strong> - Named lock or named set of locks (classes). The same name used
+for initializing the lock in the VM.</p></li><li><p><strong><code class="inline">id</code></strong> - Internal id for set of locks, not always unique. This could be
+table name for ets tables (db_tab), port id for ports, integer identifiers
+for allocators, etc.</p></li><li><p><strong><code class="inline">type</code></strong> - Type of lock: <code class="inline">rw_mutex</code>, <code class="inline">mutex</code>, <code class="inline">spinlock</code>, <code class="inline">rw_spinlock</code> or
+<code class="inline">proclock</code>.</p></li><li><p><strong><code class="inline">entry</code></strong> - In combination with <code class="inline">{locations, true}</code> this option prints the
+lock operations source file and line number entry-points along with
+statistics for each entry.</p></li><li><p><strong><code class="inline">tries</code></strong> - Number of acquisitions of this lock.</p></li><li><p><strong><code class="inline">colls</code></strong> - Number of collisions when a thread tried to acquire this lock.
+This is when a trylock is EBUSY, a write try on read held rw_lock, a try
+read on write held rw_lock, a thread tries to lock an already locked lock.
+(Internal states supervises this).</p></li><li><p><strong><code class="inline">ratio</code></strong> - The ratio between the number of collisions and the number of
+tries (acquisitions) in percentage.</p></li><li><p><strong><code class="inline">time</code></strong> - Accumulated waiting time for this lock. This could be greater
+than actual wall clock time, it is accumulated for all threads. Trylock
+conflicts does not accumulate time.</p></li><li><p><strong><code class="inline">duration</code></strong> - Percentage of accumulated waiting time of wall clock time.
+This percentage can be higher than 100% since accumulated time is from all
+threads.</p></li></ul><p>Default: <code class="inline">[name,id,tries,colls,ratio,time,duration]</code></p></li><li><p><strong><code class="inline">{reverse, boolean()}</code></strong> - Reverses the order of sorting.<br/>Default: <code class="inline">false</code></p></li><li><p><strong><code class="inline">{sort, Sort}</code></strong> - Column sorting orders.<br/>Default: <code class="inline">time</code></p></li><li><p><strong><code class="inline">{thresholds, Thresholds}</code></strong> - Filtering thresholds. Anything values above
+the threshold value are passed through.<br/>Default: <code class="inline">[{tries, 0}, {colls, 0}, {time, 0}]</code></p></li></ul>
+  </section>
+</section>
+<section class="detail" id="load/1">
+
+  <div class="detail-header">
+    <a href="#load/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">load(Filename)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L575" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP R13B04)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> load(Filename) -> ok when Filename :: <a href="../../apps/kernel/file.html#t:filename/0">file:filename</a>().</pre>
+
+      </div>
+
+<p>Restores previously saved data to the server.</p>
+  </section>
+</section>
+<section class="detail" id="locations/0">
+
+  <div class="detail-header">
+    <a href="#locations/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">locations()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L400" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP R13B04)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> locations() -> ok.</pre>
+
+      </div>
+
+<p>Same as <a href="#locations/1"><code class="inline">locations([])</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="locations/1">
+
+  <div class="detail-header">
+    <a href="#locations/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">locations(Options)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L411" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP R13B04)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> locations(Options) -> ok when Options :: [<a href="#t:option/0">option</a>()].</pre>
+
+      </div>
+
+<p>Prints a list of internal lock counters by source code locations.</p><p>For option description, see <a href="#inspect/2"><code class="inline">lcnt:inspect/2</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="save/1">
+
+  <div class="detail-header">
+    <a href="#save/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">save(Filename)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L568" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP R13B04)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> save(Filename) -> ok when Filename :: <a href="../../apps/kernel/file.html#t:filename/0">file:filename</a>().</pre>
+
+      </div>
+
+<p>Saves the collected data to file.</p>
+  </section>
+</section>
+<section class="detail" id="start/0">
+
+  <div class="detail-header">
+    <a href="#start/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">start()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L176" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP R13B04)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> start() -> {ok, Pid} | {error, {already_started, Pid}} when Pid :: <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>().</pre>
+
+      </div>
+
+<p>Starts the lock profiler server. The server only act as a medium for the user
+and performs filtering and printing of data collected by <a href="#collect/1"><code class="inline">lcnt:collect/1</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="stop/0">
+
+  <div class="detail-header">
+    <a href="#stop/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">stop()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L182" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP R13B04)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> stop() -> ok.</pre>
+
+      </div>
+
+<p>Stops the lock profiler server.</p>
+  </section>
+</section>
+<section class="detail" id="swap_pid_keys/0">
+
+  <div class="detail-header">
+    <a href="#swap_pid_keys/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">swap_pid_keys()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/tools/src/lcnt.erl#L554" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP R13B04)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> swap_pid_keys() -> ok.</pre>
+
+      </div>
+
+<p>Swaps places on <code class="inline">Name</code> and <code class="inline">Id</code> space for ports and processes.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+              <a href="tools.epub" title="ePub version">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

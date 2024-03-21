@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="kernel v9.3">
+
+
+    <title>global_group — kernel v9.3</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-D60EFF5E.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="modules" class="page-module">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="kernel" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+kernel
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v9.3
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of kernel</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/global_group.erl#L20" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+  <span translate="no">global_group</span> 
+  <small class="app-vsn" translate="no">(kernel v9.3)</small>
+
+</h1>
+
+
+  <section id="moduledoc">
+<p>Grouping nodes to global name registration groups.</p><p>This module makes it possible to partition the nodes of a system into <em>global
+groups</em>. Each global group has its own global namespace, see <a href="global.html"><code class="inline">global</code></a>.</p><p>The main advantage of dividing systems into global groups is that the background
+load decreases while the number of nodes to be updated is reduced when
+manipulating globally registered names.</p><p>The Kernel configuration parameter <code class="inline">global_groups</code> defines the global groups
+(see also <a href="kernel_app.html#global_groups"><code class="inline">kernel(6)</code></a> and
+<a href="config.html"><code class="inline">config(4)</code></a>):</p><pre><code class="text">{global_groups, [GroupTuple :: group_tuple()]}</code></pre><p>For the processes and nodes to run smoothly using the global group
+functionality, the following criteria must be met:</p><ul><li>An instance of the global group server, <code class="inline">global_group</code>, must be running on
+each node. The processes are automatically started and synchronized when a
+node is started.</li><li>All involved nodes must agree on the global group definition, otherwise the
+behavior of the system is undefined.</li><li><em>All</em> nodes in the system must belong to exactly one global group.</li></ul><p>In the following descriptions, a <em>group node</em> is a node belonging to the same
+global group as the local node.</p><h2 id="module-notes" class="section-heading">
+  <a href="#module-notes" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Notes</span>
+</h2>
+<ul><li>In the situation where a node has lost its connections to other nodes in its
+global group, but has connections to nodes in other global groups, a request
+from another global group can produce an incorrect or misleading result. For
+example, the isolated node can have inaccurate information about registered
+names in its global group.</li><li>Function <a href="#send/2"><code class="inline">send/2,3</code></a> is not secure.</li><li>Distribution of applications is highly dependent of the global group
+definitions. It is not recommended that an application is distributed over
+many global groups, as the registered names can be moved to another global
+group at failover/takeover. Nothing prevents this to be done, but the
+application code must then handle the situation.</li></ul><h2 id="module-see-also" class="section-heading">
+  <a href="#module-see-also" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">See Also</span>
+</h2>
+<p><a href="global.html"><code class="inline">global</code></a>, <a href="../../apps/erts/erl_cmd.html"><code class="inline">erl(1)</code></a></p>
+  </section>
+
+
+  <section id="summary" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#summary">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Summary</span>
+    </h1>
+<div class="summary-types summary">
+  <h2>
+    <a href="#types">Types</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:group_name/0" translate="no">group_name()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:group_tuple/0" translate="no">group_tuple()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>A <code class="inline">GroupTuple</code> without <code class="inline">PublishType</code> is the same as a <code class="inline">GroupTuple</code> with
+<code class="inline">PublishType</code> equal to <code class="inline">normal</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:info_item/0" translate="no">info_item()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:name/0" translate="no">name()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>A registered name.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:publish_type/0" translate="no">publish_type()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>A node started with command-line flag <code class="inline">-hidden</code> (see
+<a href="../../apps/erts/erl_cmd.html"><code class="inline">erl(1)</code></a>) is said to be a <em>hidden</em> node. A hidden node
+establishes hidden connections to nodes not part of the same global group, but
+normal (visible) connections to nodes part of the same global group.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:sync_state/0" translate="no">sync_state()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:where/0" translate="no">where()</a>
+
+      </div>
+
+    </div>
+
+</div>
+<div class="summary-functions summary">
+  <h2>
+    <a href="#functions">Functions</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#global_groups/0" translate="no">global_groups()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns a tuple containing the name of the global group that the local node
+belongs to, and the list of all other known group names. Returns <code class="inline">undefined</code> if
+no global groups are defined.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#info/0" translate="no">info()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns a list containing information about the global groups. Each list element
+is a tuple. The order of the tuples is undefined.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#monitor_nodes/1" translate="no">monitor_nodes(Flag)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Depending on <code class="inline">Flag</code>, the calling process starts subscribing (<code class="inline">Flag</code> equal to
+<code class="inline">true</code>) or stops subscribing (<code class="inline">Flag</code> equal to <code class="inline">false</code>) to node status change
+messages.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#own_nodes/0" translate="no">own_nodes()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns the names of all group nodes, regardless of their current status.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#registered_names/1" translate="no">registered_names(Where)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns a list of all names that are globally registered on the specified node
+or in the specified global group.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#send/2" translate="no">send(Name, Msg)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#send/3"><code class="inline">send/3</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#send/3" translate="no">send(Where, Name, Msg)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Searches for <code class="inline">Name</code>, globally registered on the specified node or in the
+specified global group, or (if argument <code class="inline">Where</code> is not provided) in any global
+group. The global groups are searched in the order that they appear in the value
+of configuration parameter <code class="inline">global_groups</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#sync/0" translate="no">sync()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Synchronizes the group nodes, that is, the global name servers on the group
+nodes. Also checks the names globally registered in the current global group and
+unregisters them on any known node not part of the group.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#whereis_name/1" translate="no">whereis_name(Name)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#whereis_name/2"><code class="inline">whereis_name/2</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#whereis_name/2" translate="no">whereis_name(Where, Name)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Searches for <code class="inline">Name</code>, globally registered on the specified node or in the
+specified global group, or (if argument <code class="inline">Where</code> is not provided) in any global
+group. The global groups are searched in the order that they appear in the value
+of configuration parameter <code class="inline">global_groups</code>.</p></div>
+
+    </div>
+
+</div>
+
+  </section>
+
+
+  <section id="types" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#types">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Types</span>
+    </h1>
+    <div class="types-list">
+<section class="detail" id="t:group_name/0">
+
+  <div class="detail-header">
+    <a href="#t:group_name/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">group_name()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/global_group.erl#L127" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> group_name() :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:group_tuple/0">
+
+  <div class="detail-header">
+    <a href="#t:group_tuple/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">group_tuple()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/global_group.erl#L132" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> group_tuple() ::
+    {GroupName :: <a href="#t:group_name/0">group_name</a>(), [<a href="../../apps/erts/erlang.html#t:node/0">node</a>()]} |
+    {GroupName :: <a href="#t:group_name/0">group_name</a>(), PublishType :: <a href="#t:publish_type/0">publish_type</a>(), [<a href="../../apps/erts/erlang.html#t:node/0">node</a>()]}.</pre>
+
+      </div>
+
+<p>A <code class="inline">GroupTuple</code> without <code class="inline">PublishType</code> is the same as a <code class="inline">GroupTuple</code> with
+<code class="inline">PublishType</code> equal to <code class="inline">normal</code>.</p>
+  </section>
+</section>
+<section class="detail" id="t:info_item/0">
+
+  <div class="detail-header">
+    <a href="#t:info_item/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">info_item()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/global_group.erl#L311" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> info_item() ::
+    {state, State :: <a href="#t:sync_state/0">sync_state</a>()} |
+    {own_group_name, GroupName :: <a href="#t:group_name/0">group_name</a>()} |
+    {own_group_nodes, Nodes :: [<a href="../../apps/erts/erlang.html#t:node/0">node</a>()]} |
+    {synched_nodes, Nodes :: [<a href="../../apps/erts/erlang.html#t:node/0">node</a>()]} |
+    {sync_error, Nodes :: [<a href="../../apps/erts/erlang.html#t:node/0">node</a>()]} |
+    {no_contact, Nodes :: [<a href="../../apps/erts/erlang.html#t:node/0">node</a>()]} |
+    {other_groups, Groups :: [<a href="#t:group_tuple/0">group_tuple</a>()]} |
+    {monitoring, Pids :: [<a href="../../apps/erts/erlang.html#t:pid/0">pid</a>()]}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:name/0">
+
+  <div class="detail-header">
+    <a href="#t:name/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">name()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/global_group.erl#L226" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> name() :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>().</pre>
+
+      </div>
+
+<p>A registered name.</p>
+  </section>
+</section>
+<section class="detail" id="t:publish_type/0">
+
+  <div class="detail-header">
+    <a href="#t:publish_type/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">publish_type()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/global_group.erl#L124" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> publish_type() :: hidden | normal.</pre>
+
+      </div>
+
+<p>A node started with command-line flag <code class="inline">-hidden</code> (see
+<a href="../../apps/erts/erl_cmd.html"><code class="inline">erl(1)</code></a>) is said to be a <em>hidden</em> node. A hidden node
+establishes hidden connections to nodes not part of the same global group, but
+normal (visible) connections to nodes part of the same global group.</p><p>A global group defined with <code class="inline">PublishType</code> equal to <code class="inline">hidden</code> is said to be a
+hidden global group. All nodes in a hidden global group are hidden nodes,
+whether they are started with command-line flag <code class="inline">-hidden</code> or not.</p>
+  </section>
+</section>
+<section class="detail" id="t:sync_state/0">
+
+  <div class="detail-header">
+    <a href="#t:sync_state/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">sync_state()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/global_group.erl#L125" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> sync_state() :: no_conf | synced.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:where/0">
+
+  <div class="detail-header">
+    <a href="#t:where/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">where()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/global_group.erl#L227" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> where() :: {node, <a href="../../apps/erts/erlang.html#t:node/0">node</a>()} | {group, <a href="#t:group_name/0">group_name</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+
+    </div>
+  </section>
+
+  <section id="functions" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#functions">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Functions</span>
+    </h1>
+    <div class="functions-list">
+<section class="detail" id="global_groups/0">
+
+  <div class="detail-header">
+    <a href="#global_groups/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">global_groups()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/global_group.erl#L199" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> global_groups() -> {GroupName, GroupNames} | undefined
+                 when GroupName :: <a href="#t:group_name/0">group_name</a>(), GroupNames :: [GroupName].</pre>
+
+      </div>
+
+<p>Returns a tuple containing the name of the global group that the local node
+belongs to, and the list of all other known group names. Returns <code class="inline">undefined</code> if
+no global groups are defined.</p>
+  </section>
+</section>
+<section class="detail" id="info/0">
+
+  <div class="detail-header">
+    <a href="#info/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">info()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/global_group.erl#L351" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> info() -> [<a href="#t:info_item/0">info_item</a>()].</pre>
+
+      </div>
+
+<p>Returns a list containing information about the global groups. Each list element
+is a tuple. The order of the tuples is undefined.</p><ul><li><p><strong><code class="inline">{state, State}</code></strong> - If the local node is part of a global group, <code class="inline">State</code> is
+equal to <code class="inline">synced</code>. If no global groups are defined, <code class="inline">State</code> is equal to
+<code class="inline">no_conf</code>.</p></li><li><p><strong><code class="inline">{own_group_name, GroupName}</code></strong> - The name (atom) of the group that the
+local node belongs to.</p></li><li><p><strong><code class="inline">{own_group_nodes, Nodes}</code></strong> - A list of node names (atoms), the group
+nodes.</p></li><li><p><strong><code class="inline">{synced_nodes, Nodes}</code></strong> - A list of node names, the group nodes currently
+synchronized with the local node.</p></li><li><p><strong><code class="inline">{sync_error, Nodes}</code></strong> - A list of node names, the group nodes with which
+the local node has failed to synchronize.</p></li><li><p><strong><code class="inline">{no_contact, Nodes}</code></strong> - A list of node names, the group nodes to which
+there are currently no connections.</p></li><li><p><strong><code class="inline">{other_groups, Groups}</code></strong> - <code class="inline">Groups</code> is a list of tuples
+<code class="inline">{GroupName, Nodes}</code>, specifying the name and nodes of the other global
+groups.</p></li><li><p><strong><code class="inline">{monitoring, Pids}</code></strong> - A list of pids, specifying the processes that have
+subscribed to <code class="inline">nodeup</code> and <code class="inline">nodedown</code> messages.</p></li></ul>
+  </section>
+</section>
+<section class="detail" id="monitor_nodes/1">
+
+  <div class="detail-header">
+    <a href="#monitor_nodes/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">monitor_nodes(Flag)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/global_group.erl#L212" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> monitor_nodes(Flag) -> ok when Flag :: <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>().</pre>
+
+      </div>
+
+<p>Depending on <code class="inline">Flag</code>, the calling process starts subscribing (<code class="inline">Flag</code> equal to
+<code class="inline">true</code>) or stops subscribing (<code class="inline">Flag</code> equal to <code class="inline">false</code>) to node status change
+messages.</p><p>A process that has subscribed receives the messages <code class="inline">{nodeup, Node}</code> and
+<code class="inline">{nodedown, Node}</code> when a group node connects or disconnects, respectively.</p>
+  </section>
+</section>
+<section class="detail" id="own_nodes/0">
+
+  <div class="detail-header">
+    <a href="#own_nodes/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">own_nodes()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/global_group.erl#L222" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> own_nodes() -> Nodes when Nodes :: [Node :: <a href="../../apps/erts/erlang.html#t:node/0">node</a>()].</pre>
+
+      </div>
+
+<p>Returns the names of all group nodes, regardless of their current status.</p>
+  </section>
+</section>
+<section class="detail" id="registered_names/1">
+
+  <div class="detail-header">
+    <a href="#registered_names/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">registered_names(Where)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/global_group.erl#L236" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> registered_names(Where) -> Names when Where :: <a href="#t:where/0">where</a>(), Names :: [Name :: <a href="#t:name/0">name</a>()].</pre>
+
+      </div>
+
+<p>Returns a list of all names that are globally registered on the specified node
+or in the specified global group.</p>
+  </section>
+</section>
+<section class="detail" id="send/2">
+
+  <div class="detail-header">
+    <a href="#send/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">send(Name, Msg)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/global_group.erl#L243" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> send(Name, Msg) -> <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() | {badarg, {Name, Msg}} when Name :: <a href="#t:name/0">name</a>(), Msg :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#send/3"><code class="inline">send/3</code></a></p>
+  </section>
+</section>
+<section class="detail" id="send/3">
+
+  <div class="detail-header">
+    <a href="#send/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">send(Where, Name, Msg)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/global_group.erl#L260" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> send(Where, Name, Msg) -> <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() | {badarg, {Name, Msg}}
+        when Where :: <a href="#t:where/0">where</a>(), Name :: <a href="#t:name/0">name</a>(), Msg :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+<p>Searches for <code class="inline">Name</code>, globally registered on the specified node or in the
+specified global group, or (if argument <code class="inline">Where</code> is not provided) in any global
+group. The global groups are searched in the order that they appear in the value
+of configuration parameter <code class="inline">global_groups</code>.</p><p>If <code class="inline">Name</code> is found, message <code class="inline">Msg</code> is sent to the corresponding pid. The pid is
+also the return value of the function. If the name is not found, the function
+returns <code class="inline">{badarg, {Name, Msg}}</code>.</p>
+  </section>
+</section>
+<section class="detail" id="sync/0">
+
+  <div class="detail-header">
+    <a href="#sync/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">sync()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/global_group.erl#L308" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> sync() -> ok.</pre>
+
+      </div>
+
+<p>Synchronizes the group nodes, that is, the global name servers on the group
+nodes. Also checks the names globally registered in the current global group and
+unregisters them on any known node not part of the group.</p><p>If synchronization is not possible, an error report is sent to the error logger
+(see also <a href="error_logger.html"><code class="inline">error_logger</code></a>.</p><p>Returns <code class="inline">{error, {'invalid global_groups definition', Bad}}</code> if configuration
+parameter <code class="inline">global_groups</code> has an invalid value <code class="inline">Bad</code>.</p>
+  </section>
+</section>
+<section class="detail" id="whereis_name/1">
+
+  <div class="detail-header">
+    <a href="#whereis_name/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">whereis_name(Name)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/global_group.erl#L266" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> whereis_name(Name) -> <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() | undefined when Name :: <a href="#t:name/0">name</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#whereis_name/2"><code class="inline">whereis_name/2</code></a></p>
+  </section>
+</section>
+<section class="detail" id="whereis_name/2">
+
+  <div class="detail-header">
+    <a href="#whereis_name/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">whereis_name(Where, Name)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/global_group.erl#L281" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> whereis_name(Where, Name) -> <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() | undefined when Where :: <a href="#t:where/0">where</a>(), Name :: <a href="#t:name/0">name</a>().</pre>
+
+      </div>
+
+<p>Searches for <code class="inline">Name</code>, globally registered on the specified node or in the
+specified global group, or (if argument <code class="inline">Where</code> is not provided) in any global
+group. The global groups are searched in the order that they appear in the value
+of configuration parameter <code class="inline">global_groups</code>.</p><p>If <code class="inline">Name</code> is found, the corresponding pid is returned. If the name is not found,
+the function returns <code class="inline">undefined</code>.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+              <a href="kernel.epub" title="ePub version">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

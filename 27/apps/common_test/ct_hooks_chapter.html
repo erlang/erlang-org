@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="common_test v1.27">
+
+
+    <title>Common Test Hooks — common_test v1.27</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-BE09C0D0.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="common_test" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+common_test
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v1.27
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of common_test</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/lib/common_test/doc/guides/ct_hooks_chapter.md#L1" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+
+  <span>Common Test Hooks</span>
+</h1>
+
+<h2 id="general" class="section-heading">
+  <a href="#general" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">General</span>
+</h2>
+<p>The <em>Common Test Hook (CTH)</em> framework allows extensions of the default behavior
+of <code class="inline">Common Test</code> using hooks before and after all test suite calls. CTHs allow
+advanced <code class="inline">Common Test</code> users to abstract out behavior that is common to multiple
+test suites without littering all test suites with library calls. This can be
+used for logging, starting, and monitoring external systems, building C files
+needed by the tests, and so on.</p><p>In brief, CTH allows you to do the following:</p><ul><li>Manipulate the runtime configuration before each suite configuration call.</li><li>Manipulate the return of all suite configuration calls, and in extension, the
+result of the tests themselves.</li></ul><p>The following sections describe how to use CTHs, when they are run, and how to
+manipulate the test results in a CTH.</p><blockquote><h4 class="warning">Warning</h4><p>When executing within a CTH, all timetraps are shut off. So if your CTH never
+returns, the entire test run is stalled.</p></blockquote><p><a href="" id="installing"></a></p><h2 id="installing-a-cth" class="section-heading">
+  <a href="#installing-a-cth" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Installing a CTH</span>
+</h2>
+<p>A CTH can be installed in multiple ways in your test run. You can do it for all
+tests in a run, for specific test suites, and for specific groups within a test
+suite. If you want a CTH to be present in all test suites within your test run,
+there are three ways to accomplish that, as follows:</p><ul><li>Add <code class="inline">-ct_hooks</code> as an argument to <a href="run_test_chapter.html#ct_run">ct_run</a>. To add
+multiple CTHs using this method, append them to each other using the keyword
+<code class="inline">and</code>, that is, <code class="inline">ct_run -ct_hooks cth1 [{debug,true}] and cth2 ...</code>.</li><li>Add tag <code class="inline">ct_hooks</code> to your
+<a href="run_test_chapter.html#test_specifications">Test Specification</a>.</li><li>Add tag <code class="inline">ct_hooks</code> to your call to <a href="ct.html#run_test/1"><code class="inline">ct:run_test/1</code></a>.</li></ul><p>CTHs can also be added within a test suite. This is done by returning
+<code class="inline">{ct_hooks,[CTH]}</code> in the configuration list from
+<a href="ct_suite.html#c:suite/0">suite/0</a>,
+<a href="ct_suite.html#c:init_per_suite/1">init_per_suite/1</a>, or
+<a href="ct_suite.html#c:init_per_group/2">init_per_group/2</a>.</p><p>In this case, <code class="inline">CTH</code> can either be only the module name of the CTH or a tuple
+with the module name and the initial arguments, and optionally the hook priority
+of the CTH. For example, one of the following:</p><ul><li><code class="inline">{ct_hooks,[my_cth_module]}</code></li><li><code class="inline">{ct_hooks,[{my_cth_module,[{debug,true}]}]}</code></li><li><code class="inline">{ct_hooks,[{my_cth_module,[{debug,true}],500}]}</code></li></ul><p>Note that regardless of how you install a CTH, its BEAM file must be available
+in the code path when Common Test runs. <code class="inline">ct_run</code> accepts the <code class="inline">-pa</code> command line
+option.</p><h3 id="overriding-cths" class="section-heading">
+  <a href="#overriding-cths" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Overriding CTHs</span>
+</h3>
+<p>By default, each installation of a CTH causes a new instance of it to be
+activated. This can cause problems if you want to override CTHs in test
+specifications while still having them in the suite information function. The
+<a href="ct_hooks.html#c:id/1">id/1</a> callback exists to address this problem. By returning
+the same <code class="inline">id</code> in both places, <code class="inline">Common Test</code> knows that this CTH is already
+installed and does not try to install it again.</p><p><a href="" id="cth_execution_order"></a></p><h3 id="cth-execution-order" class="section-heading">
+  <a href="#cth-execution-order" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">CTH Execution Order</span>
+</h3>
+<p>By default, each installed CTH is executed in the order in which they are
+installed for init calls, and then reversed for end calls. This order can be
+referred to as test-centric, as the order is reversed after a testcase is
+executed and corresponds to the default value (<code class="inline">test</code>) of <code class="inline">ct_hooks_order</code>
+option.</p><p>The installation-based order is not always desired, so <code class="inline">Common Test</code> allows the
+user to specify a priority for each hook. The priority can be specified in the
+CTH function <a href="ct_hooks.html#c:init/2">init/2</a> or when installing the hook. The
+priority specified at installation overrides the priority returned by the CTH.</p><p>In some cases, the reversed order for all end calls is not desired, and instead,
+the user might prefer the reversed order for post hook calls. Such behavior can
+be enabled with <code class="inline">ct_hooks_order</code> option with <code class="inline">config</code> value. When this option is
+enabled, the execution order is configuration-centric, as the reversed order
+happens after each configuration function and not in relation to testcase.</p><p>Note that the <code class="inline">ct_hooks_order</code> option is considered as a global framework
+setting. In case when option is configured multiple times framework with process
+only the first value.</p><p>The <code class="inline">ct_hooks_order</code> option can be set as: <code class="inline">ct_run</code> argument, in test
+specification or <a href="ct_suite.html#c:suite/0">suite/0</a> return value.</p><p><a href="" id="scope"></a></p><h2 id="cth-scope" class="section-heading">
+  <a href="#cth-scope" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">CTH Scope</span>
+</h2>
+<p>Once the CTH is installed into a certain test run it remains there until its
+scope is expired. The scope of a CTH depends on when it is installed, see the
+following table. Function <a href="ct_hooks.html#c:init/2">init/2</a> is called at the
+beginning of the scope and function <a href="ct_hooks.html#c:terminate/1">terminate/1</a> is
+called when the scope ends.</p><table><thead><tr><th style="text-align: left;"><em>CTH installed in</em></th><th style="text-align: left;"><em>CTH scope begins before</em></th><th style="text-align: left;"><em>CTH scope ends after</em></th></tr></thead><tbody><tr><td style="text-align: left;"><a href="run_test_chapter.html#ct_run">ct_run</a></td><td style="text-align: left;">the first test suite is to be run</td><td style="text-align: left;">the last test suite has been run</td></tr><tr><td style="text-align: left;"><a href="ct.html#run_test/1">ct:run_test</a></td><td style="text-align: left;">the first test suite is run</td><td style="text-align: left;">the last test suite has been run</td></tr><tr><td style="text-align: left;"><a href="run_test_chapter.html#test_specifications">Test Specification</a></td><td style="text-align: left;">the first test suite is run</td><td style="text-align: left;">the last test suite has been run</td></tr><tr><td style="text-align: left;"><a href="ct_suite.html#c:suite/0">suite/0</a></td><td style="text-align: left;"><a href="ct_hooks.html#c:pre_init_per_suite/3">pre_init_per_suite/3</a> is called</td><td style="text-align: left;"><a href="ct_hooks.html#c:post_end_per_suite/4">post_end_per_suite/4</a> has been called for that test suite</td></tr><tr><td style="text-align: left;"><a href="ct_suite.html#c:init_per_suite/1">init_per_suite/1</a></td><td style="text-align: left;"><a href="ct_hooks.html#c:post_init_per_suite/4">post_init_per_suite/4</a> is called</td><td style="text-align: left;"><a href="ct_hooks.html#c:post_end_per_suite/4">post_end_per_suite/4</a> has been called for that test suite</td></tr><tr><td style="text-align: left;"><a href="ct_suite.html#c:init_per_group/2">init_per_group/2</a></td><td style="text-align: left;"><a href="ct_hooks.html#c:post_init_per_group/5">post_init_per_group/5</a> is called</td><td style="text-align: left;"><a href="ct_hooks.html#c:post_end_per_group/5">post_end_per_group/5</a> has been called for that group</td></tr></tbody></table><p><em>Table: Scope of a CTH</em></p><h3 id="cth-processes-and-tables" class="section-heading">
+  <a href="#cth-processes-and-tables" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">CTH Processes and Tables</span>
+</h3>
+<p>CTHs are run with the same process scoping as normal test suites, that is, a
+different process executes the <code class="inline">init_per_suite</code> hooks then the <code class="inline">init_per_group</code>
+or <code class="inline">per_testcase</code> hooks. So if you want to spawn a process in the CTH, you
+cannot link with the CTH process, as it exits after the post hook ends. Also, if
+you for some reason need an ETS table with your CTH, you must spawn a process
+that handles it.</p><h3 id="external-configuration-data-and-logging" class="section-heading">
+  <a href="#external-configuration-data-and-logging" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">External Configuration Data and Logging</span>
+</h3>
+<p>Configuration data values in the CTH can be read by calling
+<a href="ct.html#get_config/1"><code class="inline">ct:get_config/1,2,3</code></a> (as explained in section
+<a href="config_file_chapter.html#require_config_data">Requiring and Reading Configuration Data</a>).
+The configuration variables in question must, as always, first have been
+required by a suite-, group-, or test case information function, or by function
+<a href="ct.html#require/1"><code class="inline">ct:require/1/2</code></a>. The latter can also be used in CT hook
+functions.</p><p>The CT hook functions can call any logging function in the <code class="inline">ct</code> interface to
+print information to the log files, or to add comments in the suite overview
+page.</p><p><a href="" id="manipulating"></a></p><h2 id="manipulating-tests" class="section-heading">
+  <a href="#manipulating-tests" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Manipulating Tests</span>
+</h2>
+<p>Through CTHs the results of tests and configuration functions can be
+manipulated. The main purpose to do this with CTHs is to allow common patterns
+to be abstracted out from test suites and applied to multiple test suites
+without duplicating any code. All the callback functions for a CTH follow a
+common interface described hereafter.</p><p><code class="inline">Common Test</code> always calls all available hook functions, even pre- and post
+hooks for configuration functions that are not implemented in the suite. For
+example, <code class="inline">pre_init_per_suite(x_SUITE, ...)</code> and
+<code class="inline">post_init_per_suite(x_SUITE, ...)</code> are called for test suite <code class="inline">x_SUITE</code>, even if
+it does not export <code class="inline">init_per_suite/1</code>. With this feature hooks can be used as
+configuration fallbacks, and all configuration functions can be replaced with
+hook functions.</p><p><a href="" id="pre"></a></p><h3 id="pre-hooks" class="section-heading">
+  <a href="#pre-hooks" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Pre Hooks</span>
+</h3>
+<p>In a CTH, the behavior can be hooked in before the following functions:</p><ul><li><a href="ct_suite.html#c:init_per_suite/1"><code class="inline">init_per_suite</code></a></li><li><a href="ct_suite.html#c:init_per_group/2"><code class="inline">init_per_group</code></a></li><li><a href="ct_suite.html#c:init_per_testcase/2"><code class="inline">init_per_testcase</code></a></li><li><a href="ct_suite.html#c:end_per_testcase/2"><code class="inline">end_per_testcase</code></a></li><li><a href="ct_suite.html#c:end_per_group/2"><code class="inline">end_per_group</code></a></li><li><a href="ct_suite.html#c:end_per_suite/1"><code class="inline">end_per_suite</code></a></li></ul><p>This is done in the CTH functions called <code class="inline">pre_&lt;name of function&gt;</code>. These
+functions take the arguments <code class="inline">SuiteName</code>, <code class="inline">Name</code> (group or test case name, if
+applicable), <code class="inline">Config</code>, and <code class="inline">CTHState</code>. The return value of the CTH function is
+always a combination of a result for the suite/group/test and an updated
+<code class="inline">CTHState</code>.</p><p>To let the test suite continue on executing, return the configuration list that
+you want the test to use as the result.</p><p>All pre hooks, except <code class="inline">pre_end_per_testcase/4</code>, can skip or fail the test by
+returning a tuple with <code class="inline">skip</code> or <code class="inline">fail</code>, and a reason as the result.</p><p><em>Example:</em></p><pre><code class="makeup erlang" translate="no"><span class="w"> </span><span class="nf">pre_init_per_suite</span><span class="p" data-group-id="9365391269-1">(</span><span class="n">SuiteName</span><span class="p">,</span><span class="w"> </span><span class="n">Config</span><span class="p">,</span><span class="w"> </span><span class="n">CTHState</span><span class="p" data-group-id="9365391269-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+   </span><span class="k">case</span><span class="w"> </span><span class="nc">db</span><span class="p">:</span><span class="nf">connect</span><span class="p" data-group-id="9365391269-2">(</span><span class="p" data-group-id="9365391269-2">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+     </span><span class="p" data-group-id="9365391269-3">{</span><span class="ss">error</span><span class="p">,</span><span class="p">_</span><span class="n">Reason</span><span class="p" data-group-id="9365391269-3">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+       </span><span class="p" data-group-id="9365391269-4">{</span><span class="p" data-group-id="9365391269-5">{</span><span class="ss">fail</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Could not connect to DB&quot;</span><span class="p" data-group-id="9365391269-5">}</span><span class="p">,</span><span class="w"> </span><span class="n">CTHState</span><span class="p" data-group-id="9365391269-4">}</span><span class="p">;</span><span class="w">
+     </span><span class="p" data-group-id="9365391269-6">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">Handle</span><span class="p" data-group-id="9365391269-6">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+       </span><span class="p" data-group-id="9365391269-7">{</span><span class="p" data-group-id="9365391269-8">[</span><span class="p" data-group-id="9365391269-9">{</span><span class="ss">db_handle</span><span class="p">,</span><span class="w"> </span><span class="n">Handle</span><span class="p" data-group-id="9365391269-9">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="n">Config</span><span class="p" data-group-id="9365391269-8">]</span><span class="p">,</span><span class="w"> </span><span class="n">CTHState</span><span class="o">#</span><span class="ss">state</span><span class="p" data-group-id="9365391269-10">{</span><span class="w"> </span><span class="ss">handle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Handle</span><span class="w"> </span><span class="p" data-group-id="9365391269-10">}</span><span class="p" data-group-id="9365391269-7">}</span><span class="w">
+   </span><span class="k">end</span><span class="p">.</span></code></pre><blockquote><h4 class="info">Note</h4><p>If you use multiple CTHs, the first part of the return tuple is used as input
+for the next CTH. So in the previous example the next CTH can get
+<code class="inline">{fail,Reason}</code> as the second parameter. If you have many CTHs interacting, do
+not let each CTH return <code class="inline">fail</code> or <code class="inline">skip</code>. Instead, return that an action is to
+be taken through the <code class="inline">Config</code> list and implement a CTH that, at the end, takes
+the correct action.</p></blockquote><p><a href="" id="post"></a></p><h3 id="post-hooks" class="section-heading">
+  <a href="#post-hooks" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Post Hooks</span>
+</h3>
+<p>In a CTH, behavior can be hooked in after the following functions:</p><ul><li><a href="ct_suite.html#c:init_per_suite/1"><code class="inline">init_per_suite</code></a></li><li><a href="ct_suite.html#c:init_per_group/2"><code class="inline">init_per_group</code></a></li><li><a href="ct_suite.html#c:init_per_testcase/2"><code class="inline">init_per_testcase</code></a></li><li><a href="ct_suite.html#c:end_per_testcase/2"><code class="inline">end_per_testcase</code></a></li><li><a href="ct_suite.html#c:end_per_group/2"><code class="inline">end_per_group</code></a></li><li><a href="ct_suite.html#c:end_per_suite/1"><code class="inline">end_per_suite</code></a></li></ul><p>This is done in the CTH functions called <code class="inline">post_&lt;name of function&gt;</code>. These
+functions take the arguments <code class="inline">SuiteName</code>, <code class="inline">Name</code> (group or test case name, if
+applicable), <code class="inline">Config</code>, <code class="inline">Return</code>, and <code class="inline">CTHState</code>. <code class="inline">Config</code> in this case is the
+same <code class="inline">Config</code> as the testcase is called with. <code class="inline">Return</code> is the value returned by
+the testcase. If the testcase fails by crashing, <code class="inline">Return</code> is
+<code class="inline">{'EXIT',{{Error,Reason},Stacktrace}}</code>.</p><p>The return value of the CTH function is always a combination of a result for the
+suite/group/test and an updated <code class="inline">CTHState</code>. If you do not want the callback to
+affect the outcome of the test, return the <code class="inline">Return</code> data as it is given to the
+CTH. You can also modify the test result. By returning the <code class="inline">Config</code> list with
+element <code class="inline">tc_status</code> removed, you can recover from a test failure. As in all the
+pre hooks, it is also possible to fail/skip the test case in the post hook.</p><p><em>Example:</em></p><pre><code class="makeup erlang" translate="no"><span class="w"> </span><span class="nf">post_end_per_testcase</span><span class="p" data-group-id="7141360044-1">(</span><span class="p">_</span><span class="n">Suite</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">TC</span><span class="p">,</span><span class="w"> </span><span class="n">Config</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7141360044-2">{</span><span class="ss">&#39;EXIT&#39;</span><span class="p">,</span><span class="p" data-group-id="7141360044-3">{</span><span class="p">_</span><span class="p">,</span><span class="p">_</span><span class="p" data-group-id="7141360044-3">}</span><span class="p" data-group-id="7141360044-2">}</span><span class="p">,</span><span class="w"> </span><span class="n">CTHState</span><span class="p" data-group-id="7141360044-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+   </span><span class="k">case</span><span class="w"> </span><span class="nc">db</span><span class="p">:</span><span class="nf">check_consistency</span><span class="p" data-group-id="7141360044-4">(</span><span class="p" data-group-id="7141360044-4">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+     </span><span class="ss">true</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+       </span><span class="c1">%% DB is good, pass the test.</span><span class="w">
+       </span><span class="p" data-group-id="7141360044-5">{</span><span class="nc">proplists</span><span class="p">:</span><span class="nf">delete</span><span class="p" data-group-id="7141360044-6">(</span><span class="ss">tc_status</span><span class="p">,</span><span class="w"> </span><span class="n">Config</span><span class="p" data-group-id="7141360044-6">)</span><span class="p">,</span><span class="w"> </span><span class="n">CTHState</span><span class="p" data-group-id="7141360044-5">}</span><span class="p">;</span><span class="w">
+     </span><span class="ss">false</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+       </span><span class="c1">%% DB is not good, mark as skipped instead of failing</span><span class="w">
+       </span><span class="p" data-group-id="7141360044-7">{</span><span class="p" data-group-id="7141360044-8">{</span><span class="ss">skip</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;DB is inconsistent!&quot;</span><span class="p" data-group-id="7141360044-8">}</span><span class="p">,</span><span class="w"> </span><span class="n">CTHState</span><span class="p" data-group-id="7141360044-7">}</span><span class="w">
+   </span><span class="k">end</span><span class="p">;</span><span class="w">
+ </span><span class="nf">post_end_per_testcase</span><span class="p" data-group-id="7141360044-9">(</span><span class="p">_</span><span class="n">Suite</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">TC</span><span class="p">,</span><span class="w"> </span><span class="n">Config</span><span class="p">,</span><span class="w"> </span><span class="n">Return</span><span class="p">,</span><span class="w"> </span><span class="n">CTHState</span><span class="p" data-group-id="7141360044-9">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+   </span><span class="c1">%% Do nothing if tc does not crash.</span><span class="w">
+   </span><span class="p" data-group-id="7141360044-10">{</span><span class="n">Return</span><span class="p">,</span><span class="w"> </span><span class="n">CTHState</span><span class="p" data-group-id="7141360044-10">}</span><span class="p">.</span></code></pre><blockquote><h4 class="info">Note</h4><p>Do recover from a testcase failure using CTHs only a last resort. If used
+wrongly, it can be very difficult to determine which tests that pass or fail
+in a test run.</p></blockquote><h3 id="skip-and-fail-hooks" class="section-heading">
+  <a href="#skip-and-fail-hooks" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Skip and Fail Hooks</span>
+</h3>
+<p>After any post hook has been executed for all installed CTHs,
+<a href="ct_hooks.html#c:on_tc_fail/4">on_tc_fail</a> or
+<a href="ct_hooks.html#c:on_tc_skip/4">on_tc_skip</a> is called if the testcase failed or was
+skipped, respectively. You cannot affect the outcome of the tests any further at
+this point.</p><p><a href="" id="synchronizing"></a></p><h2 id="synchronizing-external-user-applications-with-common-test" class="section-heading">
+  <a href="#synchronizing-external-user-applications-with-common-test" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Synchronizing External User Applications with Common Test</span>
+</h2>
+<p>CTHs can be used to synchronize test runs with external user applications. The
+init function can, for example, start and/or communicate with an application
+that has the purpose of preparing the SUT for an upcoming test run, or
+initialize a database for saving test data to during the test run. The terminate
+function can similarly order such an application to reset the SUT after the test
+run, and/or tell the application to finish active sessions and terminate. Any
+system error- or progress reports generated during the init- or termination
+stage are saved in the
+<a href="run_test_chapter.html#pre_post_test_io_log">Pre- and Post Test I/O Log</a>. (This is
+also true for any printouts made with <a href="ct.html#log/2"><code class="inline">ct:log/2</code></a> and <a href="ct.html#pal/2"><code class="inline">ct:pal/2</code></a>).</p><p>To ensure that <code class="inline">Common Test</code> does not start executing tests, or closes its log
+files and shuts down, before the external application is ready for it,
+<code class="inline">Common Test</code> can be synchronized with the application. During startup and
+shutdown, <code class="inline">Common Test</code> can be suspended, simply by having a CTH evaluate a
+<code class="inline">receive</code> expression in the init- or terminate function. The macros
+<code class="inline">?CT_HOOK_INIT_PROCESS</code> (the process executing the hook init function) and
+<code class="inline">?CT_HOOK_TERMINATE_PROCESS</code> (the process executing the hook terminate function)
+each specifies the name of the correct <code class="inline">Common Test</code> process to send a message
+to. This is done to return from the <code class="inline">receive</code>. These macros are defined in
+<code class="inline">ct.hrl</code>.</p><p><a href="" id="example"></a></p><h2 id="example-cth" class="section-heading">
+  <a href="#example-cth" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Example CTH</span>
+</h2>
+<p>The following CTH logs information about a test run into a format parseable by
+<a href="../../apps/kernel/file.html#consult/1"><code class="inline">file:consult/1</code></a> (in Kernel):</p><pre><code class="makeup erlang" translate="no"><span class="c1">%%% Common Test Example Common Test Hook module.</span><span class="w">
+</span><span class="c1">%%%</span><span class="w">
+</span><span class="c1">%%% To use this hook, on the command line:</span><span class="w">
+</span><span class="c1">%%%     ct_run -suite example_SUITE -pa . -ct_hooks example_cth</span><span class="w">
+</span><span class="c1">%%%</span><span class="w">
+</span><span class="c1">%%% Note `-pa .`: the hook beam file must be in the code path when installing.</span><span class="w">
+</span><span class="p">-</span><span class="na">module</span><span class="p" data-group-id="5600277918-1">(</span><span class="ss">example_cth</span><span class="p" data-group-id="5600277918-1">)</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%% Mandatory Callbacks</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="5600277918-2">(</span><span class="p" data-group-id="5600277918-3">[</span><span class="ss">init</span><span class="p">/</span><span class="mi">2</span><span class="p" data-group-id="5600277918-3">]</span><span class="p" data-group-id="5600277918-2">)</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%% Optional Callbacks</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="5600277918-4">(</span><span class="p" data-group-id="5600277918-5">[</span><span class="ss">id</span><span class="p">/</span><span class="mi">1</span><span class="p" data-group-id="5600277918-5">]</span><span class="p" data-group-id="5600277918-4">)</span><span class="p">.</span><span class="w">
+</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="5600277918-6">(</span><span class="p" data-group-id="5600277918-7">[</span><span class="ss">pre_init_per_suite</span><span class="p">/</span><span class="mi">3</span><span class="p" data-group-id="5600277918-7">]</span><span class="p" data-group-id="5600277918-6">)</span><span class="p">.</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="5600277918-8">(</span><span class="p" data-group-id="5600277918-9">[</span><span class="ss">post_end_per_suite</span><span class="p">/</span><span class="mi">4</span><span class="p" data-group-id="5600277918-9">]</span><span class="p" data-group-id="5600277918-8">)</span><span class="p">.</span><span class="w">
+</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="5600277918-10">(</span><span class="p" data-group-id="5600277918-11">[</span><span class="ss">pre_init_per_testcase</span><span class="p">/</span><span class="mi">4</span><span class="p" data-group-id="5600277918-11">]</span><span class="p" data-group-id="5600277918-10">)</span><span class="p">.</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="5600277918-12">(</span><span class="p" data-group-id="5600277918-13">[</span><span class="ss">post_end_per_testcase</span><span class="p">/</span><span class="mi">5</span><span class="p" data-group-id="5600277918-13">]</span><span class="p" data-group-id="5600277918-12">)</span><span class="p">.</span><span class="w">
+</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="5600277918-14">(</span><span class="p" data-group-id="5600277918-15">[</span><span class="ss">on_tc_skip</span><span class="p">/</span><span class="mi">4</span><span class="p" data-group-id="5600277918-15">]</span><span class="p" data-group-id="5600277918-14">)</span><span class="p">.</span><span class="w">
+</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="5600277918-16">(</span><span class="p" data-group-id="5600277918-17">[</span><span class="ss">terminate</span><span class="p">/</span><span class="mi">1</span><span class="p" data-group-id="5600277918-17">]</span><span class="p" data-group-id="5600277918-16">)</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%% This hook state is threaded through all the callbacks.</span><span class="w">
+</span><span class="p">-</span><span class="na">record</span><span class="p" data-group-id="5600277918-18">(</span><span class="ss">state</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="5600277918-19">{</span><span class="ss">filename</span><span class="p">,</span><span class="w"> </span><span class="ss">total</span><span class="p">,</span><span class="w"> </span><span class="ss">suite_total</span><span class="p">,</span><span class="w"> </span><span class="ss">ts</span><span class="p">,</span><span class="w"> </span><span class="ss">tcs</span><span class="p">,</span><span class="w"> </span><span class="ss">data</span><span class="p">,</span><span class="w"> </span><span class="ss">skipped</span><span class="p" data-group-id="5600277918-19">}</span><span class="p" data-group-id="5600277918-18">)</span><span class="p">.</span><span class="w">
+</span><span class="c1">%% This example hook prints its results to a file, see terminate/1.</span><span class="w">
+</span><span class="p">-</span><span class="na">record</span><span class="p" data-group-id="5600277918-20">(</span><span class="ss">test_run</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="5600277918-21">{</span><span class="ss">total</span><span class="p">,</span><span class="w"> </span><span class="ss">skipped</span><span class="p">,</span><span class="w"> </span><span class="ss">suites</span><span class="p" data-group-id="5600277918-21">}</span><span class="p" data-group-id="5600277918-20">)</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%% Return a unique id for this CTH.</span><span class="w">
+</span><span class="c1">%% Using the filename means the hook can be used with different</span><span class="w">
+</span><span class="c1">%% log files to separate timing data within the same test run.</span><span class="w">
+</span><span class="c1">%% See Installing a CTH for more information.</span><span class="w">
+</span><span class="nf">id</span><span class="p" data-group-id="5600277918-22">(</span><span class="n">Opts</span><span class="p" data-group-id="5600277918-22">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="c1">%% the path is relative to the test run directory</span><span class="w">
+    </span><span class="nc">proplists</span><span class="p">:</span><span class="nf">get_value</span><span class="p" data-group-id="5600277918-23">(</span><span class="ss">filename</span><span class="p">,</span><span class="w"> </span><span class="n">Opts</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;example_cth.log&quot;</span><span class="p" data-group-id="5600277918-23">)</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%% Always called before any other callback function. Use this to initiate</span><span class="w">
+</span><span class="c1">%% any common state.</span><span class="w">
+</span><span class="nf">init</span><span class="p" data-group-id="5600277918-24">(</span><span class="n">Id</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">Opts</span><span class="p" data-group-id="5600277918-24">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="5600277918-25">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="o">#</span><span class="ss">state</span><span class="p" data-group-id="5600277918-26">{</span><span class="ss">filename</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Id</span><span class="p">,</span><span class="w"> </span><span class="ss">total</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="ss">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="5600277918-27">[</span><span class="p" data-group-id="5600277918-27">]</span><span class="p" data-group-id="5600277918-26">}</span><span class="p" data-group-id="5600277918-25">}</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%% Called before init_per_suite is called.</span><span class="w">
+</span><span class="nf">pre_init_per_suite</span><span class="p" data-group-id="5600277918-28">(</span><span class="p">_</span><span class="n">Suite</span><span class="p">,</span><span class="n">Config</span><span class="p">,</span><span class="n">State</span><span class="p" data-group-id="5600277918-28">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="5600277918-29">{</span><span class="n">Config</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="o">#</span><span class="ss">state</span><span class="p" data-group-id="5600277918-30">{</span><span class="ss">suite_total</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="ss">tcs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="5600277918-31">[</span><span class="p" data-group-id="5600277918-31">]</span><span class="p" data-group-id="5600277918-30">}</span><span class="p" data-group-id="5600277918-29">}</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%% Called after end_per_suite.</span><span class="w">
+</span><span class="nf">post_end_per_suite</span><span class="p" data-group-id="5600277918-32">(</span><span class="n">Suite</span><span class="p">,</span><span class="p">_</span><span class="n">Config</span><span class="p">,</span><span class="n">Return</span><span class="p">,</span><span class="n">State</span><span class="p" data-group-id="5600277918-32">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">Data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="5600277918-33">{</span><span class="ss">suites</span><span class="p">,</span><span class="w"> </span><span class="n">Suite</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="o">#</span><span class="ss">state</span><span class="p">.</span><span class="ss">suite_total</span><span class="p">,</span><span class="w">
+            </span><span class="nc">lists</span><span class="p">:</span><span class="nf">reverse</span><span class="p" data-group-id="5600277918-34">(</span><span class="n">State</span><span class="o">#</span><span class="ss">state</span><span class="p">.</span><span class="ss">tcs</span><span class="p" data-group-id="5600277918-34">)</span><span class="p" data-group-id="5600277918-33">}</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="5600277918-35">{</span><span class="n">Return</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="o">#</span><span class="ss">state</span><span class="p" data-group-id="5600277918-36">{</span><span class="ss">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="5600277918-37">[</span><span class="n">Data</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="n">State</span><span class="o">#</span><span class="ss">state</span><span class="p">.</span><span class="ss">data</span><span class="p" data-group-id="5600277918-37">]</span><span class="p">,</span><span class="w">
+                         </span><span class="ss">total</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">State</span><span class="o">#</span><span class="ss">state</span><span class="p">.</span><span class="ss">total</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">State</span><span class="o">#</span><span class="ss">state</span><span class="p">.</span><span class="ss">suite_total</span><span class="p" data-group-id="5600277918-36">}</span><span class="p" data-group-id="5600277918-35">}</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%% Called before each init_per_testcase.</span><span class="w">
+</span><span class="nf">pre_init_per_testcase</span><span class="p" data-group-id="5600277918-38">(</span><span class="p">_</span><span class="n">Suite</span><span class="p">,</span><span class="p">_</span><span class="n">TC</span><span class="p">,</span><span class="n">Config</span><span class="p">,</span><span class="n">State</span><span class="p" data-group-id="5600277918-38">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">Now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">erlang</span><span class="p">:</span><span class="nf">monotonic_time</span><span class="p" data-group-id="5600277918-39">(</span><span class="ss">microsecond</span><span class="p" data-group-id="5600277918-39">)</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="5600277918-40">{</span><span class="n">Config</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="o">#</span><span class="ss">state</span><span class="p" data-group-id="5600277918-41">{</span><span class="ss">ts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Now</span><span class="p">,</span><span class="w"> </span><span class="ss">suite_total</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">State</span><span class="o">#</span><span class="ss">state</span><span class="p">.</span><span class="ss">suite_total</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p" data-group-id="5600277918-41">}</span><span class="p" data-group-id="5600277918-40">}</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%% Called after each end_per_testcase.</span><span class="w">
+</span><span class="nf">post_end_per_testcase</span><span class="p" data-group-id="5600277918-42">(</span><span class="n">Suite</span><span class="p">,</span><span class="n">TC</span><span class="p">,</span><span class="p">_</span><span class="n">Config</span><span class="p">,</span><span class="n">Return</span><span class="p">,</span><span class="n">State</span><span class="p" data-group-id="5600277918-42">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">Now</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">erlang</span><span class="p">:</span><span class="nf">monotonic_time</span><span class="p" data-group-id="5600277918-43">(</span><span class="ss">microsecond</span><span class="p" data-group-id="5600277918-43">)</span><span class="p">,</span><span class="w">
+    </span><span class="n">TCInfo</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="5600277918-44">{</span><span class="ss">testcase</span><span class="p">,</span><span class="w"> </span><span class="n">Suite</span><span class="p">,</span><span class="w"> </span><span class="n">TC</span><span class="p">,</span><span class="w"> </span><span class="n">Return</span><span class="p">,</span><span class="w"> </span><span class="n">Now</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">State</span><span class="o">#</span><span class="ss">state</span><span class="p">.</span><span class="ss">ts</span><span class="p" data-group-id="5600277918-44">}</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="5600277918-45">{</span><span class="n">Return</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="o">#</span><span class="ss">state</span><span class="p" data-group-id="5600277918-46">{</span><span class="ss">ts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">undefined</span><span class="p">,</span><span class="w"> </span><span class="ss">tcs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="5600277918-47">[</span><span class="n">TCInfo</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="n">State</span><span class="o">#</span><span class="ss">state</span><span class="p">.</span><span class="ss">tcs</span><span class="p" data-group-id="5600277918-47">]</span><span class="p" data-group-id="5600277918-46">}</span><span class="p" data-group-id="5600277918-45">}</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%% Called when a test case is skipped by either user action</span><span class="w">
+</span><span class="c1">%% or due to an init function failing.</span><span class="w">
+</span><span class="nf">on_tc_skip</span><span class="p" data-group-id="5600277918-48">(</span><span class="p">_</span><span class="n">Suite</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">TC</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">Reason</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="5600277918-48">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">State</span><span class="o">#</span><span class="ss">state</span><span class="p" data-group-id="5600277918-49">{</span><span class="ss">skipped</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">State</span><span class="o">#</span><span class="ss">state</span><span class="p">.</span><span class="ss">skipped</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p" data-group-id="5600277918-49">}</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%% Called when the scope of the CTH is done.</span><span class="w">
+</span><span class="nf">terminate</span><span class="p" data-group-id="5600277918-50">(</span><span class="n">State</span><span class="p" data-group-id="5600277918-50">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="c1">%% use append to avoid data loss if the path is reused</span><span class="w">
+    </span><span class="p" data-group-id="5600277918-51">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">File</span><span class="p" data-group-id="5600277918-51">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">file</span><span class="p">:</span><span class="nf">open</span><span class="p" data-group-id="5600277918-52">(</span><span class="n">State</span><span class="o">#</span><span class="ss">state</span><span class="p">.</span><span class="ss">filename</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="5600277918-53">[</span><span class="ss">write</span><span class="p">,</span><span class="w"> </span><span class="ss">append</span><span class="p" data-group-id="5600277918-53">]</span><span class="p" data-group-id="5600277918-52">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="5600277918-54">(</span><span class="n">File</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;</span><span class="si">~p</span><span class="s">.</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="5600277918-55">[</span><span class="nf">results</span><span class="p" data-group-id="5600277918-56">(</span><span class="n">State</span><span class="p" data-group-id="5600277918-56">)</span><span class="p" data-group-id="5600277918-55">]</span><span class="p" data-group-id="5600277918-54">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">file</span><span class="p">:</span><span class="nf">close</span><span class="p" data-group-id="5600277918-57">(</span><span class="n">File</span><span class="p" data-group-id="5600277918-57">)</span><span class="p">,</span><span class="w">
+    </span><span class="ss">ok</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">results</span><span class="p" data-group-id="5600277918-58">(</span><span class="n">State</span><span class="p" data-group-id="5600277918-58">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="o">#</span><span class="ss">state</span><span class="p" data-group-id="5600277918-59">{</span><span class="ss">skipped</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Skipped</span><span class="p">,</span><span class="w"> </span><span class="ss">data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Data</span><span class="p">,</span><span class="w"> </span><span class="ss">total</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Total</span><span class="p" data-group-id="5600277918-59">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">State</span><span class="p">,</span><span class="w">
+    </span><span class="o">#</span><span class="ss">test_run</span><span class="p" data-group-id="5600277918-60">{</span><span class="ss">total</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Total</span><span class="p">,</span><span class="w"> </span><span class="ss">skipped</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Skipped</span><span class="p">,</span><span class="w"> </span><span class="ss">suites</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">lists</span><span class="p">:</span><span class="nf">reverse</span><span class="p" data-group-id="5600277918-61">(</span><span class="n">Data</span><span class="p" data-group-id="5600277918-61">)</span><span class="p" data-group-id="5600277918-60">}</span><span class="p">.</span></code></pre><p><a href="" id="builtin_cths"></a></p><h2 id="built-in-cths" class="section-heading">
+  <a href="#built-in-cths" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Built-In CTHs</span>
+</h2>
+<p><code class="inline">Common Test</code> is delivered with some general-purpose CTHs that can be enabled by
+the user to provide generic testing functionality. Some of these CTHs are
+enabled by default when <code class="inline">common_test</code> is started to run. They can be disabled by
+setting <code class="inline">enable_builtin_hooks</code> to <code class="inline">false</code> on the command line or in the test
+specification. The following two CTHs are delivered with <code class="inline">Common Test</code>:</p><ul><li><p><strong><code class="inline">cth_log_redirect</code></strong> - Built-in</p><p>Captures all log events that would normally be printed by the default logger
+handler, and prints them to the current test case log. If an event cannot be
+associated with a test case, it is printed in the <code class="inline">Common Test</code> framework log.
+This happens for test cases running in parallel and events occurring
+in-between test cases.</p><p>The log events are handled using a <a href="../../apps/kernel/logger.html">Logger</a> handler called
+cth_log_redirect. The formatting and level is copied from the current
+<code class="inline">default</code> handler when the cth is started. If you want to use another level
+either change the <code class="inline">default</code> handler level before starting common_test, or use
+the <a href="../../apps/kernel/logger.html#set_handler_config/3"><code class="inline">logger:set_handler_config/3</code></a> API.</p><p>This hook supports the following options:</p><ul><li><p><strong><code class="inline">{mode, add}</code></strong> - Add <code class="inline">cth_log_redirect</code> to the default logging handler:
+Logs will be emitted to both standard output via the default handler, and
+into the Common Test HTML logs. This is the default behaviour.</p></li><li><p><strong><code class="inline">{mode, replace}</code></strong> - Replace the <code class="inline">default</code> logging handler with
+<code class="inline">cth_log_redirect</code> instead of logging to both the default handler and this
+handler. This effectively silences any logger output which would normally be
+printed to standard output during test runs. To enable this mode, you can
+pass the following options to <code class="inline">ct_run</code>:</p><p><code class="inline">-enable_builtin_hooks false -ct_hooks cth_log_redirect [{mode,replace}]</code></p></li></ul></li><li><p><strong><code class="inline">cth_surefire</code></strong> - Not built-in</p><p>Captures all test results and outputs them as surefire XML into a file. The
+created file is by default called <code class="inline">junit_report.xml</code>. The file name can be
+changed by setting option <code class="inline">path</code> for this hook, for example:</p><p><code class="inline">-ct_hooks cth_surefire [{path,&quot;/tmp/report.xml&quot;}]</code></p><p>If option <code class="inline">url_base</code> is set, an extra attribute named <code class="inline">url</code> is added to each
+<code class="inline">testsuite</code> and <code class="inline">testcase</code> XML element. The value is constructed from
+<code class="inline">url_base</code> and a relative path to the test suite or test case log,
+respectively, for example:</p><p><code class="inline">-ct_hooks cth_surefire [{url_base, &quot;http://myserver.com/&quot;}]</code></p><p>gives an URL attribute value similar to</p><p><code class="inline">&quot;http://myserver.com/ct_run.ct@myhost.2012-12-12_11.19.39/ x86_64-unknown-linux-gnu.my_test.logs/run.2012-12-12_11.19.39/suite.log.html&quot;</code></p><p>Surefire XML can, for example, be used by Jenkins to display test results.</p></li></ul>
+<div class="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="dependencies_chapter.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Dependencies between Test Cases and Suites
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="why_test_chapter.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+Some Thoughts about Testing
+        </span>
+      </a>
+
+  </div>
+</div>
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+              <a href="common_test.epub" title="ePub version">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

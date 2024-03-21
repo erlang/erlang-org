@@ -1,0 +1,320 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html xmlns:fn="http://www.w3.org/2005/02/xpath-functions">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" href="../../otp_doc.css" type="text/css">
+<title>Erlang -- wx the erlang binding of wxWidgets
+</title>
+</head>
+<body bgcolor="white" text="#000000" link="#0000ff" vlink="#ff00ff" alink="#ff0000"><div id="container">
+<script id="js" type="text/javascript" language="JavaScript" src="../../js/flipmenu/flipmenu.js"></script><script id="js2" type="text/javascript" src="../../js/erlresolvelinks.js"></script><script language="JavaScript" type="text/javascript">
+            <!--
+              function getWinHeight() {
+                var myHeight = 0;
+                if( typeof( window.innerHeight ) == 'number' ) {
+                  //Non-IE
+                  myHeight = window.innerHeight;
+                } else if( document.documentElement && ( document.documentElement.clientWidth ||
+                                                         document.documentElement.clientHeight ) ) {
+                  //IE 6+ in 'standards compliant mode'
+                  myHeight = document.documentElement.clientHeight;
+                } else if( document.body && ( document.body.clientWidth || document.body.clientHeight ) ) {
+                  //IE 4 compatible
+                  myHeight = document.body.clientHeight;
+                }
+                return myHeight;
+              }
+
+              function setscrollpos() {
+                var objf=document.getElementById('loadscrollpos');
+                 document.getElementById("leftnav").scrollTop = objf.offsetTop - getWinHeight()/2;
+              }
+
+              function addEvent(obj, evType, fn){
+                if (obj.addEventListener){
+                obj.addEventListener(evType, fn, true);
+                return true;
+              } else if (obj.attachEvent){
+                var r = obj.attachEvent("on"+evType, fn);
+                return r;
+              } else {
+                return false;
+              }
+             }
+
+             addEvent(window, 'load', setscrollpos);
+
+             //--></script><div id="leftnav"><div class="innertube">
+<img alt="Erlang logo" src="../../../../doc/erlang-logo.png"><br><small><a href="users_guide.html">User's Guide</a><br><a href="index.html">Reference Manual</a><br><a href="release_notes.html">Release Notes</a><br><a href="wx.pdf">PDF</a><br><a href="../../index.html">Top</a></small><p><strong>wxErlang</strong><br><strong>User's Guide</strong><br><small>Version 1.6.1</small></p>
+<br><a href="javascript:openAllFlips()">Expand All</a><br><a href="javascript:closeAllFlips()">Contract All</a><p><small><strong>Chapters</strong></small></p>
+<ul class="flipMenu" imagePath="../../js/flipmenu"><li id="loadscrollpos" title="wx the erlang binding of wxWidgets
+" expanded="true">wx the erlang binding of wxWidgets
+<ul>
+<li><a href="chapter.html">
+              Top of chapter
+            </a></li>
+<li title="Contents"><a href="chapter.html#id60737">Contents</a></li>
+<li title="Introduction"><a href="chapter.html#id60682">Introduction</a></li>
+<li title="Multiple processes and memory handling"><a href="chapter.html#id60788">Multiple processes and memory handling</a></li>
+<li title="Event Handling"><a href="chapter.html#id59146">Event Handling</a></li>
+<li title="Acknowledgments"><a href="chapter.html#id60886">Acknowledgments</a></li>
+</ul>
+</li></ul>
+</div></div>
+<div id="content">
+<div class="innertube">
+<h1>1 wx the erlang binding of wxWidgets
+</h1>
+
+<p>The <strong>wx</strong> application is an erlang binding
+of <strong>wxWidgets</strong>. This document describes the erlang mapping to
+wxWidgets and it's implementation. It is not a complete
+users guide to wxWidgets. If you need that, you will have to read the wxWidgets
+documentation instead. <strong>wx</strong> tries to keep a one-to-one mapping with
+the original API so that the original documentation and examples shall be
+as easy as possible to use.</p>
+
+<p>wxErlang examples and test suite can be found in the erlang src release.
+They can also provide some help on how to use the API.</p>
+
+<p>This is currently a very brief introduction to <strong>wx</strong>.  The
+application is still under development, which means the interface may change,
+and the test suite currently have a poor coverage ratio.</p>
+
+<h3><a name="id60737">1.1 
+        Contents</a></h3>
+<a name="Contents"></a>
+
+<ul>
+  <li><span class="bold_code"><a href="#Introduction">Introduction</a></span></li>
+  <li><span class="bold_code"><a href="#Multiple_processes_and_memory_handling">Multiple processes and memory handling</a></span></li>
+  <li><span class="bold_code"><a href="#Event_Handling">Event Handling</a></span></li> 
+  <li><span class="bold_code"><a href="#Acknowledgments">Acknowledgments</a></span></li>
+</ul>
+<h3><a name="id60682">1.2 
+        Introduction</a></h3>
+<a name="Introduction"></a>
+
+<p>The original <strong>wxWidgets</strong> is an object-oriented (C++) API and
+that is reflected in the erlang mapping. In most cases each class in
+wxWidgets is represented as a module in erlang. This gives
+the <strong>wx</strong> application a huge interface, spread over several
+modules, and it all starts with the <strong>wx</strong>
+module. The <strong>wx</strong> module contains functions to create and
+destroy the GUI, i.e. <span class="code">wx:new/0</span>, <span class="code">wx:destroy/0</span>, and
+some other useful functions. </p>
+
+<p>Objects or object references in <strong>wx</strong> should be seen as erlang
+processes rather than erlang terms. When you operate on them they can
+change state, e.g. they are not functional objects as erlang terms are.
+Each object has a type or rather a class, which is manipulated with
+the corresponding module or by sub-classes of that object. Type
+checking is done so that a module only operates on it's objects or 
+inherited classes.</p>
+
+<p>An object is created with <strong>new</strong> and destroyed with 
+<strong>destroy</strong>.  Most functions in the classes are named the same
+as their C++ counterpart, except that for convenience, in erlang
+they start with a lowercase letter and the first argument is the
+object reference. Optional arguments are last and expressed as tagged
+tuples in any order.</p>
+
+<p>For example the <strong>wxWindow</strong> C++ class is implemented in the  
+<strong>wxWindow</strong> erlang module and the
+member <strong>wxWindow::CenterOnParent</strong> is
+thus <strong>wxWindow:centerOnParent</strong>.  The following C++ code:
+</p>
+<div class="example"><pre>
+  wxWindow MyWin = new wxWindow();
+  MyWin.CenterOnParent(wxVERTICAL);
+  ...
+  delete MyWin;
+</pre></div>
+<p>
+would in erlang look like:
+</p>
+<div class="example"><pre>
+  MyWin = wxWindow:new(),
+  wxWindow:centerOnParent(MyWin, [{dir,?wxVERTICAL}]),
+  ...
+  wxWindow:destroy(MyWin),
+</pre></div>
+<p>When you are reading wxWidgets documentation or the examples, you will
+notice that some of the most basic classes are missing in <strong>wx</strong>, 
+they are directly mapped to corresponding erlang terms:</p>
+
+<dl>
+  <dt><strong><strong>wxPoint</strong> is represented by {Xcoord,Ycoord}</strong></dt>
+  <dd></dd>
+<dt><strong><strong>wxSize</strong> is represented by {Width,Height}</strong></dt>
+  <dd></dd>
+<dt><strong><strong>wxRect</strong> is represented by {Xcoord,Ycoord,Width,Height}</strong></dt>
+  <dd></dd>
+<dt><strong><strong>wxColour</strong> is represented by {Red,Green,Blue[,Alpha]}</strong></dt>
+  <dd></dd>
+<dt><strong><strong>wxPoint</strong> is represented by {Xcoord,Ycoord}</strong></dt>
+  <dd></dd>
+<dt><strong><strong>wxString</strong> is represented by <span class="bold_code"><a href="../../man/unicode.html#type-charlist">unicode:charlist()</a></span></strong></dt>
+  <dd></dd>
+<dt><strong><strong>wxGBPosition</strong> is represented by {Row,Column}</strong></dt>
+  <dd></dd>
+<dt><strong><strong>wxGBSpan</strong> is represented by {RowSpan,ColumnSPan}</strong></dt>
+  <dd></dd>
+<dt><strong><strong>wxGridCellCoords</strong> is represented by {Row,Column}</strong></dt>
+<dd></dd>
+</dl>
+<p>In the places where the erlang API differs from the original one it should
+be obvious from the erlang documentation which representation has
+been used. E.g. the C++ arrays and/or lists are sometimes represented
+as erlang lists and sometimes as tuples.</p>
+
+<p>Colours are represented with {Red,Green,Blue[,Alpha]}, the Alpha value
+is optional when used as an argument to functions, but it will always be
+returned from <strong>wx</strong> functions.</p>
+
+<p>Defines, enumerations and global variables exists in
+<span class="code">wx.hrl</span> as defines. Most of these defines are constants
+but not all. Some are platform dependent and therefore the global
+variables must be instantiated during runtime.  These will be acquired from
+the driver with a call, so not all defines can be used in matching
+statements. Class local enumerations will be prefixed with the class
+name and a underscore as in <span class="code">ClassName_Enum</span>.</p>
+
+<p>Additionally some global functions, i.e. non-class functions, exist in
+the <span class="code">wx_misc</span> module.</p>
+
+<p><strong>wxErlang</strong> is implemented as a (threaded) driver and a rather direct
+interface to the C++ API, with the drawback that if the erlang
+programmer does an error, it might crash the emulator.</p>
+
+<p>Since the driver is threaded it requires a <strong>smp</strong> enabled emulator,
+that provides a thread safe interface to the driver.</p>
+
+<h3><a name="id60788">1.3 
+        Multiple processes and memory handling</a></h3>
+<a name="Multiple_processes_and_memory_handling"></a>
+
+<p>The intention is that each erlang application calls wx:new() once to
+setup it's GUI which creates an environment and a memory mapping.  To
+be able to use <strong>wx</strong> from several processes in your application,
+you must share the environment. You can get the active environment with
+<span class="code">wx:get_env/0</span> and set it in the new processes
+with <span class="code">wx:set_env/1</span>.  Two processes or applications which
+have both called wx:new() will not be able use each others objects.</p>
+
+<div class="example"><pre>
+  wx:new(), 
+  MyWin = wxFrame:new(wx:null(), 42, "Example", []),
+  Env = wx:get_env(),
+  spawn(fun() -&gt; 
+           wx:set_env(Env),
+           %% Here you can do wx calls from your helper process.
+           ...
+        end),
+  ...
+</pre></div>
+<p>When <span class="code">wx:destroy/0</span> is invoked or when all processes in the
+application have died, the memory is deleted and all windows created
+by that application are closed.</p>
+
+<p>The <strong>wx</strong> application never cleans or garbage collects memory as
+long as the user application is alive. Most of the objects are deleted
+when a window is closed,  or at least all the objects which have a parent
+argument that is non null.  By using
+<span class="code">wxCLASS:destroy/1</span> when possible you can avoid an
+increasing memory usage. This is especially important when
+<strong>wxWidgets</strong> assumes or recommends that you (or rather the C++
+programmer) have allocated the object on the stack since that will
+never be done in the erlang binding. For example <span class="code">wxDC</span> class
+or its sub-classes or <span class="code">wxSizerFlags</span>. </p>
+
+<p>Currently the dialogs show modal function freezes wxWidgets
+until the dialog is closed. That is intended but in erlang where you
+can have several GUI applications running at the same time it causes
+trouble. This will hopefully be fixed in future <strong>wxWidgets</strong>
+releases.</p>
+
+<h3><a name="id59146">1.4 
+        Event Handling</a></h3>
+<a name="Event_Handling"></a>
+
+<p>Event handling in <strong>wx</strong> differs most from the original API.
+You must specify every event you want to handle in <strong>wxWidgets</strong>,
+that is the same in the erlang binding but you can choose to receive
+the events as messages or handle them with callback  <strong>funs</strong>.</p>
+
+<p>Otherwise the event subscription is handled as <strong>wxWidgets</strong>
+dynamic event-handler connection. You subscribe to events of a certain
+type from objects with an <strong>ID</strong> or within a range of <strong>ID</strong>s. The
+callback <strong>fun</strong> is optional, if not supplied the event will be sent to the
+process that called <strong>connect/2</strong>. Thus, a handler is a callback <strong>fun</strong>
+or a process which will receive an event message.</p>
+
+<p>Events are handled in order from bottom to top, in the widgets
+hierarchy, by the last subscribed handler first. Depending on
+if <span class="code">wxEvent:skip()</span> is called the event will be handled by the
+other handler(s) afterwards. Most of the events have default event
+handler(s) installed.</p>
+
+<p>Message events looks like <span class="bold_code"><a href="../../man/wxEvtHandler.html#type-wx">#wx{id=integer(),
+obj=wx:wxObject(), userData=term(), event=Rec</a></span> }.  The <strong>id</strong> is
+the identifier of the object that received the event. The <strong>obj</strong>
+field contains the object that you used <strong>connect</strong> on.
+The <strong>userData</strong> field contains a user supplied term, this is an
+option to <strong>connect</strong>.  And the <strong>event</strong> field contains a record
+with event type dependent information. The first element in the event
+record is always the type you subscribed to. For example if you
+subscribed to
+<strong>key_up</strong> events you will receive the
+<span class="code">#wx{event=Event}</span> where <strong>Event</strong> will be a
+<strong>wxKey</strong> event record where <span class="code">Event#wxKey.type =
+key_up</span>.</p>
+
+<p>In <strong>wxWidgets</strong> the developer has to call 
+<span class="code">wxEvent:skip()</span> if he wants the event to be processed by
+other handlers. You can do the same in <strong>wx</strong> if you use
+callbacks. If you want the event as messages you just don't supply a
+callback and you can set the <strong>skip</strong> option in <strong>connect</strong>
+call to true or false, the default it is false.  True means that you get
+the message but let the subsequent handlers also handle the event. If
+you want to change this behavior dynamically you must use callbacks and
+call <span class="code">wxEvent:skip()</span>.</p>
+
+<p>Callback event handling is done by using the optional
+callback <strong>fun/2</strong> when attaching the
+handler. The <strong>fun(#wx{},wxObject()</strong> must take two arguments
+where the first is the same as with message events described above and
+the second is an object reference to the actual event object. With the
+event object you can call <span class="code">wxEvent:skip()</span> and access all
+the data. When using callbacks you must call <span class="code">wxEvent:skip()</span>
+by yourself if you want any of the events to be forwarded to the
+following handlers. The actual event objects are deleted after
+the <strong>fun</strong> returns.</p>
+
+<p>The callbacks are always invoked by another process and have
+exclusive usage of the GUI when invoked. This means that a callback <strong>fun</strong>
+can not use the process dictionary and should not make calls to other
+processes.  Calls to another process inside a callback <strong>fun</strong> may cause a
+deadlock if the other process is waiting on completion of his call to
+the GUI.</p>
+
+<h3><a name="id60886">1.5 
+        Acknowledgments</a></h3>
+<a name="Acknowledgments"></a>
+
+<p>Mats-Ola Persson wrote the initial <strong>wxWidgets</strong> binding as part
+of his master thesis. The current version is a total re-write but many
+ideas have been reused. The reason for the re-write was mostly due to
+the limited requirements he had been given by us.</p>
+
+<p>Also thanks to the <strong>wxWidgets</strong> team that develops and supports
+it so we have something to use.</p>
+
+</div>
+<div class="footer">
+<hr>
+<p>Copyright © 2009-2016 Ericsson AB. All Rights Reserved.</p>
+</div>
+</div>
+</div></body>
+</html>

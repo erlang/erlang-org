@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="ssh v5.2">
+
+
+    <title>Configuring algorithms in SSH — ssh v5.2</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-C18F4EE7.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="ssh" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+ssh
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v5.2
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of ssh</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/lib/ssh/doc/guides/configure_algos.md#L1" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+
+  <span>Configuring algorithms in SSH</span>
+</h1>
+
+<h2 id="introduction" class="section-heading">
+  <a href="#introduction" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Introduction</span>
+</h2>
+<p>To fully understand how to configure the algorithms, it is essential to have a
+basic understanding of the SSH protocol and how OTP SSH app handles the
+corresponding items</p><p>The first subsection will give a short background of the SSH protocol while
+later sections describes the implementation and provides some examples</p><p>How the different levels of configuration &quot;interfer&quot; with this, see the section
+<a href="configurations.html#algorithm-configuration">Algorithm Configuration</a> in the
+chapter <a href="configurations.html">Configuration in SSH</a>.</p><h3 id="basics-of-the-ssh-protocol-s-algorithms-handling" class="section-heading">
+  <a href="#basics-of-the-ssh-protocol-s-algorithms-handling" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Basics of the ssh protocol's algorithms handling</span>
+</h3>
+<p>SSH uses different sets of algorithms in different phases of a session. Which
+algorithms to use is negotiated by the client and the server at the beginning of
+a session. See <a href="https://tools.ietf.org/html/rfc4253">RFC 4253</a>, &quot;The Secure
+Shell (SSH) Transport Layer Protocol&quot; for details.</p><p>The negotiation is simple: both peers sends their list of supported alghorithms
+to the other part. The first algorithm on the client's list that also in on the
+server's list is selected. So it is the client's orderering of the list that
+gives the priority for the algorithms.</p><p>There are five lists exchanged in the connection setup. Three of them are also
+divided in two directions, to and from the server.</p><p>The lists are (named as in the SSH application's options):</p><ul><li><p><strong><code class="inline">kex</code></strong> - Key exchange.</p><p>An algorithm is selected for computing a secret encryption key. Among examples
+are: the old nowadays week <code class="inline">'diffie-hellman-group-exchange-sha1'</code> and the very
+strong and modern <code class="inline">'ecdh-sha2-nistp512'</code>.</p></li><li><p><strong><code class="inline">public_key</code></strong> - Server host key</p><p>The asymmetric encryption algorithm used in the server's private-public host
+key pair. Examples include the well-known RSA <code class="inline">'ssh-rsa'</code> and elliptic curve
+<code class="inline">'ecdsa-sha2-nistp521'</code>.</p></li><li><p><strong><code class="inline">cipher</code></strong> - Symmetric cipher algorithm used for the payload encryption.
+This algorithm will use the key calculated in the kex phase (together with
+other info) to generate the actual key used. Examples are tripple-DES
+<code class="inline">'3des-cbc'</code> and one of many AES variants <code class="inline">'aes192-ctr'</code>.</p><p>This list is actually two - one for each direction server-to-client and
+client-to-server. Therefore it is possible but rare to have different
+algorithms in the two directions in one connection.</p></li><li><p><strong><code class="inline">mac</code></strong> - Message authentication code</p><p>&quot;Check sum&quot; of each message sent between the peers. Examples are SHA
+<code class="inline">'hmac-sha1'</code> and SHA2 <code class="inline">'hmac-sha2-512'</code>.</p><p>This list is also divided into two for the both directions</p></li><li><p><strong><code class="inline">compression</code></strong> - If and how to compress the message. Examples are <code class="inline">none</code>,
+that is, no compression and <code class="inline">zlib</code>.</p><p>This list is also divided into two for the both directions</p></li></ul><h3 id="the-ssh-app-s-mechanism" class="section-heading">
+  <a href="#the-ssh-app-s-mechanism" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">The SSH app's mechanism</span>
+</h3>
+<p>The set of algorithms that the SSH app uses by default depends on the algorithms
+supported by the:</p><ul><li><a href="../../apps/crypto/crypto.html"><code class="inline">crypto</code></a> app,</li><li>The cryptolib OTP is linked with, usually the one the OS uses, probably
+OpenSSL,</li><li>and finally what the SSH app implements</li></ul><p>Due to this, it impossible to list in documentation what algorithms that are
+available in a certain installation.</p><p>There is an important command to list the actual algorithms and their ordering:
+<a href="ssh.html#default_algorithms/0"><code class="inline">ssh:default_algorithms/0</code></a>.</p><pre id="example_default_algorithms"><code class="text">0&gt; ssh:default_algorithms().
+[{kex,['ecdh-sha2-nistp384','ecdh-sha2-nistp521',
+       'ecdh-sha2-nistp256','diffie-hellman-group-exchange-sha256',
+       'diffie-hellman-group16-sha512',
+       'diffie-hellman-group18-sha512',
+       'diffie-hellman-group14-sha256',
+       'diffie-hellman-group14-sha1',
+       'diffie-hellman-group-exchange-sha1']},
+ {public_key,['ecdsa-sha2-nistp384','ecdsa-sha2-nistp521',
+              'ecdsa-sha2-nistp256','ssh-rsa','rsa-sha2-256',
+              'rsa-sha2-512','ssh-dss']},
+ {cipher,[{client2server,['aes256-gcm@openssh.com',
+                          'aes256-ctr','aes192-ctr','aes128-gcm@openssh.com',
+                          'aes128-ctr','aes128-cbc','3des-cbc']},
+          {server2client,['aes256-gcm@openssh.com','aes256-ctr',
+                          'aes192-ctr','aes128-gcm@openssh.com','aes128-ctr',
+                          'aes128-cbc','3des-cbc']}]},
+ {mac,[{client2server,['hmac-sha2-256','hmac-sha2-512',
+                       'hmac-sha1']},
+       {server2client,['hmac-sha2-256','hmac-sha2-512',
+                       'hmac-sha1']}]},
+ {compression,[{client2server,[none,'zlib@openssh.com',zlib]},
+               {server2client,[none,'zlib@openssh.com',zlib]}]}]</code></pre><p>To change the algorithm list, there are two options which can be used in
+<a href="ssh.html#connect/3">ssh:connect/2,3,4</a> and <a href="ssh.html#daemon/2">ssh:daemon/2,3</a>. The
+options could of course be used in all other functions that initiates
+connections.</p><p>The options are
+<a href="ssh.html#t:preferred_algorithms_common_option/0">preferred_algorithms</a> and
+<a href="ssh.html#t:modify_algorithms_common_option/0">modify_algorithms</a>. The first one
+replaces the default set, while the latter modifies the default set.</p><h2 id="replacing-the-default-set-preferred_algorithms" class="section-heading">
+  <a href="#replacing-the-default-set-preferred_algorithms" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Replacing the default set: preferred_algorithms</span>
+</h2>
+<p>See the <a href="ssh.html#t:preferred_algorithms_common_option/0">Reference Manual</a> for
+details</p><p>Here follows a series of examples ranging from simple to more complex.</p><p>To forsee the effect of an option there is an experimental function
+<code class="inline">ssh:chk_algos_opts(Opts)</code>. It mangles the options <code class="inline">preferred_algorithms</code> and
+<code class="inline">modify_algorithms</code> in the same way as <code class="inline">ssh:daemon</code>, <code class="inline">ssh:connect</code> and their
+friends does.</p><h3 id="example-1" class="section-heading">
+  <a href="#example-1" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Example 1</span>
+</h3>
+<p>Replace the kex algorithms list with the single algorithm
+<code class="inline">'diffie-hellman-group14-sha256'</code>:</p><pre><code class="text">1&gt; ssh:chk_algos_opts(
+               [{preferred_algorithms,
+                     [{kex, ['diffie-hellman-group14-sha256']}
+                     ]
+                }
+              ]).
+[{kex,['diffie-hellman-group14-sha256']},
+ {public_key,['ecdsa-sha2-nistp384','ecdsa-sha2-nistp521',
+              'ecdsa-sha2-nistp256','ssh-rsa','rsa-sha2-256',
+              'rsa-sha2-512','ssh-dss']},
+ {cipher,[{client2server,['aes256-gcm@openssh.com',
+                          'aes256-ctr','aes192-ctr','aes128-gcm@openssh.com',
+                          'aes128-ctr','aes128-cbc','3des-cbc']},
+          {server2client,['aes256-gcm@openssh.com','aes256-ctr',
+                          'aes192-ctr','aes128-gcm@openssh.com','aes128-ctr',
+                          'aes128-cbc','3des-cbc']}]},
+ {mac,[{client2server,['hmac-sha2-256','hmac-sha2-512',
+                       'hmac-sha1']},
+       {server2client,['hmac-sha2-256','hmac-sha2-512',
+                       'hmac-sha1']}]},
+ {compression,[{client2server,[none,'zlib@openssh.com',zlib]},
+               {server2client,[none,'zlib@openssh.com',zlib]}]}]</code></pre><p>Note that the unmentioned lists (<code class="inline">public_key</code>, <code class="inline">cipher</code>, <code class="inline">mac</code> and
+<code class="inline">compression</code>) are un-changed.</p><h3 id="example-2" class="section-heading">
+  <a href="#example-2" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Example 2</span>
+</h3>
+<p>In the lists that are divided in two for the two directions (c.f <code class="inline">cipher</code>) it is
+possible to change both directions at once:</p><pre><code class="text">2&gt; ssh:chk_algos_opts(
+               [{preferred_algorithms,
+                     [{cipher,['aes128-ctr']}
+                     ]
+                }
+              ]).
+[{kex,['ecdh-sha2-nistp384','ecdh-sha2-nistp521',
+       'ecdh-sha2-nistp256','diffie-hellman-group-exchange-sha256',
+       'diffie-hellman-group16-sha512',
+       'diffie-hellman-group18-sha512',
+       'diffie-hellman-group14-sha256',
+       'diffie-hellman-group14-sha1',
+       'diffie-hellman-group-exchange-sha1']},
+ {public_key,['ecdsa-sha2-nistp384','ecdsa-sha2-nistp521',
+              'ecdsa-sha2-nistp256','ssh-rsa','rsa-sha2-256',
+              'rsa-sha2-512','ssh-dss']},
+ {cipher,[{client2server,['aes128-ctr']},
+          {server2client,['aes128-ctr']}]},
+ {mac,[{client2server,['hmac-sha2-256','hmac-sha2-512',
+                       'hmac-sha1']},
+       {server2client,['hmac-sha2-256','hmac-sha2-512',
+                       'hmac-sha1']}]},
+ {compression,[{client2server,[none,'zlib@openssh.com',zlib]},
+               {server2client,[none,'zlib@openssh.com',zlib]}]}]</code></pre><p>Note that both lists in <code class="inline">cipher</code> has been changed to the provided value
+(<code class="inline">'aes128-ctr'</code>).</p><h3 id="example-3" class="section-heading">
+  <a href="#example-3" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Example 3</span>
+</h3>
+<p>In the lists that are divided in two for the two directions (c.f <code class="inline">cipher</code>) it is
+possible to change only one of the directions:</p><pre><code class="text">3&gt; ssh:chk_algos_opts(
+               [{preferred_algorithms,
+                     [{cipher,[{client2server,['aes128-ctr']}]}
+                     ]
+                }
+              ]).
+[{kex,['ecdh-sha2-nistp384','ecdh-sha2-nistp521',
+       'ecdh-sha2-nistp256','diffie-hellman-group-exchange-sha256',
+       'diffie-hellman-group16-sha512',
+       'diffie-hellman-group18-sha512',
+       'diffie-hellman-group14-sha256',
+       'diffie-hellman-group14-sha1',
+       'diffie-hellman-group-exchange-sha1']},
+ {public_key,['ecdsa-sha2-nistp384','ecdsa-sha2-nistp521',
+              'ecdsa-sha2-nistp256','ssh-rsa','rsa-sha2-256',
+              'rsa-sha2-512','ssh-dss']},
+ {cipher,[{client2server,['aes128-ctr']},
+          {server2client,['aes256-gcm@openssh.com','aes256-ctr',
+                          'aes192-ctr','aes128-gcm@openssh.com','aes128-ctr',
+                          'aes128-cbc','3des-cbc']}]},
+ {mac,[{client2server,['hmac-sha2-256','hmac-sha2-512',
+                       'hmac-sha1']},
+       {server2client,['hmac-sha2-256','hmac-sha2-512',
+                       'hmac-sha1']}]},
+ {compression,[{client2server,[none,'zlib@openssh.com',zlib]},
+               {server2client,[none,'zlib@openssh.com',zlib]}]}]</code></pre><h3 id="example-4" class="section-heading">
+  <a href="#example-4" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Example 4</span>
+</h3>
+<p>It is of course possible to change more than one list:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">4&gt; </span><span class="nc">ssh</span><span class="p">:</span><span class="nf">chk_algos_opts</span><span class="p" data-group-id="6345256605-1">(</span><span class="w">
+               </span><span class="p" data-group-id="6345256605-2">[</span><span class="p" data-group-id="6345256605-3">{</span><span class="ss">preferred_algorithms</span><span class="p">,</span><span class="w">
+                     </span><span class="p" data-group-id="6345256605-4">[</span><span class="p" data-group-id="6345256605-5">{</span><span class="ss">cipher</span><span class="p">,</span><span class="p" data-group-id="6345256605-6">[</span><span class="ss">&#39;aes128-ctr&#39;</span><span class="p" data-group-id="6345256605-6">]</span><span class="p" data-group-id="6345256605-5">}</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">      </span><span class="p" data-group-id="6345256605-7">{</span><span class="ss">mac</span><span class="p">,</span><span class="p" data-group-id="6345256605-8">[</span><span class="ss">&#39;hmac-sha2-256&#39;</span><span class="p" data-group-id="6345256605-8">]</span><span class="p" data-group-id="6345256605-7">}</span><span class="p">,</span><span class="w">
+                      </span><span class="p" data-group-id="6345256605-9">{</span><span class="ss">kex</span><span class="p">,</span><span class="p" data-group-id="6345256605-10">[</span><span class="ss">&#39;ecdh-sha2-nistp384&#39;</span><span class="p" data-group-id="6345256605-10">]</span><span class="p" data-group-id="6345256605-9">}</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">      </span><span class="p" data-group-id="6345256605-11">{</span><span class="ss">public_key</span><span class="p">,</span><span class="p" data-group-id="6345256605-12">[</span><span class="ss">&#39;ssh-rsa&#39;</span><span class="p" data-group-id="6345256605-12">]</span><span class="p" data-group-id="6345256605-11">}</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">      </span><span class="p" data-group-id="6345256605-13">{</span><span class="ss">compression</span><span class="p">,</span><span class="p" data-group-id="6345256605-14">[</span><span class="p" data-group-id="6345256605-15">{</span><span class="ss">server2client</span><span class="p">,</span><span class="p" data-group-id="6345256605-16">[</span><span class="ss">none</span><span class="p" data-group-id="6345256605-16">]</span><span class="p" data-group-id="6345256605-15">}</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">                    </span><span class="p" data-group-id="6345256605-17">{</span><span class="ss">client2server</span><span class="p">,</span><span class="p" data-group-id="6345256605-18">[</span><span class="ss">zlib</span><span class="p" data-group-id="6345256605-18">]</span><span class="p" data-group-id="6345256605-17">}</span><span class="p" data-group-id="6345256605-14">]</span><span class="p" data-group-id="6345256605-13">}</span><span class="w">
+                     </span><span class="p" data-group-id="6345256605-4">]</span><span class="w">
+                </span><span class="p" data-group-id="6345256605-3">}</span><span class="w">
+              </span><span class="p" data-group-id="6345256605-2">]</span><span class="p" data-group-id="6345256605-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="6345256605-19">[</span><span class="p" data-group-id="6345256605-20">{</span><span class="ss">kex</span><span class="p">,</span><span class="p" data-group-id="6345256605-21">[</span><span class="ss">&#39;ecdh-sha2-nistp384&#39;</span><span class="p" data-group-id="6345256605-21">]</span><span class="p" data-group-id="6345256605-20">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="6345256605-22">{</span><span class="ss">public_key</span><span class="p">,</span><span class="p" data-group-id="6345256605-23">[</span><span class="ss">&#39;ssh-rsa&#39;</span><span class="p" data-group-id="6345256605-23">]</span><span class="p" data-group-id="6345256605-22">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="6345256605-24">{</span><span class="ss">cipher</span><span class="p">,</span><span class="p" data-group-id="6345256605-25">[</span><span class="p" data-group-id="6345256605-26">{</span><span class="ss">client2server</span><span class="p">,</span><span class="p" data-group-id="6345256605-27">[</span><span class="ss">&#39;aes128-ctr&#39;</span><span class="p" data-group-id="6345256605-27">]</span><span class="p" data-group-id="6345256605-26">}</span><span class="p">,</span><span class="w">
+          </span><span class="p" data-group-id="6345256605-28">{</span><span class="ss">server2client</span><span class="p">,</span><span class="p" data-group-id="6345256605-29">[</span><span class="ss">&#39;aes128-ctr&#39;</span><span class="p" data-group-id="6345256605-29">]</span><span class="p" data-group-id="6345256605-28">}</span><span class="p" data-group-id="6345256605-25">]</span><span class="p" data-group-id="6345256605-24">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="6345256605-30">{</span><span class="ss">mac</span><span class="p">,</span><span class="p" data-group-id="6345256605-31">[</span><span class="p" data-group-id="6345256605-32">{</span><span class="ss">client2server</span><span class="p">,</span><span class="p" data-group-id="6345256605-33">[</span><span class="ss">&#39;hmac-sha2-256&#39;</span><span class="p" data-group-id="6345256605-33">]</span><span class="p" data-group-id="6345256605-32">}</span><span class="p">,</span><span class="w">
+       </span><span class="p" data-group-id="6345256605-34">{</span><span class="ss">server2client</span><span class="p">,</span><span class="p" data-group-id="6345256605-35">[</span><span class="ss">&#39;hmac-sha2-256&#39;</span><span class="p" data-group-id="6345256605-35">]</span><span class="p" data-group-id="6345256605-34">}</span><span class="p" data-group-id="6345256605-31">]</span><span class="p" data-group-id="6345256605-30">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="6345256605-36">{</span><span class="ss">compression</span><span class="p">,</span><span class="p" data-group-id="6345256605-37">[</span><span class="p" data-group-id="6345256605-38">{</span><span class="ss">client2server</span><span class="p">,</span><span class="p" data-group-id="6345256605-39">[</span><span class="ss">zlib</span><span class="p" data-group-id="6345256605-39">]</span><span class="p" data-group-id="6345256605-38">}</span><span class="p">,</span><span class="w">
+               </span><span class="p" data-group-id="6345256605-40">{</span><span class="ss">server2client</span><span class="p">,</span><span class="p" data-group-id="6345256605-41">[</span><span class="ss">none</span><span class="p" data-group-id="6345256605-41">]</span><span class="p" data-group-id="6345256605-40">}</span><span class="p" data-group-id="6345256605-37">]</span><span class="p" data-group-id="6345256605-36">}</span><span class="p" data-group-id="6345256605-19">]</span></code></pre><p>Note that the ordering of the tuples in the lists didn't matter.</p><h2 id="modifying-the-default-set-modify_algorithms" class="section-heading">
+  <a href="#modifying-the-default-set-modify_algorithms" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Modifying the default set: modify_algorithms</span>
+</h2>
+<p>A situation where it might be useful to add an algorithm is when one need to use
+a supported but disabled one. An example is the <code class="inline">'diffie-hellman-group1-sha1'</code>
+which nowadays is very unsecure and therefore disabled. It is however still
+supported and might be used.</p><p>The option <code class="inline">preferred_algorithms</code> may be complicated to use for adding or
+removing single algorithms. First one has to list them with
+<code class="inline">ssh:default_algorithms()</code> and then do changes in the lists.</p><p>To facilitate addition or removal of algorithms the option <code class="inline">modify_algorithms</code>
+is available. See the
+<a href="ssh.html#t:modify_algorithms_common_option/0">Reference Manual</a> for details.</p><p>The option takes a list with instructions to append, prepend or remove
+algorithms:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="0052714377-1">{</span><span class="ss">modify_algorithms</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0052714377-2">[</span><span class="p" data-group-id="0052714377-3">{</span><span class="ss">append</span><span class="p">,</span><span class="w">  </span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p" data-group-id="0052714377-3">}</span><span class="p">,</span><span class="w">
+                     </span><span class="p" data-group-id="0052714377-4">{</span><span class="ss">prepend</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p" data-group-id="0052714377-4">}</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">     </span><span class="p" data-group-id="0052714377-5">{</span><span class="ss">rm</span><span class="p">,</span><span class="w">      </span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p" data-group-id="0052714377-5">}</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">    </span><span class="p" data-group-id="0052714377-2">]</span><span class="p" data-group-id="0052714377-1">}</span></code></pre><p>Each of the <code class="inline">...</code> can be a <code class="inline">algs_list()</code> as the argument to the
+<code class="inline">preferred_algorithms</code> option.</p><h3 id="example-5" class="section-heading">
+  <a href="#example-5" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Example 5</span>
+</h3>
+<p>As an example let's add the Diffie-Hellman Group1 first in the kex list. It is
+supported according to <a href="ssh_app.html#supported_algos">Supported algorithms</a>.</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">5&gt; </span><span class="nc">ssh</span><span class="p">:</span><span class="nf">chk_algos_opts</span><span class="p" data-group-id="3079485677-1">(</span><span class="w">
+         </span><span class="p" data-group-id="3079485677-2">[</span><span class="p" data-group-id="3079485677-3">{</span><span class="ss">modify_algorithms</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w">       </span><span class="p" data-group-id="3079485677-4">[</span><span class="p" data-group-id="3079485677-5">{</span><span class="ss">prepend</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w">           </span><span class="p" data-group-id="3079485677-6">[</span><span class="p" data-group-id="3079485677-7">{</span><span class="ss">kex</span><span class="p">,</span><span class="p" data-group-id="3079485677-8">[</span><span class="ss">&#39;diffie-hellman-group1-sha1&#39;</span><span class="p" data-group-id="3079485677-8">]</span><span class="p" data-group-id="3079485677-7">}</span><span class="p" data-group-id="3079485677-6">]</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">   </span><span class="p" data-group-id="3079485677-5">}</span><span class="w">
+</span><span class="err">	</span><span class="w">       </span><span class="p" data-group-id="3079485677-4">]</span><span class="w">
+          </span><span class="p" data-group-id="3079485677-3">}</span><span class="w">
+        </span><span class="p" data-group-id="3079485677-2">]</span><span class="p" data-group-id="3079485677-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="3079485677-9">[</span><span class="p" data-group-id="3079485677-10">{</span><span class="ss">kex</span><span class="p">,</span><span class="p" data-group-id="3079485677-11">[</span><span class="ss">&#39;diffie-hellman-group1-sha1&#39;</span><span class="p">,</span><span class="ss">&#39;ecdh-sha2-nistp384&#39;</span><span class="p">,</span><span class="w">
+       </span><span class="ss">&#39;ecdh-sha2-nistp521&#39;</span><span class="p">,</span><span class="ss">&#39;ecdh-sha2-nistp256&#39;</span><span class="p">,</span><span class="w">
+       </span><span class="ss">&#39;diffie-hellman-group-exchange-sha256&#39;</span><span class="p">,</span><span class="w">
+       </span><span class="ss">&#39;diffie-hellman-group16-sha512&#39;</span><span class="p">,</span><span class="w">
+       </span><span class="ss">&#39;diffie-hellman-group18-sha512&#39;</span><span class="p">,</span><span class="w">
+       </span><span class="ss">&#39;diffie-hellman-group14-sha256&#39;</span><span class="p">,</span><span class="w">
+       </span><span class="ss">&#39;diffie-hellman-group14-sha1&#39;</span><span class="p">,</span><span class="w">
+       </span><span class="ss">&#39;diffie-hellman-group-exchange-sha1&#39;</span><span class="p" data-group-id="3079485677-11">]</span><span class="p" data-group-id="3079485677-10">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="3079485677-12">{</span><span class="ss">public_key</span><span class="p">,</span><span class="p" data-group-id="3079485677-13">[</span><span class="ss">&#39;ecdsa-sha2-nistp384&#39;</span><span class="p">,</span><span class="ss">&#39;ecdsa-sha2-nistp521&#39;</span><span class="p">,</span><span class="w">
+              </span><span class="ss">&#39;ecdsa-sha2-nistp256&#39;</span><span class="p">,</span><span class="ss">&#39;ssh-rsa&#39;</span><span class="p">,</span><span class="ss">&#39;rsa-sha2-256&#39;</span><span class="p">,</span><span class="w">
+              </span><span class="ss">&#39;rsa-sha2-512&#39;</span><span class="p">,</span><span class="ss">&#39;ssh-dss&#39;</span><span class="p" data-group-id="3079485677-13">]</span><span class="p" data-group-id="3079485677-12">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="3079485677-14">{</span><span class="ss">cipher</span><span class="p">,</span><span class="p" data-group-id="3079485677-15">[</span><span class="p" data-group-id="3079485677-16">{</span><span class="ss">client2server</span><span class="p">,</span><span class="p" data-group-id="3079485677-17">[</span><span class="ss">&#39;aes256-gcm@openssh.com&#39;</span><span class="p">,</span><span class="w">
+                          </span><span class="ss">&#39;aes256-ctr&#39;</span><span class="p">,</span><span class="ss">&#39;aes192-ctr&#39;</span><span class="p">,</span><span class="ss">&#39;aes128-gcm@openssh.com&#39;</span><span class="p">,</span><span class="w">
+                          </span><span class="ss">&#39;aes128-ctr&#39;</span><span class="p">,</span><span class="ss">&#39;aes128-cbc&#39;</span><span class="p">,</span><span class="ss">&#39;3des-cbc&#39;</span><span class="p" data-group-id="3079485677-17">]</span><span class="p" data-group-id="3079485677-16">}</span><span class="p">,</span><span class="w">
+          </span><span class="p" data-group-id="3079485677-18">{</span><span class="ss">server2client</span><span class="p">,</span><span class="p" data-group-id="3079485677-19">[</span><span class="ss">&#39;aes256-gcm@openssh.com&#39;</span><span class="p">,</span><span class="ss">&#39;aes256-ctr&#39;</span><span class="p">,</span><span class="w">
+                          </span><span class="ss">&#39;aes192-ctr&#39;</span><span class="p">,</span><span class="ss">&#39;aes128-gcm@openssh.com&#39;</span><span class="p">,</span><span class="ss">&#39;aes128-ctr&#39;</span><span class="p">,</span><span class="w">
+                          </span><span class="ss">&#39;aes128-cbc&#39;</span><span class="p">,</span><span class="ss">&#39;3des-cbc&#39;</span><span class="p" data-group-id="3079485677-19">]</span><span class="p" data-group-id="3079485677-18">}</span><span class="p" data-group-id="3079485677-15">]</span><span class="p" data-group-id="3079485677-14">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="3079485677-20">{</span><span class="ss">mac</span><span class="p">,</span><span class="p" data-group-id="3079485677-21">[</span><span class="p" data-group-id="3079485677-22">{</span><span class="ss">client2server</span><span class="p">,</span><span class="p" data-group-id="3079485677-23">[</span><span class="ss">&#39;hmac-sha2-256&#39;</span><span class="p">,</span><span class="ss">&#39;hmac-sha2-512&#39;</span><span class="p">,</span><span class="w">
+                       </span><span class="ss">&#39;hmac-sha1&#39;</span><span class="p" data-group-id="3079485677-23">]</span><span class="p" data-group-id="3079485677-22">}</span><span class="p">,</span><span class="w">
+       </span><span class="p" data-group-id="3079485677-24">{</span><span class="ss">server2client</span><span class="p">,</span><span class="p" data-group-id="3079485677-25">[</span><span class="ss">&#39;hmac-sha2-256&#39;</span><span class="p">,</span><span class="ss">&#39;hmac-sha2-512&#39;</span><span class="p">,</span><span class="w">
+                       </span><span class="ss">&#39;hmac-sha1&#39;</span><span class="p" data-group-id="3079485677-25">]</span><span class="p" data-group-id="3079485677-24">}</span><span class="p" data-group-id="3079485677-21">]</span><span class="p" data-group-id="3079485677-20">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="3079485677-26">{</span><span class="ss">compression</span><span class="p">,</span><span class="p" data-group-id="3079485677-27">[</span><span class="p" data-group-id="3079485677-28">{</span><span class="ss">client2server</span><span class="p">,</span><span class="p" data-group-id="3079485677-29">[</span><span class="ss">none</span><span class="p">,</span><span class="ss">&#39;zlib@openssh.com&#39;</span><span class="p">,</span><span class="ss">zlib</span><span class="p" data-group-id="3079485677-29">]</span><span class="p" data-group-id="3079485677-28">}</span><span class="p">,</span><span class="w">
+               </span><span class="p" data-group-id="3079485677-30">{</span><span class="ss">server2client</span><span class="p">,</span><span class="p" data-group-id="3079485677-31">[</span><span class="ss">none</span><span class="p">,</span><span class="ss">&#39;zlib@openssh.com&#39;</span><span class="p">,</span><span class="ss">zlib</span><span class="p" data-group-id="3079485677-31">]</span><span class="p" data-group-id="3079485677-30">}</span><span class="p" data-group-id="3079485677-27">]</span><span class="p" data-group-id="3079485677-26">}</span><span class="p" data-group-id="3079485677-9">]</span></code></pre><p>And the result shows that the Diffie-Hellman Group1 is added at the head of the
+kex list</p><h3 id="example-6" class="section-heading">
+  <a href="#example-6" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Example 6</span>
+</h3>
+<p>In this example, we in put the 'diffie-hellman-group1-sha1' first and also move
+the <code class="inline">'ecdh-sha2-nistp521'</code> to the end in the kex list, that is, <code class="inline">append</code> it.</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">6&gt; </span><span class="nc">ssh</span><span class="p">:</span><span class="nf">chk_algos_opts</span><span class="p" data-group-id="6702217293-1">(</span><span class="w">
+         </span><span class="p" data-group-id="6702217293-2">[</span><span class="p" data-group-id="6702217293-3">{</span><span class="ss">modify_algorithms</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w">       </span><span class="p" data-group-id="6702217293-4">[</span><span class="p" data-group-id="6702217293-5">{</span><span class="ss">prepend</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w">           </span><span class="p" data-group-id="6702217293-6">[</span><span class="p" data-group-id="6702217293-7">{</span><span class="ss">kex</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6702217293-8">[</span><span class="ss">&#39;diffie-hellman-group1-sha1&#39;</span><span class="p" data-group-id="6702217293-8">]</span><span class="p" data-group-id="6702217293-7">}</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">   </span><span class="p" data-group-id="6702217293-6">]</span><span class="p" data-group-id="6702217293-5">}</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="p" data-group-id="6702217293-9">{</span><span class="ss">append</span><span class="p">,</span><span class="w">
+                   </span><span class="p" data-group-id="6702217293-10">[</span><span class="p" data-group-id="6702217293-11">{</span><span class="ss">kex</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6702217293-12">[</span><span class="ss">&#39;ecdh-sha2-nistp521&#39;</span><span class="p" data-group-id="6702217293-12">]</span><span class="p" data-group-id="6702217293-11">}</span><span class="w">
+                   </span><span class="p" data-group-id="6702217293-10">]</span><span class="p" data-group-id="6702217293-9">}</span><span class="w">
+</span><span class="err">	</span><span class="w">       </span><span class="p" data-group-id="6702217293-4">]</span><span class="w">
+          </span><span class="p" data-group-id="6702217293-3">}</span><span class="w">
+        </span><span class="p" data-group-id="6702217293-2">]</span><span class="p" data-group-id="6702217293-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="6702217293-13">[</span><span class="p" data-group-id="6702217293-14">{</span><span class="ss">kex</span><span class="p">,</span><span class="p" data-group-id="6702217293-15">[</span><span class="ss">&#39;diffie-hellman-group1-sha1&#39;</span><span class="p">,</span><span class="ss">&#39;ecdh-sha2-nistp384&#39;</span><span class="p">,</span><span class="w">
+       </span><span class="ss">&#39;ecdh-sha2-nistp256&#39;</span><span class="p">,</span><span class="ss">&#39;diffie-hellman-group-exchange-sha256&#39;</span><span class="p">,</span><span class="w">
+       </span><span class="ss">&#39;diffie-hellman-group16-sha512&#39;</span><span class="p">,</span><span class="w">
+       </span><span class="ss">&#39;diffie-hellman-group18-sha512&#39;</span><span class="p">,</span><span class="w">
+       </span><span class="ss">&#39;diffie-hellman-group14-sha256&#39;</span><span class="p">,</span><span class="w">
+       </span><span class="ss">&#39;diffie-hellman-group14-sha1&#39;</span><span class="p">,</span><span class="w">
+       </span><span class="ss">&#39;diffie-hellman-group-exchange-sha1&#39;</span><span class="p">,</span><span class="ss">&#39;ecdh-sha2-nistp521&#39;</span><span class="p" data-group-id="6702217293-15">]</span><span class="p" data-group-id="6702217293-14">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="6702217293-16">{</span><span class="ss">public_key</span><span class="p">,</span><span class="p" data-group-id="6702217293-17">[</span><span class="ss">&#39;ecdsa-sha2-nistp384&#39;</span><span class="p">,</span><span class="ss">&#39;ecdsa-sha2-nistp521&#39;</span><span class="p">,</span><span class="w">
+   </span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="6702217293-17">]</span></code></pre><p>Note that the appended algorithm is removed from its original place and then
+appended to the same list.</p><h3 id="example-7" class="section-heading">
+  <a href="#example-7" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Example 7</span>
+</h3>
+<p>In this example, we use both options (<code class="inline">preferred_algorithms</code> and
+<code class="inline">modify_algorithms</code>) and also try to prepend an unsupported algorithm. Any
+unsupported algorithm is quietly removed.</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">7&gt; </span><span class="nc">ssh</span><span class="p">:</span><span class="nf">chk_algos_opts</span><span class="p" data-group-id="8221842095-1">(</span><span class="w">
+         </span><span class="p" data-group-id="8221842095-2">[</span><span class="p" data-group-id="8221842095-3">{</span><span class="ss">preferred_algorithms</span><span class="p">,</span><span class="w">
+               </span><span class="p" data-group-id="8221842095-4">[</span><span class="p" data-group-id="8221842095-5">{</span><span class="ss">cipher</span><span class="p">,</span><span class="p" data-group-id="8221842095-6">[</span><span class="ss">&#39;aes128-ctr&#39;</span><span class="p" data-group-id="8221842095-6">]</span><span class="p" data-group-id="8221842095-5">}</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w">        </span><span class="p" data-group-id="8221842095-7">{</span><span class="ss">mac</span><span class="p">,</span><span class="p" data-group-id="8221842095-8">[</span><span class="ss">&#39;hmac-sha2-256&#39;</span><span class="p" data-group-id="8221842095-8">]</span><span class="p" data-group-id="8221842095-7">}</span><span class="p">,</span><span class="w">
+                </span><span class="p" data-group-id="8221842095-9">{</span><span class="ss">kex</span><span class="p">,</span><span class="p" data-group-id="8221842095-10">[</span><span class="ss">&#39;ecdh-sha2-nistp384&#39;</span><span class="p" data-group-id="8221842095-10">]</span><span class="p" data-group-id="8221842095-9">}</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="p" data-group-id="8221842095-11">{</span><span class="ss">public_key</span><span class="p">,</span><span class="p" data-group-id="8221842095-12">[</span><span class="ss">&#39;ssh-rsa&#39;</span><span class="p" data-group-id="8221842095-12">]</span><span class="p" data-group-id="8221842095-11">}</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="p" data-group-id="8221842095-13">{</span><span class="ss">compression</span><span class="p">,</span><span class="p" data-group-id="8221842095-14">[</span><span class="p" data-group-id="8221842095-15">{</span><span class="ss">server2client</span><span class="p">,</span><span class="p" data-group-id="8221842095-16">[</span><span class="ss">none</span><span class="p" data-group-id="8221842095-16">]</span><span class="p" data-group-id="8221842095-15">}</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">              </span><span class="p" data-group-id="8221842095-17">{</span><span class="ss">client2server</span><span class="p">,</span><span class="p" data-group-id="8221842095-18">[</span><span class="ss">zlib</span><span class="p" data-group-id="8221842095-18">]</span><span class="p" data-group-id="8221842095-17">}</span><span class="p" data-group-id="8221842095-14">]</span><span class="p" data-group-id="8221842095-13">}</span><span class="w">
+               </span><span class="p" data-group-id="8221842095-4">]</span><span class="w">
+           </span><span class="p" data-group-id="8221842095-3">}</span><span class="p">,</span><span class="w">
+          </span><span class="p" data-group-id="8221842095-19">{</span><span class="ss">modify_algorithms</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w">       </span><span class="p" data-group-id="8221842095-20">[</span><span class="p" data-group-id="8221842095-21">{</span><span class="ss">prepend</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w">           </span><span class="p" data-group-id="8221842095-22">[</span><span class="p" data-group-id="8221842095-23">{</span><span class="ss">kex</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="8221842095-24">[</span><span class="ss">&#39;some unsupported algorithm&#39;</span><span class="p" data-group-id="8221842095-24">]</span><span class="p" data-group-id="8221842095-23">}</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">   </span><span class="p" data-group-id="8221842095-22">]</span><span class="p" data-group-id="8221842095-21">}</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="p" data-group-id="8221842095-25">{</span><span class="ss">append</span><span class="p">,</span><span class="w">
+                   </span><span class="p" data-group-id="8221842095-26">[</span><span class="p" data-group-id="8221842095-27">{</span><span class="ss">kex</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="8221842095-28">[</span><span class="ss">&#39;diffie-hellman-group1-sha1&#39;</span><span class="p" data-group-id="8221842095-28">]</span><span class="p" data-group-id="8221842095-27">}</span><span class="w">
+                   </span><span class="p" data-group-id="8221842095-26">]</span><span class="p" data-group-id="8221842095-25">}</span><span class="w">
+</span><span class="err">	</span><span class="w">       </span><span class="p" data-group-id="8221842095-20">]</span><span class="w">
+          </span><span class="p" data-group-id="8221842095-19">}</span><span class="w">
+        </span><span class="p" data-group-id="8221842095-2">]</span><span class="p" data-group-id="8221842095-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="8221842095-29">[</span><span class="p" data-group-id="8221842095-30">{</span><span class="ss">kex</span><span class="p">,</span><span class="p" data-group-id="8221842095-31">[</span><span class="ss">&#39;ecdh-sha2-nistp384&#39;</span><span class="p">,</span><span class="ss">&#39;diffie-hellman-group1-sha1&#39;</span><span class="p" data-group-id="8221842095-31">]</span><span class="p" data-group-id="8221842095-30">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="8221842095-32">{</span><span class="ss">public_key</span><span class="p">,</span><span class="p" data-group-id="8221842095-33">[</span><span class="ss">&#39;ssh-rsa&#39;</span><span class="p" data-group-id="8221842095-33">]</span><span class="p" data-group-id="8221842095-32">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="8221842095-34">{</span><span class="ss">cipher</span><span class="p">,</span><span class="p" data-group-id="8221842095-35">[</span><span class="p" data-group-id="8221842095-36">{</span><span class="ss">client2server</span><span class="p">,</span><span class="p" data-group-id="8221842095-37">[</span><span class="ss">&#39;aes128-ctr&#39;</span><span class="p" data-group-id="8221842095-37">]</span><span class="p" data-group-id="8221842095-36">}</span><span class="p">,</span><span class="w">
+          </span><span class="p" data-group-id="8221842095-38">{</span><span class="ss">server2client</span><span class="p">,</span><span class="p" data-group-id="8221842095-39">[</span><span class="ss">&#39;aes128-ctr&#39;</span><span class="p" data-group-id="8221842095-39">]</span><span class="p" data-group-id="8221842095-38">}</span><span class="p" data-group-id="8221842095-35">]</span><span class="p" data-group-id="8221842095-34">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="8221842095-40">{</span><span class="ss">mac</span><span class="p">,</span><span class="p" data-group-id="8221842095-41">[</span><span class="p" data-group-id="8221842095-42">{</span><span class="ss">client2server</span><span class="p">,</span><span class="p" data-group-id="8221842095-43">[</span><span class="ss">&#39;hmac-sha2-256&#39;</span><span class="p" data-group-id="8221842095-43">]</span><span class="p" data-group-id="8221842095-42">}</span><span class="p">,</span><span class="w">
+       </span><span class="p" data-group-id="8221842095-44">{</span><span class="ss">server2client</span><span class="p">,</span><span class="p" data-group-id="8221842095-45">[</span><span class="ss">&#39;hmac-sha2-256&#39;</span><span class="p" data-group-id="8221842095-45">]</span><span class="p" data-group-id="8221842095-44">}</span><span class="p" data-group-id="8221842095-41">]</span><span class="p" data-group-id="8221842095-40">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="8221842095-46">{</span><span class="ss">compression</span><span class="p">,</span><span class="p" data-group-id="8221842095-47">[</span><span class="p" data-group-id="8221842095-48">{</span><span class="ss">client2server</span><span class="p">,</span><span class="p" data-group-id="8221842095-49">[</span><span class="ss">zlib</span><span class="p" data-group-id="8221842095-49">]</span><span class="p" data-group-id="8221842095-48">}</span><span class="p">,</span><span class="w">
+               </span><span class="p" data-group-id="8221842095-50">{</span><span class="ss">server2client</span><span class="p">,</span><span class="p" data-group-id="8221842095-51">[</span><span class="ss">none</span><span class="p" data-group-id="8221842095-51">]</span><span class="p" data-group-id="8221842095-50">}</span><span class="p" data-group-id="8221842095-47">]</span><span class="p" data-group-id="8221842095-46">}</span><span class="p" data-group-id="8221842095-29">]</span></code></pre><p>It is of course questionable why anyone would like to use the both these options
+together, but it is possible if an unforeseen need should arise.</p><h3 id="example-8" class="section-heading">
+  <a href="#example-8" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Example 8</span>
+</h3>
+<p>In this example, we need to use a diffie-hellman-group1-sha1 key exchange
+algorithm although it is unsafe and disabled by default.</p><p>We use the <a href="ssh.html#t:modify_algorithms_common_option/0">modify_algorithms</a>
+option, because we want to keep all other algorithm definitions.</p><p>We add the option:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="p" data-group-id="2772134610-1">{</span><span class="ss">modify_algorithms</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2772134610-2">[</span><span class="p" data-group-id="2772134610-3">{</span><span class="ss">append</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2772134610-4">[</span><span class="p" data-group-id="2772134610-5">{</span><span class="ss">kex</span><span class="p">,</span><span class="p" data-group-id="2772134610-6">[</span><span class="ss">&#39;diffie-hellman-group1-sha1&#39;</span><span class="p" data-group-id="2772134610-6">]</span><span class="p" data-group-id="2772134610-5">}</span><span class="p" data-group-id="2772134610-4">]</span><span class="p" data-group-id="2772134610-3">}</span><span class="p" data-group-id="2772134610-2">]</span><span class="p" data-group-id="2772134610-1">}</span></code></pre><p>either to the Options list in a function call, in the <code class="inline">ssh.app</code> file or in a
+<code class="inline">.config</code> file for the <code class="inline">erl</code> command. See the chapter
+<a href="configurations.html">Configuration in SSH</a> in the SSH User's Guide.</p><h3 id="example-9" class="section-heading">
+  <a href="#example-9" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Example 9</span>
+</h3>
+<p>In this example, we need to use a DSA key for sign and verify. It might be
+either as a user's key, a host's key or both.</p><p>To do that, we enable the 'ssh-dss' algorithm that is disabled by default by
+security reasons. We use the
+<a href="ssh.html#t:modify_algorithms_common_option/0">modify_algorithms</a> option, because
+we want to keep all other algorithm definitions.</p><p>We add the option:</p><pre><code class="makeup erlang" translate="no"><span class="w">  </span><span class="p" data-group-id="1752772108-1">{</span><span class="ss">modify_algorithms</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1752772108-2">[</span><span class="p" data-group-id="1752772108-3">{</span><span class="ss">append</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1752772108-4">[</span><span class="p" data-group-id="1752772108-5">{</span><span class="ss">public_key</span><span class="p">,</span><span class="p" data-group-id="1752772108-6">[</span><span class="ss">&#39;ssh-dss&#39;</span><span class="p" data-group-id="1752772108-6">]</span><span class="p" data-group-id="1752772108-5">}</span><span class="p" data-group-id="1752772108-4">]</span><span class="p" data-group-id="1752772108-3">}</span><span class="p" data-group-id="1752772108-2">]</span><span class="p" data-group-id="1752772108-1">}</span></code></pre><p>either to the Options list in a function call, in the <code class="inline">ssh.app</code> file or in a
+<code class="inline">.config</code> file for the <code class="inline">erl</code> command. See the chapter
+<a href="configurations.html">Configuration in SSH</a> in the SSH User's Guide.</p>
+<div class="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="configurations.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Configuration in SSH
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="hardening.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+Hardening
+        </span>
+      </a>
+
+  </div>
+</div>
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+              <a href="ssh.epub" title="ePub version">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

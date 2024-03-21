@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="stdlib v6.0">
+
+
+    <title>ms_transform — stdlib v6.0</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-C7A0AB26.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="modules" class="page-module">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="stdlib" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+stdlib
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v6.0
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of stdlib</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/ms_transform.erl#L20" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+  <span translate="no">ms_transform</span> 
+  <small class="app-vsn" translate="no">(stdlib v6.0)</small>
+
+</h1>
+
+
+  <section id="moduledoc">
+<p>A parse transformation that translates fun syntax into match specifications.</p><p>This module provides the parse transformation that makes calls to <a href="ets.html"><code class="inline">ets</code></a> and
+<a href="../../apps/runtime_tools/dbg.html#fun2ms/1"><code class="inline">dbg:fun2ms/1</code></a> translate into literal match specifications. It also provides the
+back end for the same functions when called from the Erlang shell.</p><p>The translation from funs to match specifications is accessed through the two
+&quot;pseudo functions&quot; <a href="ets.html#fun2ms/1"><code class="inline">ets:fun2ms/1</code></a> and <a href="../../apps/runtime_tools/dbg.html#fun2ms/1"><code class="inline">dbg:fun2ms/1</code></a>.</p><p>As everyone trying to use <a href="ets.html#select/1"><code class="inline">ets:select/2</code></a> or <a href="../../apps/runtime_tools/dbg.html"><code class="inline">dbg</code></a> seems to
+end up reading this manual page, this description is an introduction to the
+concept of match specifications.</p><p>Read the whole manual page if it is the first time you are using the
+transformations.</p><p>Match specifications are used more or less as filters. They resemble usual
+Erlang matching in a list comprehension or in a fun used with <a href="lists.html#foldl/3"><code class="inline">lists:foldl/3</code></a>,
+and so on. However, the syntax of pure match specifications is awkward, as they
+are made up purely by Erlang terms, and the language has no syntax to make the
+match specifications more readable.</p><p>As the execution and structure of the match specifications are like that of a
+fun, it is more straightforward to write it using the familiar fun syntax and to
+have that translated into a match specification automatically. A real fun is
+clearly more powerful than the match specifications allow, but bearing the match
+specifications in mind, and what they can do, it is still more convenient to
+write it all as a fun. This module contains the code that translates the fun
+syntax into match specification terms.</p><h2 id="module-example-1" class="section-heading">
+  <a href="#module-example-1" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Example 1</span>
+</h2>
+<p>Using <a href="ets.html#select/2"><code class="inline">ets:select/2</code></a> and a match specification, one can filter out rows of a
+table and construct a list of tuples containing relevant parts of the data in
+these rows. One can use <a href="ets.html#foldl/3"><code class="inline">ets:foldl/3</code></a> instead, but the <a href="ets.html#select/2"><code class="inline">ets:select/2</code></a> call is
+far more efficient. Without the translation provided by <code class="inline">ms_transform</code>, one must
+struggle with writing match specifications terms to accommodate this.</p><p>Consider a simple table of employees:</p><pre><code class="makeup erlang" translate="no"><span class="p">-</span><span class="na">record</span><span class="p" data-group-id="0243458574-1">(</span><span class="ss">emp</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0243458574-2">{</span><span class="ss">empno</span><span class="p">,</span><span class="w">     </span><span class="c1">%Employee number as a string, the key</span><span class="w">
+              </span><span class="ss">surname</span><span class="p">,</span><span class="w">   </span><span class="c1">%Surname of the employee</span><span class="w">
+              </span><span class="ss">givenname</span><span class="p">,</span><span class="w"> </span><span class="c1">%Given name of employee</span><span class="w">
+              </span><span class="ss">dept</span><span class="p">,</span><span class="w">      </span><span class="c1">%Department, one of {dev,sales,prod,adm}</span><span class="w">
+              </span><span class="ss">empyear</span><span class="p" data-group-id="0243458574-2">}</span><span class="p" data-group-id="0243458574-1">)</span><span class="p">.</span><span class="w"> </span><span class="c1">%Year the employee was employed</span></code></pre><p>We create the table using:</p><pre><code class="text">ets:new(emp_tab, [{keypos,#emp.empno},named_table,ordered_set]).</code></pre><p>We fill the table with randomly chosen data:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="5902699994-1">[</span><span class="p" data-group-id="5902699994-2">{</span><span class="ss">emp</span><span class="p">,</span><span class="s">&quot;011103&quot;</span><span class="p">,</span><span class="s">&quot;Black&quot;</span><span class="p">,</span><span class="s">&quot;Alfred&quot;</span><span class="p">,</span><span class="ss">sales</span><span class="p">,</span><span class="mi">2000</span><span class="p" data-group-id="5902699994-2">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="5902699994-3">{</span><span class="ss">emp</span><span class="p">,</span><span class="s">&quot;041231&quot;</span><span class="p">,</span><span class="s">&quot;Doe&quot;</span><span class="p">,</span><span class="s">&quot;John&quot;</span><span class="p">,</span><span class="ss">prod</span><span class="p">,</span><span class="mi">2001</span><span class="p" data-group-id="5902699994-3">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="5902699994-4">{</span><span class="ss">emp</span><span class="p">,</span><span class="s">&quot;052341&quot;</span><span class="p">,</span><span class="s">&quot;Smith&quot;</span><span class="p">,</span><span class="s">&quot;John&quot;</span><span class="p">,</span><span class="ss">dev</span><span class="p">,</span><span class="mi">1997</span><span class="p" data-group-id="5902699994-4">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="5902699994-5">{</span><span class="ss">emp</span><span class="p">,</span><span class="s">&quot;076324&quot;</span><span class="p">,</span><span class="s">&quot;Smith&quot;</span><span class="p">,</span><span class="s">&quot;Ella&quot;</span><span class="p">,</span><span class="ss">sales</span><span class="p">,</span><span class="mi">1995</span><span class="p" data-group-id="5902699994-5">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="5902699994-6">{</span><span class="ss">emp</span><span class="p">,</span><span class="s">&quot;122334&quot;</span><span class="p">,</span><span class="s">&quot;Weston&quot;</span><span class="p">,</span><span class="s">&quot;Anna&quot;</span><span class="p">,</span><span class="ss">prod</span><span class="p">,</span><span class="mi">2002</span><span class="p" data-group-id="5902699994-6">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="5902699994-7">{</span><span class="ss">emp</span><span class="p">,</span><span class="s">&quot;535216&quot;</span><span class="p">,</span><span class="s">&quot;Chalker&quot;</span><span class="p">,</span><span class="s">&quot;Samuel&quot;</span><span class="p">,</span><span class="ss">adm</span><span class="p">,</span><span class="mi">1998</span><span class="p" data-group-id="5902699994-7">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="5902699994-8">{</span><span class="ss">emp</span><span class="p">,</span><span class="s">&quot;789789&quot;</span><span class="p">,</span><span class="s">&quot;Harrysson&quot;</span><span class="p">,</span><span class="s">&quot;Joe&quot;</span><span class="p">,</span><span class="ss">adm</span><span class="p">,</span><span class="mi">1996</span><span class="p" data-group-id="5902699994-8">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="5902699994-9">{</span><span class="ss">emp</span><span class="p">,</span><span class="s">&quot;963721&quot;</span><span class="p">,</span><span class="s">&quot;Scott&quot;</span><span class="p">,</span><span class="s">&quot;Juliana&quot;</span><span class="p">,</span><span class="ss">dev</span><span class="p">,</span><span class="mi">2003</span><span class="p" data-group-id="5902699994-9">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="5902699994-10">{</span><span class="ss">emp</span><span class="p">,</span><span class="s">&quot;989891&quot;</span><span class="p">,</span><span class="s">&quot;Brown&quot;</span><span class="p">,</span><span class="s">&quot;Gabriel&quot;</span><span class="p">,</span><span class="ss">prod</span><span class="p">,</span><span class="mi">1999</span><span class="p" data-group-id="5902699994-10">}</span><span class="p" data-group-id="5902699994-1">]</span></code></pre><p>Assuming that we want the employee numbers of everyone in the sales department,
+there are several ways.</p><p><a href="ets.html#match/2"><code class="inline">ets:match/2</code></a> can be used:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">1&gt; </span><span class="nc">ets</span><span class="p">:</span><span class="nf">match</span><span class="p" data-group-id="8122767152-1">(</span><span class="ss">emp_tab</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="8122767152-2">{</span><span class="ss">&#39;_&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;$1&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;_&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;_&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">sales</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;_&#39;</span><span class="p" data-group-id="8122767152-2">}</span><span class="p" data-group-id="8122767152-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="8122767152-3">[</span><span class="p" data-group-id="8122767152-4">[</span><span class="s">&quot;011103&quot;</span><span class="p" data-group-id="8122767152-4">]</span><span class="p">,</span><span class="p" data-group-id="8122767152-5">[</span><span class="s">&quot;076324&quot;</span><span class="p" data-group-id="8122767152-5">]</span><span class="p" data-group-id="8122767152-3">]</span></code></pre><p><a href="ets.html#match/2"><code class="inline">ets:match/2</code></a> uses a simpler type of match specification, but it is still
+unreadable, and one has little control over the returned result. It is always a
+list of lists.</p><p><a href="ets.html#foldl/3"><code class="inline">ets:foldl/3</code></a> or <a href="ets.html#foldr/3"><code class="inline">ets:foldr/3</code></a> can be used to avoid the nested lists:</p><pre><code class="makeup erlang" translate="no"><span class="nc">ets</span><span class="p">:</span><span class="nf">foldr</span><span class="p" data-group-id="3103580169-1">(</span><span class="nf">fun</span><span class="p" data-group-id="3103580169-2">(</span><span class="o">#</span><span class="ss">emp</span><span class="p" data-group-id="3103580169-3">{</span><span class="ss">empno</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">E</span><span class="p">,</span><span class="w"> </span><span class="ss">dept</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">sales</span><span class="p" data-group-id="3103580169-3">}</span><span class="p">,</span><span class="n">Acc</span><span class="p" data-group-id="3103580169-2">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="p" data-group-id="3103580169-4">[</span><span class="n">E</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="n">Acc</span><span class="p" data-group-id="3103580169-4">]</span><span class="p">;</span><span class="w">
+             </span><span class="p" data-group-id="3103580169-5">(</span><span class="p">_</span><span class="p">,</span><span class="n">Acc</span><span class="p" data-group-id="3103580169-5">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="n">Acc</span><span class="w">
+          </span><span class="k">end</span><span class="p">,</span><span class="w">
+          </span><span class="p" data-group-id="3103580169-6">[</span><span class="p" data-group-id="3103580169-6">]</span><span class="p">,</span><span class="w">
+          </span><span class="ss">emp_tab</span><span class="p" data-group-id="3103580169-1">)</span><span class="p">.</span></code></pre><p>The result is <code class="inline">[&quot;011103&quot;,&quot;076324&quot;]</code>. The fun is straightforward, so the only
+problem is that all the data from the table must be transferred from the table
+to the calling process for filtering. That is inefficient compared to the
+<a href="ets.html#match/2"><code class="inline">ets:match/2</code></a> call where the filtering can be done &quot;inside&quot; the emulator and
+only the result is transferred to the process.</p><p>Consider a &quot;pure&quot; <a href="ets.html#select/2"><code class="inline">ets:select/2</code></a> call that does what <code class="inline">ets:foldr</code> does:</p><pre><code class="makeup erlang" translate="no"><span class="nc">ets</span><span class="p">:</span><span class="nf">select</span><span class="p" data-group-id="9227072342-1">(</span><span class="ss">emp_tab</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="9227072342-2">[</span><span class="p" data-group-id="9227072342-3">{</span><span class="o">#</span><span class="ss">emp</span><span class="p" data-group-id="9227072342-4">{</span><span class="ss">empno</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">&#39;$1&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">dept</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">sales</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="o">=</span><span class="ss">&#39;_&#39;</span><span class="p" data-group-id="9227072342-4">}</span><span class="p">,</span><span class="p" data-group-id="9227072342-5">[</span><span class="p" data-group-id="9227072342-5">]</span><span class="p">,</span><span class="p" data-group-id="9227072342-6">[</span><span class="ss">&#39;$1&#39;</span><span class="p" data-group-id="9227072342-6">]</span><span class="p" data-group-id="9227072342-3">}</span><span class="p" data-group-id="9227072342-2">]</span><span class="p" data-group-id="9227072342-1">)</span><span class="p">.</span></code></pre><p>Although the record syntax is used, it is still hard to read and even harder to
+write. The first element of the tuple,
+<code class="inline">#emp{empno = '$1', dept = sales, _='_'}</code>, tells what to match. Elements not
+matching this are not returned, as in the <a href="ets.html#match/2"><code class="inline">ets:match/2</code></a> example. The second
+element, the empty list, is a list of guard expressions, which we do not need.
+The third element is the list of expressions constructing the return value (in
+ETS this is almost always a list containing one single term). In our case <code class="inline">'$1'</code>
+is bound to the employee number in the head (first element of the tuple), and
+hence the employee number is returned. The result is <code class="inline">[&quot;011103&quot;,&quot;076324&quot;]</code>, as
+in the <a href="ets.html#foldr/3"><code class="inline">ets:foldr/3</code></a> example, but the result is retrieved much more efficiently
+in terms of execution speed and memory consumption.</p><p>Using <a href="ets.html#fun2ms/1"><code class="inline">ets:fun2ms/1</code></a>, we can combine the ease of use of the <a href="ets.html#foldr/3"><code class="inline">ets:foldr/3</code></a> and
+the efficiency of the pure <a href="ets.html#select/2"><code class="inline">ets:select/2</code></a> example:</p><pre><code class="makeup erlang" translate="no"><span class="p">-</span><span class="na">include_lib</span><span class="p" data-group-id="6901574606-1">(</span><span class="s">&quot;stdlib/include/ms_transform.hrl&quot;</span><span class="p" data-group-id="6901574606-1">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nc">ets</span><span class="p">:</span><span class="nf">select</span><span class="p" data-group-id="6901574606-2">(</span><span class="ss">emp_tab</span><span class="p">,</span><span class="w"> </span><span class="nc">ets</span><span class="p">:</span><span class="nf">fun2ms</span><span class="p" data-group-id="6901574606-3">(</span><span class="w">
+                      </span><span class="nf">fun</span><span class="p" data-group-id="6901574606-4">(</span><span class="o">#</span><span class="ss">emp</span><span class="p" data-group-id="6901574606-5">{</span><span class="ss">empno</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">E</span><span class="p">,</span><span class="w"> </span><span class="ss">dept</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">sales</span><span class="p" data-group-id="6901574606-5">}</span><span class="p" data-group-id="6901574606-4">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                              </span><span class="n">E</span><span class="w">
+                      </span><span class="k">end</span><span class="p" data-group-id="6901574606-3">)</span><span class="p" data-group-id="6901574606-2">)</span><span class="p">.</span></code></pre><p>This example requires no special knowledge of match specifications to
+understand. The head of the fun matches what you want to filter out and the body
+returns what you want returned. As long as the fun can be kept within the limits
+of the match specifications, there is no need to transfer all table data to the
+process for filtering as in the <a href="ets.html#foldr/3"><code class="inline">ets:foldr/3</code></a> example. It is easier to read than
+the <a href="ets.html#foldr/3"><code class="inline">ets:foldr/3</code></a> example, as the select call in itself discards anything that
+does not match, while the fun of the <a href="ets.html#foldr/3"><code class="inline">ets:foldr/3</code></a> call needs to handle both the
+elements matching and the ones not matching.</p><p>In the <a href="ets.html#fun2ms/1"><code class="inline">ets:fun2ms/1</code></a> example above, it is needed to include <code class="inline">ms_transform.hrl</code>
+in the source code, as this is what triggers the parse transformation of the
+<a href="ets.html#fun2ms/1"><code class="inline">ets:fun2ms/1</code></a> call to a valid match specification. This also implies that the
+transformation is done at compile time (except when called from the shell) and
+therefore takes no resources in runtime. That is, although you use the more
+intuitive fun syntax, it gets as efficient in runtime as writing match
+specifications by hand.</p><h2 id="module-example-2" class="section-heading">
+  <a href="#module-example-2" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Example 2</span>
+</h2>
+<p>Assume that we want to get all the employee numbers of employees hired before
+year 2000. Using <a href="ets.html#match/2"><code class="inline">ets:match/2</code></a> is not an alternative here, as relational
+operators cannot be expressed there. Once again, <a href="ets.html#foldr/3"><code class="inline">ets:foldr/3</code></a> can do it
+(slowly, but correct):</p><pre><code class="makeup erlang" translate="no"><span class="nc">ets</span><span class="p">:</span><span class="nf">foldr</span><span class="p" data-group-id="5420117831-1">(</span><span class="nf">fun</span><span class="p" data-group-id="5420117831-2">(</span><span class="o">#</span><span class="ss">emp</span><span class="p" data-group-id="5420117831-3">{</span><span class="ss">empno</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">E</span><span class="p">,</span><span class="w"> </span><span class="ss">empyear</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Y</span><span class="p" data-group-id="5420117831-3">}</span><span class="p">,</span><span class="n">Acc</span><span class="p" data-group-id="5420117831-2">)</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="n">Y</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">2000</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="p" data-group-id="5420117831-4">[</span><span class="n">E</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="n">Acc</span><span class="p" data-group-id="5420117831-4">]</span><span class="p">;</span><span class="w">
+                  </span><span class="p" data-group-id="5420117831-5">(</span><span class="p">_</span><span class="p">,</span><span class="n">Acc</span><span class="p" data-group-id="5420117831-5">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="n">Acc</span><span class="w">
+          </span><span class="k">end</span><span class="p">,</span><span class="w">
+          </span><span class="p" data-group-id="5420117831-6">[</span><span class="p" data-group-id="5420117831-6">]</span><span class="p">,</span><span class="w">
+          </span><span class="ss">emp_tab</span><span class="p" data-group-id="5420117831-1">)</span><span class="p">.</span></code></pre><p>The result is <code class="inline">[&quot;052341&quot;,&quot;076324&quot;,&quot;535216&quot;,&quot;789789&quot;,&quot;989891&quot;]</code>, as expected. The
+equivalent expression using a handwritten match specification would look like
+this:</p><pre><code class="makeup erlang" translate="no"><span class="nc">ets</span><span class="p">:</span><span class="nf">select</span><span class="p" data-group-id="0763835987-1">(</span><span class="ss">emp_tab</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0763835987-2">[</span><span class="p" data-group-id="0763835987-3">{</span><span class="o">#</span><span class="ss">emp</span><span class="p" data-group-id="0763835987-4">{</span><span class="ss">empno</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">&#39;$1&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">empyear</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">&#39;$2&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="o">=</span><span class="ss">&#39;_&#39;</span><span class="p" data-group-id="0763835987-4">}</span><span class="p">,</span><span class="w">
+                     </span><span class="p" data-group-id="0763835987-5">[</span><span class="p" data-group-id="0763835987-6">{</span><span class="ss">&#39;&lt;&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;$2&#39;</span><span class="p">,</span><span class="w"> </span><span class="mi">2000</span><span class="p" data-group-id="0763835987-6">}</span><span class="p" data-group-id="0763835987-5">]</span><span class="p">,</span><span class="w">
+                     </span><span class="p" data-group-id="0763835987-7">[</span><span class="ss">&#39;$1&#39;</span><span class="p" data-group-id="0763835987-7">]</span><span class="p" data-group-id="0763835987-3">}</span><span class="p" data-group-id="0763835987-2">]</span><span class="p" data-group-id="0763835987-1">)</span><span class="p">.</span></code></pre><p>This gives the same result. <code class="inline">[{'&lt;', '$2', 2000}]</code> is in the guard part and
+therefore discards anything that does not have an <code class="inline">empyear</code> (bound to <code class="inline">'$2'</code> in
+the head) less than 2000, as the guard in the <code class="inline">foldr/3</code> example.</p><p>We write it using <a href="ets.html#fun2ms/1"><code class="inline">ets:fun2ms/1</code></a>:</p><pre><code class="makeup erlang" translate="no"><span class="p">-</span><span class="na">include_lib</span><span class="p" data-group-id="8412160772-1">(</span><span class="s">&quot;stdlib/include/ms_transform.hrl&quot;</span><span class="p" data-group-id="8412160772-1">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nc">ets</span><span class="p">:</span><span class="nf">select</span><span class="p" data-group-id="8412160772-2">(</span><span class="ss">emp_tab</span><span class="p">,</span><span class="w"> </span><span class="nc">ets</span><span class="p">:</span><span class="nf">fun2ms</span><span class="p" data-group-id="8412160772-3">(</span><span class="w">
+                      </span><span class="nf">fun</span><span class="p" data-group-id="8412160772-4">(</span><span class="o">#</span><span class="ss">emp</span><span class="p" data-group-id="8412160772-5">{</span><span class="ss">empno</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">E</span><span class="p">,</span><span class="w"> </span><span class="ss">empyear</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Y</span><span class="p" data-group-id="8412160772-5">}</span><span class="p" data-group-id="8412160772-4">)</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="n">Y</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">2000</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                           </span><span class="n">E</span><span class="w">
+                      </span><span class="k">end</span><span class="p" data-group-id="8412160772-3">)</span><span class="p" data-group-id="8412160772-2">)</span><span class="p">.</span></code></pre><h2 id="module-example-3" class="section-heading">
+  <a href="#module-example-3" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Example 3</span>
+</h2>
+<p>Assume that we want the whole object matching instead of only one element. One
+alternative is to assign a variable to every part of the record and build it up
+once again in the body of the fun, but the following is easier:</p><pre><code class="makeup erlang" translate="no"><span class="nc">ets</span><span class="p">:</span><span class="nf">select</span><span class="p" data-group-id="0122974788-1">(</span><span class="ss">emp_tab</span><span class="p">,</span><span class="w"> </span><span class="nc">ets</span><span class="p">:</span><span class="nf">fun2ms</span><span class="p" data-group-id="0122974788-2">(</span><span class="w">
+                      </span><span class="nf">fun</span><span class="p" data-group-id="0122974788-3">(</span><span class="n">Obj</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">#</span><span class="ss">emp</span><span class="p" data-group-id="0122974788-4">{</span><span class="ss">empno</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">E</span><span class="p">,</span><span class="w"> </span><span class="ss">empyear</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Y</span><span class="p" data-group-id="0122974788-4">}</span><span class="p" data-group-id="0122974788-3">)</span><span class="w">
+                         </span><span class="k">when</span><span class="w"> </span><span class="n">Y</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">2000</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                              </span><span class="n">Obj</span><span class="w">
+                      </span><span class="k">end</span><span class="p" data-group-id="0122974788-2">)</span><span class="p" data-group-id="0122974788-1">)</span><span class="p">.</span></code></pre><p>As in ordinary Erlang matching, you can bind a variable to the whole matched
+object using a &quot;match inside the match&quot;, that is, a <code class="inline">=</code>. Unfortunately in funs
+translated to match specifications, it is allowed only at the &quot;top-level&quot;, that
+is, matching the <em>whole</em> object arriving to be matched into a separate variable.
+If you are used to writing match specifications by hand, we mention that
+variable A is simply translated into '$_'. Alternatively, pseudo function
+<code class="inline">object/0</code> also returns the whole matched object, see section
+<a href="ms_transform.html#warnings_and_restrictions">Warnings and Restrictions</a>.</p><h2 id="module-example-4" class="section-heading">
+  <a href="#module-example-4" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Example 4</span>
+</h2>
+<p>This example concerns the body of the fun. Assume that all employee numbers
+beginning with zero (<code class="inline">0</code>) must be changed to begin with one (<code class="inline">1</code>) instead, and
+that we want to create the list <code class="inline">[{&lt;Old empno&gt;,&lt;New empno&gt;}]</code>:</p><pre><code class="makeup erlang" translate="no"><span class="nc">ets</span><span class="p">:</span><span class="nf">select</span><span class="p" data-group-id="4644756435-1">(</span><span class="ss">emp_tab</span><span class="p">,</span><span class="w"> </span><span class="nc">ets</span><span class="p">:</span><span class="nf">fun2ms</span><span class="p" data-group-id="4644756435-2">(</span><span class="w">
+                      </span><span class="nf">fun</span><span class="p" data-group-id="4644756435-3">(</span><span class="o">#</span><span class="ss">emp</span><span class="p" data-group-id="4644756435-4">{</span><span class="ss">empno</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="4644756435-5">[</span><span class="sc">$0</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="n">Rest</span><span class="p" data-group-id="4644756435-5">]</span><span class="w"> </span><span class="p" data-group-id="4644756435-4">}</span><span class="p" data-group-id="4644756435-3">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                              </span><span class="p" data-group-id="4644756435-6">{</span><span class="p" data-group-id="4644756435-7">[</span><span class="sc">$0</span><span class="p">|</span><span class="n">Rest</span><span class="p" data-group-id="4644756435-7">]</span><span class="p">,</span><span class="p" data-group-id="4644756435-8">[</span><span class="sc">$1</span><span class="p">|</span><span class="n">Rest</span><span class="p" data-group-id="4644756435-8">]</span><span class="p" data-group-id="4644756435-6">}</span><span class="w">
+                      </span><span class="k">end</span><span class="p" data-group-id="4644756435-2">)</span><span class="p" data-group-id="4644756435-1">)</span><span class="p">.</span></code></pre><p>This query hits the feature of partially bound keys in table type <code class="inline">ordered_set</code>,
+so that not the whole table needs to be searched, only the part containing keys
+beginning with <code class="inline">0</code> is looked into.</p><h2 id="module-example-5" class="section-heading">
+  <a href="#module-example-5" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Example 5</span>
+</h2>
+<p>The fun can have many clauses. Assume that we want to do the following:</p><ul><li>If an employee started before 1997, return the tuple
+<code class="inline">{inventory, &lt;employee number&gt;}</code>.</li><li>If an employee started 1997 or later, but before 2001, return
+<code class="inline">{rookie, &lt;employee number&gt;}</code>.</li><li>For all other employees, return <code class="inline">{newbie, &lt;employee number&gt;}</code>, except for
+those named <code class="inline">Smith</code> as they would be affronted by anything other than the tag
+<code class="inline">guru</code> and that is also what is returned for their numbers:
+<code class="inline">{guru, &lt;employee number&gt;}</code>.</li></ul><p>This is accomplished as follows:</p><pre><code class="makeup erlang" translate="no"><span class="nc">ets</span><span class="p">:</span><span class="nf">select</span><span class="p" data-group-id="8314406668-1">(</span><span class="ss">emp_tab</span><span class="p">,</span><span class="w"> </span><span class="nc">ets</span><span class="p">:</span><span class="nf">fun2ms</span><span class="p" data-group-id="8314406668-2">(</span><span class="w">
+                      </span><span class="nf">fun</span><span class="p" data-group-id="8314406668-3">(</span><span class="o">#</span><span class="ss">emp</span><span class="p" data-group-id="8314406668-4">{</span><span class="ss">empno</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">E</span><span class="p">,</span><span class="w"> </span><span class="ss">surname</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Smith&quot;</span><span class="w"> </span><span class="p" data-group-id="8314406668-4">}</span><span class="p" data-group-id="8314406668-3">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                              </span><span class="p" data-group-id="8314406668-5">{</span><span class="ss">guru</span><span class="p">,</span><span class="n">E</span><span class="p" data-group-id="8314406668-5">}</span><span class="p">;</span><span class="w">
+                         </span><span class="p" data-group-id="8314406668-6">(</span><span class="o">#</span><span class="ss">emp</span><span class="p" data-group-id="8314406668-7">{</span><span class="ss">empno</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">E</span><span class="p">,</span><span class="w"> </span><span class="ss">empyear</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Y</span><span class="p" data-group-id="8314406668-7">}</span><span class="p" data-group-id="8314406668-6">)</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="n">Y</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">1997</span><span class="w">  </span><span class="p">-&gt;</span><span class="w">
+                              </span><span class="p" data-group-id="8314406668-8">{</span><span class="ss">inventory</span><span class="p">,</span><span class="w"> </span><span class="n">E</span><span class="p" data-group-id="8314406668-8">}</span><span class="p">;</span><span class="w">
+                         </span><span class="p" data-group-id="8314406668-9">(</span><span class="o">#</span><span class="ss">emp</span><span class="p" data-group-id="8314406668-10">{</span><span class="ss">empno</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">E</span><span class="p">,</span><span class="w"> </span><span class="ss">empyear</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Y</span><span class="p" data-group-id="8314406668-10">}</span><span class="p" data-group-id="8314406668-9">)</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="n">Y</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">2001</span><span class="w">  </span><span class="p">-&gt;</span><span class="w">
+                              </span><span class="p" data-group-id="8314406668-11">{</span><span class="ss">newbie</span><span class="p">,</span><span class="w"> </span><span class="n">E</span><span class="p" data-group-id="8314406668-11">}</span><span class="p">;</span><span class="w">
+                         </span><span class="p" data-group-id="8314406668-12">(</span><span class="o">#</span><span class="ss">emp</span><span class="p" data-group-id="8314406668-13">{</span><span class="ss">empno</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">E</span><span class="p">,</span><span class="w"> </span><span class="ss">empyear</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Y</span><span class="p" data-group-id="8314406668-13">}</span><span class="p" data-group-id="8314406668-12">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="c1">% 1997 -- 2001</span><span class="w">
+                              </span><span class="p" data-group-id="8314406668-14">{</span><span class="ss">rookie</span><span class="p">,</span><span class="w"> </span><span class="n">E</span><span class="p" data-group-id="8314406668-14">}</span><span class="w">
+                      </span><span class="k">end</span><span class="p" data-group-id="8314406668-2">)</span><span class="p" data-group-id="8314406668-1">)</span><span class="p">.</span></code></pre><p>The result is as follows:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="7197321432-1">[</span><span class="p" data-group-id="7197321432-2">{</span><span class="ss">rookie</span><span class="p">,</span><span class="s">&quot;011103&quot;</span><span class="p" data-group-id="7197321432-2">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="7197321432-3">{</span><span class="ss">rookie</span><span class="p">,</span><span class="s">&quot;041231&quot;</span><span class="p" data-group-id="7197321432-3">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="7197321432-4">{</span><span class="ss">guru</span><span class="p">,</span><span class="s">&quot;052341&quot;</span><span class="p" data-group-id="7197321432-4">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="7197321432-5">{</span><span class="ss">guru</span><span class="p">,</span><span class="s">&quot;076324&quot;</span><span class="p" data-group-id="7197321432-5">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="7197321432-6">{</span><span class="ss">newbie</span><span class="p">,</span><span class="s">&quot;122334&quot;</span><span class="p" data-group-id="7197321432-6">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="7197321432-7">{</span><span class="ss">rookie</span><span class="p">,</span><span class="s">&quot;535216&quot;</span><span class="p" data-group-id="7197321432-7">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="7197321432-8">{</span><span class="ss">inventory</span><span class="p">,</span><span class="s">&quot;789789&quot;</span><span class="p" data-group-id="7197321432-8">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="7197321432-9">{</span><span class="ss">newbie</span><span class="p">,</span><span class="s">&quot;963721&quot;</span><span class="p" data-group-id="7197321432-9">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="7197321432-10">{</span><span class="ss">rookie</span><span class="p">,</span><span class="s">&quot;989891&quot;</span><span class="p" data-group-id="7197321432-10">}</span><span class="p" data-group-id="7197321432-1">]</span></code></pre><h2 id="module-useful-bifs" class="section-heading">
+  <a href="#module-useful-bifs" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Useful BIFs</span>
+</h2>
+<p>What more can you do? A simple answer is: see the documentation of
+<a href="../../apps/erts/match_spec.html">match specifications</a> in ERTS User's Guide. However,
+the following is a brief overview of the most useful &quot;built-in functions&quot; that
+you can use when the fun is to be translated into a match specification by
+<a href="ets.html#fun2ms/1"><code class="inline">ets:fun2ms/1</code></a>. It is not possible to call other functions than those allowed in
+match specifications. No &quot;usual&quot; Erlang code can be executed by the fun that is
+translated by <a href="ets.html#fun2ms/1"><code class="inline">ets:fun2ms/1</code></a>. The fun is limited exactly to the power of the
+match specifications, which is unfortunate, but the price one must pay for the
+execution speed of <a href="ets.html#select/2"><code class="inline">ets:select/2</code></a> compared to <code class="inline">ets:foldl/foldr</code>.</p><p>The head of the fun is a head matching (or mismatching) <em>one</em> parameter, one
+object of the table we select from. The object is always a single variable (can
+be <code class="inline">_</code>) or a tuple, as ETS, Dets, and Mnesia tables include that. The match
+specification returned by <a href="ets.html#fun2ms/1"><code class="inline">ets:fun2ms/1</code></a> can be used with <a href="dets.html#select/2"><code class="inline">dets:select/2</code></a> and
+<a href="../../apps/mnesia/mnesia.html#select/2"><code class="inline">mnesia:select/2</code></a>, and with <a href="ets.html#select/2"><code class="inline">ets:select/2</code></a>. The use of <code class="inline">=</code> in the head is
+allowed (and encouraged) at the top-level.</p><p>The guard section can contain any guard expression of Erlang. The following is a
+list of BIFs and expressions:</p><ul><li>Type tests: <code class="inline">is_atom</code>, <code class="inline">is_float</code>, <code class="inline">is_integer</code>, <code class="inline">is_list</code>, <code class="inline">is_number</code>,
+<code class="inline">is_pid</code>, <code class="inline">is_port</code>, <code class="inline">is_reference</code>, <code class="inline">is_tuple</code>, <code class="inline">is_binary</code>, <code class="inline">is_function</code>,
+<code class="inline">is_record</code></li><li>Boolean operators: <code class="inline">not</code>, <code class="inline">and</code>, <code class="inline">or</code>, <code class="inline">andalso</code>, <code class="inline">orelse</code></li><li>Relational operators: <code class="inline">&gt;</code>, <code class="inline">&gt;=</code>, <code class="inline">&lt;</code>, <code class="inline">=&lt;</code>, <code class="inline">=:=</code>, <code class="inline">==</code>, <code class="inline">=/=</code>, <code class="inline">/=</code></li><li>Arithmetic: <code class="inline">+</code>, <code class="inline">-</code>, <code class="inline">*</code>, <code class="inline">div</code>, <code class="inline">rem</code></li><li>Bitwise operators: <code class="inline">band</code>, <code class="inline">bor</code>, <code class="inline">bxor</code>, <code class="inline">bnot</code>, <code class="inline">bsl</code>, <code class="inline">bsr</code></li><li>The guard BIFs: <code class="inline">abs</code>, <code class="inline">element</code>, <code class="inline">hd</code>, <code class="inline">length</code>, <code class="inline">node</code>, <code class="inline">round</code>, <code class="inline">size</code>,
+<code class="inline">byte_size</code>, <code class="inline">tl</code>, <code class="inline">trunc</code>, <code class="inline">binary_part</code>, <code class="inline">self</code></li></ul><p>Contrary to the fact with &quot;handwritten&quot; match specifications, the <code class="inline">is_record</code>
+guard works as in ordinary Erlang code.</p><p>Semicolons (<code class="inline">;</code>) in guards are allowed, the result is (as expected) one &quot;match
+specification clause&quot; for each semicolon-separated part of the guard. The
+semantics is identical to the Erlang semantics.</p><p>The body of the fun is used to construct the resulting value. When selecting
+from tables, one usually construct a suiting term here, using ordinary Erlang
+term construction, like tuple parentheses, list brackets, and variables matched
+out in the head, possibly with the occasional constant. Whatever expressions are
+allowed in guards are also allowed here, but no special functions exist except
+<code class="inline">object</code> and <code class="inline">bindings</code> (see further down), which returns the whole matched
+object and all known variable bindings, respectively.</p><p>The <code class="inline">dbg</code> variants of match specifications have an imperative approach to the
+match specification body, the ETS dialect has not. The fun body for
+<a href="ets.html#fun2ms/1"><code class="inline">ets:fun2ms/1</code></a> returns the result without side effects. As matching (<code class="inline">=</code>) in the
+body of the match specifications is not allowed (for performance reasons) the
+only thing left, more or less, is term construction.</p><h2 id="module-example-with-dbg" class="section-heading">
+  <a href="#module-example-with-dbg" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Example with dbg</span>
+</h2>
+<p>This section describes the slightly different match specifications translated by
+<a href="../../apps/runtime_tools/dbg.html#fun2ms/1"><code class="inline">dbg:fun2ms/1</code></a>.</p><p>The same reasons for using the parse transformation apply to <code class="inline">dbg</code>, maybe even
+more, as filtering using Erlang code is not a good idea when tracing (except
+afterwards, if you trace to file). The concept is similar to that of
+<a href="ets.html#fun2ms/1"><code class="inline">ets:fun2ms/1</code></a> except that you usually use it directly from the shell (which can
+also be done with <a href="ets.html#fun2ms/1"><code class="inline">ets:fun2ms/1</code></a>).</p><p>The following is an example module to trace on:</p><pre><code class="makeup erlang" translate="no"><span class="p">-</span><span class="na">module</span><span class="p" data-group-id="7662148224-1">(</span><span class="ss">toy</span><span class="p" data-group-id="7662148224-1">)</span><span class="p">.</span><span class="w">
+</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="7662148224-2">(</span><span class="p" data-group-id="7662148224-3">[</span><span class="ss">start</span><span class="p">/</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="ss">store</span><span class="p">/</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="ss">retrieve</span><span class="p">/</span><span class="mi">1</span><span class="p" data-group-id="7662148224-3">]</span><span class="p" data-group-id="7662148224-2">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">start</span><span class="p" data-group-id="7662148224-4">(</span><span class="n">Args</span><span class="p" data-group-id="7662148224-4">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="ss">toy_table</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">ets</span><span class="p">:</span><span class="nf">new</span><span class="p" data-group-id="7662148224-5">(</span><span class="ss">toy_table</span><span class="p">,</span><span class="w"> </span><span class="n">Args</span><span class="p" data-group-id="7662148224-5">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">store</span><span class="p" data-group-id="7662148224-6">(</span><span class="n">Key</span><span class="p">,</span><span class="w"> </span><span class="n">Value</span><span class="p" data-group-id="7662148224-6">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">ets</span><span class="p">:</span><span class="nf">insert</span><span class="p" data-group-id="7662148224-7">(</span><span class="ss">toy_table</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7662148224-8">{</span><span class="n">Key</span><span class="p">,</span><span class="n">Value</span><span class="p" data-group-id="7662148224-8">}</span><span class="p" data-group-id="7662148224-7">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">retrieve</span><span class="p" data-group-id="7662148224-9">(</span><span class="n">Key</span><span class="p" data-group-id="7662148224-9">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="7662148224-10">[</span><span class="p" data-group-id="7662148224-11">{</span><span class="n">Key</span><span class="p">,</span><span class="w"> </span><span class="n">Value</span><span class="p" data-group-id="7662148224-11">}</span><span class="p" data-group-id="7662148224-10">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">ets</span><span class="p">:</span><span class="nf">lookup</span><span class="p" data-group-id="7662148224-12">(</span><span class="ss">toy_table</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p" data-group-id="7662148224-12">)</span><span class="p">,</span><span class="w">
+    </span><span class="n">Value</span><span class="p">.</span></code></pre><p>During model testing, the first test results in <code class="inline">{badmatch,16}</code> in
+<code class="inline">{toy,start,1}</code>, why?</p><p>We suspect the <a href="ets.html#new/2"><code class="inline">ets:new/2</code></a> call, as we match hard on the return value, but want
+only the particular <code class="inline">new/2</code> call with <code class="inline">toy_table</code> as first parameter. So we
+start a default tracer on the node:</p><pre><code class="text">1&gt; dbg:tracer().
+{ok,&lt;0.88.0&gt;}</code></pre><p>We turn on call tracing for all processes, we want to make a pretty restrictive
+trace pattern, so there is no need to call trace only a few processes (usually
+it is not):</p><pre><code class="text">2&gt; dbg:p(all,call).
+{ok,[{matched,nonode@nohost,25}]}</code></pre><p>We specify the filter, we want to view calls that resemble
+<code class="inline">ets:new(toy_table, &lt;something&gt;)</code>:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">3&gt; </span><span class="nc">dbg</span><span class="p">:</span><span class="nf">tp</span><span class="p" data-group-id="0108766246-1">(</span><span class="ss">ets</span><span class="p">,</span><span class="ss">new</span><span class="p">,</span><span class="nc">dbg</span><span class="p">:</span><span class="nf">fun2ms</span><span class="p" data-group-id="0108766246-2">(</span><span class="nf">fun</span><span class="p" data-group-id="0108766246-3">(</span><span class="p" data-group-id="0108766246-4">[</span><span class="ss">toy_table</span><span class="p">,</span><span class="p">_</span><span class="p" data-group-id="0108766246-4">]</span><span class="p" data-group-id="0108766246-3">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="ss">true</span><span class="w"> </span><span class="k">end</span><span class="p" data-group-id="0108766246-2">)</span><span class="p" data-group-id="0108766246-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="0108766246-5">{</span><span class="ss">ok</span><span class="p">,</span><span class="p" data-group-id="0108766246-6">[</span><span class="p" data-group-id="0108766246-7">{</span><span class="ss">matched</span><span class="p">,</span><span class="ss">nonode@nohost</span><span class="p">,</span><span class="mi">1</span><span class="p" data-group-id="0108766246-7">}</span><span class="p">,</span><span class="p" data-group-id="0108766246-8">{</span><span class="ss">saved</span><span class="p">,</span><span class="mi">1</span><span class="p" data-group-id="0108766246-8">}</span><span class="p" data-group-id="0108766246-6">]</span><span class="p" data-group-id="0108766246-5">}</span></code></pre><p>As can be seen, the fun used with <a href="../../apps/runtime_tools/dbg.html#fun2ms/1"><code class="inline">dbg:fun2ms/1</code></a> takes a single list as
+parameter instead of a single tuple. The list matches a list of the parameters
+to the traced function. A single variable can also be used. The body of the fun
+expresses, in a more imperative way, actions to be taken if the fun head (and
+the guards) matches. <code class="inline">true</code> is returned here, only because the body of a fun
+cannot be empty. The return value is discarded.</p><p>The following trace output is received during test:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="3631143115-1">(</span><span class="o">&lt;</span><span class="mf">0.86</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="p" data-group-id="3631143115-1">)</span><span class="w"> </span><span class="ss">call</span><span class="w"> </span><span class="nc">ets</span><span class="p">:</span><span class="nf">new</span><span class="p" data-group-id="3631143115-2">(</span><span class="ss">toy_table</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="3631143115-3">[</span><span class="ss">ordered_set</span><span class="p" data-group-id="3631143115-3">]</span><span class="p" data-group-id="3631143115-2">)</span></code></pre><p>Assume that we have not found the problem yet, and want to see what <a href="ets.html#new/2"><code class="inline">ets:new/2</code></a>
+returns. We use a slightly different trace pattern:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">4&gt; </span><span class="nc">dbg</span><span class="p">:</span><span class="nf">tp</span><span class="p" data-group-id="5513888668-1">(</span><span class="ss">ets</span><span class="p">,</span><span class="ss">new</span><span class="p">,</span><span class="nc">dbg</span><span class="p">:</span><span class="nf">fun2ms</span><span class="p" data-group-id="5513888668-2">(</span><span class="nf">fun</span><span class="p" data-group-id="5513888668-3">(</span><span class="p" data-group-id="5513888668-4">[</span><span class="ss">toy_table</span><span class="p">,</span><span class="p">_</span><span class="p" data-group-id="5513888668-4">]</span><span class="p" data-group-id="5513888668-3">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nf">return_trace</span><span class="p" data-group-id="5513888668-5">(</span><span class="p" data-group-id="5513888668-5">)</span><span class="w"> </span><span class="k">end</span><span class="p" data-group-id="5513888668-2">)</span><span class="p" data-group-id="5513888668-1">)</span><span class="p">.</span></code></pre><p>The following trace output is received during test:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="8376562623-1">(</span><span class="o">&lt;</span><span class="mf">0.86</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="p" data-group-id="8376562623-1">)</span><span class="w"> </span><span class="ss">call</span><span class="w"> </span><span class="nc">ets</span><span class="p">:</span><span class="nf">new</span><span class="p" data-group-id="8376562623-2">(</span><span class="ss">toy_table</span><span class="p">,</span><span class="p" data-group-id="8376562623-3">[</span><span class="ss">ordered_set</span><span class="p" data-group-id="8376562623-3">]</span><span class="p" data-group-id="8376562623-2">)</span><span class="w">
+</span><span class="p" data-group-id="8376562623-4">(</span><span class="o">&lt;</span><span class="mf">0.86</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="p" data-group-id="8376562623-4">)</span><span class="w"> </span><span class="ss">returned</span><span class="w"> </span><span class="ss">from</span><span class="w"> </span><span class="nc">ets</span><span class="p">:</span><span class="ss">new</span><span class="p">/</span><span class="mi">2</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="mi">24</span></code></pre><p>The call to <code class="inline">return_trace</code> results in a trace message when the function returns.
+It applies only to the specific function call triggering the match specification
+(and matching the head/guards of the match specification). This is by far the
+most common call in the body of a <code class="inline">dbg</code> match specification.</p><p>The test now fails with <code class="inline">{badmatch,24}</code> because the atom <code class="inline">toy_table</code> does not
+match the number returned for an unnamed table. So, the problem is found, the
+table is to be named, and the arguments supplied by the test program do not
+include <code class="inline">named_table</code>. We rewrite the start function:</p><pre><code class="makeup erlang" translate="no"><span class="nf">start</span><span class="p" data-group-id="4535488865-1">(</span><span class="n">Args</span><span class="p" data-group-id="4535488865-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="ss">toy_table</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">ets</span><span class="p">:</span><span class="nf">new</span><span class="p" data-group-id="4535488865-2">(</span><span class="ss">toy_table</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="4535488865-3">[</span><span class="ss">named_table</span><span class="p">|</span><span class="n">Args</span><span class="p" data-group-id="4535488865-3">]</span><span class="p" data-group-id="4535488865-2">)</span><span class="p">.</span></code></pre><p>With the same tracing turned on, the following trace output is received:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="9443161865-1">(</span><span class="o">&lt;</span><span class="mf">0.86</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="p" data-group-id="9443161865-1">)</span><span class="w"> </span><span class="ss">call</span><span class="w"> </span><span class="nc">ets</span><span class="p">:</span><span class="nf">new</span><span class="p" data-group-id="9443161865-2">(</span><span class="ss">toy_table</span><span class="p">,</span><span class="p" data-group-id="9443161865-3">[</span><span class="ss">named_table</span><span class="p">,</span><span class="ss">ordered_set</span><span class="p" data-group-id="9443161865-3">]</span><span class="p" data-group-id="9443161865-2">)</span><span class="w">
+</span><span class="p" data-group-id="9443161865-4">(</span><span class="o">&lt;</span><span class="mf">0.86</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="p" data-group-id="9443161865-4">)</span><span class="w"> </span><span class="ss">returned</span><span class="w"> </span><span class="ss">from</span><span class="w"> </span><span class="nc">ets</span><span class="p">:</span><span class="ss">new</span><span class="p">/</span><span class="mi">2</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="ss">toy_table</span></code></pre><p>Assume that the module now passes all testing and goes into the system. After a
+while, it is found that table <code class="inline">toy_table</code> grows while the system is running and
+that there are many elements with atoms as keys. We expected only integer keys
+and so does the rest of the system, but clearly not the entire system. We turn
+on call tracing and try to see calls to the module with an atom as the key:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">1&gt; </span><span class="nc">dbg</span><span class="p">:</span><span class="nf">tracer</span><span class="p" data-group-id="3343967314-1">(</span><span class="p" data-group-id="3343967314-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="3343967314-2">{</span><span class="ss">ok</span><span class="p">,</span><span class="o">&lt;</span><span class="mf">0.88</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="p" data-group-id="3343967314-2">}</span><span class="gp unselectable">
+2&gt; </span><span class="nc">dbg</span><span class="p">:</span><span class="nf">p</span><span class="p" data-group-id="3343967314-3">(</span><span class="ss">all</span><span class="p">,</span><span class="ss">call</span><span class="p" data-group-id="3343967314-3">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="3343967314-4">{</span><span class="ss">ok</span><span class="p">,</span><span class="p" data-group-id="3343967314-5">[</span><span class="p" data-group-id="3343967314-6">{</span><span class="ss">matched</span><span class="p">,</span><span class="ss">nonode@nohost</span><span class="p">,</span><span class="mi">25</span><span class="p" data-group-id="3343967314-6">}</span><span class="p" data-group-id="3343967314-5">]</span><span class="p" data-group-id="3343967314-4">}</span><span class="gp unselectable">
+3&gt; </span><span class="nc">dbg</span><span class="p">:</span><span class="nf">tpl</span><span class="p" data-group-id="3343967314-7">(</span><span class="ss">toy</span><span class="p">,</span><span class="ss">store</span><span class="p">,</span><span class="nc">dbg</span><span class="p">:</span><span class="nf">fun2ms</span><span class="p" data-group-id="3343967314-8">(</span><span class="nf">fun</span><span class="p" data-group-id="3343967314-9">(</span><span class="p" data-group-id="3343967314-10">[</span><span class="n">A</span><span class="p">,</span><span class="p">_</span><span class="p" data-group-id="3343967314-10">]</span><span class="p" data-group-id="3343967314-9">)</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="nf">is_atom</span><span class="p" data-group-id="3343967314-11">(</span><span class="n">A</span><span class="p" data-group-id="3343967314-11">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="ss">true</span><span class="w"> </span><span class="k">end</span><span class="p" data-group-id="3343967314-8">)</span><span class="p" data-group-id="3343967314-7">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="3343967314-12">{</span><span class="ss">ok</span><span class="p">,</span><span class="p" data-group-id="3343967314-13">[</span><span class="p" data-group-id="3343967314-14">{</span><span class="ss">matched</span><span class="p">,</span><span class="ss">nonode@nohost</span><span class="p">,</span><span class="mi">1</span><span class="p" data-group-id="3343967314-14">}</span><span class="p">,</span><span class="p" data-group-id="3343967314-15">{</span><span class="ss">saved</span><span class="p">,</span><span class="mi">1</span><span class="p" data-group-id="3343967314-15">}</span><span class="p" data-group-id="3343967314-13">]</span><span class="p" data-group-id="3343967314-12">}</span></code></pre><p>We use <a href="../../apps/runtime_tools/dbg.html#tpl/3"><code class="inline">dbg:tpl/3</code></a> to ensure to catch local calls (assume that the module has
+grown since the smaller version and we are unsure if this inserting of atoms is
+not done locally). When in doubt, always use local call tracing.</p><p>Assume that nothing happens when tracing in this way. The function is never
+called with these parameters. We conclude that someone else (some other module)
+is doing it and realize that we must trace on <a href="ets.html#insert/2"><code class="inline">ets:insert/2</code></a> and want to see the
+calling function. The calling function can be retrieved using the match
+specification function <code class="inline">caller</code>. To get it into the trace message, the match
+specification function <code class="inline">message</code> must be used. The filter call looks like this
+(looking for calls to <a href="ets.html#insert/2"><code class="inline">ets:insert/2</code></a>):</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">4&gt; </span><span class="nc">dbg</span><span class="p">:</span><span class="nf">tpl</span><span class="p" data-group-id="8213658692-1">(</span><span class="ss">ets</span><span class="p">,</span><span class="ss">insert</span><span class="p">,</span><span class="nc">dbg</span><span class="p">:</span><span class="nf">fun2ms</span><span class="p" data-group-id="8213658692-2">(</span><span class="nf">fun</span><span class="p" data-group-id="8213658692-3">(</span><span class="p" data-group-id="8213658692-4">[</span><span class="ss">toy_table</span><span class="p">,</span><span class="p" data-group-id="8213658692-5">{</span><span class="n">A</span><span class="p">,</span><span class="p">_</span><span class="p" data-group-id="8213658692-5">}</span><span class="p" data-group-id="8213658692-4">]</span><span class="p" data-group-id="8213658692-3">)</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="nf">is_atom</span><span class="p" data-group-id="8213658692-6">(</span><span class="n">A</span><span class="p" data-group-id="8213658692-6">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                                    </span><span class="nf">message</span><span class="p" data-group-id="8213658692-7">(</span><span class="nf">caller</span><span class="p" data-group-id="8213658692-8">(</span><span class="p" data-group-id="8213658692-8">)</span><span class="p" data-group-id="8213658692-7">)</span><span class="w">
+                                  </span><span class="k">end</span><span class="p" data-group-id="8213658692-2">)</span><span class="p" data-group-id="8213658692-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="8213658692-9">{</span><span class="ss">ok</span><span class="p">,</span><span class="p" data-group-id="8213658692-10">[</span><span class="p" data-group-id="8213658692-11">{</span><span class="ss">matched</span><span class="p">,</span><span class="ss">nonode@nohost</span><span class="p">,</span><span class="mi">1</span><span class="p" data-group-id="8213658692-11">}</span><span class="p">,</span><span class="p" data-group-id="8213658692-12">{</span><span class="ss">saved</span><span class="p">,</span><span class="mi">2</span><span class="p" data-group-id="8213658692-12">}</span><span class="p" data-group-id="8213658692-10">]</span><span class="p" data-group-id="8213658692-9">}</span></code></pre><p>The caller is now displayed in the &quot;additional message&quot; part of the trace
+output, and the following is displayed after a while:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="3168975185-1">(</span><span class="o">&lt;</span><span class="mf">0.86</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="p" data-group-id="3168975185-1">)</span><span class="w"> </span><span class="ss">call</span><span class="w"> </span><span class="nc">ets</span><span class="p">:</span><span class="nf">insert</span><span class="p" data-group-id="3168975185-2">(</span><span class="ss">toy_table</span><span class="p">,</span><span class="p" data-group-id="3168975185-3">{</span><span class="ss">garbage</span><span class="p">,</span><span class="ss">can</span><span class="p" data-group-id="3168975185-3">}</span><span class="p" data-group-id="3168975185-2">)</span><span class="w"> </span><span class="p" data-group-id="3168975185-4">(</span><span class="p" data-group-id="3168975185-5">{</span><span class="ss">evil_mod</span><span class="p">,</span><span class="ss">evil_fun</span><span class="p">,</span><span class="mi">2</span><span class="p" data-group-id="3168975185-5">}</span><span class="p" data-group-id="3168975185-4">)</span></code></pre><p>You have realized that function <code class="inline">evil_fun</code> of the <code class="inline">evil_mod</code> module, with arity
+<code class="inline">2</code>, is causing all this trouble.</p><p>This example illustrates the most used calls in match specifications for <code class="inline">dbg</code>.
+The other, more esoteric, calls are listed and explained in
+<a href="../../apps/erts/match_spec.html">Match specifications in Erlang</a> in ERTS User's Guide,
+as they are beyond the scope of this description.</p><h2 id="module-warnings-and-restrictions" class="section-heading">
+  <a href="#module-warnings-and-restrictions" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Warnings and Restrictions</span>
+</h2>
+<p><a href="" id="warnings_and_restrictions"></a></p><p>The following warnings and restrictions apply to the funs used in with
+<a href="ets.html#fun2ms/1"><code class="inline">ets:fun2ms/1</code></a> and <a href="../../apps/runtime_tools/dbg.html#fun2ms/1"><code class="inline">dbg:fun2ms/1</code></a>.</p><blockquote><h4 class="warning">Warning</h4><p>To use the pseudo functions triggering the translation, ensure to include the
+header file <code class="inline">ms_transform.hrl</code> in the source code. Failure to do so possibly
+results in runtime errors rather than compile time, as the expression can be
+valid as a plain Erlang program without translation.</p></blockquote><blockquote><h4 class="warning">Warning</h4><p>The fun must be literally constructed inside the parameter list to the pseudo
+functions. The fun cannot be bound to a variable first and then passed to
+<a href="ets.html#fun2ms/1"><code class="inline">ets:fun2ms/1</code></a> or <a href="../../apps/runtime_tools/dbg.html#fun2ms/1"><code class="inline">dbg:fun2ms/1</code></a>. For example, <code class="inline">ets:fun2ms(fun(A) -&gt; A end)</code>
+works, but not <code class="inline">F = fun(A) -&gt; A end, ets:fun2ms(F)</code>. The latter results in a
+compile-time error if the header is included, otherwise a runtime error.</p></blockquote><p>Many restrictions apply to the fun that is translated into a match
+specification. To put it simple: you cannot use anything in the fun that you
+cannot use in a match specification. This means that, among others, the
+following restrictions apply to the fun itself:</p><ul><li><p>Functions written in Erlang cannot be called, neither can local functions,
+global functions, or real funs.</p></li><li><p>Everything that is written as a function call is translated into a match
+specification call to a built-in function, so that the call
+<a href="../../apps/erts/erlang.html#is_list/1"><code class="inline">is_list(X)</code></a> is translated to <code class="inline">{'is_list', '$1'}</code> (<code class="inline">'$1'</code> is
+only an example, the numbering can vary). If one tries to call a function that
+is not a match specification built-in, it causes an error.</p></li><li><p>Variables occurring in the head of the fun are replaced by match specification
+variables in the order of occurrence, so that fragment <code class="inline">fun({A,B,C})</code> is
+replaced by <code class="inline">{'$1', '$2', '$3'}</code>, and so on. Every occurrence of such a
+variable in the match specification is replaced by a match specification
+variable in the same way, so that the fun
+<code class="inline">fun({A,B}) when is_atom(A) -&gt; B end</code> is translated into
+<code class="inline">[{{'$1','$2'},[{is_atom,'$1'}],['$2']}]</code>.</p></li><li><p>Variables that are not included in the head are imported from the environment
+and made into match specification <code class="inline">const</code> expressions. Example from the shell:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">1&gt; </span><span class="n">X</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">25</span><span class="p">.</span><span class="w">
+</span><span class="mi">25</span><span class="gp unselectable">
+2&gt; </span><span class="nc">ets</span><span class="p">:</span><span class="nf">fun2ms</span><span class="p" data-group-id="8929560262-1">(</span><span class="nf">fun</span><span class="p" data-group-id="8929560262-2">(</span><span class="p" data-group-id="8929560262-3">{</span><span class="n">A</span><span class="p">,</span><span class="n">B</span><span class="p" data-group-id="8929560262-3">}</span><span class="p" data-group-id="8929560262-2">)</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="n">A</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">X</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="n">B</span><span class="w"> </span><span class="k">end</span><span class="p" data-group-id="8929560262-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="8929560262-4">[</span><span class="p" data-group-id="8929560262-5">{</span><span class="p" data-group-id="8929560262-6">{</span><span class="ss">&#39;$1&#39;</span><span class="p">,</span><span class="ss">&#39;$2&#39;</span><span class="p" data-group-id="8929560262-6">}</span><span class="p">,</span><span class="p" data-group-id="8929560262-7">[</span><span class="p" data-group-id="8929560262-8">{</span><span class="ss">&#39;&gt;&#39;</span><span class="p">,</span><span class="ss">&#39;$1&#39;</span><span class="p">,</span><span class="p" data-group-id="8929560262-9">{</span><span class="ss">const</span><span class="p">,</span><span class="mi">25</span><span class="p" data-group-id="8929560262-9">}</span><span class="p" data-group-id="8929560262-8">}</span><span class="p" data-group-id="8929560262-7">]</span><span class="p">,</span><span class="p" data-group-id="8929560262-10">[</span><span class="ss">&#39;$2&#39;</span><span class="p" data-group-id="8929560262-10">]</span><span class="p" data-group-id="8929560262-5">}</span><span class="p" data-group-id="8929560262-4">]</span></code></pre></li><li><p>Matching with <code class="inline">=</code> cannot be used in the body. It can only be used on the
+top-level in the head of the fun. Example from the shell again:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">1&gt; </span><span class="nc">ets</span><span class="p">:</span><span class="nf">fun2ms</span><span class="p" data-group-id="0804769079-1">(</span><span class="nf">fun</span><span class="p" data-group-id="0804769079-2">(</span><span class="p" data-group-id="0804769079-3">{</span><span class="n">A</span><span class="p">,</span><span class="p" data-group-id="0804769079-4">[</span><span class="n">B</span><span class="p">|</span><span class="n">C</span><span class="p" data-group-id="0804769079-4">]</span><span class="p" data-group-id="0804769079-3">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">D</span><span class="p" data-group-id="0804769079-2">)</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="n">A</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">B</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="n">D</span><span class="w"> </span><span class="k">end</span><span class="p" data-group-id="0804769079-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="0804769079-5">[</span><span class="p" data-group-id="0804769079-6">{</span><span class="p" data-group-id="0804769079-7">{</span><span class="ss">&#39;$1&#39;</span><span class="p">,</span><span class="p" data-group-id="0804769079-8">[</span><span class="ss">&#39;$2&#39;</span><span class="p">|</span><span class="ss">&#39;$3&#39;</span><span class="p" data-group-id="0804769079-8">]</span><span class="p" data-group-id="0804769079-7">}</span><span class="p">,</span><span class="p" data-group-id="0804769079-9">[</span><span class="p" data-group-id="0804769079-10">{</span><span class="ss">&#39;&gt;&#39;</span><span class="p">,</span><span class="ss">&#39;$1&#39;</span><span class="p">,</span><span class="ss">&#39;$2&#39;</span><span class="p" data-group-id="0804769079-10">}</span><span class="p" data-group-id="0804769079-9">]</span><span class="p">,</span><span class="p" data-group-id="0804769079-11">[</span><span class="ss">&#39;$_&#39;</span><span class="p" data-group-id="0804769079-11">]</span><span class="p" data-group-id="0804769079-6">}</span><span class="p" data-group-id="0804769079-5">]</span><span class="gp unselectable">
+2&gt; </span><span class="nc">ets</span><span class="p">:</span><span class="nf">fun2ms</span><span class="p" data-group-id="0804769079-12">(</span><span class="nf">fun</span><span class="p" data-group-id="0804769079-13">(</span><span class="p" data-group-id="0804769079-14">{</span><span class="n">A</span><span class="p">,</span><span class="p" data-group-id="0804769079-15">[</span><span class="n">B</span><span class="p">|</span><span class="n">C</span><span class="p" data-group-id="0804769079-15">]</span><span class="o">=</span><span class="n">D</span><span class="p" data-group-id="0804769079-14">}</span><span class="p" data-group-id="0804769079-13">)</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="n">A</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">B</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="n">D</span><span class="w"> </span><span class="k">end</span><span class="p" data-group-id="0804769079-12">)</span><span class="p">.</span><span class="w">
+</span><span class="n">Error</span><span class="p">:</span><span class="w"> </span><span class="k">fun</span><span class="w"> </span><span class="ss">with</span><span class="w"> </span><span class="ss">head</span><span class="w"> </span><span class="nf">matching</span><span class="w"> </span><span class="p" data-group-id="0804769079-16">(</span><span class="ss">&#39;=&#39;</span><span class="w"> </span><span class="ss">in</span><span class="w"> </span><span class="ss">head</span><span class="p" data-group-id="0804769079-16">)</span><span class="w"> </span><span class="ss">cannot</span><span class="w"> </span><span class="ss">be</span><span class="w"> </span><span class="ss">translated</span><span class="w"> </span><span class="ss">into</span><span class="w">
+</span><span class="ss">match_spec</span><span class="w">
+</span><span class="p" data-group-id="0804769079-17">{</span><span class="ss">error</span><span class="p">,</span><span class="ss">transform_error</span><span class="p" data-group-id="0804769079-17">}</span><span class="gp unselectable">
+3&gt; </span><span class="nc">ets</span><span class="p">:</span><span class="nf">fun2ms</span><span class="p" data-group-id="0804769079-18">(</span><span class="nf">fun</span><span class="p" data-group-id="0804769079-19">(</span><span class="p" data-group-id="0804769079-20">{</span><span class="n">A</span><span class="p">,</span><span class="p" data-group-id="0804769079-21">[</span><span class="n">B</span><span class="p">|</span><span class="n">C</span><span class="p" data-group-id="0804769079-21">]</span><span class="p" data-group-id="0804769079-20">}</span><span class="p" data-group-id="0804769079-19">)</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="n">A</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">B</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="n">D</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="0804769079-22">[</span><span class="n">B</span><span class="p">|</span><span class="n">C</span><span class="p" data-group-id="0804769079-22">]</span><span class="p">,</span><span class="w"> </span><span class="n">D</span><span class="w"> </span><span class="k">end</span><span class="p" data-group-id="0804769079-18">)</span><span class="p">.</span><span class="w">
+</span><span class="n">Error</span><span class="p">:</span><span class="w"> </span><span class="k">fun</span><span class="w"> </span><span class="ss">with</span><span class="w"> </span><span class="ss">body</span><span class="w"> </span><span class="nf">matching</span><span class="w"> </span><span class="p" data-group-id="0804769079-23">(</span><span class="ss">&#39;=&#39;</span><span class="w"> </span><span class="ss">in</span><span class="w"> </span><span class="ss">body</span><span class="p" data-group-id="0804769079-23">)</span><span class="w"> </span><span class="ss">is</span><span class="w"> </span><span class="ss">illegal</span><span class="w"> </span><span class="ss">as</span><span class="w"> </span><span class="ss">match_spec</span><span class="w">
+</span><span class="p" data-group-id="0804769079-24">{</span><span class="ss">error</span><span class="p">,</span><span class="ss">transform_error</span><span class="p" data-group-id="0804769079-24">}</span></code></pre><p>All variables are bound in the head of a match specification, so the
+translator cannot allow multiple bindings. The special case when matching is
+done on the top-level makes the variable bind to <code class="inline">'$_'</code> in the resulting match
+specification. It is to allow a more natural access to the whole matched
+object. Pseudo function <code class="inline">object()</code> can be used instead, see below.</p><p>The following expressions are translated equally:</p><pre><code class="makeup erlang" translate="no"><span class="nc">ets</span><span class="p">:</span><span class="nf">fun2ms</span><span class="p" data-group-id="1850193990-1">(</span><span class="nf">fun</span><span class="p" data-group-id="1850193990-2">(</span><span class="p" data-group-id="1850193990-3">{</span><span class="ss">a</span><span class="p">,</span><span class="p">_</span><span class="p" data-group-id="1850193990-3">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">A</span><span class="p" data-group-id="1850193990-2">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="n">A</span><span class="w"> </span><span class="k">end</span><span class="p" data-group-id="1850193990-1">)</span><span class="p">.</span><span class="w">
+</span><span class="nc">ets</span><span class="p">:</span><span class="nf">fun2ms</span><span class="p" data-group-id="1850193990-4">(</span><span class="nf">fun</span><span class="p" data-group-id="1850193990-5">(</span><span class="p" data-group-id="1850193990-6">{</span><span class="ss">a</span><span class="p">,</span><span class="p">_</span><span class="p" data-group-id="1850193990-6">}</span><span class="p" data-group-id="1850193990-5">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nf">object</span><span class="p" data-group-id="1850193990-7">(</span><span class="p" data-group-id="1850193990-7">)</span><span class="w"> </span><span class="k">end</span><span class="p" data-group-id="1850193990-4">)</span><span class="p">.</span></code></pre></li><li><p>The special match specification variables <code class="inline">'$_'</code> and <code class="inline">'$*'</code> can be accessed
+through the pseudo functions <code class="inline">object()</code> (for <code class="inline">'$_'</code>) and <code class="inline">bindings()</code> (for
+<code class="inline">'$*'</code>). As an example, one can translate the following <a href="ets.html#match_object/2"><code class="inline">ets:match_object/2</code></a>
+call to a <a href="ets.html#select/2"><code class="inline">ets:select/2</code></a> call:</p><pre><code class="makeup erlang" translate="no"><span class="nc">ets</span><span class="p">:</span><span class="nf">match_object</span><span class="p" data-group-id="3057974884-1">(</span><span class="n">Table</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="3057974884-2">{</span><span class="ss">&#39;$1&#39;</span><span class="p">,</span><span class="ss">test</span><span class="p">,</span><span class="ss">&#39;$2&#39;</span><span class="p" data-group-id="3057974884-2">}</span><span class="p" data-group-id="3057974884-1">)</span><span class="p">.</span></code></pre><p>This is the same as:</p><pre><code class="makeup erlang" translate="no"><span class="nc">ets</span><span class="p">:</span><span class="nf">select</span><span class="p" data-group-id="0559273402-1">(</span><span class="n">Table</span><span class="p">,</span><span class="w"> </span><span class="nc">ets</span><span class="p">:</span><span class="nf">fun2ms</span><span class="p" data-group-id="0559273402-2">(</span><span class="nf">fun</span><span class="p" data-group-id="0559273402-3">(</span><span class="p" data-group-id="0559273402-4">{</span><span class="n">A</span><span class="p">,</span><span class="ss">test</span><span class="p">,</span><span class="n">B</span><span class="p" data-group-id="0559273402-4">}</span><span class="p" data-group-id="0559273402-3">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nf">object</span><span class="p" data-group-id="0559273402-5">(</span><span class="p" data-group-id="0559273402-5">)</span><span class="w"> </span><span class="k">end</span><span class="p" data-group-id="0559273402-2">)</span><span class="p" data-group-id="0559273402-1">)</span><span class="p">.</span></code></pre><p>In this simple case, the former expression is probably preferable in terms of
+readability.</p><p>The <a href="ets.html#select/2"><code class="inline">ets:select/2</code></a> call conceptually looks like this in the resulting code:</p><pre><code class="makeup erlang" translate="no"><span class="nc">ets</span><span class="p">:</span><span class="nf">select</span><span class="p" data-group-id="1395642352-1">(</span><span class="n">Table</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1395642352-2">[</span><span class="p" data-group-id="1395642352-3">{</span><span class="p" data-group-id="1395642352-4">{</span><span class="ss">&#39;$1&#39;</span><span class="p">,</span><span class="ss">test</span><span class="p">,</span><span class="ss">&#39;$2&#39;</span><span class="p" data-group-id="1395642352-4">}</span><span class="p">,</span><span class="p" data-group-id="1395642352-5">[</span><span class="p" data-group-id="1395642352-5">]</span><span class="p">,</span><span class="p" data-group-id="1395642352-6">[</span><span class="ss">&#39;$_&#39;</span><span class="p" data-group-id="1395642352-6">]</span><span class="p" data-group-id="1395642352-3">}</span><span class="p" data-group-id="1395642352-2">]</span><span class="p" data-group-id="1395642352-1">)</span><span class="p">.</span></code></pre><p>Matching on the top-level of the fun head can be a more natural way to access
+<code class="inline">'$_'</code>, see above.</p></li><li><p>Term constructions/literals are translated as much as is needed to get them
+into valid match specification. This way tuples are made into match
+specification tuple constructions (a one element tuple containing the tuple)
+and constant expressions are used when importing variables from the
+environment. Records are also translated into plain tuple constructions, calls
+to element, and so on. The guard test <a href="../../apps/erts/erlang.html#is_record/2"><code class="inline">is_record/2</code></a> is
+translated into match specification code using the three parameter version
+that is built into match specification, so that
+<a href="../../apps/erts/erlang.html#is_record/2"><code class="inline">is_record(A,t)</code></a> is translated into <code class="inline">{is_record,'$1',t,5}</code> if
+the record size of record type <code class="inline">t</code> is 5.</p></li><li><p>Language constructions such as <code class="inline">case</code>, <code class="inline">if</code>, and <code class="inline">catch</code> that are not present
+in match specifications are not allowed.</p></li><li><p>If header file <code class="inline">ms_transform.hrl</code> is not included, the fun is not translated,
+which can result in a <em>runtime error</em> (depending on whether the fun is valid
+in a pure Erlang context).</p><p>Ensure that the header is included when using <code class="inline">ets</code> and <a href="../../apps/runtime_tools/dbg.html#fun2ms/1"><code class="inline">dbg:fun2ms/1</code></a> in
+compiled code.</p></li><li><p>If pseudo function triggering the translation is <a href="ets.html#fun2ms/1"><code class="inline">ets:fun2ms/1</code></a>, the head of
+the fun must contain a single variable or a single tuple. If the pseudo
+function is <a href="../../apps/runtime_tools/dbg.html#fun2ms/1"><code class="inline">dbg:fun2ms/1</code></a>, the head of the fun must contain a single variable
+or a single list.</p></li></ul><p>The translation from funs to match specifications is done at compile time, so
+runtime performance is not affected by using these pseudo functions.</p><p>For more information about match specifications, see the
+<a href="../../apps/erts/match_spec.html">Match specifications in Erlang</a> in ERTS User's Guide.</p>
+  </section>
+
+
+  <section id="summary" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#summary">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Summary</span>
+    </h1>
+<div class="summary-functions summary">
+  <h2>
+    <a href="#functions">Functions</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#format_error/1" translate="no">format_error(Error)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Takes an error code returned by one of the other functions in the module and
+creates a textual description of the error.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#parse_transform/2" translate="no">parse_transform(Forms, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Implements the transformation at compile time. This function is called by the
+compiler to do the source code transformation if and when header file
+<code class="inline">ms_transform.hrl</code> is included in the source code.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#transform_from_shell/3" translate="no">transform_from_shell(Dialect, Clauses, BoundEnvironment)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Implements the transformation when the <code class="inline">fun2ms/1</code> functions are called from the
+shell. In this case, the abstract form is for one single fun (parsed by the
+Erlang shell). All imported variables are to be in the key-value list passed as
+<code class="inline">BoundEnvironment</code>. The result is a term, normalized, that is, not in abstract
+format.</p></div>
+
+    </div>
+
+</div>
+
+  </section>
+
+
+  <section id="functions" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#functions">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Functions</span>
+    </h1>
+    <div class="functions-list">
+<section class="detail" id="format_error/1">
+
+  <div class="detail-header">
+    <a href="#format_error/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">format_error(Error)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/ms_transform.erl#L81" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> format_error(Error) -> Chars when Error :: {error, <a href="../../apps/erts/erlang.html#t:module/0">module</a>(), <a href="../../apps/erts/erlang.html#t:term/0">term</a>()}, Chars :: <a href="io_lib.html#t:chars/0">io_lib:chars</a>().</pre>
+
+      </div>
+
+<p>Takes an error code returned by one of the other functions in the module and
+creates a textual description of the error.</p>
+  </section>
+</section>
+<section class="detail" id="parse_transform/2">
+
+  <div class="detail-header">
+    <a href="#parse_transform/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">parse_transform(Forms, Options)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/ms_transform.erl#L264" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> parse_transform(Forms, Options) -> Forms2 | Errors | Warnings
+                   when
+                       Forms :: [<a href="erl_parse.html#t:abstract_form/0">erl_parse:abstract_form</a>() | <a href="erl_parse.html#t:form_info/0">erl_parse:form_info</a>()],
+                       Forms2 :: [<a href="erl_parse.html#t:abstract_form/0">erl_parse:abstract_form</a>() | <a href="erl_parse.html#t:form_info/0">erl_parse:form_info</a>()],
+                       Options :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(),
+                       Errors :: {error, ErrInfo :: [<a href="../../apps/erts/erlang.html#t:tuple/0">tuple</a>()], WarnInfo :: []},
+                       Warnings :: {warning, Forms2, WarnInfo :: [<a href="../../apps/erts/erlang.html#t:tuple/0">tuple</a>()]}.</pre>
+
+      </div>
+
+<p>Implements the transformation at compile time. This function is called by the
+compiler to do the source code transformation if and when header file
+<code class="inline">ms_transform.hrl</code> is included in the source code.</p><p>For information about how to use this parse transformation, see <a href="ets.html"><code class="inline">ets</code></a> and
+<a href="../../apps/runtime_tools/dbg.html#fun2ms/1"><code class="inline">dbg:fun2ms/1</code></a>.</p><p>For a description of match specifications, see section
+<a href="../../apps/erts/match_spec.html">Match Specification in Erlang</a> in ERTS User's Guide.</p>
+  </section>
+</section>
+<section class="detail" id="transform_from_shell/3">
+
+  <div class="detail-header">
+    <a href="#transform_from_shell/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">transform_from_shell(Dialect, Clauses, BoundEnvironment)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/ms_transform.erl#L220" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> transform_from_shell(Dialect, Clauses, BoundEnvironment) -> <a href="../../apps/erts/erlang.html#t:term/0">term</a>()
+                        when
+                            Dialect :: ets | dbg,
+                            Clauses :: [<a href="erl_parse.html#t:abstract_clause/0">erl_parse:abstract_clause</a>()],
+                            BoundEnvironment :: <a href="erl_eval.html#t:binding_struct/0">erl_eval:binding_struct</a>().</pre>
+
+      </div>
+
+<p>Implements the transformation when the <code class="inline">fun2ms/1</code> functions are called from the
+shell. In this case, the abstract form is for one single fun (parsed by the
+Erlang shell). All imported variables are to be in the key-value list passed as
+<code class="inline">BoundEnvironment</code>. The result is a term, normalized, that is, not in abstract
+format.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+              <a href="stdlib.epub" title="ePub version">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

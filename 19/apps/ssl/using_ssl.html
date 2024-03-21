@@ -1,0 +1,227 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html xmlns:erl="http://erlang.org" xmlns:fn="http://www.w3.org/2005/02/xpath-functions">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" href="../../otp_doc.css" type="text/css">
+<title>Erlang -- Using SSL API</title>
+</head>
+<body bgcolor="white" text="#000000" link="#0000ff" vlink="#ff00ff" alink="#ff0000"><div id="container">
+<script id="js" type="text/javascript" language="JavaScript" src="../../js/flipmenu/flipmenu.js"></script><script id="js2" type="text/javascript" src="../../js/erlresolvelinks.js"></script><script language="JavaScript" type="text/javascript">
+            <!--
+              function getWinHeight() {
+                var myHeight = 0;
+                if( typeof( window.innerHeight ) == 'number' ) {
+                  //Non-IE
+                  myHeight = window.innerHeight;
+                } else if( document.documentElement && ( document.documentElement.clientWidth ||
+                                                         document.documentElement.clientHeight ) ) {
+                  //IE 6+ in 'standards compliant mode'
+                  myHeight = document.documentElement.clientHeight;
+                } else if( document.body && ( document.body.clientWidth || document.body.clientHeight ) ) {
+                  //IE 4 compatible
+                  myHeight = document.body.clientHeight;
+                }
+                return myHeight;
+              }
+
+              function setscrollpos() {
+                var objf=document.getElementById('loadscrollpos');
+                 document.getElementById("leftnav").scrollTop = objf.offsetTop - getWinHeight()/2;
+              }
+
+              function addEvent(obj, evType, fn){
+                if (obj.addEventListener){
+                obj.addEventListener(evType, fn, true);
+                return true;
+              } else if (obj.attachEvent){
+                var r = obj.attachEvent("on"+evType, fn);
+                return r;
+              } else {
+                return false;
+              }
+             }
+
+             addEvent(window, 'load', setscrollpos);
+
+             //--></script><div id="leftnav"><div class="innertube">
+<img alt="Erlang logo" src="../../../../doc/erlang-logo.png"><br><small><a href="users_guide.html">User's Guide</a><br><a href="index.html">Reference Manual</a><br><a href="release_notes.html">Release Notes</a><br><a href="ssl.pdf">PDF</a><br><a href="../../index.html">Top</a></small><p><strong>Secure Socket Layer </strong><br><strong>User's Guide</strong><br><small>Version 8.1.1</small></p>
+<br><a href="javascript:openAllFlips()">Expand All</a><br><a href="javascript:closeAllFlips()">Contract All</a><p><small><strong>Chapters</strong></small></p>
+<ul class="flipMenu" imagePath="../../js/flipmenu">
+<li id="no" title="Introduction" expanded="false">Introduction<ul>
+<li><a href="ssl_introduction.html">
+              Top of chapter
+            </a></li>
+<li title="Purpose"><a href="ssl_introduction.html#id57607">Purpose</a></li>
+<li title="Prerequisites"><a href="ssl_introduction.html#id57384">Prerequisites</a></li>
+</ul>
+</li>
+<li id="no" title="TLS and its Predecessor, SSL" expanded="false">TLS and its Predecessor, SSL<ul>
+<li><a href="ssl_protocol.html">
+              Top of chapter
+            </a></li>
+<li title="Security Overview"><a href="ssl_protocol.html#id59650">Security Overview</a></li>
+<li title="Data Privacy and Integrity"><a href="ssl_protocol.html#id62225">Data Privacy and Integrity</a></li>
+<li title="Digital Certificates"><a href="ssl_protocol.html#id61463">Digital Certificates</a></li>
+<li title="Peer Authentication"><a href="ssl_protocol.html#id57290">Peer Authentication</a></li>
+<li title="TLS Sessions"><a href="ssl_protocol.html#id57182">TLS Sessions</a></li>
+</ul>
+</li>
+<li id="loadscrollpos" title="Using SSL API" expanded="true">Using SSL API<ul>
+<li><a href="using_ssl.html">
+              Top of chapter
+            </a></li>
+<li title="Setting up Connections"><a href="using_ssl.html#id61907">Setting up Connections</a></li>
+</ul>
+</li>
+<li id="no" title="Using SSL for Erlang Distribution" expanded="false">Using SSL for Erlang Distribution<ul>
+<li><a href="ssl_distribution.html">
+              Top of chapter
+            </a></li>
+<li title="Building Boot Scripts Including the ssl Application"><a href="ssl_distribution.html#id62306">Building Boot Scripts Including the ssl Application</a></li>
+<li title="Specifying Distribution Module for net_kernel"><a href="ssl_distribution.html#id61924">Specifying Distribution Module for net_kernel</a></li>
+<li title="Specifying SSL Options"><a href="ssl_distribution.html#id62264">Specifying SSL Options</a></li>
+<li title="Setting up Environment to Always Use SSL"><a href="ssl_distribution.html#id60976">Setting up Environment to Always Use SSL</a></li>
+<li title="Using SSL distribution over IPv6"><a href="ssl_distribution.html#id61016">Using SSL distribution over IPv6</a></li>
+</ul>
+</li>
+</ul>
+</div></div>
+<div id="content">
+<div class="innertube">
+<h1>3 Using SSL API</h1>
+  
+  <p>To see relevant version information for ssl, call
+  <span class="bold_code"><a href="../../man/ssl.html#versions-0"><span class="code">ssl:versions/0</span></a></span>
+  .</p>
+    
+  <p>To see all supported cipher suites, call  <span class="bold_code"><a href="../../man/ssl.html#cipher_suites-1"><span class="code">ssl:cipher_suites(all)</span></a></span>. 
+  The available cipher suites for a connection depend on your certificate. 
+  Specific cipher suites that you want your connection to use can also be 
+  specified. Default is to use the strongest available.</p>
+  
+  <h3><a name="id61907">3.1 
+        Setting up Connections</a></h3>
+    
+    
+    <p>This section shows a small example of how to set up client/server connections
+    using the Erlang shell. The returned value of the <span class="code">sslsocket</span> is abbreviated
+    with <span class="code">[...]</span> as it can be fairly large and is opaque.</p>
+    
+    <h4>Minimal Example</h4>
+      
+      
+      <div class="note">
+<div class="label">Note</div>
+<div class="content"><p><p> The minimal setup is not the most secure setup of SSL.</p>    
+      </p></div>
+</div>
+
+      <p>To set up client/server connections:</p>
+
+      <p><strong>Step 1:</strong> Start the server side:</p>
+      <div class="example"><pre>1 server&gt; ssl:start().
+ok</pre></div>
+      
+      <p><strong>Step 2:</strong> Create an SSL listen socket:</p>
+      <div class="example"><pre>2 server&gt; {ok, ListenSocket} =
+ssl:listen(9999, [{certfile, "cert.pem"}, {keyfile, "key.pem"},{reuseaddr, true}]).
+{ok,{sslsocket, [...]}}</pre></div>
+      
+      <p><strong>Step 3:</strong> Do a transport accept on the SSL listen socket:</p>
+      <div class="example"><pre>3 server&gt; {ok, Socket} = ssl:transport_accept(ListenSocket).
+{ok,{sslsocket, [...]}}</pre></div>
+
+      <p><strong>Step 4:</strong> Start the client side:</p>
+      <div class="example"><pre>1 client&gt; ssl:start().
+ok</pre></div>
+      
+      <div class="example"><pre>2 client&gt; {ok, Socket} = ssl:connect("localhost", 9999,  [], infinity).
+{ok,{sslsocket, [...]}}</pre></div>
+      
+      <p><strong>Step 5:</strong> Do the SSL handshake:</p>
+      <div class="example"><pre>4 server&gt; ok = ssl:ssl_accept(Socket).
+ok</pre></div>
+      
+      <p><strong>Step 6:</strong> Send a message over SSL:</p>
+      <div class="example"><pre>5 server&gt; ssl:send(Socket, "foo").
+ok</pre></div>
+      
+      <p><strong>Step 7:</strong> Flush the shell message queue to see that the message
+      was sent on the server side:</p>
+      <div class="example"><pre>3 client&gt; flush().
+Shell got {ssl,{sslsocket,[...]},"foo"}
+ok</pre></div>
+    
+    
+    <h4>Upgrade Example</h4>
+      
+      
+      <div class="note">
+<div class="label">Note</div>
+<div class="content"><p><p>To upgrade a TCP/IP connection to an SSL connection, the
+      client and server must agree to do so. The agreement
+      can be accomplished by using a protocol, for example, the one used by HTTP
+      specified in RFC 2817.</p></p></div>
+</div>
+
+      <p>To upgrade to an SSL connection:</p>
+      
+      <p><strong>Step 1:</strong> Start the server side:</p>
+      <div class="example"><pre>1 server&gt; ssl:start().
+ok</pre></div>
+      
+      <p><strong>Step 2:</strong> Create a normal TCP listen socket:</p>
+      <div class="example"><pre>2 server&gt; {ok, ListenSocket} = gen_tcp:listen(9999, [{reuseaddr, true}]).
+{ok, #Port&lt;0.475&gt;}</pre></div>
+      
+      <p><strong>Step 3:</strong> Accept client connection:</p>
+      <div class="example"><pre>3 server&gt; {ok, Socket} = gen_tcp:accept(ListenSocket).
+{ok, #Port&lt;0.476&gt;}</pre></div>
+      
+      <p><strong>Step 4:</strong> Start the client side:</p>
+      <div class="example"><pre>1 client&gt; ssl:start().
+ok</pre></div>
+      
+      <div class="example"><pre>2 client&gt; {ok, Socket} = gen_tcp:connect("localhost", 9999,  [], infinity).</pre></div>
+      
+      <p><strong>Step 5:</strong> Ensure <span class="code">active</span> is set to <span class="code">false</span> before trying
+      to upgrade a connection to an SSL connection, otherwise
+      SSL handshake messages can be delivered to the wrong process:</p>
+      <div class="example"><pre>4 server&gt; inet:setopts(Socket, [{active, false}]).
+ok</pre></div>
+      
+      <p><strong>Step 6:</strong> Do the SSL handshake:</p>
+      <div class="example"><pre>5 server&gt; {ok, SSLSocket} = ssl:ssl_accept(Socket, [{cacertfile, "cacerts.pem"},
+{certfile, "cert.pem"}, {keyfile, "key.pem"}]).
+{ok,{sslsocket,[...]}}</pre></div>
+      
+      <p><strong>Step 7:</strong> Upgrade to an SSL connection. The client and server
+      must agree upon the upgrade. The server must call
+      <span class="code">ssl:accept/2</span> before the client calls <span class="code">ssl:connect/3.</span></p>
+      <div class="example"><pre>3 client&gt;{ok, SSLSocket} = ssl:connect(Socket, [{cacertfile, "cacerts.pem"},
+{certfile, "cert.pem"}, {keyfile, "key.pem"}], infinity).
+{ok,{sslsocket,[...]}}</pre></div>
+      
+      <p><strong>Step 8:</strong> Send a message over SSL:</p>
+      <div class="example"><pre>4 client&gt; ssl:send(SSLSocket, "foo").
+ok</pre></div>
+      
+      <p><strong>Step 9:</strong> Set <span class="code">active true</span> on the SSL socket:</p>
+      <div class="example"><pre>4 server&gt; ssl:setopts(SSLSocket, [{active, true}]).
+ok</pre></div>
+      
+      <p><strong>Step 10:</strong> Flush the shell message queue to see that the message
+      was sent on the client side:</p>
+      <div class="example"><pre>5 server&gt; flush().
+Shell got {ssl,{sslsocket,[...]},"foo"}
+ok</pre></div>
+    
+  
+ </div>
+<div class="footer">
+<hr>
+<p>Copyright © 1999-2017 Ericsson AB. All Rights Reserved.</p>
+</div>
+</div>
+</div></body>
+</html>

@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="common_test v1.27">
+
+
+    <title>Dependencies between Test Cases and Suites — common_test v1.27</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-BE09C0D0.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="common_test" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+common_test
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v1.27
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of common_test</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/lib/common_test/doc/guides/dependencies_chapter.md#L1" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+
+  <span>Dependencies between Test Cases and Suites</span>
+</h1>
+
+<h2 id="general" class="section-heading">
+  <a href="#general" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">General</span>
+</h2>
+<p>When creating test suites, it is strongly recommended to not create dependencies
+between test cases, that is, letting test cases depend on the result of previous
+test cases. There are various reasons for this, such as, the following:</p><ul><li>It makes it impossible to run test cases individually.</li><li>It makes it impossible to run test cases in a different order.</li><li>It makes debugging difficult (as a fault can be the result of a problem in a
+different test case than the one failing).</li><li>There are no good and explicit ways to declare dependencies, so it can be
+difficult to see and understand these in test suite code and in test logs.</li><li>Extending, restructuring, and maintaining test suites with test case
+dependencies is difficult.</li></ul><p>There are often sufficient means to work around the need for test case
+dependencies. Generally, the problem is related to the state of the System Under
+Test (SUT). The action of one test case can change the system state. For some
+other test case to run properly, this new state must be known.</p><p>Instead of passing data between test cases, it is recommended that the test
+cases read the state from the SUT and perform assertions (that is, let the test
+case run if the state is as expected, otherwise reset or fail). It is also
+recommended to use the state to set variables necessary for the test case to
+execute properly. Common actions can often be implemented as library functions
+for test cases to call to set the SUT in a required state. (Such common actions
+can also be separately tested, if necessary, to ensure that they work as
+expected). It is sometimes also possible, but not always desirable, to group
+tests together in one test case, that is, let a test case perform a &quot;scenario&quot;
+test (a test consisting of subtests).</p><p>Consider, for example, a server application under test. The following
+functionality is to be tested:</p><ul><li>Starting the server</li><li>Configuring the server</li><li>Connecting a client to the server</li><li>Disconnecting a client from the server</li><li>Stopping the server</li></ul><p>There are obvious dependencies between the listed functions. The server cannot
+be configured if it has not first been started, a client cannot be connected
+until the server is properly configured, and so on. If we want to have one test
+case for each function, we might be tempted to try to always run the test cases
+in the stated order and carry possible data (identities, handles, and so on)
+between the cases and therefore introduce dependencies between them.</p><p>To avoid this, we can consider starting and stopping the server for every test.
+We can thus implement the start and stop action as common functions to be called
+from <a href="ct_suite.html#c:init_per_testcase/2"><code class="inline">init_per_testcase</code></a> and
+<a href="ct_suite.html#c:end_per_testcase/2"><code class="inline">end_per_testcase</code></a>. (Remember to test the
+start and stop functionality separately.) The configuration can also be
+implemented as a common function, maybe grouped with the start function.
+Finally, the testing of connecting and disconnecting a client can be grouped
+into one test case. The resulting suite can look as follows:</p><pre><code class="makeup erlang" translate="no"><span class="w">
+ </span><span class="p">-</span><span class="na">module</span><span class="p" data-group-id="8359583835-1">(</span><span class="ss">my_server_SUITE</span><span class="p" data-group-id="8359583835-1">)</span><span class="p">.</span><span class="w">
+</span><span class="w"> </span><span class="p">-</span><span class="na">compile</span><span class="p" data-group-id="8359583835-2">(</span><span class="ss">export_all</span><span class="p" data-group-id="8359583835-2">)</span><span class="p">.</span><span class="w">
+</span><span class="w"> </span><span class="p">-</span><span class="na">include_lib</span><span class="p" data-group-id="8359583835-3">(</span><span class="s">&quot;ct.hrl&quot;</span><span class="p" data-group-id="8359583835-3">)</span><span class="p">.</span><span class="w">
+
+ </span><span class="c1">%%% init and end functions...</span><span class="w">
+
+ </span><span class="nf">suite</span><span class="p" data-group-id="8359583835-4">(</span><span class="p" data-group-id="8359583835-4">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="p" data-group-id="8359583835-5">[</span><span class="p" data-group-id="8359583835-6">{</span><span class="ss">require</span><span class="p">,</span><span class="ss">my_server_cfg</span><span class="p" data-group-id="8359583835-6">}</span><span class="p" data-group-id="8359583835-5">]</span><span class="p">.</span><span class="w">
+
+ </span><span class="nf">init_per_testcase</span><span class="p" data-group-id="8359583835-7">(</span><span class="ss">start_and_stop</span><span class="p">,</span><span class="w"> </span><span class="n">Config</span><span class="p" data-group-id="8359583835-7">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+     </span><span class="n">Config</span><span class="p">;</span><span class="w">
+
+ </span><span class="nf">init_per_testcase</span><span class="p" data-group-id="8359583835-8">(</span><span class="ss">config</span><span class="p">,</span><span class="w"> </span><span class="n">Config</span><span class="p" data-group-id="8359583835-8">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+     </span><span class="p" data-group-id="8359583835-9">[</span><span class="p" data-group-id="8359583835-10">{</span><span class="ss">server_pid</span><span class="p">,</span><span class="nf">start_server</span><span class="p" data-group-id="8359583835-11">(</span><span class="p" data-group-id="8359583835-11">)</span><span class="p" data-group-id="8359583835-10">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="n">Config</span><span class="p" data-group-id="8359583835-9">]</span><span class="p">;</span><span class="w">
+
+ </span><span class="nf">init_per_testcase</span><span class="p" data-group-id="8359583835-12">(</span><span class="p">_</span><span class="p">,</span><span class="w"> </span><span class="n">Config</span><span class="p" data-group-id="8359583835-12">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+     </span><span class="n">ServerPid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">start_server</span><span class="p" data-group-id="8359583835-13">(</span><span class="p" data-group-id="8359583835-13">)</span><span class="p">,</span><span class="w">
+     </span><span class="nf">configure_server</span><span class="p" data-group-id="8359583835-14">(</span><span class="p" data-group-id="8359583835-14">)</span><span class="p">,</span><span class="w">
+     </span><span class="p" data-group-id="8359583835-15">[</span><span class="p" data-group-id="8359583835-16">{</span><span class="ss">server_pid</span><span class="p">,</span><span class="n">ServerPid</span><span class="p" data-group-id="8359583835-16">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="n">Config</span><span class="p" data-group-id="8359583835-15">]</span><span class="p">.</span><span class="w">
+
+ </span><span class="nf">end_per_testcase</span><span class="p" data-group-id="8359583835-17">(</span><span class="ss">start_and_stop</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="p" data-group-id="8359583835-17">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+     </span><span class="ss">ok</span><span class="p">;</span><span class="w">
+
+ </span><span class="nf">end_per_testcase</span><span class="p" data-group-id="8359583835-18">(</span><span class="p">_</span><span class="p">,</span><span class="w"> </span><span class="n">Config</span><span class="p" data-group-id="8359583835-18">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+     </span><span class="n">ServerPid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">proplists</span><span class="p">:</span><span class="nf">get_value</span><span class="p" data-group-id="8359583835-19">(</span><span class="ss">server_pid</span><span class="p">,</span><span class="w"> </span><span class="n">Config</span><span class="p" data-group-id="8359583835-19">)</span><span class="p">,</span><span class="w">
+     </span><span class="nf">stop_server</span><span class="p" data-group-id="8359583835-20">(</span><span class="n">ServerPid</span><span class="p" data-group-id="8359583835-20">)</span><span class="p">.</span><span class="w">
+
+ </span><span class="c1">%%% test cases...</span><span class="w">
+
+ </span><span class="nf">all</span><span class="p" data-group-id="8359583835-21">(</span><span class="p" data-group-id="8359583835-21">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="p" data-group-id="8359583835-22">[</span><span class="ss">start_and_stop</span><span class="p">,</span><span class="w"> </span><span class="ss">config</span><span class="p">,</span><span class="w"> </span><span class="ss">connect_and_disconnect</span><span class="p" data-group-id="8359583835-22">]</span><span class="p">.</span><span class="w">
+
+ </span><span class="c1">%% test that starting and stopping works</span><span class="w">
+ </span><span class="nf">start_and_stop</span><span class="p" data-group-id="8359583835-23">(</span><span class="p">_</span><span class="p" data-group-id="8359583835-23">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+     </span><span class="n">ServerPid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">start_server</span><span class="p" data-group-id="8359583835-24">(</span><span class="p" data-group-id="8359583835-24">)</span><span class="p">,</span><span class="w">
+     </span><span class="nf">stop_server</span><span class="p" data-group-id="8359583835-25">(</span><span class="n">ServerPid</span><span class="p" data-group-id="8359583835-25">)</span><span class="p">.</span><span class="w">
+
+ </span><span class="c1">%% configuration test</span><span class="w">
+ </span><span class="nf">config</span><span class="p" data-group-id="8359583835-26">(</span><span class="n">Config</span><span class="p" data-group-id="8359583835-26">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+     </span><span class="n">ServerPid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">proplists</span><span class="p">:</span><span class="nf">get_value</span><span class="p" data-group-id="8359583835-27">(</span><span class="ss">server_pid</span><span class="p">,</span><span class="w"> </span><span class="n">Config</span><span class="p" data-group-id="8359583835-27">)</span><span class="p">,</span><span class="w">
+     </span><span class="nf">configure_server</span><span class="p" data-group-id="8359583835-28">(</span><span class="n">ServerPid</span><span class="p" data-group-id="8359583835-28">)</span><span class="p">.</span><span class="w">
+
+ </span><span class="c1">%% test connecting and disconnecting client</span><span class="w">
+ </span><span class="nf">connect_and_disconnect</span><span class="p" data-group-id="8359583835-29">(</span><span class="n">Config</span><span class="p" data-group-id="8359583835-29">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+     </span><span class="n">ServerPid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">proplists</span><span class="p">:</span><span class="nf">get_value</span><span class="p" data-group-id="8359583835-30">(</span><span class="ss">server_pid</span><span class="p">,</span><span class="w"> </span><span class="n">Config</span><span class="p" data-group-id="8359583835-30">)</span><span class="p">,</span><span class="w">
+     </span><span class="p" data-group-id="8359583835-31">{</span><span class="ss">ok</span><span class="p">,</span><span class="n">SessionId</span><span class="p" data-group-id="8359583835-31">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">my_server</span><span class="p">:</span><span class="nf">connect</span><span class="p" data-group-id="8359583835-32">(</span><span class="n">ServerPid</span><span class="p" data-group-id="8359583835-32">)</span><span class="p">,</span><span class="w">
+     </span><span class="ss">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">my_server</span><span class="p">:</span><span class="nf">disconnect</span><span class="p" data-group-id="8359583835-33">(</span><span class="n">ServerPid</span><span class="p">,</span><span class="w"> </span><span class="n">SessionId</span><span class="p" data-group-id="8359583835-33">)</span><span class="p">.</span><span class="w">
+
+ </span><span class="c1">%%% common functions...</span><span class="w">
+
+ </span><span class="nf">start_server</span><span class="p" data-group-id="8359583835-34">(</span><span class="p" data-group-id="8359583835-34">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+     </span><span class="p" data-group-id="8359583835-35">{</span><span class="ss">ok</span><span class="p">,</span><span class="n">ServerPid</span><span class="p" data-group-id="8359583835-35">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">my_server</span><span class="p">:</span><span class="nf">start</span><span class="p" data-group-id="8359583835-36">(</span><span class="p" data-group-id="8359583835-36">)</span><span class="p">,</span><span class="w">
+     </span><span class="n">ServerPid</span><span class="p">.</span><span class="w">
+
+ </span><span class="nf">stop_server</span><span class="p" data-group-id="8359583835-37">(</span><span class="n">ServerPid</span><span class="p" data-group-id="8359583835-37">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+     </span><span class="ss">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">my_server</span><span class="p">:</span><span class="nf">stop</span><span class="p" data-group-id="8359583835-38">(</span><span class="p" data-group-id="8359583835-38">)</span><span class="p">,</span><span class="w">
+     </span><span class="ss">ok</span><span class="p">.</span><span class="w">
+
+ </span><span class="nf">configure_server</span><span class="p" data-group-id="8359583835-39">(</span><span class="n">ServerPid</span><span class="p" data-group-id="8359583835-39">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+     </span><span class="n">ServerCfgData</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">ct</span><span class="p">:</span><span class="nf">get_config</span><span class="p" data-group-id="8359583835-40">(</span><span class="ss">my_server_cfg</span><span class="p" data-group-id="8359583835-40">)</span><span class="p">,</span><span class="w">
+     </span><span class="ss">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">my_server</span><span class="p">:</span><span class="nf">configure</span><span class="p" data-group-id="8359583835-41">(</span><span class="n">ServerPid</span><span class="p">,</span><span class="w"> </span><span class="n">ServerCfgData</span><span class="p" data-group-id="8359583835-41">)</span><span class="p">,</span><span class="w">
+     </span><span class="ss">ok</span><span class="p">.</span></code></pre><p><a href="" id="save_config"></a></p><h2 id="saving-configuration-data" class="section-heading">
+  <a href="#saving-configuration-data" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Saving Configuration Data</span>
+</h2>
+<p>Sometimes it is impossible, or infeasible, to implement independent test cases.
+Maybe it is not possible to read the SUT state. Maybe resetting the SUT is
+impossible and it takes too long time to restart the system. In situations where
+test case dependency is necessary, CT offers a structured way to carry data from
+one test case to the next. The same mechanism can also be used to carry data
+from one test suite to the next.</p><p>The mechanism for passing data is called <code class="inline">save_config</code>. The idea is that one
+test case (or suite) can save the current value of <code class="inline">Config</code>, or any list of
+key-value tuples, so that the next executing test case (or test suite) can read
+it. The configuration data is not saved permanently but can only be passed from
+one case (or suite) to the next.</p><p>To save <code class="inline">Config</code> data, return tuple <code class="inline">{save_config,ConfigList}</code> from
+<code class="inline">end_per_testcase</code> or from the main test case function.</p><p>To read data saved by a previous test case, use <code class="inline">proplists:get_value</code> with a
+<code class="inline">saved_config</code> key as follows:</p><p><code class="inline">{Saver,ConfigList} = proplists:get_value(saved_config, Config)</code></p><p><code class="inline">Saver</code> (<a href="../../apps/erts/erlang.html#t:atom/0"><code class="inline">atom/0</code></a>) is the name of the previous test case (where the data was
+saved). The <code class="inline">proplists:get_value</code> function can be used to extract particular
+data also from the recalled <code class="inline">ConfigList</code>. It is strongly recommended that
+<code class="inline">Saver</code> is always matched to the expected name of the saving test case. This
+way, problems because of restructuring of the test suite can be avoided. Also,
+it makes the dependency more explicit and the test suite easier to read and
+maintain.</p><p>To pass data from one test suite to another, the same mechanism is used. The
+data is to be saved by finction <a href="ct_suite.html#c:end_per_suite/1"><code class="inline">end_per_suite</code></a>
+and read by function <a href="ct_suite.html#c:init_per_suite/1"><code class="inline">init_per_suite</code></a> in the
+suite that follows. When passing data between suites, <code class="inline">Saver</code> carries the name
+of the test suite.</p><p><em>Example:</em></p><pre><code class="makeup erlang" translate="no"><span class="w"> </span><span class="p">-</span><span class="na">module</span><span class="p" data-group-id="7949149805-1">(</span><span class="ss">server_b_SUITE</span><span class="p" data-group-id="7949149805-1">)</span><span class="p">.</span><span class="w">
+</span><span class="w"> </span><span class="p">-</span><span class="na">compile</span><span class="p" data-group-id="7949149805-2">(</span><span class="ss">export_all</span><span class="p" data-group-id="7949149805-2">)</span><span class="p">.</span><span class="w">
+</span><span class="w"> </span><span class="p">-</span><span class="na">include_lib</span><span class="p" data-group-id="7949149805-3">(</span><span class="s">&quot;ct.hrl&quot;</span><span class="p" data-group-id="7949149805-3">)</span><span class="p">.</span><span class="w">
+
+ </span><span class="c1">%%% init and end functions...</span><span class="w">
+
+ </span><span class="nf">init_per_suite</span><span class="p" data-group-id="7949149805-4">(</span><span class="n">Config</span><span class="p" data-group-id="7949149805-4">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+     </span><span class="c1">%% read config saved by previous test suite</span><span class="w">
+     </span><span class="p" data-group-id="7949149805-5">{</span><span class="ss">server_a_SUITE</span><span class="p">,</span><span class="n">OldConfig</span><span class="p" data-group-id="7949149805-5">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">proplists</span><span class="p">:</span><span class="nf">get_value</span><span class="p" data-group-id="7949149805-6">(</span><span class="ss">saved_config</span><span class="p">,</span><span class="w"> </span><span class="n">Config</span><span class="p" data-group-id="7949149805-6">)</span><span class="p">,</span><span class="w">
+     </span><span class="c1">%% extract server identity (comes from server_a_SUITE)</span><span class="w">
+     </span><span class="n">ServerId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">proplists</span><span class="p">:</span><span class="nf">get_value</span><span class="p" data-group-id="7949149805-7">(</span><span class="ss">server_id</span><span class="p">,</span><span class="w"> </span><span class="n">OldConfig</span><span class="p" data-group-id="7949149805-7">)</span><span class="p">,</span><span class="w">
+     </span><span class="n">SessionId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">connect_to_server</span><span class="p" data-group-id="7949149805-8">(</span><span class="n">ServerId</span><span class="p" data-group-id="7949149805-8">)</span><span class="p">,</span><span class="w">
+     </span><span class="p" data-group-id="7949149805-9">[</span><span class="p" data-group-id="7949149805-10">{</span><span class="ss">ids</span><span class="p">,</span><span class="p" data-group-id="7949149805-11">{</span><span class="n">ServerId</span><span class="p">,</span><span class="n">SessionId</span><span class="p" data-group-id="7949149805-11">}</span><span class="p" data-group-id="7949149805-10">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="n">Config</span><span class="p" data-group-id="7949149805-9">]</span><span class="p">.</span><span class="w">
+
+ </span><span class="nf">end_per_suite</span><span class="p" data-group-id="7949149805-12">(</span><span class="n">Config</span><span class="p" data-group-id="7949149805-12">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+     </span><span class="c1">%% save config for server_c_SUITE (session_id and server_id)</span><span class="w">
+     </span><span class="p" data-group-id="7949149805-13">{</span><span class="ss">save_config</span><span class="p">,</span><span class="n">Config</span><span class="p" data-group-id="7949149805-13">}</span><span class="w">
+
+ </span><span class="c1">%%% test cases...</span><span class="w">
+
+ </span><span class="nf">all</span><span class="p" data-group-id="7949149805-14">(</span><span class="p" data-group-id="7949149805-14">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="p" data-group-id="7949149805-15">[</span><span class="ss">allocate</span><span class="p">,</span><span class="w"> </span><span class="ss">deallocate</span><span class="p" data-group-id="7949149805-15">]</span><span class="p">.</span><span class="w">
+
+ </span><span class="nf">allocate</span><span class="p" data-group-id="7949149805-16">(</span><span class="n">Config</span><span class="p" data-group-id="7949149805-16">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+     </span><span class="p" data-group-id="7949149805-17">{</span><span class="n">ServerId</span><span class="p">,</span><span class="n">SessionId</span><span class="p" data-group-id="7949149805-17">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">proplists</span><span class="p">:</span><span class="nf">get_value</span><span class="p" data-group-id="7949149805-18">(</span><span class="ss">ids</span><span class="p">,</span><span class="w"> </span><span class="n">Config</span><span class="p" data-group-id="7949149805-18">)</span><span class="p">,</span><span class="w">
+     </span><span class="p" data-group-id="7949149805-19">{</span><span class="ss">ok</span><span class="p">,</span><span class="n">Handle</span><span class="p" data-group-id="7949149805-19">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">allocate_resource</span><span class="p" data-group-id="7949149805-20">(</span><span class="n">ServerId</span><span class="p">,</span><span class="w"> </span><span class="n">SessionId</span><span class="p" data-group-id="7949149805-20">)</span><span class="p">,</span><span class="w">
+     </span><span class="c1">%% save handle for deallocation test</span><span class="w">
+     </span><span class="n">NewConfig</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="7949149805-21">[</span><span class="p" data-group-id="7949149805-22">{</span><span class="ss">handle</span><span class="p">,</span><span class="n">Handle</span><span class="p" data-group-id="7949149805-22">}</span><span class="p" data-group-id="7949149805-21">]</span><span class="p">,</span><span class="w">
+     </span><span class="p" data-group-id="7949149805-23">{</span><span class="ss">save_config</span><span class="p">,</span><span class="n">NewConfig</span><span class="p" data-group-id="7949149805-23">}</span><span class="p">.</span><span class="w">
+
+ </span><span class="nf">deallocate</span><span class="p" data-group-id="7949149805-24">(</span><span class="n">Config</span><span class="p" data-group-id="7949149805-24">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+     </span><span class="p" data-group-id="7949149805-25">{</span><span class="n">ServerId</span><span class="p">,</span><span class="n">SessionId</span><span class="p" data-group-id="7949149805-25">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">proplists</span><span class="p">:</span><span class="nf">get_value</span><span class="p" data-group-id="7949149805-26">(</span><span class="ss">ids</span><span class="p">,</span><span class="w"> </span><span class="n">Config</span><span class="p" data-group-id="7949149805-26">)</span><span class="p">,</span><span class="w">
+     </span><span class="p" data-group-id="7949149805-27">{</span><span class="ss">allocate</span><span class="p">,</span><span class="n">OldConfig</span><span class="p" data-group-id="7949149805-27">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">proplists</span><span class="p">:</span><span class="nf">get_value</span><span class="p" data-group-id="7949149805-28">(</span><span class="ss">saved_config</span><span class="p">,</span><span class="w"> </span><span class="n">Config</span><span class="p" data-group-id="7949149805-28">)</span><span class="p">,</span><span class="w">
+     </span><span class="n">Handle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">proplists</span><span class="p">:</span><span class="nf">get_value</span><span class="p" data-group-id="7949149805-29">(</span><span class="ss">handle</span><span class="p">,</span><span class="w"> </span><span class="n">OldConfig</span><span class="p" data-group-id="7949149805-29">)</span><span class="p">,</span><span class="w">
+     </span><span class="ss">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">deallocate_resource</span><span class="p" data-group-id="7949149805-30">(</span><span class="n">ServerId</span><span class="p">,</span><span class="w"> </span><span class="n">SessionId</span><span class="p">,</span><span class="w"> </span><span class="n">Handle</span><span class="p" data-group-id="7949149805-30">)</span><span class="p">.</span></code></pre><p>To save <code class="inline">Config</code> data from a test case that is to be skipped, return tuple
+<code class="inline">{skip_and_save,Reason,ConfigList}</code>.</p><p>The result is that the test case is skipped with <code class="inline">Reason</code> printed to the log
+file (as described earlier) and <code class="inline">ConfigList</code> is saved for the next test case.
+<code class="inline">ConfigList</code> can be read using <code class="inline">proplists:get_value(saved_config, Config)</code>, as
+described earlier. <code class="inline">skip_and_save</code> can also be returned from <code class="inline">init_per_suite</code>.
+In this case, the saved data can be read by <code class="inline">init_per_suite</code> in the suite that
+follows.</p><h2 id="sequences" class="section-heading">
+  <a href="#sequences" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Sequences</span>
+</h2>
+<p>Sometimes test cases depend on each other so that if one case fails, the
+following tests are not to be executed. Typically, if the <code class="inline">save_config</code> facility
+is used and a test case that is expected to save data crashes, the following
+case cannot run. <code class="inline">Common Test</code> offers a way to declare such dependencies, called
+sequences.</p><p>A sequence of test cases is defined as a test case group with a <code class="inline">sequence</code>
+property. Test case groups are defined through function <code class="inline">groups/0</code> in the test
+suite (for details, see section
+<a href="write_test_chapter.html#test_case_groups">Test Case Groups</a>.</p><p>For example, to ensure that if <code class="inline">allocate</code> in <code class="inline">server_b_SUITE</code> crashes,
+<code class="inline">deallocate</code> is skipped, the following sequence can be defined:</p><pre><code class="makeup erlang" translate="no"><span class="w"> </span><span class="nf">groups</span><span class="p" data-group-id="5679837307-1">(</span><span class="p" data-group-id="5679837307-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="p" data-group-id="5679837307-2">[</span><span class="p" data-group-id="5679837307-3">{</span><span class="ss">alloc_and_dealloc</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="5679837307-4">[</span><span class="ss">sequence</span><span class="p" data-group-id="5679837307-4">]</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="5679837307-5">[</span><span class="ss">alloc</span><span class="p">,</span><span class="ss">dealloc</span><span class="p" data-group-id="5679837307-5">]</span><span class="p" data-group-id="5679837307-3">}</span><span class="p" data-group-id="5679837307-2">]</span><span class="p">.</span></code></pre><p>Assume that the suite contains the test case <code class="inline">get_resource_status</code> that is
+independent of the other two cases, then function <code class="inline">all</code> can look as follows:</p><pre><code class="text"> all() -&gt; [{group,alloc_and_dealloc}, get_resource_status].</code></pre><p>If <code class="inline">alloc</code> succeeds, <code class="inline">dealloc</code> is also executed. If <code class="inline">alloc</code> fails however,
+<code class="inline">dealloc</code> is not executed but marked as <code class="inline">SKIPPED</code> in the HTML log.
+<code class="inline">get_resource_status</code> runs no matter what happens to the <code class="inline">alloc_and_dealloc</code>
+cases.</p><p>Test cases in a sequence are executed in order until all succeed or one fails.
+If one fails, all following cases in the sequence are skipped. The cases in the
+sequence that have succeeded up to that point are reported as successful in the
+log. Any number of sequences can be specified.</p><p><em>Example:</em></p><pre><code class="makeup erlang" translate="no"><span class="w"> </span><span class="nf">groups</span><span class="p" data-group-id="0057898566-1">(</span><span class="p" data-group-id="0057898566-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="p" data-group-id="0057898566-2">[</span><span class="p" data-group-id="0057898566-3">{</span><span class="ss">scenarioA</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0057898566-4">[</span><span class="ss">sequence</span><span class="p" data-group-id="0057898566-4">]</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0057898566-5">[</span><span class="ss">testA1</span><span class="p">,</span><span class="w"> </span><span class="ss">testA2</span><span class="p" data-group-id="0057898566-5">]</span><span class="p" data-group-id="0057898566-3">}</span><span class="p">,</span><span class="w">
+              </span><span class="p" data-group-id="0057898566-6">{</span><span class="ss">scenarioB</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0057898566-7">[</span><span class="ss">sequence</span><span class="p" data-group-id="0057898566-7">]</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0057898566-8">[</span><span class="ss">testB1</span><span class="p">,</span><span class="w"> </span><span class="ss">testB2</span><span class="p">,</span><span class="w"> </span><span class="ss">testB3</span><span class="p" data-group-id="0057898566-8">]</span><span class="p" data-group-id="0057898566-6">}</span><span class="p" data-group-id="0057898566-2">]</span><span class="p">.</span><span class="w">
+
+ </span><span class="nf">all</span><span class="p" data-group-id="0057898566-9">(</span><span class="p" data-group-id="0057898566-9">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="p" data-group-id="0057898566-10">[</span><span class="ss">test1</span><span class="p">,</span><span class="w">
+           </span><span class="ss">test2</span><span class="p">,</span><span class="w">
+           </span><span class="p" data-group-id="0057898566-11">{</span><span class="ss">group</span><span class="p">,</span><span class="ss">scenarioA</span><span class="p" data-group-id="0057898566-11">}</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w">   </span><span class="ss">test3</span><span class="p">,</span><span class="w">
+           </span><span class="p" data-group-id="0057898566-12">{</span><span class="ss">group</span><span class="p">,</span><span class="ss">scenarioB</span><span class="p" data-group-id="0057898566-12">}</span><span class="p">,</span><span class="w">
+           </span><span class="ss">test4</span><span class="p" data-group-id="0057898566-10">]</span><span class="p">.</span></code></pre><p>A sequence group can have subgroups. Such subgroups can have any property, that
+is, they are not required to also be sequences. If you want the status of the
+subgroup to affect the sequence on the level above, return
+<code class="inline">{return_group_result,Status}</code> from
+<a href="ct_suite.html#c:end_per_group/2"><code class="inline">end_per_group/2</code></a>, as described in section
+<a href="write_test_chapter.html#repeated_groups">Repeated Groups</a> in Writing Test Suites.
+A failed subgroup (<code class="inline">Status == failed</code>) causes the execution of a sequence to
+fail in the same way a test case does.</p>
+<div class="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="event_handler_chapter.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Event Handling
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="ct_hooks_chapter.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+Common Test Hooks
+        </span>
+      </a>
+
+  </div>
+</div>
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+              <a href="common_test.epub" title="ePub version">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="stdlib v6.0">
+
+
+    <title>The Erlang I/O Protocol — stdlib v6.0</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-C7A0AB26.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="stdlib" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+stdlib
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v6.0
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of stdlib</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/doc/guides/io_protocol.md#L1" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+
+  <span>The Erlang I/O Protocol</span>
+</h1>
+
+<p>The I/O protocol in Erlang enables bi-directional communication between clients
+and servers.</p><ul><li>The I/O server is a process that handles the requests and performs the
+requested task on, for example, an I/O device.</li><li>The client is any Erlang process wishing to read or write data from/to the I/O
+device.</li></ul><p>The common I/O protocol has been present in OTP since the beginning, but has
+been undocumented and has also evolved over the years. In an addendum to Robert
+Virding's rationale, the original I/O protocol is described. This section
+describes the current I/O protocol.</p><p>The original I/O protocol was simple and flexible. Demands for memory efficiency
+and execution time efficiency have triggered extensions to the protocol over the
+years, making the protocol larger and somewhat less easy to implement than the
+original. It can certainly be argued that the current protocol is too complex,
+but this section describes how it looks today, not how it should have looked.</p><p>The basic ideas from the original protocol still hold. The I/O server and client
+communicate with one single, rather simplistic protocol and no server state is
+ever present in the client. Any I/O server can be used together with any client
+code, and the client code does not need to be aware of the I/O device that the
+I/O server communicates with.</p><h2 id="protocol-basics" class="section-heading">
+  <a href="#protocol-basics" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Protocol Basics</span>
+</h2>
+<p>As described in Robert's paper, I/O servers and clients communicate using
+<code class="inline">io_request</code>/<code class="inline">io_reply</code> tuples as follows:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="6809406832-1">{</span><span class="ss">io_request</span><span class="p">,</span><span class="w"> </span><span class="n">From</span><span class="p">,</span><span class="w"> </span><span class="n">ReplyAs</span><span class="p">,</span><span class="w"> </span><span class="n">Request</span><span class="p" data-group-id="6809406832-1">}</span><span class="w">
+</span><span class="p" data-group-id="6809406832-2">{</span><span class="ss">io_reply</span><span class="p">,</span><span class="w"> </span><span class="n">ReplyAs</span><span class="p">,</span><span class="w"> </span><span class="n">Reply</span><span class="p" data-group-id="6809406832-2">}</span></code></pre><p>The client sends an <code class="inline">io_request</code> tuple to the I/O server and the server
+eventually sends a corresponding <code class="inline">io_reply</code> tuple.</p><ul><li><p><code class="inline">From</code> is the <a href="../../apps/erts/erlang.html#t:pid/0"><code class="inline">pid/0</code></a> of the client, the process which the I/O server sends
+the I/O reply to.</p></li><li><p><code class="inline">ReplyAs</code> can be any datum and is returned in the corresponding <code class="inline">io_reply</code>.
+The <a href="io.html"><code class="inline">io</code></a> module monitors the I/O server and uses the monitor reference as
+the <code class="inline">ReplyAs</code> datum. A more complicated client can have many outstanding I/O
+requests to the same I/O server and can use different references (or something
+else) to differentiate among the incoming I/O replies. Element <code class="inline">ReplyAs</code> is to
+be considered opaque by the I/O server.</p><p>Notice that the <a href="../../apps/erts/erlang.html#t:pid/0"><code class="inline">pid/0</code></a> of the I/O server is not explicitly present in tuple
+<code class="inline">io_reply</code>. The reply can be sent from any process, not necessarily the actual
+I/O server.</p></li><li><p><code class="inline">Request</code> and <code class="inline">Reply</code> are described below.</p></li></ul><p>When an I/O server receives an <code class="inline">io_request</code> tuple, it acts upon the <code class="inline">Request</code>
+part and eventually sends an <code class="inline">io_reply</code> tuple with the corresponding <code class="inline">Reply</code>
+part.</p><h2 id="output-requests" class="section-heading">
+  <a href="#output-requests" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Output Requests</span>
+</h2>
+<p>To output characters on an I/O device, the following <code class="inline">Request</code>s exist:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="4720990769-1">{</span><span class="ss">put_chars</span><span class="p">,</span><span class="w"> </span><span class="n">Encoding</span><span class="p">,</span><span class="w"> </span><span class="n">Characters</span><span class="p" data-group-id="4720990769-1">}</span><span class="w">
+</span><span class="p" data-group-id="4720990769-2">{</span><span class="ss">put_chars</span><span class="p">,</span><span class="w"> </span><span class="n">Encoding</span><span class="p">,</span><span class="w"> </span><span class="n">Module</span><span class="p">,</span><span class="w"> </span><span class="n">Function</span><span class="p">,</span><span class="w"> </span><span class="n">Args</span><span class="p" data-group-id="4720990769-2">}</span></code></pre><ul><li><p><code class="inline">Encoding</code> is <code class="inline">unicode</code> or <code class="inline">latin1</code>, meaning that the characters are (in case
+of binaries) encoded as UTF-8 or ISO Latin-1 (pure bytes). A well-behaved I/O
+server is also to return an error indication if list elements contain
+integers &gt; 255 when <code class="inline">Encoding</code> is set to <code class="inline">latin1</code>.</p><p>Notice that this does not in any way tell how characters are to be put on the
+I/O device or handled by the I/O server. Different I/O servers can handle the
+characters however they want, this only tells the I/O server which format the
+data is expected to have. In the <code class="inline">Module</code>/<code class="inline">Function</code>/<code class="inline">Args</code> case, <code class="inline">Encoding</code>
+tells which format the designated function produces.</p><p>Notice also that byte-oriented data is simplest sent using the ISO Latin-1
+encoding.</p></li><li><p><code class="inline">Characters</code> are the data to be put on the I/O device. If <code class="inline">Encoding</code> is
+<code class="inline">latin1</code>, this is an <a href="../../apps/erts/erlang.html#t:iolist/0"><code class="inline">iolist/0</code></a>. If <code class="inline">Encoding</code> is <code class="inline">unicode</code>, this is an
+Erlang standard mixed Unicode list (one integer in a list per character,
+characters in binaries represented as UTF-8).</p></li><li><p><code class="inline">Module</code>, <code class="inline">Function</code>, and <code class="inline">Args</code> denote a function that is called to produce
+the data (like <a href="io_lib.html#format/2"><code class="inline">io_lib:format/2</code></a>).</p><p><code class="inline">Args</code> is a list of arguments to the function. The function is to produce data
+in the specified <code class="inline">Encoding</code>. The I/O server is to call the function as
+<a href="../../apps/erts/erlang.html#apply/3"><code class="inline">apply(Mod, Func, Args)</code></a> and put the returned data on the I/O
+device as if it was sent in a <code class="inline">{put_chars, Encoding, Characters}</code> request. If
+the function returns anything else than a binary or list, or throws an
+exception, an error is to be sent back to the client.</p></li></ul><p>The I/O server replies to the client with an <code class="inline">io_reply</code> tuple, where element
+<code class="inline">Reply</code> is one of:</p><pre><code class="text">ok
+{error, Error}</code></pre><ul><li><code class="inline">Error</code> describes the error to the client, which can do whatever it wants with
+it. The <a href="io.html"><code class="inline">io</code></a> module typically returns it &quot;as is&quot;.</li></ul><h2 id="input-requests" class="section-heading">
+  <a href="#input-requests" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Input Requests</span>
+</h2>
+<p>To read characters from an I/O device, the following <code class="inline">Request</code>s exist:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="0233788644-1">{</span><span class="ss">get_until</span><span class="p">,</span><span class="w"> </span><span class="n">Encoding</span><span class="p">,</span><span class="w"> </span><span class="n">Prompt</span><span class="p">,</span><span class="w"> </span><span class="n">Module</span><span class="p">,</span><span class="w"> </span><span class="n">Function</span><span class="p">,</span><span class="w"> </span><span class="n">ExtraArgs</span><span class="p" data-group-id="0233788644-1">}</span></code></pre><ul><li><p><code class="inline">Encoding</code> denotes how data is to be sent back to the client and what data is
+sent to the function denoted by <code class="inline">Module</code>/<code class="inline">Function</code>/<code class="inline">ExtraArgs</code>. If the
+function supplied returns data as a list, the data is converted to this
+encoding. If the function supplied returns data in some other format, no
+conversion can be done, and it is up to the client-supplied function to return
+data in a proper way.</p><p>If <code class="inline">Encoding</code> is <code class="inline">latin1</code>, lists of integers <code class="inline">0..255</code> or binaries containing
+plain bytes are sent back to the client when possible. If <code class="inline">Encoding</code> is
+<code class="inline">unicode</code>, lists with integers in the whole Unicode range or binaries encoded
+in UTF-8 are sent to the client. The user-supplied function always sees lists
+of integers, never binaries, but the list can contain numbers &gt; 255 if
+<code class="inline">Encoding</code> is <code class="inline">unicode</code>.</p></li><li><p><code class="inline">Prompt</code> is a list of characters (not mixed, no binaries) or an atom to be
+output as a prompt for input on the I/O device. <code class="inline">Prompt</code> is often ignored by
+the I/O server; if set to <code class="inline">''</code>, it is always to be ignored (and results in
+nothing being written to the I/O device).</p></li><li><p><code class="inline">Module</code>, <code class="inline">Function</code>, and <code class="inline">ExtraArgs</code> denote a function and arguments to
+determine when enough data is written. The function is to take two more
+arguments, the last state, and a list of characters. The function is to return
+one of:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="6683978251-1">{</span><span class="ss">done</span><span class="p">,</span><span class="w"> </span><span class="n">Result</span><span class="p">,</span><span class="w"> </span><span class="n">RestChars</span><span class="p" data-group-id="6683978251-1">}</span><span class="w">
+</span><span class="p" data-group-id="6683978251-2">{</span><span class="ss">more</span><span class="p">,</span><span class="w"> </span><span class="n">Continuation</span><span class="p" data-group-id="6683978251-2">}</span></code></pre><p><code class="inline">Result</code> can be any Erlang term, but if it is a <a href="../../apps/erts/erlang.html#t:list/0"><code class="inline">list/0</code></a>, the I/O server can
+convert it to a <a href="../../apps/erts/erlang.html#t:binary/0"><code class="inline">binary/0</code></a> of appropriate format before returning it to the
+client, if the I/O server is set in binary mode (see below).</p><p>The function is called with the data the I/O server finds on its I/O device,
+returning one of:</p><ul><li><code class="inline">{done, Result, RestChars}</code> when enough data is read. In this case <code class="inline">Result</code>
+is sent to the client and <code class="inline">RestChars</code> is kept in the I/O server as a buffer
+for later input.</li><li><code class="inline">{more, Continuation}</code>, which indicates that more characters are needed to
+complete the request.</li></ul><p><code class="inline">Continuation</code> is sent as the state in later calls to the function when more
+characters are available. When no more characters are available, the function
+must return <code class="inline">{done, eof, Rest}</code>. The initial state is the empty list. The data
+when an end of file is reached on the IO device is the atom <code class="inline">eof</code>.</p><p>An emulation of the <code class="inline">get_line</code> request can be (inefficiently) implemented
+using the following functions:</p><pre><code class="makeup erlang" translate="no"><span class="p">-</span><span class="na">module</span><span class="p" data-group-id="6238343817-1">(</span><span class="ss">demo</span><span class="p" data-group-id="6238343817-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="6238343817-2">(</span><span class="p" data-group-id="6238343817-3">[</span><span class="ss">until_newline</span><span class="p">/</span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="ss">get_line</span><span class="p">/</span><span class="mi">1</span><span class="p" data-group-id="6238343817-3">]</span><span class="p" data-group-id="6238343817-2">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">until_newline</span><span class="p" data-group-id="6238343817-4">(</span><span class="p">_</span><span class="n">ThisFar</span><span class="p">,</span><span class="ss">eof</span><span class="p">,</span><span class="p">_</span><span class="n">MyStopCharacter</span><span class="p" data-group-id="6238343817-4">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="6238343817-5">{</span><span class="ss">done</span><span class="p">,</span><span class="ss">eof</span><span class="p">,</span><span class="p" data-group-id="6238343817-6">[</span><span class="p" data-group-id="6238343817-6">]</span><span class="p" data-group-id="6238343817-5">}</span><span class="p">;</span><span class="w">
+</span><span class="nf">until_newline</span><span class="p" data-group-id="6238343817-7">(</span><span class="n">ThisFar</span><span class="p">,</span><span class="n">CharList</span><span class="p">,</span><span class="n">MyStopCharacter</span><span class="p" data-group-id="6238343817-7">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">case</span><span class="w">
+        </span><span class="nc">lists</span><span class="p">:</span><span class="nf">splitwith</span><span class="p" data-group-id="6238343817-8">(</span><span class="nf">fun</span><span class="p" data-group-id="6238343817-9">(</span><span class="n">X</span><span class="p" data-group-id="6238343817-9">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="n">X</span><span class="w"> </span><span class="o">=/=</span><span class="w"> </span><span class="n">MyStopCharacter</span><span class="w"> </span><span class="k">end</span><span class="p">,</span><span class="w">  </span><span class="n">CharList</span><span class="p" data-group-id="6238343817-8">)</span><span class="w">
+    </span><span class="k">of</span><span class="w">
+  </span><span class="p" data-group-id="6238343817-10">{</span><span class="n">L</span><span class="p">,</span><span class="p" data-group-id="6238343817-11">[</span><span class="p" data-group-id="6238343817-11">]</span><span class="p" data-group-id="6238343817-10">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="p" data-group-id="6238343817-12">{</span><span class="ss">more</span><span class="p">,</span><span class="n">ThisFar</span><span class="o">++</span><span class="n">L</span><span class="p" data-group-id="6238343817-12">}</span><span class="p">;</span><span class="w">
+  </span><span class="p" data-group-id="6238343817-13">{</span><span class="n">L2</span><span class="p">,</span><span class="p" data-group-id="6238343817-14">[</span><span class="n">MyStopCharacter</span><span class="p">|</span><span class="n">Rest</span><span class="p" data-group-id="6238343817-14">]</span><span class="p" data-group-id="6238343817-13">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+      </span><span class="p" data-group-id="6238343817-15">{</span><span class="ss">done</span><span class="p">,</span><span class="n">ThisFar</span><span class="o">++</span><span class="n">L2</span><span class="o">++</span><span class="p" data-group-id="6238343817-16">[</span><span class="n">MyStopCharacter</span><span class="p" data-group-id="6238343817-16">]</span><span class="p">,</span><span class="n">Rest</span><span class="p" data-group-id="6238343817-15">}</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">get_line</span><span class="p" data-group-id="6238343817-17">(</span><span class="n">IoServer</span><span class="p" data-group-id="6238343817-17">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">IoServer</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="p" data-group-id="6238343817-18">{</span><span class="ss">io_request</span><span class="p">,</span><span class="w">
+                </span><span class="nf">self</span><span class="p" data-group-id="6238343817-19">(</span><span class="p" data-group-id="6238343817-19">)</span><span class="p">,</span><span class="w">
+                </span><span class="n">IoServer</span><span class="p">,</span><span class="w">
+                </span><span class="p" data-group-id="6238343817-20">{</span><span class="ss">get_until</span><span class="p">,</span><span class="w"> </span><span class="ss">unicode</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;&#39;</span><span class="p">,</span><span class="w"> </span><span class="o">?</span><span class="n">MODULE</span><span class="p">,</span><span class="w"> </span><span class="ss">until_newline</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6238343817-21">[</span><span class="sc">$\</span><span class="ss">n</span><span class="p" data-group-id="6238343817-21">]</span><span class="p" data-group-id="6238343817-20">}</span><span class="p" data-group-id="6238343817-18">}</span><span class="p">,</span><span class="w">
+    </span><span class="k">receive</span><span class="w">
+        </span><span class="p" data-group-id="6238343817-22">{</span><span class="ss">io_reply</span><span class="p">,</span><span class="w"> </span><span class="n">IoServer</span><span class="p">,</span><span class="w"> </span><span class="n">Data</span><span class="p" data-group-id="6238343817-22">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+      </span><span class="n">Data</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span></code></pre><p>Notice that the last element in the <code class="inline">Request</code> tuple (<code class="inline">[$\n]</code>) is appended to
+the argument list when the function is called. The function is to be called
+like <a href="../../apps/erts/erlang.html#apply/3"><code class="inline">apply(Module, Function, [ State, Data | ExtraArgs ])</code></a> by
+the I/O server.</p></li></ul><p>A fixed number of characters is requested using the following <code class="inline">Request</code>:</p><pre><code class="text">{get_chars, Encoding, Prompt, N}</code></pre><ul><li><code class="inline">Encoding</code> and <code class="inline">Prompt</code> as for <code class="inline">get_until</code>.</li><li><code class="inline">N</code> is the number of characters to be read from the I/O device.</li></ul><p>A single line (as in former example) is requested with the following <code class="inline">Request</code>:</p><pre><code class="text">{get_line, Encoding, Prompt}</code></pre><ul><li><code class="inline">Encoding</code> and <code class="inline">Prompt</code> as for <code class="inline">get_until</code>.</li></ul><p>Clearly, <code class="inline">get_chars</code> and <code class="inline">get_line</code> could be implemented with the <code class="inline">get_until</code>
+request (and indeed they were originally), but demands for efficiency have made
+these additions necessary.</p><p>The I/O server replies to the client with an <code class="inline">io_reply</code> tuple, where element
+<code class="inline">Reply</code> is one of:</p><pre><code class="text">Data
+eof
+{error, Error}</code></pre><ul><li><code class="inline">Data</code> is the characters read, in list or binary form (depending on the I/O
+server mode, see the next section).</li><li><code class="inline">eof</code> is returned when input end is reached and no more data is available to
+the client process.</li><li><code class="inline">Error</code> describes the error to the client, which can do whatever it wants with
+it. The <a href="io.html"><code class="inline">io</code></a> module typically returns it as is.</li></ul><h2 id="i-o-server-modes" class="section-heading">
+  <a href="#i-o-server-modes" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">I/O Server Modes</span>
+</h2>
+<p>Demands for efficiency when reading data from an I/O server has not only lead to
+the addition of the <code class="inline">get_line</code> and <code class="inline">get_chars</code> requests, but has also added the
+concept of I/O server options. No options are mandatory to implement, but all
+I/O servers in the Erlang standard libraries honor the <code class="inline">binary</code> option, which
+allows element <code class="inline">Data</code> of the <code class="inline">io_reply</code> tuple to be a binary instead of a list
+<em>when possible</em>. If the data is sent as a binary, Unicode data is sent in the
+standard Erlang Unicode format, that is, UTF-8 (notice that the function of the
+<code class="inline">get_until</code> request still gets list data regardless of the I/O server mode).</p><p>Notice that the <code class="inline">get_until</code> request allows for a function with the data
+specified as always being a list. Also, the return value data from such a
+function can be of any type (as is indeed the case when an
+<a href="io.html#fread/2"><code class="inline">io:fread/2,3</code></a> request is sent to an I/O server). The client
+must be prepared for data received as answers to those requests to be in various
+forms. However, the I/O server is to convert the results to binaries whenever
+possible (that is, when the function supplied to <code class="inline">get_until</code> returns a list).
+This is done in the example in section
+<a href="io_protocol.html#example_io_server">An Annotated and Working Example I/O Server</a>.</p><p>An I/O server in binary mode affects the data sent to the client, so that it
+must be able to handle binary data. For convenience, the modes of an I/O server
+can be set and retrieved using the following I/O requests:</p><pre><code class="text">{setopts, Opts}</code></pre><ul><li><code class="inline">Opts</code> is a list of options in the format recognized by the <a href="proplists.html"><code class="inline">proplists</code></a>
+module (and by the I/O server).</li></ul><p>As an example, the I/O server for the interactive shell (in <code class="inline">group.erl</code>)
+understands the following options:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="0565212895-1">{</span><span class="ss">binary</span><span class="p">,</span><span class="w"> </span><span class="nf">boolean</span><span class="p" data-group-id="0565212895-2">(</span><span class="p" data-group-id="0565212895-2">)</span><span class="p" data-group-id="0565212895-1">}</span><span class="w"> </span><span class="p" data-group-id="0565212895-3">(</span><span class="ow">or</span><span class="w"> </span><span class="ss">binary</span><span class="o">/</span><span class="ss">list</span><span class="p" data-group-id="0565212895-3">)</span><span class="w">
+</span><span class="p" data-group-id="0565212895-4">{</span><span class="ss">echo</span><span class="p">,</span><span class="w"> </span><span class="nf">boolean</span><span class="p" data-group-id="0565212895-5">(</span><span class="p" data-group-id="0565212895-5">)</span><span class="p" data-group-id="0565212895-4">}</span><span class="w">
+</span><span class="p" data-group-id="0565212895-6">{</span><span class="ss">expand_fun</span><span class="p">,</span><span class="w"> </span><span class="nf">fun</span><span class="p" data-group-id="0565212895-7">(</span><span class="p" data-group-id="0565212895-7">)</span><span class="p" data-group-id="0565212895-6">}</span><span class="w">
+</span><span class="p" data-group-id="0565212895-8">{</span><span class="ss">encoding</span><span class="p">,</span><span class="w"> </span><span class="ss">unicode</span><span class="o">/</span><span class="ss">latin1</span><span class="p" data-group-id="0565212895-8">}</span><span class="w"> </span><span class="p" data-group-id="0565212895-9">(</span><span class="ow">or</span><span class="w"> </span><span class="ss">unicode</span><span class="o">/</span><span class="ss">latin1</span><span class="p" data-group-id="0565212895-9">)</span></code></pre><p>Options <code class="inline">binary</code> and <code class="inline">encoding</code> are common for all I/O servers in OTP, while
+<code class="inline">echo</code> and <code class="inline">expand</code> are valid only for this I/O server. Option <code class="inline">unicode</code>
+notifies how characters are put on the physical I/O device, that is, if the
+terminal itself is Unicode-aware. It does not affect how characters are sent in
+the I/O protocol, where each request contains encoding information for the
+provided or returned data.</p><p>The I/O server is to send one of the following as <code class="inline">Reply</code>:</p><pre><code class="text">ok
+{error, Error}</code></pre><p>An error (preferably <code class="inline">enotsup</code>) is to be expected if the option is not supported
+by the I/O server (like if an <code class="inline">echo</code> option is sent in a <code class="inline">setopts</code> request to a
+plain file).</p><p>To retrieve options, the following request is used:</p><pre><code class="text">getopts</code></pre><p>This request asks for a complete list of all options supported by the I/O server
+as well as their current values.</p><p>The I/O server replies:</p><pre><code class="text">OptList
+{error, Error}</code></pre><ul><li><code class="inline">OptList</code> is a list of tuples <code class="inline">{Option, Value}</code>, where <code class="inline">Option</code> always is an
+atom.</li></ul><h2 id="multiple-i-o-requests" class="section-heading">
+  <a href="#multiple-i-o-requests" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Multiple I/O Requests</span>
+</h2>
+<p>The <code class="inline">Request</code> element can in itself contain many <code class="inline">Request</code>s by using the
+following format:</p><pre><code class="text">{requests, Requests}</code></pre><ul><li><code class="inline">Requests</code> is a list of valid <code class="inline">io_request</code> tuples for the protocol. They must
+be executed in the order that they appear in the list. The execution is to
+continue until one of the requests results in an error or the list is
+consumed. The result of the last request is sent back to the client.</li></ul><p>The I/O server can, for a list of requests, send any of the following valid
+results in the reply, depending on the requests in the list:</p><pre><code class="makeup erlang" translate="no"><span class="ss">ok</span><span class="w">
+</span><span class="p" data-group-id="1502925645-1">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">Data</span><span class="p" data-group-id="1502925645-1">}</span><span class="w">
+</span><span class="p" data-group-id="1502925645-2">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">Options</span><span class="p" data-group-id="1502925645-2">}</span><span class="w">
+</span><span class="p" data-group-id="1502925645-3">{</span><span class="ss">error</span><span class="p">,</span><span class="w"> </span><span class="n">Error</span><span class="p" data-group-id="1502925645-3">}</span></code></pre><h2 id="optional-i-o-request" class="section-heading">
+  <a href="#optional-i-o-request" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Optional I/O Request</span>
+</h2>
+<p>The following I/O request is optional to implement and a client is to be
+prepared for an error return:</p><pre><code class="text">{get_geometry, Geometry}</code></pre><ul><li><code class="inline">Geometry</code> is the atom <code class="inline">rows</code> or the atom <code class="inline">columns</code>.</li></ul><p>The I/O server is to send one of the following as <code class="inline">Reply</code>:</p><pre><code class="text">N
+{error, Error}</code></pre><ul><li><code class="inline">N</code> is the number of character rows or columns that the I/O device has, if
+applicable to the I/O device handled by the I/O server, otherwise
+<code class="inline">{error, enotsup}</code> is a good answer.</li></ul><h2 id="unimplemented-request-types" class="section-heading">
+  <a href="#unimplemented-request-types" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Unimplemented Request Types</span>
+</h2>
+<p>If an I/O server encounters a request that it does not recognize (that is, the
+<code class="inline">io_request</code> tuple has the expected format, but the <code class="inline">Request</code> is unknown), the
+I/O server is to send a valid reply with the error tuple:</p><pre><code class="text">{error, request}</code></pre><p>This makes it possible to extend the protocol with optional requests and for the
+clients to be somewhat backward compatible.</p><h2 id="an-annotated-and-working-example-i-o-server" class="section-heading">
+  <a href="#an-annotated-and-working-example-i-o-server" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">An Annotated and Working Example I/O Server</span>
+</h2>
+<p><a href="" id="example_io_server"></a></p><p>An I/O server is any process capable of handling the I/O protocol. There is no
+generic I/O server behavior, but could well be. The framework is simple, a
+process handling incoming requests, usually both I/O-requests and other I/O
+device-specific requests (positioning, closing, and so on).</p><p>The example I/O server stores characters in an ETS table, making up a fairly
+crude RAM file.</p><p>The module begins with the usual directives, a function to start the I/O server
+and a main loop handling the requests:</p><pre><code class="makeup erlang" translate="no"><span class="p">-</span><span class="na">module</span><span class="p" data-group-id="7178777762-1">(</span><span class="ss">ets_io_server</span><span class="p" data-group-id="7178777762-1">)</span><span class="p">.</span><span class="w">
+</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="7178777762-2">(</span><span class="p" data-group-id="7178777762-3">[</span><span class="ss">start_link</span><span class="p">/</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="ss">init</span><span class="p">/</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="ss">loop</span><span class="p">/</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="ss">until_newline</span><span class="p">/</span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="ss">until_enough</span><span class="p">/</span><span class="mi">3</span><span class="p" data-group-id="7178777762-3">]</span><span class="p" data-group-id="7178777762-2">)</span><span class="p">.</span><span class="w">
+</span><span class="w">
+</span><span class="p">-</span><span class="na">define</span><span class="p" data-group-id="7178777762-4">(</span><span class="n">CHARS_PER_REC</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p" data-group-id="7178777762-4">)</span><span class="p">.</span><span class="w">
+</span><span class="w">
+</span><span class="p">-</span><span class="na">record</span><span class="p" data-group-id="7178777762-5">(</span><span class="ss">state</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7178777762-6">{</span><span class="w">
+</span><span class="err">	</span><span class="w">  </span><span class="ss">table</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w">  </span><span class="ss">position</span><span class="p">,</span><span class="w"> </span><span class="c1">% absolute</span><span class="w">
+</span><span class="err">	</span><span class="w">  </span><span class="ss">mode</span><span class="w"> </span><span class="c1">% binary | list</span><span class="w">
+</span><span class="err">	</span><span class="w"> </span><span class="p" data-group-id="7178777762-6">}</span><span class="p" data-group-id="7178777762-5">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">start_link</span><span class="p" data-group-id="7178777762-7">(</span><span class="p" data-group-id="7178777762-7">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">spawn_link</span><span class="p" data-group-id="7178777762-8">(</span><span class="o">?</span><span class="n">MODULE</span><span class="p">,</span><span class="ss">init</span><span class="p">,</span><span class="p" data-group-id="7178777762-9">[</span><span class="p" data-group-id="7178777762-9">]</span><span class="p" data-group-id="7178777762-8">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">init</span><span class="p" data-group-id="7178777762-10">(</span><span class="p" data-group-id="7178777762-10">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">Table</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">ets</span><span class="p">:</span><span class="nf">new</span><span class="p" data-group-id="7178777762-11">(</span><span class="ss">noname</span><span class="p">,</span><span class="p" data-group-id="7178777762-12">[</span><span class="ss">ordered_set</span><span class="p" data-group-id="7178777762-12">]</span><span class="p" data-group-id="7178777762-11">)</span><span class="p">,</span><span class="w">
+    </span><span class="o">?</span><span class="n">MODULE</span><span class="p">:</span><span class="nf">loop</span><span class="p" data-group-id="7178777762-13">(</span><span class="o">#</span><span class="ss">state</span><span class="p" data-group-id="7178777762-14">{</span><span class="ss">table</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Table</span><span class="p">,</span><span class="w"> </span><span class="ss">position</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="ss">mode</span><span class="o">=</span><span class="ss">list</span><span class="p" data-group-id="7178777762-14">}</span><span class="p" data-group-id="7178777762-13">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">loop</span><span class="p" data-group-id="7178777762-15">(</span><span class="n">State</span><span class="p" data-group-id="7178777762-15">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">receive</span><span class="w">
+</span><span class="err">	</span><span class="p" data-group-id="7178777762-16">{</span><span class="ss">io_request</span><span class="p">,</span><span class="w"> </span><span class="n">From</span><span class="p">,</span><span class="w"> </span><span class="n">ReplyAs</span><span class="p">,</span><span class="w"> </span><span class="n">Request</span><span class="p" data-group-id="7178777762-16">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="nf">request</span><span class="p" data-group-id="7178777762-17">(</span><span class="n">Request</span><span class="p">,</span><span class="n">State</span><span class="p" data-group-id="7178777762-17">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="p" data-group-id="7178777762-18">{</span><span class="n">Tag</span><span class="p">,</span><span class="w"> </span><span class="n">Reply</span><span class="p">,</span><span class="w"> </span><span class="n">NewState</span><span class="p" data-group-id="7178777762-18">}</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="n">Tag</span><span class="w"> </span><span class="o">=:=</span><span class="w"> </span><span class="ss">ok</span><span class="p">;</span><span class="w"> </span><span class="n">Tag</span><span class="w"> </span><span class="o">=:=</span><span class="w"> </span><span class="ss">error</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">    </span><span class="nf">reply</span><span class="p" data-group-id="7178777762-19">(</span><span class="n">From</span><span class="p">,</span><span class="w"> </span><span class="n">ReplyAs</span><span class="p">,</span><span class="w"> </span><span class="n">Reply</span><span class="p" data-group-id="7178777762-19">)</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">    </span><span class="o">?</span><span class="n">MODULE</span><span class="p">:</span><span class="nf">loop</span><span class="p" data-group-id="7178777762-20">(</span><span class="n">NewState</span><span class="p" data-group-id="7178777762-20">)</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="p" data-group-id="7178777762-21">{</span><span class="ss">stop</span><span class="p">,</span><span class="w"> </span><span class="n">Reply</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">NewState</span><span class="p" data-group-id="7178777762-21">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">    </span><span class="nf">reply</span><span class="p" data-group-id="7178777762-22">(</span><span class="n">From</span><span class="p">,</span><span class="w"> </span><span class="n">ReplyAs</span><span class="p">,</span><span class="w"> </span><span class="n">Reply</span><span class="p" data-group-id="7178777762-22">)</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">    </span><span class="nf">exit</span><span class="p" data-group-id="7178777762-23">(</span><span class="n">Reply</span><span class="p" data-group-id="7178777762-23">)</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="k">end</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="c1">%% Private message</span><span class="w">
+</span><span class="err">	</span><span class="p" data-group-id="7178777762-24">{</span><span class="n">From</span><span class="p">,</span><span class="w"> </span><span class="ss">rewind</span><span class="p" data-group-id="7178777762-24">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="n">From</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="p" data-group-id="7178777762-25">{</span><span class="nf">self</span><span class="p" data-group-id="7178777762-26">(</span><span class="p" data-group-id="7178777762-26">)</span><span class="p">,</span><span class="w"> </span><span class="ss">ok</span><span class="p" data-group-id="7178777762-25">}</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="o">?</span><span class="n">MODULE</span><span class="p">:</span><span class="nf">loop</span><span class="p" data-group-id="7178777762-27">(</span><span class="n">State</span><span class="o">#</span><span class="ss">state</span><span class="p" data-group-id="7178777762-28">{</span><span class="ss">position</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p" data-group-id="7178777762-28">}</span><span class="p" data-group-id="7178777762-27">)</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="p">_</span><span class="n">Unknown</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="o">?</span><span class="n">MODULE</span><span class="p">:</span><span class="nf">loop</span><span class="p" data-group-id="7178777762-29">(</span><span class="n">State</span><span class="p" data-group-id="7178777762-29">)</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span></code></pre><p>The main loop receives messages from the client (which can use the the <a href="io.html"><code class="inline">io</code></a>
+module to send requests). For each request, the function <code class="inline">request/2</code> is called
+and a reply is eventually sent using function <code class="inline">reply/3</code>.</p><p>The &quot;private&quot; message <code class="inline">{From, rewind}</code> results in the current position in the
+pseudo-file to be reset to <code class="inline">0</code> (the beginning of the &quot;file&quot;). This is a typical
+example of I/O device-specific messages not being part of the I/O protocol. It
+is usually a bad idea to embed such private messages in <code class="inline">io_request</code> tuples, as
+that can confuse the reader.</p><p>First, we examine the reply function:</p><pre><code class="makeup erlang" translate="no"><span class="nf">reply</span><span class="p" data-group-id="1982047673-1">(</span><span class="n">From</span><span class="p">,</span><span class="w"> </span><span class="n">ReplyAs</span><span class="p">,</span><span class="w"> </span><span class="n">Reply</span><span class="p" data-group-id="1982047673-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">From</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="p" data-group-id="1982047673-2">{</span><span class="ss">io_reply</span><span class="p">,</span><span class="w"> </span><span class="n">ReplyAs</span><span class="p">,</span><span class="w"> </span><span class="n">Reply</span><span class="p" data-group-id="1982047673-2">}</span><span class="p">.</span></code></pre><p>It sends the <code class="inline">io_reply</code> tuple back to the client, providing element <code class="inline">ReplyAs</code>
+received in the request along with the result of the request, as described
+earlier.</p><p>We need to handle some requests. First the requests for writing characters:</p><pre><code class="makeup erlang" translate="no"><span class="nf">request</span><span class="p" data-group-id="7739269538-1">(</span><span class="p" data-group-id="7739269538-2">{</span><span class="ss">put_chars</span><span class="p">,</span><span class="w"> </span><span class="n">Encoding</span><span class="p">,</span><span class="w"> </span><span class="n">Chars</span><span class="p" data-group-id="7739269538-2">}</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="7739269538-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">put_chars</span><span class="p" data-group-id="7739269538-3">(</span><span class="nc">unicode</span><span class="p">:</span><span class="nf">characters_to_list</span><span class="p" data-group-id="7739269538-4">(</span><span class="n">Chars</span><span class="p">,</span><span class="n">Encoding</span><span class="p" data-group-id="7739269538-4">)</span><span class="p">,</span><span class="n">State</span><span class="p" data-group-id="7739269538-3">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">request</span><span class="p" data-group-id="7739269538-5">(</span><span class="p" data-group-id="7739269538-6">{</span><span class="ss">put_chars</span><span class="p">,</span><span class="w"> </span><span class="n">Encoding</span><span class="p">,</span><span class="w"> </span><span class="n">Module</span><span class="p">,</span><span class="w"> </span><span class="n">Function</span><span class="p">,</span><span class="w"> </span><span class="n">Args</span><span class="p" data-group-id="7739269538-6">}</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="7739269538-5">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">try</span><span class="w">
+</span><span class="err">	</span><span class="nf">request</span><span class="p" data-group-id="7739269538-7">(</span><span class="p" data-group-id="7739269538-8">{</span><span class="ss">put_chars</span><span class="p">,</span><span class="w"> </span><span class="n">Encoding</span><span class="p">,</span><span class="w"> </span><span class="nf">apply</span><span class="p" data-group-id="7739269538-9">(</span><span class="n">Module</span><span class="p">,</span><span class="w"> </span><span class="n">Function</span><span class="p">,</span><span class="w"> </span><span class="n">Args</span><span class="p" data-group-id="7739269538-9">)</span><span class="p" data-group-id="7739269538-8">}</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="7739269538-7">)</span><span class="w">
+    </span><span class="k">catch</span><span class="w">
+</span><span class="err">	</span><span class="p">_</span><span class="p">:</span><span class="p">_</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="p" data-group-id="7739269538-10">{</span><span class="ss">error</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7739269538-11">{</span><span class="ss">error</span><span class="p">,</span><span class="n">Function</span><span class="p" data-group-id="7739269538-11">}</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="7739269538-10">}</span><span class="w">
+    </span><span class="k">end</span><span class="p">;</span></code></pre><p>The <code class="inline">Encoding</code> says how the characters in the request are represented. We want
+to store the characters as lists in the ETS table, so we convert them to lists
+using function <a href="unicode.html#characters_to_list/2"><code class="inline">unicode:characters_to_list/2</code></a>. The conversion function
+conveniently accepts the encoding types <code class="inline">unicode</code> and <code class="inline">latin1</code>, so we can use
+<code class="inline">Encoding</code> directly.</p><p>When <code class="inline">Module</code>, <code class="inline">Function</code>, and <code class="inline">Arguments</code> are provided, we apply it and do the
+same with the result as if the data was provided directly.</p><p>We handle the requests for retrieving data:</p><pre><code class="makeup erlang" translate="no"><span class="nf">request</span><span class="p" data-group-id="0174865624-1">(</span><span class="p" data-group-id="0174865624-2">{</span><span class="ss">get_until</span><span class="p">,</span><span class="w"> </span><span class="n">Encoding</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">Prompt</span><span class="p">,</span><span class="w"> </span><span class="n">M</span><span class="p">,</span><span class="w"> </span><span class="n">F</span><span class="p">,</span><span class="w"> </span><span class="n">As</span><span class="p" data-group-id="0174865624-2">}</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="0174865624-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">get_until</span><span class="p" data-group-id="0174865624-3">(</span><span class="n">Encoding</span><span class="p">,</span><span class="w"> </span><span class="n">M</span><span class="p">,</span><span class="w"> </span><span class="n">F</span><span class="p">,</span><span class="w"> </span><span class="n">As</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="0174865624-3">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">request</span><span class="p" data-group-id="0174865624-4">(</span><span class="p" data-group-id="0174865624-5">{</span><span class="ss">get_chars</span><span class="p">,</span><span class="w"> </span><span class="n">Encoding</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">Prompt</span><span class="p">,</span><span class="w"> </span><span class="n">N</span><span class="p" data-group-id="0174865624-5">}</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="0174865624-4">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="c1">%% To simplify the code, get_chars is implemented using get_until</span><span class="w">
+    </span><span class="nf">get_until</span><span class="p" data-group-id="0174865624-6">(</span><span class="n">Encoding</span><span class="p">,</span><span class="w"> </span><span class="o">?</span><span class="n">MODULE</span><span class="p">,</span><span class="w"> </span><span class="ss">until_enough</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0174865624-7">[</span><span class="n">N</span><span class="p" data-group-id="0174865624-7">]</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="0174865624-6">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">request</span><span class="p" data-group-id="0174865624-8">(</span><span class="p" data-group-id="0174865624-9">{</span><span class="ss">get_line</span><span class="p">,</span><span class="w"> </span><span class="n">Encoding</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">Prompt</span><span class="p" data-group-id="0174865624-9">}</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="0174865624-8">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="c1">%% To simplify the code, get_line is implemented using get_until</span><span class="w">
+    </span><span class="nf">get_until</span><span class="p" data-group-id="0174865624-10">(</span><span class="n">Encoding</span><span class="p">,</span><span class="w"> </span><span class="o">?</span><span class="n">MODULE</span><span class="p">,</span><span class="w"> </span><span class="ss">until_newline</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0174865624-11">[</span><span class="sc">$\</span><span class="ss">n</span><span class="p" data-group-id="0174865624-11">]</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="0174865624-10">)</span><span class="p">;</span></code></pre><p>Here we have cheated a little by more or less only implementing <code class="inline">get_until</code> and
+using internal helpers to implement <code class="inline">get_chars</code> and <code class="inline">get_line</code>. In production
+code, this can be inefficient, but that depends on the frequency of the
+different requests. Before we start implementing functions <code class="inline">put_chars/2</code> and
+<code class="inline">get_until/5</code>, we examine the few remaining requests:</p><pre><code class="makeup erlang" translate="no"><span class="nf">request</span><span class="p" data-group-id="2511745580-1">(</span><span class="p" data-group-id="2511745580-2">{</span><span class="ss">get_geometry</span><span class="p">,</span><span class="p">_</span><span class="p" data-group-id="2511745580-2">}</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="2511745580-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="2511745580-3">{</span><span class="ss">error</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2511745580-4">{</span><span class="ss">error</span><span class="p">,</span><span class="ss">enotsup</span><span class="p" data-group-id="2511745580-4">}</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="2511745580-3">}</span><span class="p">;</span><span class="w">
+</span><span class="nf">request</span><span class="p" data-group-id="2511745580-5">(</span><span class="p" data-group-id="2511745580-6">{</span><span class="ss">setopts</span><span class="p">,</span><span class="w"> </span><span class="n">Opts</span><span class="p" data-group-id="2511745580-6">}</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="2511745580-5">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">setopts</span><span class="p" data-group-id="2511745580-7">(</span><span class="n">Opts</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="2511745580-7">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">request</span><span class="p" data-group-id="2511745580-8">(</span><span class="ss">getopts</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="2511745580-8">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">getopts</span><span class="p" data-group-id="2511745580-9">(</span><span class="n">State</span><span class="p" data-group-id="2511745580-9">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">request</span><span class="p" data-group-id="2511745580-10">(</span><span class="p" data-group-id="2511745580-11">{</span><span class="ss">requests</span><span class="p">,</span><span class="w"> </span><span class="n">Reqs</span><span class="p" data-group-id="2511745580-11">}</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="2511745580-10">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+     </span><span class="nf">multi_request</span><span class="p" data-group-id="2511745580-12">(</span><span class="n">Reqs</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2511745580-13">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="2511745580-13">}</span><span class="p" data-group-id="2511745580-12">)</span><span class="p">;</span></code></pre><p>Request <code class="inline">get_geometry</code> has no meaning for this I/O server, so the reply is
+<code class="inline">{error, enotsup}</code>. The only option we handle is <code class="inline">binary</code>/<code class="inline">list</code>, which is done
+in separate functions.</p><p>The multi-request tag (<code class="inline">requests</code>) is handled in a separate loop function
+applying the requests in the list one after another, returning the last result.</p><p><code class="inline">{error, request}</code> must be returned if the request is not recognized:</p><pre><code class="makeup erlang" translate="no"><span class="nf">request</span><span class="p" data-group-id="7954892245-1">(</span><span class="p">_</span><span class="n">Other</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="7954892245-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="7954892245-2">{</span><span class="ss">error</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7954892245-3">{</span><span class="ss">error</span><span class="p">,</span><span class="w"> </span><span class="ss">request</span><span class="p" data-group-id="7954892245-3">}</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="7954892245-2">}</span><span class="p">.</span></code></pre><p>Next we handle the different requests, first the fairly generic multi-request
+type:</p><pre><code class="makeup erlang" translate="no"><span class="nf">multi_request</span><span class="p" data-group-id="0568594768-1">(</span><span class="p" data-group-id="0568594768-2">[</span><span class="n">R</span><span class="p">|</span><span class="n">Rs</span><span class="p" data-group-id="0568594768-2">]</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0568594768-3">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">Res</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="0568594768-3">}</span><span class="p" data-group-id="0568594768-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">multi_request</span><span class="p" data-group-id="0568594768-4">(</span><span class="n">Rs</span><span class="p">,</span><span class="w"> </span><span class="nf">request</span><span class="p" data-group-id="0568594768-5">(</span><span class="n">R</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="0568594768-5">)</span><span class="p" data-group-id="0568594768-4">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">multi_request</span><span class="p" data-group-id="0568594768-6">(</span><span class="p" data-group-id="0568594768-7">[</span><span class="p">_</span><span class="p">|</span><span class="p">_</span><span class="p" data-group-id="0568594768-7">]</span><span class="p">,</span><span class="w"> </span><span class="n">Error</span><span class="p" data-group-id="0568594768-6">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">Error</span><span class="p">;</span><span class="w">
+</span><span class="nf">multi_request</span><span class="p" data-group-id="0568594768-8">(</span><span class="p" data-group-id="0568594768-9">[</span><span class="p" data-group-id="0568594768-9">]</span><span class="p">,</span><span class="w"> </span><span class="n">Result</span><span class="p" data-group-id="0568594768-8">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">Result</span><span class="p">.</span></code></pre><p>We loop through the requests one at the time, stopping when we either encounter
+an error or the list is exhausted. The last return value is sent back to the
+client (it is first returned to the main loop and then sent back by function
+<code class="inline">io_reply</code>).</p><p>Requests <code class="inline">getopts</code> and <code class="inline">setopts</code> are also simple to handle. We only change or
+read the state record:</p><pre><code class="makeup erlang" translate="no"><span class="nf">setopts</span><span class="p" data-group-id="6807977527-1">(</span><span class="n">Opts0</span><span class="p">,</span><span class="n">State</span><span class="p" data-group-id="6807977527-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">Opts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">proplists</span><span class="p">:</span><span class="nf">unfold</span><span class="p" data-group-id="6807977527-2">(</span><span class="w">
+</span><span class="err">	</span><span class="w">     </span><span class="nc">proplists</span><span class="p">:</span><span class="nf">substitute_negations</span><span class="p" data-group-id="6807977527-3">(</span><span class="w">
+</span><span class="err">	</span><span class="w">       </span><span class="p" data-group-id="6807977527-4">[</span><span class="p" data-group-id="6807977527-5">{</span><span class="ss">list</span><span class="p">,</span><span class="ss">binary</span><span class="p" data-group-id="6807977527-5">}</span><span class="p" data-group-id="6807977527-4">]</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w">       </span><span class="n">Opts0</span><span class="p" data-group-id="6807977527-3">)</span><span class="p" data-group-id="6807977527-2">)</span><span class="p">,</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="nf">check_valid_opts</span><span class="p" data-group-id="6807977527-6">(</span><span class="n">Opts</span><span class="p" data-group-id="6807977527-6">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+</span><span class="err">	</span><span class="ss">true</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">        </span><span class="k">case</span><span class="w"> </span><span class="nc">proplists</span><span class="p">:</span><span class="nf">get_value</span><span class="p" data-group-id="6807977527-7">(</span><span class="ss">binary</span><span class="p">,</span><span class="w"> </span><span class="n">Opts</span><span class="p" data-group-id="6807977527-7">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">    </span><span class="ss">true</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="p" data-group-id="6807977527-8">{</span><span class="ss">ok</span><span class="p">,</span><span class="ss">ok</span><span class="p">,</span><span class="n">State</span><span class="o">#</span><span class="ss">state</span><span class="p" data-group-id="6807977527-9">{</span><span class="ss">mode</span><span class="o">=</span><span class="ss">binary</span><span class="p" data-group-id="6807977527-9">}</span><span class="p" data-group-id="6807977527-8">}</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">    </span><span class="ss">false</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="p" data-group-id="6807977527-10">{</span><span class="ss">ok</span><span class="p">,</span><span class="ss">ok</span><span class="p">,</span><span class="n">State</span><span class="o">#</span><span class="ss">state</span><span class="p" data-group-id="6807977527-11">{</span><span class="ss">mode</span><span class="o">=</span><span class="ss">binary</span><span class="p" data-group-id="6807977527-11">}</span><span class="p" data-group-id="6807977527-10">}</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">    </span><span class="p">_</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="p" data-group-id="6807977527-12">{</span><span class="ss">ok</span><span class="p">,</span><span class="ss">ok</span><span class="p">,</span><span class="n">State</span><span class="p" data-group-id="6807977527-12">}</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="k">end</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="ss">false</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="p" data-group-id="6807977527-13">{</span><span class="ss">error</span><span class="p">,</span><span class="p" data-group-id="6807977527-14">{</span><span class="ss">error</span><span class="p">,</span><span class="ss">enotsup</span><span class="p" data-group-id="6807977527-14">}</span><span class="p">,</span><span class="n">State</span><span class="p" data-group-id="6807977527-13">}</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span><span class="w">
+</span><span class="nf">check_valid_opts</span><span class="p" data-group-id="6807977527-15">(</span><span class="p" data-group-id="6807977527-16">[</span><span class="p" data-group-id="6807977527-16">]</span><span class="p" data-group-id="6807977527-15">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="ss">true</span><span class="p">;</span><span class="w">
+</span><span class="nf">check_valid_opts</span><span class="p" data-group-id="6807977527-17">(</span><span class="p" data-group-id="6807977527-18">[</span><span class="p" data-group-id="6807977527-19">{</span><span class="ss">binary</span><span class="p">,</span><span class="n">Bool</span><span class="p" data-group-id="6807977527-19">}</span><span class="p">|</span><span class="n">T</span><span class="p" data-group-id="6807977527-18">]</span><span class="p" data-group-id="6807977527-17">)</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="nf">is_boolean</span><span class="p" data-group-id="6807977527-20">(</span><span class="n">Bool</span><span class="p" data-group-id="6807977527-20">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">check_valid_opts</span><span class="p" data-group-id="6807977527-21">(</span><span class="n">T</span><span class="p" data-group-id="6807977527-21">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">check_valid_opts</span><span class="p" data-group-id="6807977527-22">(</span><span class="p">_</span><span class="p" data-group-id="6807977527-22">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="ss">false</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">getopts</span><span class="p" data-group-id="6807977527-23">(</span><span class="o">#</span><span class="ss">state</span><span class="p" data-group-id="6807977527-24">{</span><span class="ss">mode</span><span class="o">=</span><span class="n">M</span><span class="p" data-group-id="6807977527-24">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">S</span><span class="p" data-group-id="6807977527-23">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="6807977527-25">{</span><span class="ss">ok</span><span class="p">,</span><span class="p" data-group-id="6807977527-26">[</span><span class="p" data-group-id="6807977527-27">{</span><span class="ss">binary</span><span class="p">,</span><span class="w"> </span><span class="k">case</span><span class="w"> </span><span class="n">M</span><span class="w"> </span><span class="k">of</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">      </span><span class="ss">binary</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="w">  </span><span class="ss">true</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">      </span><span class="p">_</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="w">  </span><span class="ss">false</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">  </span><span class="k">end</span><span class="p" data-group-id="6807977527-27">}</span><span class="p" data-group-id="6807977527-26">]</span><span class="p">,</span><span class="n">S</span><span class="p" data-group-id="6807977527-25">}</span><span class="p">.</span></code></pre><p>As a convention, all I/O servers handle both <code class="inline">{setopts, [binary]}</code>,
+<code class="inline">{setopts, [list]}</code>, and <code class="inline">{setopts,[{binary, boolean()}]}</code>, hence the trick with
+<a href="proplists.html#substitute_negations/2"><code class="inline">proplists:substitute_negations/2</code></a> and <a href="proplists.html#unfold/1"><code class="inline">proplists:unfold/1</code></a>. If invalid options
+are sent to us, we send <code class="inline">{error, enotsup}</code> back to the client.</p><p>Request <code class="inline">getopts</code> is to return a list of <code class="inline">{Option, Value}</code> tuples. This has the
+twofold function of providing both the current values and the available options
+of this I/O server. We have only one option, and hence return that.</p><p>So far this I/O server is fairly generic (except for request <code class="inline">rewind</code> handled in
+the main loop and the creation of an ETS table). Most I/O servers contain code
+similar to this one.</p><p>To make the example runnable, we start implementing the reading and writing of
+the data to/from the ETS table. First function <code class="inline">put_chars/3</code>:</p><pre><code class="makeup erlang" translate="no"><span class="nf">put_chars</span><span class="p" data-group-id="1021176458-1">(</span><span class="n">Chars</span><span class="p">,</span><span class="w"> </span><span class="o">#</span><span class="ss">state</span><span class="p" data-group-id="1021176458-2">{</span><span class="ss">table</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="ss">position</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">P</span><span class="p" data-group-id="1021176458-2">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="1021176458-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">R</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">P</span><span class="w"> </span><span class="ow">div</span><span class="w"> </span><span class="o">?</span><span class="n">CHARS_PER_REC</span><span class="p">,</span><span class="w">
+    </span><span class="n">C</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">P</span><span class="w"> </span><span class="ow">rem</span><span class="w"> </span><span class="o">?</span><span class="n">CHARS_PER_REC</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="1021176458-3">[</span><span class="w"> </span><span class="nf">apply_update</span><span class="p" data-group-id="1021176458-4">(</span><span class="n">T</span><span class="p">,</span><span class="n">U</span><span class="p" data-group-id="1021176458-4">)</span><span class="w"> </span><span class="p">||</span><span class="w"> </span><span class="n">U</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="nf">split_data</span><span class="p" data-group-id="1021176458-5">(</span><span class="n">Chars</span><span class="p">,</span><span class="w"> </span><span class="n">R</span><span class="p">,</span><span class="w"> </span><span class="n">C</span><span class="p" data-group-id="1021176458-5">)</span><span class="w"> </span><span class="p" data-group-id="1021176458-3">]</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="1021176458-6">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="o">#</span><span class="ss">state</span><span class="p" data-group-id="1021176458-7">{</span><span class="ss">position</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="1021176458-8">(</span><span class="n">P</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nf">length</span><span class="p" data-group-id="1021176458-9">(</span><span class="n">Chars</span><span class="p" data-group-id="1021176458-9">)</span><span class="p" data-group-id="1021176458-8">)</span><span class="p" data-group-id="1021176458-7">}</span><span class="p" data-group-id="1021176458-6">}</span><span class="p">.</span></code></pre><p>We already have the data as (Unicode) lists and therefore only split the list in
+runs of a predefined size and put each run in the table at the current position
+(and forward). Functions <code class="inline">split_data/3</code> and <code class="inline">apply_update/2</code> are implemented
+below.</p><p>Now we want to read data from the table. Function <code class="inline">get_until/5</code> reads data and
+applies the function until it says that it is done. The result is sent back to
+the client:</p><pre><code class="makeup erlang" translate="no"><span class="nf">get_until</span><span class="p" data-group-id="1479037755-1">(</span><span class="n">Encoding</span><span class="p">,</span><span class="w"> </span><span class="n">Mod</span><span class="p">,</span><span class="w"> </span><span class="n">Func</span><span class="p">,</span><span class="w"> </span><span class="n">As</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w">  </span><span class="o">#</span><span class="ss">state</span><span class="p" data-group-id="1479037755-2">{</span><span class="ss">position</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">P</span><span class="p">,</span><span class="w"> </span><span class="ss">mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">M</span><span class="p">,</span><span class="w"> </span><span class="ss">table</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">T</span><span class="p" data-group-id="1479037755-2">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="1479037755-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="nf">get_loop</span><span class="p" data-group-id="1479037755-3">(</span><span class="n">Mod</span><span class="p">,</span><span class="n">Func</span><span class="p">,</span><span class="n">As</span><span class="p">,</span><span class="n">T</span><span class="p">,</span><span class="n">P</span><span class="p">,</span><span class="p" data-group-id="1479037755-4">[</span><span class="p" data-group-id="1479037755-4">]</span><span class="p" data-group-id="1479037755-3">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+</span><span class="err">	</span><span class="p" data-group-id="1479037755-5">{</span><span class="ss">done</span><span class="p">,</span><span class="n">Data</span><span class="p">,</span><span class="p">_</span><span class="p">,</span><span class="n">NewP</span><span class="p" data-group-id="1479037755-5">}</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="nf">is_binary</span><span class="p" data-group-id="1479037755-6">(</span><span class="n">Data</span><span class="p" data-group-id="1479037755-6">)</span><span class="p">;</span><span class="w"> </span><span class="nf">is_list</span><span class="p" data-group-id="1479037755-7">(</span><span class="n">Data</span><span class="p" data-group-id="1479037755-7">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="k">if</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="n">M</span><span class="w"> </span><span class="o">=:=</span><span class="w"> </span><span class="ss">binary</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">    </span><span class="p" data-group-id="1479037755-8">{</span><span class="ss">ok</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">     </span><span class="nc">unicode</span><span class="p">:</span><span class="nf">characters_to_binary</span><span class="p" data-group-id="1479037755-9">(</span><span class="n">Data</span><span class="p">,</span><span class="w"> </span><span class="ss">unicode</span><span class="p">,</span><span class="w"> </span><span class="n">Encoding</span><span class="p" data-group-id="1479037755-9">)</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">     </span><span class="n">State</span><span class="o">#</span><span class="ss">state</span><span class="p" data-group-id="1479037755-10">{</span><span class="ss">position</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">NewP</span><span class="p" data-group-id="1479037755-10">}</span><span class="p" data-group-id="1479037755-8">}</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="ss">true</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="nf">check</span><span class="p" data-group-id="1479037755-11">(</span><span class="n">Encoding</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">               </span><span class="nc">unicode</span><span class="p">:</span><span class="nf">characters_to_list</span><span class="p" data-group-id="1479037755-12">(</span><span class="n">Data</span><span class="p">,</span><span class="w"> </span><span class="ss">unicode</span><span class="p" data-group-id="1479037755-12">)</span><span class="p" data-group-id="1479037755-11">)</span><span class="w">
+                    </span><span class="k">of</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="p" data-group-id="1479037755-13">{</span><span class="ss">error</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="p" data-group-id="1479037755-13">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">E</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="w">    </span><span class="p" data-group-id="1479037755-14">{</span><span class="ss">error</span><span class="p">,</span><span class="w"> </span><span class="n">E</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="1479037755-14">}</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="n">List</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="w">    </span><span class="p" data-group-id="1479037755-15">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">List</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="w">     </span><span class="n">State</span><span class="o">#</span><span class="ss">state</span><span class="p" data-group-id="1479037755-16">{</span><span class="ss">position</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">NewP</span><span class="p" data-group-id="1479037755-16">}</span><span class="p" data-group-id="1479037755-15">}</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">    </span><span class="k">end</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="k">end</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="p" data-group-id="1479037755-17">{</span><span class="ss">done</span><span class="p">,</span><span class="n">Data</span><span class="p">,</span><span class="p">_</span><span class="p">,</span><span class="n">NewP</span><span class="p" data-group-id="1479037755-17">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="p" data-group-id="1479037755-18">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">Data</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="o">#</span><span class="ss">state</span><span class="p" data-group-id="1479037755-19">{</span><span class="ss">position</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">NewP</span><span class="p" data-group-id="1479037755-19">}</span><span class="p" data-group-id="1479037755-18">}</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="n">Error</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="p" data-group-id="1479037755-20">{</span><span class="ss">error</span><span class="p">,</span><span class="w"> </span><span class="n">Error</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="1479037755-20">}</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">get_loop</span><span class="p" data-group-id="1479037755-21">(</span><span class="n">M</span><span class="p">,</span><span class="n">F</span><span class="p">,</span><span class="n">A</span><span class="p">,</span><span class="n">T</span><span class="p">,</span><span class="n">P</span><span class="p">,</span><span class="n">C</span><span class="p" data-group-id="1479037755-21">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="1479037755-22">{</span><span class="n">NewP</span><span class="p">,</span><span class="n">L</span><span class="p" data-group-id="1479037755-22">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">get</span><span class="p" data-group-id="1479037755-23">(</span><span class="n">P</span><span class="p">,</span><span class="n">T</span><span class="p" data-group-id="1479037755-23">)</span><span class="p">,</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="nf">apply</span><span class="p" data-group-id="1479037755-24">(</span><span class="n">M</span><span class="p">,</span><span class="n">F</span><span class="p">,</span><span class="p" data-group-id="1479037755-25">[</span><span class="n">C</span><span class="p">,</span><span class="n">L</span><span class="p">|</span><span class="n">A</span><span class="p" data-group-id="1479037755-25">]</span><span class="p" data-group-id="1479037755-24">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+</span><span class="err">	</span><span class="p" data-group-id="1479037755-26">{</span><span class="ss">done</span><span class="p">,</span><span class="w"> </span><span class="n">List</span><span class="p">,</span><span class="w"> </span><span class="n">Rest</span><span class="p" data-group-id="1479037755-26">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="p" data-group-id="1479037755-27">{</span><span class="ss">done</span><span class="p">,</span><span class="w"> </span><span class="n">List</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1479037755-28">[</span><span class="p" data-group-id="1479037755-28">]</span><span class="p">,</span><span class="w"> </span><span class="n">NewP</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nf">length</span><span class="p" data-group-id="1479037755-29">(</span><span class="n">Rest</span><span class="p" data-group-id="1479037755-29">)</span><span class="p" data-group-id="1479037755-27">}</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="p" data-group-id="1479037755-30">{</span><span class="ss">more</span><span class="p">,</span><span class="w"> </span><span class="n">NewC</span><span class="p" data-group-id="1479037755-30">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="nf">get_loop</span><span class="p" data-group-id="1479037755-31">(</span><span class="n">M</span><span class="p">,</span><span class="n">F</span><span class="p">,</span><span class="n">A</span><span class="p">,</span><span class="n">T</span><span class="p">,</span><span class="n">NewP</span><span class="p">,</span><span class="n">NewC</span><span class="p" data-group-id="1479037755-31">)</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="p">_</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="p" data-group-id="1479037755-32">{</span><span class="ss">error</span><span class="p">,</span><span class="n">F</span><span class="p" data-group-id="1479037755-32">}</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span></code></pre><p>Here we also handle the mode (<code class="inline">binary</code> or <code class="inline">list</code>) that can be set by request
+<code class="inline">setopts</code>. By default, all OTP I/O servers send data back to the client as
+lists, but switching mode to <code class="inline">binary</code> can increase efficiency if the I/O server
+handles it in an appropriate way. The implementation of <code class="inline">get_until</code> is difficult
+to get efficient, as the supplied function is defined to take lists as
+arguments, but <code class="inline">get_chars</code> and <code class="inline">get_line</code> can be optimized for binary mode.
+However, this example does not optimize anything.</p><p>It is important though that the returned data is of the correct type depending
+on the options set. We therefore convert the lists to binaries in the correct
+encoding <em>if possible</em> before returning. The function supplied in the
+<code class="inline">get_until</code> request tuple can, as its final result return anything, so only
+functions returning lists can get them converted to binaries. If the request
+contains encoding tag <code class="inline">unicode</code>, the lists can contain all Unicode code points
+and the binaries are to be in UTF-8. If the encoding tag is <code class="inline">latin1</code>, the client
+is only to get characters in the range <code class="inline">0..255</code>. Function <code class="inline">check/2</code> takes care
+of not returning arbitrary Unicode code points in lists if the encoding was
+specified as <code class="inline">latin1</code>. If the function does not return a list, the check cannot
+be performed and the result is that of the supplied function untouched.</p><p>To manipulate the table we implement the following utility functions:</p><pre><code class="makeup erlang" translate="no"><span class="nf">check</span><span class="p" data-group-id="7371168433-1">(</span><span class="ss">unicode</span><span class="p">,</span><span class="w"> </span><span class="n">List</span><span class="p" data-group-id="7371168433-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">List</span><span class="p">;</span><span class="w">
+</span><span class="nf">check</span><span class="p" data-group-id="7371168433-2">(</span><span class="ss">latin1</span><span class="p">,</span><span class="w"> </span><span class="n">List</span><span class="p" data-group-id="7371168433-2">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">try</span><span class="w">
+</span><span class="err">	</span><span class="p" data-group-id="7371168433-3">[</span><span class="w"> </span><span class="nf">throw</span><span class="p" data-group-id="7371168433-4">(</span><span class="ss">not_unicode</span><span class="p" data-group-id="7371168433-4">)</span><span class="w"> </span><span class="p">||</span><span class="w"> </span><span class="n">X</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="n">List</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="n">X</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">255</span><span class="w"> </span><span class="p" data-group-id="7371168433-3">]</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="n">List</span><span class="w">
+    </span><span class="k">catch</span><span class="w">
+</span><span class="err">	</span><span class="nc">throw</span><span class="p">:</span><span class="p">_</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="p" data-group-id="7371168433-5">{</span><span class="ss">error</span><span class="p">,</span><span class="p" data-group-id="7371168433-6">{</span><span class="ss">cannot_convert</span><span class="p">,</span><span class="w"> </span><span class="ss">unicode</span><span class="p">,</span><span class="w"> </span><span class="ss">latin1</span><span class="p" data-group-id="7371168433-6">}</span><span class="p" data-group-id="7371168433-5">}</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span></code></pre><p>The function check provides an error tuple if Unicode code points &gt; 255 are to
+be returned if the client requested <code class="inline">latin1</code>.</p><p>The two functions <code class="inline">until_newline/3</code> and <code class="inline">until_enough/3</code> are helpers used
+together with function <code class="inline">get_until/5</code> to implement <code class="inline">get_chars</code> and <code class="inline">get_line</code>
+(inefficiently):</p><pre><code class="makeup erlang" translate="no"><span class="nf">until_newline</span><span class="p" data-group-id="2572605335-1">(</span><span class="p" data-group-id="2572605335-2">[</span><span class="p" data-group-id="2572605335-2">]</span><span class="p">,</span><span class="ss">eof</span><span class="p">,</span><span class="p">_</span><span class="n">MyStopCharacter</span><span class="p" data-group-id="2572605335-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="2572605335-3">{</span><span class="ss">done</span><span class="p">,</span><span class="ss">eof</span><span class="p">,</span><span class="p" data-group-id="2572605335-4">[</span><span class="p" data-group-id="2572605335-4">]</span><span class="p" data-group-id="2572605335-3">}</span><span class="p">;</span><span class="w">
+</span><span class="nf">until_newline</span><span class="p" data-group-id="2572605335-5">(</span><span class="n">ThisFar</span><span class="p">,</span><span class="ss">eof</span><span class="p">,</span><span class="p">_</span><span class="n">MyStopCharacter</span><span class="p" data-group-id="2572605335-5">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="2572605335-6">{</span><span class="ss">done</span><span class="p">,</span><span class="n">ThisFar</span><span class="p">,</span><span class="p" data-group-id="2572605335-7">[</span><span class="p" data-group-id="2572605335-7">]</span><span class="p" data-group-id="2572605335-6">}</span><span class="p">;</span><span class="w">
+</span><span class="nf">until_newline</span><span class="p" data-group-id="2572605335-8">(</span><span class="n">ThisFar</span><span class="p">,</span><span class="n">CharList</span><span class="p">,</span><span class="n">MyStopCharacter</span><span class="p" data-group-id="2572605335-8">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">case</span><span class="w">
+        </span><span class="nc">lists</span><span class="p">:</span><span class="nf">splitwith</span><span class="p" data-group-id="2572605335-9">(</span><span class="nf">fun</span><span class="p" data-group-id="2572605335-10">(</span><span class="n">X</span><span class="p" data-group-id="2572605335-10">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="n">X</span><span class="w"> </span><span class="o">=/=</span><span class="w"> </span><span class="n">MyStopCharacter</span><span class="w"> </span><span class="k">end</span><span class="p">,</span><span class="w">  </span><span class="n">CharList</span><span class="p" data-group-id="2572605335-9">)</span><span class="w">
+    </span><span class="k">of</span><span class="w">
+</span><span class="err">	</span><span class="p" data-group-id="2572605335-11">{</span><span class="n">L</span><span class="p">,</span><span class="p" data-group-id="2572605335-12">[</span><span class="p" data-group-id="2572605335-12">]</span><span class="p" data-group-id="2572605335-11">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="p" data-group-id="2572605335-13">{</span><span class="ss">more</span><span class="p">,</span><span class="n">ThisFar</span><span class="o">++</span><span class="n">L</span><span class="p" data-group-id="2572605335-13">}</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="p" data-group-id="2572605335-14">{</span><span class="n">L2</span><span class="p">,</span><span class="p" data-group-id="2572605335-15">[</span><span class="n">MyStopCharacter</span><span class="p">|</span><span class="n">Rest</span><span class="p" data-group-id="2572605335-15">]</span><span class="p" data-group-id="2572605335-14">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="p" data-group-id="2572605335-16">{</span><span class="ss">done</span><span class="p">,</span><span class="n">ThisFar</span><span class="o">++</span><span class="n">L2</span><span class="o">++</span><span class="p" data-group-id="2572605335-17">[</span><span class="n">MyStopCharacter</span><span class="p" data-group-id="2572605335-17">]</span><span class="p">,</span><span class="n">Rest</span><span class="p" data-group-id="2572605335-16">}</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">until_enough</span><span class="p" data-group-id="2572605335-18">(</span><span class="p" data-group-id="2572605335-19">[</span><span class="p" data-group-id="2572605335-19">]</span><span class="p">,</span><span class="ss">eof</span><span class="p">,</span><span class="p">_</span><span class="n">N</span><span class="p" data-group-id="2572605335-18">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="2572605335-20">{</span><span class="ss">done</span><span class="p">,</span><span class="ss">eof</span><span class="p">,</span><span class="p" data-group-id="2572605335-21">[</span><span class="p" data-group-id="2572605335-21">]</span><span class="p" data-group-id="2572605335-20">}</span><span class="p">;</span><span class="w">
+</span><span class="nf">until_enough</span><span class="p" data-group-id="2572605335-22">(</span><span class="n">ThisFar</span><span class="p">,</span><span class="ss">eof</span><span class="p">,</span><span class="p">_</span><span class="n">N</span><span class="p" data-group-id="2572605335-22">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="2572605335-23">{</span><span class="ss">done</span><span class="p">,</span><span class="n">ThisFar</span><span class="p">,</span><span class="p" data-group-id="2572605335-24">[</span><span class="p" data-group-id="2572605335-24">]</span><span class="p" data-group-id="2572605335-23">}</span><span class="p">;</span><span class="w">
+</span><span class="nf">until_enough</span><span class="p" data-group-id="2572605335-25">(</span><span class="n">ThisFar</span><span class="p">,</span><span class="n">CharList</span><span class="p">,</span><span class="n">N</span><span class="p" data-group-id="2572605335-25">)</span><span class="w">
+  </span><span class="k">when</span><span class="w"> </span><span class="nf">length</span><span class="p" data-group-id="2572605335-26">(</span><span class="n">ThisFar</span><span class="p" data-group-id="2572605335-26">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nf">length</span><span class="p" data-group-id="2572605335-27">(</span><span class="n">CharList</span><span class="p" data-group-id="2572605335-27">)</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">N</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="2572605335-28">{</span><span class="n">Res</span><span class="p">,</span><span class="n">Rest</span><span class="p" data-group-id="2572605335-28">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">my_split</span><span class="p" data-group-id="2572605335-29">(</span><span class="n">N</span><span class="p">,</span><span class="n">ThisFar</span><span class="w"> </span><span class="o">++</span><span class="w"> </span><span class="n">CharList</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2572605335-30">[</span><span class="p" data-group-id="2572605335-30">]</span><span class="p" data-group-id="2572605335-29">)</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="2572605335-31">{</span><span class="ss">done</span><span class="p">,</span><span class="n">Res</span><span class="p">,</span><span class="n">Rest</span><span class="p" data-group-id="2572605335-31">}</span><span class="p">;</span><span class="w">
+</span><span class="nf">until_enough</span><span class="p" data-group-id="2572605335-32">(</span><span class="n">ThisFar</span><span class="p">,</span><span class="n">CharList</span><span class="p">,</span><span class="p">_</span><span class="n">N</span><span class="p" data-group-id="2572605335-32">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="2572605335-33">{</span><span class="ss">more</span><span class="p">,</span><span class="n">ThisFar</span><span class="o">++</span><span class="n">CharList</span><span class="p" data-group-id="2572605335-33">}</span><span class="p">.</span></code></pre><p>As can be seen, the functions above are just the type of functions that are to
+be provided in <code class="inline">get_until</code> requests.</p><p>To complete the I/O server, we only need to read and write the table in an
+appropriate way:</p><pre><code class="makeup erlang" translate="no"><span class="nf">get</span><span class="p" data-group-id="2811389656-1">(</span><span class="n">P</span><span class="p">,</span><span class="n">Tab</span><span class="p" data-group-id="2811389656-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">R</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">P</span><span class="w"> </span><span class="ow">div</span><span class="w"> </span><span class="o">?</span><span class="n">CHARS_PER_REC</span><span class="p">,</span><span class="w">
+    </span><span class="n">C</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">P</span><span class="w"> </span><span class="ow">rem</span><span class="w"> </span><span class="o">?</span><span class="n">CHARS_PER_REC</span><span class="p">,</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="nc">ets</span><span class="p">:</span><span class="nf">lookup</span><span class="p" data-group-id="2811389656-2">(</span><span class="n">Tab</span><span class="p">,</span><span class="n">R</span><span class="p" data-group-id="2811389656-2">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+</span><span class="err">	</span><span class="p" data-group-id="2811389656-3">[</span><span class="p" data-group-id="2811389656-3">]</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="p" data-group-id="2811389656-4">{</span><span class="n">P</span><span class="p">,</span><span class="ss">eof</span><span class="p" data-group-id="2811389656-4">}</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="p" data-group-id="2811389656-5">[</span><span class="p" data-group-id="2811389656-6">{</span><span class="n">R</span><span class="p">,</span><span class="n">List</span><span class="p" data-group-id="2811389656-6">}</span><span class="p" data-group-id="2811389656-5">]</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="nf">my_split</span><span class="p" data-group-id="2811389656-7">(</span><span class="n">C</span><span class="p">,</span><span class="n">List</span><span class="p">,</span><span class="p" data-group-id="2811389656-8">[</span><span class="p" data-group-id="2811389656-8">]</span><span class="p" data-group-id="2811389656-7">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="p" data-group-id="2811389656-9">{</span><span class="p">_</span><span class="p">,</span><span class="p" data-group-id="2811389656-10">[</span><span class="p" data-group-id="2811389656-10">]</span><span class="p" data-group-id="2811389656-9">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">    </span><span class="p" data-group-id="2811389656-11">{</span><span class="n">P</span><span class="o">+</span><span class="nf">length</span><span class="p" data-group-id="2811389656-12">(</span><span class="n">List</span><span class="p" data-group-id="2811389656-12">)</span><span class="p">,</span><span class="ss">eof</span><span class="p" data-group-id="2811389656-11">}</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="p" data-group-id="2811389656-13">{</span><span class="p">_</span><span class="p">,</span><span class="n">Data</span><span class="p" data-group-id="2811389656-13">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">    </span><span class="p" data-group-id="2811389656-14">{</span><span class="n">P</span><span class="o">+</span><span class="nf">length</span><span class="p" data-group-id="2811389656-15">(</span><span class="n">Data</span><span class="p" data-group-id="2811389656-15">)</span><span class="p">,</span><span class="n">Data</span><span class="p" data-group-id="2811389656-14">}</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="k">end</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">my_split</span><span class="p" data-group-id="2811389656-16">(</span><span class="mi">0</span><span class="p">,</span><span class="n">Left</span><span class="p">,</span><span class="n">Acc</span><span class="p" data-group-id="2811389656-16">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="2811389656-17">{</span><span class="nc">lists</span><span class="p">:</span><span class="nf">reverse</span><span class="p" data-group-id="2811389656-18">(</span><span class="n">Acc</span><span class="p" data-group-id="2811389656-18">)</span><span class="p">,</span><span class="n">Left</span><span class="p" data-group-id="2811389656-17">}</span><span class="p">;</span><span class="w">
+</span><span class="nf">my_split</span><span class="p" data-group-id="2811389656-19">(</span><span class="p">_</span><span class="p">,</span><span class="p" data-group-id="2811389656-20">[</span><span class="p" data-group-id="2811389656-20">]</span><span class="p">,</span><span class="n">Acc</span><span class="p" data-group-id="2811389656-19">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="2811389656-21">{</span><span class="nc">lists</span><span class="p">:</span><span class="nf">reverse</span><span class="p" data-group-id="2811389656-22">(</span><span class="n">Acc</span><span class="p" data-group-id="2811389656-22">)</span><span class="p">,</span><span class="p" data-group-id="2811389656-23">[</span><span class="p" data-group-id="2811389656-23">]</span><span class="p" data-group-id="2811389656-21">}</span><span class="p">;</span><span class="w">
+</span><span class="nf">my_split</span><span class="p" data-group-id="2811389656-24">(</span><span class="n">N</span><span class="p">,</span><span class="p" data-group-id="2811389656-25">[</span><span class="n">H</span><span class="p">|</span><span class="n">T</span><span class="p" data-group-id="2811389656-25">]</span><span class="p">,</span><span class="n">Acc</span><span class="p" data-group-id="2811389656-24">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">my_split</span><span class="p" data-group-id="2811389656-26">(</span><span class="n">N</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">T</span><span class="p">,</span><span class="p" data-group-id="2811389656-27">[</span><span class="n">H</span><span class="p">|</span><span class="n">Acc</span><span class="p" data-group-id="2811389656-27">]</span><span class="p" data-group-id="2811389656-26">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">split_data</span><span class="p" data-group-id="2811389656-28">(</span><span class="p" data-group-id="2811389656-29">[</span><span class="p" data-group-id="2811389656-29">]</span><span class="p">,</span><span class="p">_</span><span class="p">,</span><span class="p">_</span><span class="p" data-group-id="2811389656-28">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="2811389656-30">[</span><span class="p" data-group-id="2811389656-30">]</span><span class="p">;</span><span class="w">
+</span><span class="nf">split_data</span><span class="p" data-group-id="2811389656-31">(</span><span class="n">Chars</span><span class="p">,</span><span class="w"> </span><span class="n">Row</span><span class="p">,</span><span class="w"> </span><span class="n">Col</span><span class="p" data-group-id="2811389656-31">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="2811389656-32">{</span><span class="n">This</span><span class="p">,</span><span class="n">Left</span><span class="p" data-group-id="2811389656-32">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">my_split</span><span class="p" data-group-id="2811389656-33">(</span><span class="o">?</span><span class="n">CHARS_PER_REC</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">Col</span><span class="p">,</span><span class="w"> </span><span class="n">Chars</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2811389656-34">[</span><span class="p" data-group-id="2811389656-34">]</span><span class="p" data-group-id="2811389656-33">)</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="2811389656-35">[</span><span class="w"> </span><span class="p" data-group-id="2811389656-36">{</span><span class="n">Row</span><span class="p">,</span><span class="w"> </span><span class="n">Col</span><span class="p">,</span><span class="w"> </span><span class="n">This</span><span class="p" data-group-id="2811389656-36">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="nf">split_data</span><span class="p" data-group-id="2811389656-37">(</span><span class="n">Left</span><span class="p">,</span><span class="w"> </span><span class="n">Row</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p" data-group-id="2811389656-37">)</span><span class="w"> </span><span class="p" data-group-id="2811389656-35">]</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">apply_update</span><span class="p" data-group-id="2811389656-38">(</span><span class="n">Table</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2811389656-39">{</span><span class="n">Row</span><span class="p">,</span><span class="w"> </span><span class="n">Col</span><span class="p">,</span><span class="w"> </span><span class="n">List</span><span class="p" data-group-id="2811389656-39">}</span><span class="p" data-group-id="2811389656-38">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="nc">ets</span><span class="p">:</span><span class="nf">lookup</span><span class="p" data-group-id="2811389656-40">(</span><span class="n">Table</span><span class="p">,</span><span class="n">Row</span><span class="p" data-group-id="2811389656-40">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+</span><span class="err">	</span><span class="p" data-group-id="2811389656-41">[</span><span class="p" data-group-id="2811389656-41">]</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="nc">ets</span><span class="p">:</span><span class="nf">insert</span><span class="p" data-group-id="2811389656-42">(</span><span class="n">Table</span><span class="p">,</span><span class="p" data-group-id="2811389656-43">{</span><span class="n">Row</span><span class="p">,</span><span class="w"> </span><span class="nc">lists</span><span class="p">:</span><span class="nf">duplicate</span><span class="p" data-group-id="2811389656-44">(</span><span class="n">Col</span><span class="p">,</span><span class="mi">0</span><span class="p" data-group-id="2811389656-44">)</span><span class="w"> </span><span class="o">++</span><span class="w"> </span><span class="n">List</span><span class="p" data-group-id="2811389656-43">}</span><span class="p" data-group-id="2811389656-42">)</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="p" data-group-id="2811389656-45">[</span><span class="p" data-group-id="2811389656-46">{</span><span class="n">Row</span><span class="p">,</span><span class="w"> </span><span class="n">OldData</span><span class="p" data-group-id="2811389656-46">}</span><span class="p" data-group-id="2811389656-45">]</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="p" data-group-id="2811389656-47">{</span><span class="n">Part1</span><span class="p">,</span><span class="p">_</span><span class="p" data-group-id="2811389656-47">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">my_split</span><span class="p" data-group-id="2811389656-48">(</span><span class="n">Col</span><span class="p">,</span><span class="n">OldData</span><span class="p">,</span><span class="p" data-group-id="2811389656-49">[</span><span class="p" data-group-id="2811389656-49">]</span><span class="p" data-group-id="2811389656-48">)</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="p" data-group-id="2811389656-50">{</span><span class="p">_</span><span class="p">,</span><span class="n">Part2</span><span class="p" data-group-id="2811389656-50">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">my_split</span><span class="p" data-group-id="2811389656-51">(</span><span class="n">Col</span><span class="o">+</span><span class="nf">length</span><span class="p" data-group-id="2811389656-52">(</span><span class="n">List</span><span class="p" data-group-id="2811389656-52">)</span><span class="p">,</span><span class="n">OldData</span><span class="p">,</span><span class="p" data-group-id="2811389656-53">[</span><span class="p" data-group-id="2811389656-53">]</span><span class="p" data-group-id="2811389656-51">)</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="nc">ets</span><span class="p">:</span><span class="nf">insert</span><span class="p" data-group-id="2811389656-54">(</span><span class="n">Table</span><span class="p">,</span><span class="p" data-group-id="2811389656-55">{</span><span class="n">Row</span><span class="p">,</span><span class="w"> </span><span class="n">Part1</span><span class="w"> </span><span class="o">++</span><span class="w"> </span><span class="n">List</span><span class="w"> </span><span class="o">++</span><span class="w"> </span><span class="n">Part2</span><span class="p" data-group-id="2811389656-55">}</span><span class="p" data-group-id="2811389656-54">)</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span></code></pre><p>The table is read or written in chunks of <code class="inline">?CHARS_PER_REC</code>, overwriting when
+necessary. The implementation is clearly not efficient, it is just working.</p><p>This concludes the example. It is fully runnable and you can read or write to
+the I/O server by using, for example, the <a href="io.html"><code class="inline">io</code></a> module or even the <a href="../../apps/kernel/file.html"><code class="inline">file</code></a>
+module. It is as simple as that to implement a fully fledged I/O server in
+Erlang.</p>
+<div class="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="introduction.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Introduction
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="unicode_usage.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+Using Unicode in Erlang
+        </span>
+      </a>
+
+  </div>
+</div>
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+              <a href="stdlib.epub" title="ePub version">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

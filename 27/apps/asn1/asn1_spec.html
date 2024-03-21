@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="asn1 v5.3">
+
+
+    <title>Specialized Decodes — asn1 v5.3</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-97794A42.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="asn1" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+asn1
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v5.3
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of asn1</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/lib/asn1/doc/guides/asn1_spec.md#L1" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+
+  <span>Specialized Decodes</span>
+</h1>
+
+<p><a href="" id="SpecializedDecodes"></a></p><p>When performance is of highest priority and one is interested in a limited part
+of the ASN.1 encoded message before deciding what to do with the rest of it, an
+option is to decode only a part of the message. This situation can be a server
+that has to decide the addressee of a message. The addressee can be interested
+in the entire message, but the server can be a bottleneck that you want to spare
+any unnecessary load.</p><p>Instead of making two <em>complete decodes</em> (the normal case of decode), one in the
+server and one in the addressee, it is only necessary to make one <em>specialized
+decode</em> (in the server) and another complete decode (in the addressee). This
+section describes the following specialized decode functionality:</p><ul><li><em>Exclusive decode</em></li><li><em>Selected decode</em></li></ul><p>This functionality is only provided when using <code class="inline">BER</code> (option <code class="inline">ber</code>).</p><h2 id="exclusive-decode" class="section-heading">
+  <a href="#exclusive-decode" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Exclusive Decode</span>
+</h2>
+<p>The basic idea with exclusive decode is to specify which parts of the message
+you want to exclude from being decoded. These parts remain encoded and are
+returned in the value structure as binaries. The undecoded parts can be decoded
+later by calling the <code class="inline">decode_part/2</code> function.</p><h3 id="procedure" class="section-heading">
+  <a href="#procedure" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Procedure</span>
+</h3>
+<p>To perform an exclusive decode:</p><ul><li><p><em>Step 1:</em> Decide the name of the function for the exclusive decode.</p></li><li><p><em>Step 2:</em> Include the following instructions in a configuration file:</p><ul><li>The name of the exclusive decode function</li><li>The name of the ASN.1 specification</li><li>A notation that tells which parts of the message structure to be excluded
+from decode</li></ul></li><li><p><em>Step 3</em> Compile with the additional option <code class="inline">asn1config</code>. The compiler
+searches for a configuration file with the same name as the ASN.1
+specification but with extension <code class="inline">.asn1config</code>. This configuration file is not
+the same as used for compilation of a set of files. See section
+<a href="asn1_spec.html#UndecodedPart">Writing an Exclusive Decode Instruction.</a></p></li></ul><h3 id="user-interface" class="section-heading">
+  <a href="#user-interface" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">User Interface</span>
+</h3>
+<p>The runtime user interface for exclusive decode comprises the following two
+functions:</p><ul><li>A function for an exclusive decode, whose name the user decides in the
+configuration file</li><li>A <code class="inline">decode_part/2</code> function generated by the ASN.1 compiler when
+exclusive decode is enabled. This function decodes the parts that
+were left undecoded during the exclusive decode.</li></ul><p>Both functions are described in the following.</p><p>If the exclusive decode function has, for example, the name <code class="inline">decode_exclusive</code>
+and an ASN.1 encoded message <code class="inline">Bin</code> is to be exclusive decoded, the call is as
+follows:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="5612389091-1">{</span><span class="ss">ok</span><span class="p">,</span><span class="n">ExclMessage</span><span class="p" data-group-id="5612389091-1">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">&#39;MyModule&#39;</span><span class="p">:</span><span class="nf">decode_exclusive</span><span class="p" data-group-id="5612389091-2">(</span><span class="n">Bin</span><span class="p" data-group-id="5612389091-2">)</span></code></pre><p><a href="" id="UndecodedPart"></a> The result <code class="inline">ExclMessage</code> has the same structure as a
+complete decode would have, except for the parts of the top type that were not
+decoded. The undecoded parts are on their places in the structure on format
+<code class="inline">{TypeKey,UndecodedValue}</code>.</p><p>Each undecoded part that is to be decoded must be fed into function
+<code class="inline">decode_part/2</code> as follows:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="0902487502-1">{</span><span class="ss">ok</span><span class="p">,</span><span class="n">PartMessage</span><span class="p" data-group-id="0902487502-1">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">&#39;MyModule&#39;</span><span class="p">:</span><span class="nf">decode_part</span><span class="p" data-group-id="0902487502-2">(</span><span class="n">TypeKey</span><span class="p">,</span><span class="w"> </span><span class="n">UndecodedValue</span><span class="p" data-group-id="0902487502-2">)</span></code></pre><p><a href="" id="Exclusive-Instruction"></a></p><h3 id="writing-an-exclusive-decode-instruction" class="section-heading">
+  <a href="#writing-an-exclusive-decode-instruction" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Writing an Exclusive Decode Instruction</span>
+</h3>
+<p>This instruction is written in the configuration file in the following format:</p><pre><code class="makeup erlang" translate="no"><span class="n">ExclusiveDecodeInstruction</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="4919646724-1">{</span><span class="ss">exclusive_decode</span><span class="p">,</span><span class="p" data-group-id="4919646724-2">{</span><span class="n">ModuleName</span><span class="p">,</span><span class="n">DecodeInstructions</span><span class="p" data-group-id="4919646724-2">}</span><span class="p" data-group-id="4919646724-1">}</span><span class="p">.</span><span class="w">
+
+</span><span class="n">ModuleName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">atom</span><span class="p" data-group-id="4919646724-3">(</span><span class="p" data-group-id="4919646724-3">)</span><span class="w">
+
+</span><span class="n">DecodeInstructions</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="4919646724-4">[</span><span class="n">DecodeInstruction</span><span class="p" data-group-id="4919646724-4">]</span><span class="o">+</span><span class="w">
+
+</span><span class="n">DecodeInstruction</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="4919646724-5">{</span><span class="n">ExclusiveDecodeFunctionName</span><span class="p">,</span><span class="n">TypeList</span><span class="p" data-group-id="4919646724-5">}</span><span class="w">
+
+</span><span class="n">ExclusiveDecodeFunctionName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">atom</span><span class="p" data-group-id="4919646724-6">(</span><span class="p" data-group-id="4919646724-6">)</span><span class="w">
+
+</span><span class="n">TypeList</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="4919646724-7">[</span><span class="n">TopType</span><span class="p">,</span><span class="n">ElementList</span><span class="p" data-group-id="4919646724-7">]</span><span class="w">
+
+</span><span class="n">ElementList</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="4919646724-8">[</span><span class="n">Element</span><span class="p" data-group-id="4919646724-8">]</span><span class="o">+</span><span class="w">
+
+</span><span class="n">Element</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="4919646724-9">{</span><span class="n">Name</span><span class="p">,</span><span class="ss">parts</span><span class="p" data-group-id="4919646724-9">}</span><span class="w"> </span><span class="p">|</span><span class="w">
+          </span><span class="p" data-group-id="4919646724-10">{</span><span class="n">Name</span><span class="p">,</span><span class="ss">undecoded</span><span class="p" data-group-id="4919646724-10">}</span><span class="w"> </span><span class="p">|</span><span class="w">
+          </span><span class="p" data-group-id="4919646724-11">{</span><span class="n">Name</span><span class="p">,</span><span class="n">ElementList</span><span class="p" data-group-id="4919646724-11">}</span><span class="w">
+
+</span><span class="n">TopType</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">atom</span><span class="p" data-group-id="4919646724-12">(</span><span class="p" data-group-id="4919646724-12">)</span><span class="w">
+
+</span><span class="n">Name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">atom</span><span class="p" data-group-id="4919646724-13">(</span><span class="p" data-group-id="4919646724-13">)</span></code></pre><p>The instruction must be a valid Erlang term terminated by a dot.</p><p>In <code class="inline">TypeList</code> the path from the top type to each undecoded subcomponent is
+described. <code class="inline">TopType</code> is the name of a top-level type in the ASN.1 specification.
+The action for each component in <code class="inline">ElementList</code> is described by one of:</p><ul><li><code class="inline">{Name,parts}</code></li><li><code class="inline">{Name,undecoded}</code></li><li><code class="inline">{Name,ElementList}</code></li></ul><p>The use and effect of the actions are as follows:</p><ul><li><p><strong><code class="inline">{Name,undecoded}</code></strong> - Leaves the element undecoded. The type of <code class="inline">Name</code> can
+be any ASN.1 type. The value of element <code class="inline">Name</code> is returned as a tuple (as
+mentioned in the previous section) in the value structure of the top type.</p></li><li><p><strong><code class="inline">{Name,parts}</code></strong> - The type of <code class="inline">Name</code> must be either <code class="inline">SEQUENCE OF</code> or
+<code class="inline">SET OF</code>. The action implies that the different components of <code class="inline">Name</code> are left
+undecoded. The value of <code class="inline">Name</code> is returned as a tuple (as mentioned in the
+previous section) where the second element is a list of binaries. This is
+because the representation of a <code class="inline">SEQUENCE OF</code> or a <code class="inline">SET OF</code> in Erlang is a
+list of its internal type. Any of the elements in this list or the entire list
+can be decoded by function <code class="inline">decodepart</code>.</p></li><li><p><strong><code class="inline">{Name,ElementList}</code></strong> - This action is used when one or more of the
+subtypes of <code class="inline">Name</code> is exclusively decoded.</p></li></ul><p><code class="inline">Name</code> in these actions can be a component name of a <code class="inline">SEQUENCE OF</code> or a
+<code class="inline">SET OF</code>, or a name of an alternative in a <code class="inline">CHOICE</code>.</p><h3 id="example" class="section-heading">
+  <a href="#example" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Example</span>
+</h3>
+<p>In this examples, the definitions from the following ASN.1 specification are
+used:</p><pre id="Asn1spec"><code class="text">
+GUI DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+  Action ::= SEQUENCE {
+    number  INTEGER DEFAULT 15,
+    handle  Handle DEFAULT {number 12, on TRUE}
+  }
+
+  Key ::= Button
+  Handle ::= Key
+
+  Button ::= SEQUENCE {
+    number INTEGER,
+    on     BOOLEAN
+  }
+
+  Window ::= CHOICE {
+    vsn INTEGER,
+    status Status
+  }
+
+  Status ::= SEQUENCE {
+    state INTEGER,
+    buttonList SEQUENCE OF Button,
+    enabled BOOLEAN OPTIONAL,
+    actions CHOICE {
+      possibleActions SEQUENCE OF Action,
+      noOfActions INTEGER
+    }
+  }
+
+END</code></pre><p>If <code class="inline">Button</code> is a top type and it is needed to exclude component <code class="inline">number</code> from
+decode, <code class="inline">TypeList</code> in the instruction in the configuration file is
+<code class="inline">['Button',[{number,undecoded}]]</code>. If you call the decode function
+<code class="inline">decode_Button_exclusive</code>, <code class="inline">DecodeInstruction</code> is
+<code class="inline">{decode_Button_exclusive,['Button',[{number,undecoded}]]}</code>.</p><p>Another top type is <code class="inline">Window</code> whose subcomponent actions in type <code class="inline">Status</code> and the
+parts of component <code class="inline">buttonList</code> are to be left undecoded. For this type, the
+function is named <code class="inline">decode__Window_exclusive</code>. The complete
+<code class="inline">Exclusive_Decode_Instruction</code> configuration is as follows:</p><pre><code class="text">
+{exclusive_decode,
+ {'GUI',
+  [{decode_Window_exclusive,
+    ['Window',[{status,[{buttonList,parts},{actions,undecoded}]}]]},
+   {decode_Button_exclusive,
+    ['Button',[{number,undecoded}]]}]}}.</code></pre><p>The following figure shows the bytes of a <code class="inline">Window:status</code> message. The
+components <code class="inline">buttonList</code> and <code class="inline">actions</code> are excluded from decode. Only <code class="inline">state</code> and
+<code class="inline">enabled</code> are decoded when <code class="inline">decode__Window_exclusive</code> is called.</p><p><img src="assets/exclusive_Win_But.gif" alt="Bytes of a Window:status Message" title="Bytes of a Window:status Message"/></p><p>Here follows an example of how the module. Note that option <code class="inline">no_ok_wrapper</code> is
+used to make the example more concise.</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">1&gt; </span><span class="nc">asn1ct</span><span class="p">:</span><span class="nf">compile</span><span class="p" data-group-id="8467725072-1">(</span><span class="ss">&#39;GUI&#39;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="8467725072-2">[</span><span class="ss">ber</span><span class="p">,</span><span class="ss">asn1config</span><span class="p">,</span><span class="ss">no_ok_wrapper</span><span class="p" data-group-id="8467725072-2">]</span><span class="p" data-group-id="8467725072-1">)</span><span class="p">.</span><span class="w">
+</span><span class="ss">ok</span><span class="gp unselectable">
+2&gt; </span><span class="nf">rr</span><span class="p" data-group-id="8467725072-3">(</span><span class="ss">&#39;GUI&#39;</span><span class="p" data-group-id="8467725072-3">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="8467725072-4">[</span><span class="ss">&#39;Action&#39;</span><span class="p">,</span><span class="ss">&#39;Button&#39;</span><span class="p">,</span><span class="ss">&#39;Status&#39;</span><span class="p" data-group-id="8467725072-4">]</span><span class="gp unselectable">
+3&gt; </span><span class="n">ButtonMsg</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">#</span><span class="ss">&#39;Button&#39;</span><span class="p" data-group-id="8467725072-5">{</span><span class="ss">number</span><span class="o">=</span><span class="mi">123</span><span class="p">,</span><span class="ss">on</span><span class="o">=</span><span class="ss">true</span><span class="p" data-group-id="8467725072-5">}</span><span class="p">.</span><span class="w">
+</span><span class="o">#</span><span class="ss">&#39;Button&#39;</span><span class="p" data-group-id="8467725072-6">{</span><span class="ss">number</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">123</span><span class="p">,</span><span class="ss">on</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="8467725072-6">}</span><span class="gp unselectable">
+4&gt; </span><span class="n">ButtonBytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">&#39;GUI&#39;</span><span class="p">:</span><span class="nf">encode</span><span class="p" data-group-id="8467725072-7">(</span><span class="ss">&#39;Button&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">ButtonMsg</span><span class="p" data-group-id="8467725072-7">)</span><span class="p">.</span><span class="w">
+</span><span class="p">&lt;&lt;</span><span class="mi">48</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">128</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">123</span><span class="p">,</span><span class="mi">129</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">255</span><span class="p">&gt;&gt;</span><span class="gp unselectable">
+5&gt; </span><span class="n">ExclusiveMsgButton</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">&#39;GUI&#39;</span><span class="p">:</span><span class="nf">decode_Button_exclusive</span><span class="p" data-group-id="8467725072-8">(</span><span class="n">ButtonBytes</span><span class="p" data-group-id="8467725072-8">)</span><span class="p">.</span><span class="w">
+</span><span class="o">#</span><span class="ss">&#39;Button&#39;</span><span class="p" data-group-id="8467725072-9">{</span><span class="ss">number</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="8467725072-10">{</span><span class="ss">&#39;Button_number&#39;</span><span class="p">,</span><span class="p">&lt;&lt;</span><span class="mi">128</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">123</span><span class="p">&gt;&gt;</span><span class="p" data-group-id="8467725072-10">}</span><span class="p">,</span><span class="w">
+          </span><span class="ss">on</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="8467725072-9">}</span><span class="gp unselectable">
+6&gt; </span><span class="p" data-group-id="8467725072-11">{</span><span class="n">UndecKey</span><span class="p">,</span><span class="n">UndecBytes</span><span class="p" data-group-id="8467725072-11">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ExclusiveMsgButton</span><span class="o">#</span><span class="ss">&#39;Button&#39;</span><span class="p">.</span><span class="ss">number</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="8467725072-12">{</span><span class="ss">&#39;Button_number&#39;</span><span class="p">,</span><span class="p">&lt;&lt;</span><span class="mi">128</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">123</span><span class="p">&gt;&gt;</span><span class="p" data-group-id="8467725072-12">}</span><span class="gp unselectable">
+7&gt; </span><span class="nc">&#39;GUI&#39;</span><span class="p">:</span><span class="nf">decode_part</span><span class="p" data-group-id="8467725072-13">(</span><span class="n">UndecKey</span><span class="p">,</span><span class="w"> </span><span class="n">UndecBytes</span><span class="p" data-group-id="8467725072-13">)</span><span class="p">.</span><span class="w">
+</span><span class="mi">123</span><span class="gp unselectable">
+8&gt; </span><span class="n">WindowMsg</span><span class="w"> </span><span class="o">=</span><span class="w">
+</span><span class="p" data-group-id="8467725072-14">{</span><span class="ss">status</span><span class="p">,</span><span class="p" data-group-id="8467725072-15">{</span><span class="ss">&#39;Status&#39;</span><span class="p">,</span><span class="mi">35</span><span class="p">,</span><span class="w">
+   </span><span class="p" data-group-id="8467725072-16">[</span><span class="p" data-group-id="8467725072-17">{</span><span class="ss">&#39;Button&#39;</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="ss">true</span><span class="p" data-group-id="8467725072-17">}</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="8467725072-18">{</span><span class="ss">&#39;Button&#39;</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="ss">false</span><span class="p" data-group-id="8467725072-18">}</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="8467725072-19">{</span><span class="ss">&#39;Button&#39;</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="ss">true</span><span class="p" data-group-id="8467725072-19">}</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="8467725072-20">{</span><span class="ss">&#39;Button&#39;</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="ss">true</span><span class="p" data-group-id="8467725072-20">}</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="8467725072-21">{</span><span class="ss">&#39;Button&#39;</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="ss">false</span><span class="p" data-group-id="8467725072-21">}</span><span class="p" data-group-id="8467725072-16">]</span><span class="p">,</span><span class="w">
+   </span><span class="ss">false</span><span class="p">,</span><span class="w">
+   </span><span class="p" data-group-id="8467725072-22">{</span><span class="ss">possibleActions</span><span class="p">,</span><span class="p" data-group-id="8467725072-23">[</span><span class="p" data-group-id="8467725072-24">{</span><span class="ss">&#39;Action&#39;</span><span class="p">,</span><span class="mi">16</span><span class="p">,</span><span class="p" data-group-id="8467725072-25">{</span><span class="ss">&#39;Button&#39;</span><span class="p">,</span><span class="mi">17</span><span class="p">,</span><span class="ss">true</span><span class="p" data-group-id="8467725072-25">}</span><span class="p" data-group-id="8467725072-24">}</span><span class="p" data-group-id="8467725072-23">]</span><span class="p" data-group-id="8467725072-22">}</span><span class="p" data-group-id="8467725072-15">}</span><span class="p" data-group-id="8467725072-14">}</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="8467725072-26">{</span><span class="ss">status</span><span class="p">,</span><span class="o">#</span><span class="ss">&#39;Status&#39;</span><span class="p" data-group-id="8467725072-27">{</span><span class="ss">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">35</span><span class="p">,</span><span class="w">
+        </span><span class="ss">buttonList</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="8467725072-28">[</span><span class="o">#</span><span class="ss">&#39;Button&#39;</span><span class="p" data-group-id="8467725072-29">{</span><span class="ss">number</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="ss">on</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="8467725072-29">}</span><span class="p">,</span><span class="w">
+                      </span><span class="o">#</span><span class="ss">&#39;Button&#39;</span><span class="p" data-group-id="8467725072-30">{</span><span class="ss">number</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span><span class="ss">on</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">false</span><span class="p" data-group-id="8467725072-30">}</span><span class="p">,</span><span class="w">
+                      </span><span class="o">#</span><span class="ss">&#39;Button&#39;</span><span class="p" data-group-id="8467725072-31">{</span><span class="ss">number</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span><span class="ss">on</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="8467725072-31">}</span><span class="p">,</span><span class="w">
+                      </span><span class="o">#</span><span class="ss">&#39;Button&#39;</span><span class="p" data-group-id="8467725072-32">{</span><span class="ss">number</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">6</span><span class="p">,</span><span class="ss">on</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="8467725072-32">}</span><span class="p">,</span><span class="w">
+                      </span><span class="o">#</span><span class="ss">&#39;Button&#39;</span><span class="p" data-group-id="8467725072-33">{</span><span class="ss">number</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">7</span><span class="p">,</span><span class="ss">on</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">false</span><span class="p" data-group-id="8467725072-33">}</span><span class="p" data-group-id="8467725072-28">]</span><span class="p">,</span><span class="w">
+        </span><span class="ss">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">false</span><span class="p">,</span><span class="w">
+        </span><span class="ss">actions</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="8467725072-34">{</span><span class="ss">possibleActions</span><span class="p">,</span><span class="p" data-group-id="8467725072-35">[</span><span class="o">#</span><span class="ss">&#39;Action&#39;</span><span class="p" data-group-id="8467725072-36">{</span><span class="ss">number</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">16</span><span class="p">,</span><span class="w">
+                                              </span><span class="ss">handle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">#</span><span class="ss">&#39;Button&#39;</span><span class="p" data-group-id="8467725072-37">{</span><span class="ss">number</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">17</span><span class="p">,</span><span class="ss">on</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="8467725072-37">}</span><span class="p" data-group-id="8467725072-36">}</span><span class="p" data-group-id="8467725072-35">]</span><span class="p" data-group-id="8467725072-34">}</span><span class="p" data-group-id="8467725072-27">}</span><span class="p" data-group-id="8467725072-26">}</span><span class="gp unselectable">
+9&gt; </span><span class="n">WindowBytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">&#39;GUI&#39;</span><span class="p">:</span><span class="nf">encode</span><span class="p" data-group-id="8467725072-38">(</span><span class="ss">&#39;Window&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">WindowMsg</span><span class="p" data-group-id="8467725072-38">)</span><span class="p">.</span><span class="w">
+</span><span class="p">&lt;&lt;</span><span class="mi">161</span><span class="p">,</span><span class="mi">65</span><span class="p">,</span><span class="mi">128</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">35</span><span class="p">,</span><span class="mi">161</span><span class="p">,</span><span class="mi">40</span><span class="p">,</span><span class="mi">48</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">128</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">129</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">255</span><span class="p">,</span><span class="mi">48</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">128</span><span class="p">,</span><span class="w">
+  </span><span class="mi">1</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">129</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">48</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">128</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">129</span><span class="p">,</span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p">&gt;&gt;</span><span class="gp unselectable">
+10&gt; </span><span class="p" data-group-id="8467725072-39">{</span><span class="ss">status</span><span class="p">,</span><span class="o">#</span><span class="ss">&#39;Status&#39;</span><span class="p" data-group-id="8467725072-40">{</span><span class="ss">buttonList</span><span class="o">=</span><span class="p" data-group-id="8467725072-41">{</span><span class="n">UndecWindowKey</span><span class="p">,</span><span class="n">UndecWindowParts</span><span class="p" data-group-id="8467725072-41">}</span><span class="p" data-group-id="8467725072-40">}</span><span class="p" data-group-id="8467725072-39">}</span><span class="w"> </span><span class="o">=</span><span class="w">
+</span><span class="nc">&#39;GUI&#39;</span><span class="p">:</span><span class="nf">decode_Window_exclusive</span><span class="p" data-group-id="8467725072-42">(</span><span class="n">WindowBytes</span><span class="p" data-group-id="8467725072-42">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="8467725072-43">{</span><span class="ss">status</span><span class="p">,</span><span class="o">#</span><span class="ss">&#39;Status&#39;</span><span class="p" data-group-id="8467725072-44">{</span><span class="ss">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">35</span><span class="p">,</span><span class="w">
+                  </span><span class="ss">buttonList</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="8467725072-45">{</span><span class="ss">&#39;Status_buttonList&#39;</span><span class="p">,</span><span class="p" data-group-id="8467725072-46">[</span><span class="p">&lt;&lt;</span><span class="mi">48</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">128</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">129</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="w">
+                                                       </span><span class="mi">255</span><span class="p">&gt;&gt;</span><span class="p">,</span><span class="w">
+                                                     </span><span class="p">&lt;&lt;</span><span class="mi">48</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">128</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">129</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">&gt;&gt;</span><span class="p">,</span><span class="w">
+                                                     </span><span class="p">&lt;&lt;</span><span class="mi">48</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">128</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">129</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">255</span><span class="p">&gt;&gt;</span><span class="p">,</span><span class="w">
+                                                     </span><span class="p">&lt;&lt;</span><span class="mi">48</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">128</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">129</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">255</span><span class="p">&gt;&gt;</span><span class="p">,</span><span class="w">
+                                                     </span><span class="p">&lt;&lt;</span><span class="mi">48</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">128</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">129</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">&gt;&gt;</span><span class="p" data-group-id="8467725072-46">]</span><span class="p" data-group-id="8467725072-45">}</span><span class="p">,</span><span class="w">
+                  </span><span class="ss">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">false</span><span class="p">,</span><span class="w">
+                  </span><span class="ss">actions</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="8467725072-47">{</span><span class="ss">&#39;Status_actions&#39;</span><span class="p">,</span><span class="p">&lt;&lt;</span><span class="mi">163</span><span class="p">,</span><span class="mi">15</span><span class="p">,</span><span class="mi">160</span><span class="p">,</span><span class="mi">13</span><span class="p">,</span><span class="mi">48</span><span class="p">,</span><span class="mi">11</span><span class="p">,</span><span class="mi">128</span><span class="p">,</span><span class="w">
+                                                </span><span class="mi">1</span><span class="p">,</span><span class="mi">16</span><span class="p">,</span><span class="mi">161</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">128</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">17</span><span class="p">,</span><span class="mi">129</span><span class="p">,</span><span class="w">
+                                                </span><span class="mi">1</span><span class="p">,</span><span class="mi">255</span><span class="p">&gt;&gt;</span><span class="p" data-group-id="8467725072-47">}</span><span class="p" data-group-id="8467725072-44">}</span><span class="p" data-group-id="8467725072-43">}</span><span class="gp unselectable">
+11&gt; </span><span class="nc">&#39;GUI&#39;</span><span class="p">:</span><span class="nf">decode_part</span><span class="p" data-group-id="8467725072-48">(</span><span class="n">UndecWindowKey</span><span class="p">,</span><span class="w"> </span><span class="n">UndecWindowParts</span><span class="p" data-group-id="8467725072-48">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="8467725072-49">[</span><span class="o">#</span><span class="ss">&#39;Button&#39;</span><span class="p" data-group-id="8467725072-50">{</span><span class="ss">number</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="ss">on</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="8467725072-50">}</span><span class="p">,</span><span class="w">
+ </span><span class="o">#</span><span class="ss">&#39;Button&#39;</span><span class="p" data-group-id="8467725072-51">{</span><span class="ss">number</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span><span class="ss">on</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">false</span><span class="p" data-group-id="8467725072-51">}</span><span class="p">,</span><span class="w">
+ </span><span class="o">#</span><span class="ss">&#39;Button&#39;</span><span class="p" data-group-id="8467725072-52">{</span><span class="ss">number</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span><span class="ss">on</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="8467725072-52">}</span><span class="p">,</span><span class="w">
+ </span><span class="o">#</span><span class="ss">&#39;Button&#39;</span><span class="p" data-group-id="8467725072-53">{</span><span class="ss">number</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">6</span><span class="p">,</span><span class="ss">on</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="8467725072-53">}</span><span class="p">,</span><span class="w">
+ </span><span class="o">#</span><span class="ss">&#39;Button&#39;</span><span class="p" data-group-id="8467725072-54">{</span><span class="ss">number</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">7</span><span class="p">,</span><span class="ss">on</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">false</span><span class="p" data-group-id="8467725072-54">}</span><span class="p" data-group-id="8467725072-49">]</span><span class="gp unselectable">
+12&gt; </span><span class="nc">&#39;GUI&#39;</span><span class="p">:</span><span class="nf">decode_part</span><span class="p" data-group-id="8467725072-55">(</span><span class="n">UndecWindowKey</span><span class="p">,</span><span class="w"> </span><span class="nf">hd</span><span class="p" data-group-id="8467725072-56">(</span><span class="n">UndecWindowParts</span><span class="p" data-group-id="8467725072-56">)</span><span class="p" data-group-id="8467725072-55">)</span><span class="p">.</span><span class="w">
+</span><span class="o">#</span><span class="ss">&#39;Button&#39;</span><span class="p" data-group-id="8467725072-57">{</span><span class="ss">number</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="ss">on</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="8467725072-57">}</span><span class="gp unselectable">
+13&gt; </span><span class="p" data-group-id="8467725072-58">{</span><span class="ss">status</span><span class="p">,</span><span class="o">#</span><span class="ss">&#39;Status&#39;</span><span class="p" data-group-id="8467725072-59">{</span><span class="ss">actions</span><span class="o">=</span><span class="p" data-group-id="8467725072-60">{</span><span class="n">ChoiceKey</span><span class="p">,</span><span class="n">ChoiceUndec</span><span class="p" data-group-id="8467725072-60">}</span><span class="p" data-group-id="8467725072-59">}</span><span class="p" data-group-id="8467725072-58">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">v</span><span class="p" data-group-id="8467725072-61">(</span><span class="mi">10</span><span class="p" data-group-id="8467725072-61">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="8467725072-62">{</span><span class="ss">status</span><span class="p">,</span><span class="o">#</span><span class="ss">&#39;Status&#39;</span><span class="p" data-group-id="8467725072-63">{</span><span class="ss">state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">35</span><span class="p">,</span><span class="w">
+                  </span><span class="ss">buttonList</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="8467725072-64">{</span><span class="ss">&#39;Status_buttonList&#39;</span><span class="p">,</span><span class="p" data-group-id="8467725072-65">[</span><span class="p">&lt;&lt;</span><span class="mi">48</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">128</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">129</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="w">
+                                                       </span><span class="mi">255</span><span class="p">&gt;&gt;</span><span class="p">,</span><span class="w">
+                                                     </span><span class="p">&lt;&lt;</span><span class="mi">48</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">128</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">129</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">&gt;&gt;</span><span class="p">,</span><span class="w">
+                                                     </span><span class="p">&lt;&lt;</span><span class="mi">48</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">128</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">129</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">255</span><span class="p">&gt;&gt;</span><span class="p">,</span><span class="w">
+                                                     </span><span class="p">&lt;&lt;</span><span class="mi">48</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">128</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">129</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">255</span><span class="p">&gt;&gt;</span><span class="p">,</span><span class="w">
+                                                     </span><span class="p">&lt;&lt;</span><span class="mi">48</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">128</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">129</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">&gt;&gt;</span><span class="p" data-group-id="8467725072-65">]</span><span class="p" data-group-id="8467725072-64">}</span><span class="p">,</span><span class="w">
+                  </span><span class="ss">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">false</span><span class="p">,</span><span class="w">
+                  </span><span class="ss">actions</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="8467725072-66">{</span><span class="ss">&#39;Status_actions&#39;</span><span class="p">,</span><span class="p">&lt;&lt;</span><span class="mi">163</span><span class="p">,</span><span class="mi">15</span><span class="p">,</span><span class="mi">160</span><span class="p">,</span><span class="mi">13</span><span class="p">,</span><span class="mi">48</span><span class="p">,</span><span class="mi">11</span><span class="p">,</span><span class="mi">128</span><span class="p">,</span><span class="w">
+                                                </span><span class="mi">1</span><span class="p">,</span><span class="mi">16</span><span class="p">,</span><span class="mi">161</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">128</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">17</span><span class="p">,</span><span class="mi">129</span><span class="p">,</span><span class="w">
+                                                </span><span class="mi">1</span><span class="p">,</span><span class="mi">255</span><span class="p">&gt;&gt;</span><span class="p" data-group-id="8467725072-66">}</span><span class="p" data-group-id="8467725072-63">}</span><span class="p" data-group-id="8467725072-62">}</span><span class="gp unselectable">
+14&gt; </span><span class="nc">&#39;GUI&#39;</span><span class="p">:</span><span class="nf">decode_part</span><span class="p" data-group-id="8467725072-67">(</span><span class="n">ChoiceKey</span><span class="p">,</span><span class="w"> </span><span class="n">ChoiceUndec</span><span class="p" data-group-id="8467725072-67">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="8467725072-68">{</span><span class="ss">possibleActions</span><span class="p">,</span><span class="p" data-group-id="8467725072-69">[</span><span class="o">#</span><span class="ss">&#39;Action&#39;</span><span class="p" data-group-id="8467725072-70">{</span><span class="ss">number</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">16</span><span class="p">,</span><span class="w">
+                            </span><span class="ss">handle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">#</span><span class="ss">&#39;Button&#39;</span><span class="p" data-group-id="8467725072-71">{</span><span class="ss">number</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">17</span><span class="p">,</span><span class="ss">on</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="8467725072-71">}</span><span class="p" data-group-id="8467725072-70">}</span><span class="p" data-group-id="8467725072-69">]</span><span class="p" data-group-id="8467725072-68">}</span></code></pre><h2 id="selective-decode" class="section-heading">
+  <a href="#selective-decode" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Selective Decode</span>
+</h2>
+<p>Selective decode decodes a single subtype of a constructed value. This is the
+fastest method to extract a subvalue. Selective decode is typically used when
+one want to inspect, for example, a version number to be able to decide how to
+handle the entire value.</p><h3 id="procedure-1" class="section-heading">
+  <a href="#procedure-1" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Procedure</span>
+</h3>
+<p>To perform a selective decode:</p><ul><li><p><em>Step 1:</em> Include the following instructions in the configuration file:</p><ul><li>The name of the user function</li><li>The name of the ASN.1 specification</li><li>A notation that tells which part of the type to be decoded</li></ul></li><li><p><em>Step 2:</em> Compile with the additional option <code class="inline">asn1config</code>. The compiler
+searches for a configuration file with the same name as the ASN.1
+specification, but with extension <code class="inline">.asn1config</code>. In the same file you can also
+provide configuration specifications for exclusive decode. The generated
+Erlang module has the usual functionality for encode/decode preserved and the
+specialized decode functionality added.</p></li></ul><h3 id="user-interface-1" class="section-heading">
+  <a href="#user-interface-1" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">User Interface</span>
+</h3>
+<p>The only new user interface function is the one provided by the user in the
+configuration file.</p><p>For example, if the configuration file includes the specification
+<code class="inline">{selective_decode,{'ModuleName',[{selected_decode_Window,TypeList}]}}</code> do the
+selective decode by
+<code class="inline">{ok,Result} = 'ModuleName':selected_decode_Window(EncodedBinary).</code></p><p><a href="" id="Selective-Instruction"></a></p><h3 id="writing-a-selective-decode-instruction" class="section-heading">
+  <a href="#writing-a-selective-decode-instruction" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Writing a Selective Decode Instruction</span>
+</h3>
+<p>One or more selective decode functions can be described in a configuration file.
+Use the following notation:</p><pre><code class="makeup erlang" translate="no"><span class="n">SelectiveDecodeInstruction</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="1442341925-1">{</span><span class="ss">selective_decode</span><span class="p">,</span><span class="p" data-group-id="1442341925-2">{</span><span class="n">ModuleName</span><span class="p">,</span><span class="n">DecodeInstructions</span><span class="p" data-group-id="1442341925-2">}</span><span class="p" data-group-id="1442341925-1">}</span><span class="p">.</span><span class="w">
+
+</span><span class="n">ModuleName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">atom</span><span class="p" data-group-id="1442341925-3">(</span><span class="p" data-group-id="1442341925-3">)</span><span class="w">
+
+</span><span class="n">DecodeInstructions</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="1442341925-4">[</span><span class="n">DecodeInstruction</span><span class="p" data-group-id="1442341925-4">]</span><span class="o">+</span><span class="w">
+
+</span><span class="n">DecodeInstruction</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="1442341925-5">{</span><span class="n">SelectiveDecodeFunctionName</span><span class="p">,</span><span class="n">TypeList</span><span class="p" data-group-id="1442341925-5">}</span><span class="w">
+
+</span><span class="n">SelectiveDecodeFunctionName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">atom</span><span class="p" data-group-id="1442341925-6">(</span><span class="p" data-group-id="1442341925-6">)</span><span class="w">
+
+</span><span class="n">TypeList</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="1442341925-7">[</span><span class="n">TopType</span><span class="p">|</span><span class="n">ElementList</span><span class="p" data-group-id="1442341925-7">]</span><span class="w">
+
+</span><span class="n">ElementList</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Name</span><span class="p">|</span><span class="n">ListSelector</span><span class="w">
+
+</span><span class="n">Name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">atom</span><span class="p" data-group-id="1442341925-8">(</span><span class="p" data-group-id="1442341925-8">)</span><span class="w">
+
+</span><span class="n">ListSelector</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="1442341925-9">[</span><span class="nf">integer</span><span class="p" data-group-id="1442341925-10">(</span><span class="p" data-group-id="1442341925-10">)</span><span class="p" data-group-id="1442341925-9">]</span></code></pre><p>The instruction must be a valid Erlang term terminated by a dot.</p><ul><li><code class="inline">ModuleName</code> is the same as the name of the ASN.1 specification, but without
+the extension.</li><li><code class="inline">DecodeInstruction</code> is a tuple with your chosen function name and the
+components from the top type that leads to the single type you want to decode.
+Make sure to choose a name of your function that is not the same as any of the
+generated functions.</li><li>The first element of <code class="inline">TypeList</code> is the top type of the encoded message. In
+<code class="inline">ElementList</code>, it is followed by each of the component names that leads to
+selected type.</li><li>Each name in <code class="inline">ElementList</code> must be a constructed type except the last name,
+which can be any type.</li><li><code class="inline">ListSelector</code> makes it possible to choose one of the encoded components in a
+<code class="inline">SEQUENCE OF</code> or a <code class="inline">SET OF</code>. It is also possible to go further in that
+component and pick a subtype of that to decode. So, in the <code class="inline">TypeList</code>:
+<code class="inline">['Window',status,buttonList,[1],number]</code>, component <code class="inline">buttonList</code> must be of
+type <code class="inline">SEQUENCE OF</code> or <code class="inline">SET OF</code>.</li></ul><p>In the example, component <code class="inline">number</code> of the first of the encoded elements in the
+<code class="inline">SEQUENCE OF</code> <code class="inline">buttonList</code> is selected. This applies on the ASN.1 specification
+in section <a href="asn1_spec.html#Asn1spec">Writing an Exclusive Decode Instruction</a>.</p><h3 id="example-1" class="section-heading">
+  <a href="#example-1" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Example</span>
+</h3>
+<p>In this example, the same ASN.1 specification as in section
+<a href="asn1_spec.html#Asn1spec">Writing an Exclusive Decode Instruction</a> is used. The
+following is a valid selective decode instruction:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="4044080792-1">{</span><span class="ss">selective_decode</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="4044080792-2">{</span><span class="ss">&#39;GUI&#39;</span><span class="p">,</span><span class="w">
+        </span><span class="p" data-group-id="4044080792-3">[</span><span class="p" data-group-id="4044080792-4">{</span><span class="ss">selected_decode_Window1</span><span class="p">,</span><span class="w">
+            </span><span class="p" data-group-id="4044080792-5">[</span><span class="ss">&#39;Window&#39;</span><span class="p">,</span><span class="ss">status</span><span class="p">,</span><span class="ss">buttonList</span><span class="p">,</span><span class="w">
+             </span><span class="p" data-group-id="4044080792-6">[</span><span class="mi">1</span><span class="p" data-group-id="4044080792-6">]</span><span class="p">,</span><span class="w">
+             </span><span class="ss">number</span><span class="p" data-group-id="4044080792-5">]</span><span class="p" data-group-id="4044080792-4">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="4044080792-7">{</span><span class="ss">selected_decode_Action</span><span class="p">,</span><span class="w">
+     </span><span class="p" data-group-id="4044080792-8">[</span><span class="ss">&#39;Action&#39;</span><span class="p">,</span><span class="ss">handle</span><span class="p">,</span><span class="ss">number</span><span class="p" data-group-id="4044080792-8">]</span><span class="p" data-group-id="4044080792-7">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="4044080792-9">{</span><span class="ss">selected_decode_Window2</span><span class="p">,</span><span class="w">
+     </span><span class="p" data-group-id="4044080792-10">[</span><span class="ss">&#39;Window&#39;</span><span class="p">,</span><span class="w">
+      </span><span class="ss">status</span><span class="p">,</span><span class="w">
+      </span><span class="ss">actions</span><span class="p">,</span><span class="w">
+      </span><span class="ss">possibleActions</span><span class="p">,</span><span class="w">
+      </span><span class="p" data-group-id="4044080792-11">[</span><span class="mi">1</span><span class="p" data-group-id="4044080792-11">]</span><span class="p">,</span><span class="w">
+      </span><span class="ss">handle</span><span class="p">,</span><span class="ss">number</span><span class="p" data-group-id="4044080792-10">]</span><span class="p" data-group-id="4044080792-9">}</span><span class="p" data-group-id="4044080792-3">]</span><span class="p" data-group-id="4044080792-2">}</span><span class="p" data-group-id="4044080792-1">}</span><span class="p">.</span></code></pre><p>The first instruction,
+<code class="inline">{selected_decode_Window1,['Window',status,buttonList,[1],number]}</code> is described
+in the previous section.</p><p>The second instruction, <code class="inline">{selected_decode_Action,['Action',handle,number]}</code>,
+takes component <code class="inline">number</code> in the <code class="inline">handle</code> component of type <code class="inline">Action</code>. If the
+value is <code class="inline">ValAction = {'Action',17,{'Button',4711,false}}</code>, the internal value
+4711 is to be picked by <code class="inline">selected_decode_Action</code>. In an Erlang terminal it looks
+as follows:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">1&gt; </span><span class="nc">asn1ct</span><span class="p">:</span><span class="nf">compile</span><span class="p" data-group-id="7806666140-1">(</span><span class="ss">&#39;GUI&#39;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7806666140-2">[</span><span class="ss">ber</span><span class="p">,</span><span class="ss">asn1config</span><span class="p">,</span><span class="ss">no_ok_wrapper</span><span class="p" data-group-id="7806666140-2">]</span><span class="p" data-group-id="7806666140-1">)</span><span class="p">.</span><span class="w">
+</span><span class="ss">ok</span><span class="gp unselectable">
+2&gt; </span><span class="n">ValAction</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="7806666140-3">{</span><span class="ss">&#39;Action&#39;</span><span class="p">,</span><span class="mi">17</span><span class="p">,</span><span class="p" data-group-id="7806666140-4">{</span><span class="ss">&#39;Button&#39;</span><span class="p">,</span><span class="mi">4711</span><span class="p">,</span><span class="ss">false</span><span class="p" data-group-id="7806666140-4">}</span><span class="p" data-group-id="7806666140-3">}</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="7806666140-5">{</span><span class="ss">&#39;Action&#39;</span><span class="p">,</span><span class="mi">17</span><span class="p">,</span><span class="p" data-group-id="7806666140-6">{</span><span class="ss">&#39;Button&#39;</span><span class="p">,</span><span class="mi">4711</span><span class="p">,</span><span class="ss">false</span><span class="p" data-group-id="7806666140-6">}</span><span class="p" data-group-id="7806666140-5">}</span><span class="gp unselectable">
+3&gt; </span><span class="n">Bytes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">&#39;GUI&#39;</span><span class="p">:</span><span class="nf">encode</span><span class="p" data-group-id="7806666140-7">(</span><span class="ss">&#39;Action&#39;</span><span class="p">,</span><span class="n">ValAction</span><span class="p" data-group-id="7806666140-7">)</span><span class="p">.</span><span class="w">
+</span><span class="p">&lt;&lt;</span><span class="mi">48</span><span class="p">,</span><span class="mi">18</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">17</span><span class="p">,</span><span class="mi">160</span><span class="p">,</span><span class="mi">13</span><span class="p">,</span><span class="mi">172</span><span class="p">,</span><span class="mi">11</span><span class="p">,</span><span class="mi">171</span><span class="p">,</span><span class="mi">9</span><span class="p">,</span><span class="mi">48</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">128</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">18</span><span class="p">,</span><span class="mi">103</span><span class="p">,</span><span class="mi">129</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">&gt;&gt;</span><span class="gp unselectable">
+4&gt; </span><span class="nc">&#39;GUI&#39;</span><span class="p">:</span><span class="nf">selected_decode_Action</span><span class="p" data-group-id="7806666140-8">(</span><span class="n">Bytes</span><span class="p" data-group-id="7806666140-8">)</span><span class="p">.</span><span class="w">
+</span><span class="mi">4711</span></code></pre><p>The third instruction,
+<code class="inline">['Window',status,actions,possibleActions,[1],handle,number]</code>, works as follows:</p><ul><li><em>Step 1:</em> Starts with type <code class="inline">Window</code>.</li><li><em>Step 2:</em> Takes component <code class="inline">status</code> of <code class="inline">Window</code> that is of type <code class="inline">Status</code>.</li><li><em>Step 3:</em> Takes <em>actions</em> of type <code class="inline">Status</code>.</li><li><em>Step 4:</em> Takes <code class="inline">possibleActions</code> of the internally defined <code class="inline">CHOICE</code> type.</li><li><em>Step 5:</em> Goes into the first component of <code class="inline">SEQUENCE OF</code> by <code class="inline">[1]</code>. That
+component is of type <code class="inline">Action</code>.</li><li><em>Step 6:</em> Takes component <code class="inline">handle</code>.</li><li><em>Step 7:</em> Takes component <code class="inline">number</code> of type <code class="inline">Button</code>.</li></ul><p>The following figure shows which components are in <code class="inline">TypeList</code>
+<code class="inline">['Window',status,actions,possibleActions,[1],handle,number]</code>:</p><p><img src="assets/selective_TypeList.gif" alt="Elements Specified in Configuration File for Selective Decode of a Subvalue in a Window Message" title="Elements Specified in Configuration File for Selective Decode of a Subvalue in a Window Message"/></p><p>In the following figure, only the marked element is decoded by
+<code class="inline">selected_decode_Window2</code>:</p><p><img src="assets/selective_Window2.gif" alt="Bytes of a Window:status Message" title="Bytes of a Window:status Message"/></p><p>With the following example, you can examine that both <code class="inline">selected_decode_Window2</code>
+and <code class="inline">selected_decode_Window1</code> decodes the intended subvalue of value <code class="inline">Val</code>:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">1&gt; </span><span class="n">Val</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="2366342086-1">{</span><span class="ss">status</span><span class="p">,</span><span class="p" data-group-id="2366342086-2">{</span><span class="ss">&#39;Status&#39;</span><span class="p">,</span><span class="mi">12</span><span class="p">,</span><span class="w">
+                    </span><span class="p" data-group-id="2366342086-3">[</span><span class="p" data-group-id="2366342086-4">{</span><span class="ss">&#39;Button&#39;</span><span class="p">,</span><span class="mi">13</span><span class="p">,</span><span class="ss">true</span><span class="p" data-group-id="2366342086-4">}</span><span class="p">,</span><span class="w">
+                     </span><span class="p" data-group-id="2366342086-5">{</span><span class="ss">&#39;Button&#39;</span><span class="p">,</span><span class="mi">14</span><span class="p">,</span><span class="ss">false</span><span class="p" data-group-id="2366342086-5">}</span><span class="p">,</span><span class="w">
+                     </span><span class="p" data-group-id="2366342086-6">{</span><span class="ss">&#39;Button&#39;</span><span class="p">,</span><span class="mi">15</span><span class="p">,</span><span class="ss">true</span><span class="p" data-group-id="2366342086-6">}</span><span class="p">,</span><span class="w">
+                     </span><span class="p" data-group-id="2366342086-7">{</span><span class="ss">&#39;Button&#39;</span><span class="p">,</span><span class="mi">16</span><span class="p">,</span><span class="ss">false</span><span class="p" data-group-id="2366342086-7">}</span><span class="p" data-group-id="2366342086-3">]</span><span class="p">,</span><span class="w">
+                    </span><span class="ss">true</span><span class="p">,</span><span class="w">
+                    </span><span class="p" data-group-id="2366342086-8">{</span><span class="ss">possibleActions</span><span class="p">,</span><span class="p" data-group-id="2366342086-9">[</span><span class="p" data-group-id="2366342086-10">{</span><span class="ss">&#39;Action&#39;</span><span class="p">,</span><span class="mi">17</span><span class="p">,</span><span class="p" data-group-id="2366342086-11">{</span><span class="ss">&#39;Button&#39;</span><span class="p">,</span><span class="mi">18</span><span class="p">,</span><span class="ss">false</span><span class="p" data-group-id="2366342086-11">}</span><span class="p" data-group-id="2366342086-10">}</span><span class="p">,</span><span class="w">
+                                      </span><span class="p" data-group-id="2366342086-12">{</span><span class="ss">&#39;Action&#39;</span><span class="p">,</span><span class="mi">19</span><span class="p">,</span><span class="p" data-group-id="2366342086-13">{</span><span class="ss">&#39;Button&#39;</span><span class="p">,</span><span class="mi">20</span><span class="p">,</span><span class="ss">true</span><span class="p" data-group-id="2366342086-13">}</span><span class="p" data-group-id="2366342086-12">}</span><span class="p">,</span><span class="w">
+                                      </span><span class="p" data-group-id="2366342086-14">{</span><span class="ss">&#39;Action&#39;</span><span class="p">,</span><span class="mi">21</span><span class="p">,</span><span class="p" data-group-id="2366342086-15">{</span><span class="ss">&#39;Button&#39;</span><span class="p">,</span><span class="mi">22</span><span class="p">,</span><span class="ss">false</span><span class="p" data-group-id="2366342086-15">}</span><span class="p" data-group-id="2366342086-14">}</span><span class="p" data-group-id="2366342086-9">]</span><span class="p" data-group-id="2366342086-8">}</span><span class="p" data-group-id="2366342086-2">}</span><span class="p" data-group-id="2366342086-1">}</span><span class="p">.</span><span class="gp unselectable">
+2&gt; </span><span class="n">Bin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">&#39;GUI&#39;</span><span class="p">:</span><span class="nf">encode</span><span class="p" data-group-id="2366342086-16">(</span><span class="ss">&#39;Window&#39;</span><span class="p">,</span><span class="n">Val</span><span class="p" data-group-id="2366342086-16">)</span><span class="p">.</span><span class="w">
+</span><span class="p">&lt;&lt;</span><span class="mi">161</span><span class="p">,</span><span class="mi">89</span><span class="p">,</span><span class="mi">128</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">12</span><span class="p">,</span><span class="mi">161</span><span class="p">,</span><span class="mi">32</span><span class="p">,</span><span class="mi">48</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">128</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">13</span><span class="p">,</span><span class="mi">129</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">255</span><span class="p">,</span><span class="mi">48</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">128</span><span class="p">,</span><span class="w">
+  </span><span class="mi">1</span><span class="p">,</span><span class="mi">14</span><span class="p">,</span><span class="mi">129</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">48</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">128</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">15</span><span class="p">,</span><span class="mi">129</span><span class="p">,</span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p">&gt;&gt;</span><span class="gp unselectable">
+4&gt; </span><span class="nc">&#39;GUI&#39;</span><span class="p">:</span><span class="nf">selected_decode_Window1</span><span class="p" data-group-id="2366342086-17">(</span><span class="n">Bin</span><span class="p" data-group-id="2366342086-17">)</span><span class="p">.</span><span class="w">
+</span><span class="mi">13</span><span class="gp unselectable">
+5&gt; </span><span class="nc">&#39;GUI&#39;</span><span class="p">:</span><span class="nf">selected_decode_Window2</span><span class="p" data-group-id="2366342086-18">(</span><span class="n">Bin</span><span class="p" data-group-id="2366342086-18">)</span><span class="p">.</span><span class="w">
+</span><span class="mi">18</span></code></pre>
+<div class="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="asn1_getting_started.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Getting Started
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+  </div>
+</div>
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+              <a href="asn1.epub" title="ePub version">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

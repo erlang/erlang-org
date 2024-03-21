@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="erts v14.3">
+
+
+    <title>Distribution Protocol — erts v14.3</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-218663D5.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="erts" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+erts
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v14.3
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of erts</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/erts/doc/guides/erl_dist_protocol.md#L1" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+
+  <span>Distribution Protocol</span>
+</h1>
+
+<p>This description is far from complete. It will be updated if the protocol is
+updated. However, the protocols, both from Erlang nodes to the Erlang Port
+Mapper Daemon (EPMD) and between Erlang nodes are stable since many years.</p><p>The distribution protocol can be divided into four parts:</p><ul><li>Low-level socket connection (1)</li><li>Handshake, interchange node name, and authenticate (2)</li><li>Authentication (done by <a href="../../apps/kernel/net_kernel.html"><code class="inline">net_kernel</code></a>) (3)</li><li>Connected (4)</li></ul><p>A node fetches the port number of another node through the EPMD (at the other
+host) to initiate a connection request.</p><p>For each host, where a distributed Erlang node is running, also an EPMD is to be
+running. The EPMD can be started explicitly or automatically as a result of the
+Erlang node startup.</p><p>By default the EPMD listens on port 4369.</p><p>(3) and (4) above are performed at the same level but the <code class="inline">net_kernel</code>
+disconnects the other node if it communicates using an invalid cookie (after 1
+second).</p><p>The integers in all multibyte fields are in big-endian order.</p><blockquote><h4 class="warning">Warning</h4><p>The Erlang Distribution protocol is not by itself secure and does not aim to
+be so. In order to get secure distribution the distributed nodes should be
+configured to use distribution over tls. See the
+<a href="../../apps/ssl/ssl_distribution.html">Using SSL for Erlang Distribution</a> User's Guide
+for details on how to setup a secure distributed node.</p></blockquote><h2 id="epmd-protocol" class="section-heading">
+  <a href="#epmd-protocol" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">EPMD Protocol</span>
+</h2>
+<p>The requests served by the EPMD are summarized in the following figure.</p><p><img src="assets/erl_ext_fig.gif" alt="Summary of EPMD Requests" title="Summary of EPMD Requests"/></p><p>Each request <code class="inline">*_REQ</code> is preceded by a 2 byte length field. Thus, the overall
+request format is as follows:</p><table><thead><tr><th style="text-align: left;">2</th><th style="text-align: left;">n</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">Length</code></td><td style="text-align: left;"><code class="inline">Request</code></td></tr></tbody></table><p><em>Table: Request Format</em></p><h3 id="register-a-node-in-epmd" class="section-heading">
+  <a href="#register-a-node-in-epmd" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Register a Node in EPMD</span>
+</h3>
+<p>When a distributed node is started it registers itself in the EPMD. The message
+<code class="inline">ALIVE2_REQ</code> described below is sent from the node to the EPMD. The response
+from the EPMD is <code class="inline">ALIVE2_X_RESP</code> (or <code class="inline">ALIVE2_RESP</code>).</p><table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">2</th><th style="text-align: left;">1</th><th style="text-align: left;">1</th><th style="text-align: left;">2</th><th style="text-align: left;">2</th><th style="text-align: left;">2</th><th style="text-align: left;">Nlen</th><th style="text-align: left;">2</th><th style="text-align: left;">Elen</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">120</code></td><td style="text-align: left;"><code class="inline">PortNo</code></td><td style="text-align: left;"><code class="inline">NodeType</code></td><td style="text-align: left;"><code class="inline">Protocol</code></td><td style="text-align: left;"><code class="inline">HighestVersion</code></td><td style="text-align: left;"><code class="inline">LowestVersion</code></td><td style="text-align: left;"><code class="inline">Nlen</code></td><td style="text-align: left;"><code class="inline">NodeName</code></td><td style="text-align: left;"><code class="inline">Elen</code></td><td style="text-align: left;"><code class="inline">Extra</code></td></tr></tbody></table><p><em>Table: ALIVE2_REQ (120)</em></p><ul><li><p><strong><code class="inline">PortNo</code></strong> - The port number on which the node accept connection requests.</p></li><li><p><strong><code class="inline">NodeType</code></strong> - 77 = normal Erlang node, 72 = hidden node (C-node), ...</p></li><li><p><strong><code class="inline">Protocol</code></strong> - 0 = TCP/IPv4, ...</p></li><li><p><strong><code class="inline">HighestVersion</code></strong> - The highest distribution protocol version this node can
+handle. The value in OTP 23 and later is 6. Older nodes only support
+version 5.</p></li><li><p><strong><code class="inline">LowestVersion</code></strong> - The lowest distribution version that this node can
+handle. The value in OTP 25 and later is 6 as support for connections to nodes
+older than OTP 23 has been dropped.</p></li><li><p><strong><code class="inline">Nlen</code></strong> - The length (in bytes) of field <code class="inline">NodeName</code>.</p></li><li><p><strong><code class="inline">NodeName</code></strong> - The node name as an UTF-8 encoded string of <code class="inline">Nlen</code> bytes.</p></li><li><p><strong><code class="inline">Elen</code></strong> - The length of field <code class="inline">Extra</code>.</p></li><li><p><strong><code class="inline">Extra</code></strong> - Extra field of <code class="inline">Elen</code> bytes.</p></li></ul><p>The connection created to the EPMD must be kept as long as the node is a
+distributed node. When the connection is closed, the node is automatically
+unregistered from the EPMD.</p><p>The response message is either <code class="inline">ALIVE2_X_RESP</code> or <code class="inline">ALIVE2_RESP</code> depending on
+distribution version. If both the node and EPMD support distribution version 6
+then the response is <code class="inline">ALIVE2_X_RESP</code> otherwise it is the older <code class="inline">ALIVE2_RESP</code>:</p><table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">1</th><th style="text-align: left;">4</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">118</code></td><td style="text-align: left;"><code class="inline">Result</code></td><td style="text-align: left;"><code class="inline">Creation</code></td></tr></tbody></table><p><em>Table: ALIVE2_X_RESP (118) with 32 bit creation</em></p><table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">1</th><th style="text-align: left;">2</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">121</code></td><td style="text-align: left;"><code class="inline">Result</code></td><td style="text-align: left;"><code class="inline">Creation</code></td></tr></tbody></table><p><em>Table: ALIVE2_RESP (121) with 16-bit creation</em></p><p>Result = 0 -&gt; ok, result &gt; 0 -&gt; error.</p><h3 id="unregister-a-node-from-epmd" class="section-heading">
+  <a href="#unregister-a-node-from-epmd" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Unregister a Node from EPMD</span>
+</h3>
+<p>A node unregisters itself from the EPMD by closing the TCP connection to EPMD
+established when the node was registered.</p><h3 id="get-the-distribution-port-of-another-node" class="section-heading">
+  <a href="#get-the-distribution-port-of-another-node" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Get the Distribution Port of Another Node</span>
+</h3>
+<p>When one node wants to connect to another node it starts with a
+<code class="inline">PORT_PLEASE2_REQ</code> request to the EPMD on the host where the node resides to get
+the distribution port that the node listens to.</p><table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">N</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">122</code></td><td style="text-align: left;"><code class="inline">NodeName</code></td></tr></tbody></table><p><em>Table: PORT_PLEASE2_REQ (122)</em></p><p>where N = <code class="inline">Length</code> - 1.</p><table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">1</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">119</code></td><td style="text-align: left;"><code class="inline">Result</code></td></tr></tbody></table><p><em>Table: PORT2_RESP (119) Response Indicating Error, Result &gt; 0</em></p><p>or</p><table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">1</th><th style="text-align: left;">2</th><th style="text-align: left;">1</th><th style="text-align: left;">1</th><th style="text-align: left;">2</th><th style="text-align: left;">2</th><th style="text-align: left;">2</th><th style="text-align: left;">Nlen</th><th style="text-align: left;">2</th><th style="text-align: left;">Elen</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">119</code></td><td style="text-align: left;"><code class="inline">Result</code></td><td style="text-align: left;"><code class="inline">PortNo</code></td><td style="text-align: left;"><code class="inline">NodeType</code></td><td style="text-align: left;"><code class="inline">Protocol</code></td><td style="text-align: left;"><code class="inline">HighestVersion</code></td><td style="text-align: left;"><code class="inline">LowestVersion</code></td><td style="text-align: left;"><code class="inline">Nlen</code></td><td style="text-align: left;"><code class="inline">NodeName</code></td><td style="text-align: left;"><code class="inline">Elen</code></td><td style="text-align: left;">&gt;<code class="inline">Extra</code></td></tr></tbody></table><p><em>Table: PORT2_RESP, Result = 0</em></p><p>If <code class="inline">Result</code> &gt; 0, the packet only consists of <code class="inline">[119, Result]</code>.</p><p>The EPMD closes the socket when it has sent the information.</p><h3 id="get-all-registered-names-from-epmd" class="section-heading">
+  <a href="#get-all-registered-names-from-epmd" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Get All Registered Names from EPMD</span>
+</h3>
+<p>This request is used through the Erlang function
+<a href="../../apps/kernel/net_adm.html#names/1"><code class="inline">net_adm:names/1,2</code></a>. A TCP connection is opened to the EPMD
+and this request is sent.</p><table><thead><tr><th style="text-align: left;">1</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">110</code></td></tr></tbody></table><p><em>Table: NAMES_REQ (110)</em></p><p>The response for a <code class="inline">NAMES_REQ</code> is as follows:</p><table><thead><tr><th style="text-align: left;">4</th><th style="text-align: left;"></th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">EPMDPortNo</code></td><td style="text-align: left;"><code class="inline">NodeInfo*</code></td></tr></tbody></table><p><em>Table: NAMES_RESP</em></p><p><code class="inline">NodeInfo</code> is a string written for each active node. When all <code class="inline">NodeInfo</code> has
+been written the connection is closed by the EPMD.</p><p><code class="inline">NodeInfo</code> is, as expressed in Erlang:</p><pre><code class="makeup erlang" translate="no"><span class="nc">io</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="1399313651-1">(</span><span class="s">&quot;name ~ts at port </span><span class="si">~p</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1399313651-2">[</span><span class="n">NodeName</span><span class="p">,</span><span class="w"> </span><span class="n">Port</span><span class="p" data-group-id="1399313651-2">]</span><span class="p" data-group-id="1399313651-1">)</span><span class="p">.</span></code></pre><h3 id="dump-all-data-from-epmd" class="section-heading">
+  <a href="#dump-all-data-from-epmd" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Dump All Data from EPMD</span>
+</h3>
+<p>This request is not really used, it is to be regarded as a debug feature.</p><table><thead><tr><th style="text-align: left;">1</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">100</code></td></tr></tbody></table><p><em>Table: DUMP_REQ</em></p><p>The response for a <code class="inline">DUMP_REQ</code> is as follows:</p><table><thead><tr><th style="text-align: left;">4</th><th style="text-align: left;"></th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">EPMDPortNo</code></td><td style="text-align: left;"><code class="inline">NodeInfo*</code></td></tr></tbody></table><p><em>Table: DUMP_RESP</em></p><p><code class="inline">NodeInfo</code> is a string written for each node kept in the EPMD. When all
+<code class="inline">NodeInfo</code> has been written the connection is closed by the EPMD.</p><p><code class="inline">NodeInfo</code> is, as expressed in Erlang:</p><pre><code class="makeup erlang" translate="no"><span class="nc">io</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="9309485421-1">(</span><span class="s">&quot;active name     ~ts at port </span><span class="si">~p</span><span class="s">, fd = </span><span class="si">~p</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w">
+          </span><span class="p" data-group-id="9309485421-2">[</span><span class="n">NodeName</span><span class="p">,</span><span class="w"> </span><span class="n">Port</span><span class="p">,</span><span class="w"> </span><span class="n">Fd</span><span class="p" data-group-id="9309485421-2">]</span><span class="p" data-group-id="9309485421-1">)</span><span class="p">.</span></code></pre><p>or</p><pre><code class="makeup erlang" translate="no"><span class="nc">io</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="3854466060-1">(</span><span class="s">&quot;old/unused name ~ts at port </span><span class="si">~p</span><span class="s">, fd = </span><span class="si">~p</span><span class="s"> </span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w">
+          </span><span class="p" data-group-id="3854466060-2">[</span><span class="n">NodeName</span><span class="p">,</span><span class="w"> </span><span class="n">Port</span><span class="p">,</span><span class="w"> </span><span class="n">Fd</span><span class="p" data-group-id="3854466060-2">]</span><span class="p" data-group-id="3854466060-1">)</span><span class="p">.</span></code></pre><h3 id="kill-epmd" class="section-heading">
+  <a href="#kill-epmd" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Kill EPMD</span>
+</h3>
+<p>This request kills the running EPMD. It is almost never used.</p><table><thead><tr><th style="text-align: left;">1</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">107</code></td></tr></tbody></table><p><em>Table: KILL_REQ</em></p><p>The response for a <code class="inline">KILL_REQ</code> is as follows:</p><table><thead><tr><th style="text-align: left;">2</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">OKString</code></td></tr></tbody></table><p><em>Table: KILL_RESP</em></p><p>where <code class="inline">OKString</code> is &quot;OK&quot;.</p><h3 id="stop_req-not-used" class="section-heading">
+  <a href="#stop_req-not-used" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">STOP_REQ (Not Used)</span>
+</h3>
+<table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">n</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">115</code></td><td style="text-align: left;"><code class="inline">NodeName</code></td></tr></tbody></table><p><em>Table: STOP_REQ</em></p><p>where n = <code class="inline">Length</code> - 1.</p><p>The response for a <code class="inline">STOP_REQ</code> is as follows:</p><table><thead><tr><th style="text-align: left;">7</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">OKString</code></td></tr></tbody></table><p><em>Table: STOP_RESP</em></p><p>where <code class="inline">OKString</code> is &quot;STOPPED&quot;.</p><p>A negative response can look as follows:</p><table><thead><tr><th style="text-align: left;">7</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">NOKString</code></td></tr></tbody></table><p><em>Table: STOP_NOTOK_RESP</em></p><p>where <code class="inline">NOKString</code> is &quot;NOEXIST&quot;.</p><p><a href="" id="distribution_handshake"></a></p><h2 id="distribution-handshake" class="section-heading">
+  <a href="#distribution-handshake" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Distribution Handshake</span>
+</h2>
+<p>This section describes the distribution handshake protocol used between nodes to
+establishing a connection. The protocol was introduced in Erlang/OTP R6 and
+amended in OTP 23. From OTP 25 support for the older protocol was dropped.
+Therefore an OTP 25 node can not connect to nodes older than OTP 23. This
+documentation only decribes the part of the protocol used by OTP 25.</p><blockquote><h4 class="info">Note</h4><p>A bug introduced in OTP 25.0 may cause OTP 25 nodes to reject connection
+attempts from OTP 23 and 24 nodes that are not using <code class="inline">epmd</code> to gain version
+information about the remote node. This is fixed in OTP 25.3.</p></blockquote><h3 id="general" class="section-heading">
+  <a href="#general" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">General</span>
+</h3>
+<p>The TCP/IP distribution uses a handshake that expects a connection-based
+protocol, that is, the protocol does not include any authentication after the
+handshake procedure.</p><p>This is not entirely safe, as it is vulnerable against takeover attacks, but it
+is a tradeoff between fair safety and performance.</p><p>The cookies are never sent in cleartext and the handshake procedure expects the
+client (called <code class="inline">A</code>) to be the first one to prove that it can generate a
+sufficient digest. The digest is generated with the MD5 message digest algorithm
+and the challenges are expected to be random numbers.</p><h3 id="definitions" class="section-heading">
+  <a href="#definitions" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Definitions</span>
+</h3>
+<p>A challenge is a 32-bit integer in big-endian order. Below the function
+<code class="inline">gen_challenge()</code> returns a random 32-bit integer used as a challenge.</p><p>A digest is a (16 bytes) MD5 hash of the cookie (as text) concatenated with the
+challenge (as text). Below, the function <code class="inline">gen_digest(Challenge, Cookie)</code>
+generates a digest as described above.</p><p>An <code class="inline">out_cookie</code> is the cookie used in outgoing communication to a certain node,
+so that <code class="inline">A</code>'s <code class="inline">out_cookie</code> for <code class="inline">B</code> is to correspond with <code class="inline">B</code>'s <code class="inline">in_cookie</code> for
+<code class="inline">A</code> and conversely. <code class="inline">A</code>'s <code class="inline">out_cookie</code> for <code class="inline">B</code> and <code class="inline">A</code>'s <code class="inline">in_cookie</code> for <code class="inline">B</code>
+need <em>not</em> be the same. Below the function <code class="inline">out_cookie(Node)</code> returns the
+current node's <code class="inline">out_cookie</code> for <code class="inline">Node</code>.</p><p>An <code class="inline">in_cookie</code> is the cookie expected to be used by another node when
+communicating with us, so that <code class="inline">A</code>'s <code class="inline">in_cookie</code> for <code class="inline">B</code> corresponds with <code class="inline">B</code>'s
+<code class="inline">out_cookie</code> for <code class="inline">A</code>. Below the function <code class="inline">in_cookie(Node)</code> returns the current
+node's <code class="inline">in_cookie</code> for <code class="inline">Node</code>.</p><p>The cookies are text strings that can be viewed as passwords.</p><p>Every message in the handshake starts with a 16-bit big-endian integer, which
+contains the message length (not counting the two initial bytes). In Erlang this
+corresponds to option <code class="inline">{packet, 2}</code> in <a href="../../apps/kernel/gen_tcp.html"><code class="inline">gen_tcp</code></a>. Notice that after the
+handshake, the distribution switches to 4 byte packet headers.</p><h3 id="the-handshake-in-detail" class="section-heading">
+  <a href="#the-handshake-in-detail" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">The Handshake in Detail</span>
+</h3>
+<p>Imagine two nodes, <code class="inline">A</code> that initiates the handshake and <code class="inline">B</code> that accepts the
+connection.</p><ul><li><p><strong>1) connect/accept</strong> - <code class="inline">A</code> connects to <code class="inline">B</code> through TCP/IP and <code class="inline">B</code> accepts the
+connection.</p></li><li><p><strong>2) <code class="inline">send_name</code>/<code class="inline">receive_name</code></strong> - <code class="inline">A</code> sends an initial identification to
+<code class="inline">B</code>, which receives the message. The message can have two different formats
+which looks as follows (the packet headers are removed):</p><table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">2</th><th style="text-align: left;">4</th><th style="text-align: left;">Nlen</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">'n'</code></td><td style="text-align: left;"><code class="inline">Version=5</code></td><td style="text-align: left;"><code class="inline">Flags</code></td><td style="text-align: left;"><code class="inline">Name</code></td></tr></tbody></table><p><em>Table: Old send_name ('n') for protocol version 5</em></p><table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">8</th><th style="text-align: left;">4</th><th style="text-align: left;">2</th><th style="text-align: left;">Nlen</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">'N'</code></td><td style="text-align: left;"><code class="inline">Flags</code></td><td style="text-align: left;"><code class="inline">Creation</code></td><td style="text-align: left;"><code class="inline">Nlen</code></td><td style="text-align: left;"><code class="inline">Name</code></td></tr></tbody></table><p><em>Table: New send_name ('N') for protocol version 6</em></p><p>The old <code class="inline">send_name</code> format is only sent from OTP 23 and 24 nodes that are not
+using <code class="inline">epmd</code> and therefore do not know if the remote node only supports
+protocol version 5. The <code class="inline">Version</code> is a 16-bit big endian integer and <em>must</em>
+always have the value 5 (even though node <code class="inline">A</code> supports version 6). <code class="inline">Flags</code> are
+the <a href="erl_dist_protocol.html#dflags">capability flags</a> of node <code class="inline">A</code> in 32-bit big
+endian. The flag bit
+<a href="erl_dist_protocol.html#DFLAG_HANDSHAKE_23"><code class="inline">DFLAG_HANDSHAKE_23</code></a> must be set
+(as node <code class="inline">A</code> must supports version 6). <code class="inline">Name</code> is the full node name of <code class="inline">A</code>, as
+a string of bytes (the packet length denotes how long it is).</p><p>The new <code class="inline">send_name</code> is sent to nodes known to support version 6. <code class="inline">Flags</code> are
+the <a href="erl_dist_protocol.html#dflags">capability flags</a> of node <code class="inline">A</code> in 64-bit big
+endian. The flag bit
+<a href="erl_dist_protocol.html#DFLAG_HANDSHAKE_23"><code class="inline">DFLAG_HANDSHAKE_23</code></a> must always be
+set. <code class="inline">Creation</code> is the node incarnation identifier used by node <code class="inline">A</code> to create
+its pids, ports and references. <code class="inline">Name</code> is the full node name of <code class="inline">A</code>, as a
+string of bytes. <code class="inline">Nlen</code> is the byte length of the node name in 16-bit big
+endian. Any extra data after the node <code class="inline">Name</code> must be accepted and ignored.</p><p>The <code class="inline">Name</code> must be just the host name (without @) when
+<a href="erl_dist_protocol.html#DFLAG_NAME_ME"><code class="inline">DFLAG_NAME_ME</code></a> is set.</p></li><li><p><strong>3) <code class="inline">recv_status</code>/<code class="inline">send_status</code></strong> - <code class="inline">B</code> sends a status message to <code class="inline">A</code>, which
+indicates if the connection is allowed.</p><table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">Slen</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">'s'</code></td><td style="text-align: left;"><code class="inline">Status</code></td></tr></tbody></table><p><em>Table: The format of the status message</em></p><p>'s' is the message tag. <code class="inline">Status</code> is the status code as a string (not null
+terminated). The following status codes are defined:</p><ul><li><p><strong><code class="inline">ok</code></strong> - The handshake will continue.</p></li><li><p><strong><code class="inline">ok_simultaneous</code></strong> - The handshake will continue, but <code class="inline">A</code> is informed
+that <code class="inline">B</code> has another ongoing connection attempt that will be shut down
+(simultaneous connect where <code class="inline">A</code>'s name is greater than <code class="inline">B</code>'s name, compared
+literally).</p></li><li><p><strong><code class="inline">nok</code></strong> - The handshake will not continue, as <code class="inline">B</code> already has an ongoing
+handshake, which it itself has initiated (simultaneous connect where <code class="inline">B</code>'s
+name is greater than <code class="inline">A</code>'s).</p></li><li><p><strong><code class="inline">not_allowed</code></strong> - The connection is disallowed for some (unspecified)
+security reason.</p></li><li><p><strong><code class="inline">alive</code></strong> - A connection to the node is already active, which either means
+that node <code class="inline">A</code> is confused or that the TCP connection breakdown of a previous
+node with this name has not yet reached node <code class="inline">B</code>. See step 3B below.</p></li><li><p><strong><code class="inline">named:</code></strong> - The handshake will continue, but <code class="inline">A</code> requested a dynamic node
+name by setting flag <a href="erl_dist_protocol.html#DFLAG_NAME_ME"><code class="inline">DFLAG_NAME_ME</code></a>.
+The dynamic node name of <code class="inline">A</code> is supplied at the end of the status message
+from <code class="inline">B</code>. The host name of <code class="inline">A</code> which was sent as <code class="inline">Name</code> in <code class="inline">send_name</code> will
+be used by node <code class="inline">B</code> to generate the full dynamic node name.</p><table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">Slen=6</th><th style="text-align: left;">2</th><th style="text-align: left;">Nlen</th><th style="text-align: left;">4</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">'s'</code></td><td style="text-align: left;"><code class="inline">Status='named:'</code></td><td style="text-align: left;"><code class="inline">Nlen</code></td><td style="text-align: left;"><code class="inline">Name</code></td><td style="text-align: left;"><code class="inline">Creation</code></td></tr></tbody></table><p><em>Table: The format of the 'named:' status message</em></p><p><code class="inline">Name</code> is the full dynamic node name of <code class="inline">A</code>, as a string of bytes. <code class="inline">Nlen</code> is
+the byte length of the node name in 16-bit big endian. <code class="inline">Creation</code> is the
+incarnation identifier of node <code class="inline">A</code> generated by node <code class="inline">B</code>. Any extra data after
+the node <code class="inline">Creation</code> must be accepted and ignored.</p></li></ul></li><li><p><strong>3B) <code class="inline">send_status</code>/<code class="inline">recv_status</code></strong> - If status was <code class="inline">alive</code>, node <code class="inline">A</code> answers
+with another status message containing either <code class="inline">true</code>, which means that the
+connection is to continue (the old connection from this node is broken), or
+<code class="inline">false</code>, which means that the connection is to be closed (the connection
+attempt was a mistake.</p></li><li><p><strong>4) <code class="inline">recv_challenge</code>/<code class="inline">send_challenge</code></strong> - If the status was <code class="inline">ok</code> or
+<code class="inline">ok_simultaneous</code>, the handshake continues with <code class="inline">B</code> sending <code class="inline">A</code> another
+message, the challenge. The challenge contains the same type of information as
+the &quot;name&quot; message initially sent from <code class="inline">A</code> to <code class="inline">B</code>, plus a 32-bit challenge:</p><table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">8</th><th style="text-align: left;">4</th><th style="text-align: left;">4</th><th style="text-align: left;">2</th><th style="text-align: left;">Nlen</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">'N'</code></td><td style="text-align: left;"><code class="inline">Flags</code></td><td style="text-align: left;"><code class="inline">Challenge</code></td><td style="text-align: left;"><code class="inline">Creation</code></td><td style="text-align: left;"><code class="inline">Nlen</code></td><td style="text-align: left;"><code class="inline">Name</code></td></tr></tbody></table><p><em>Table: The new challenge message format (version 6)</em></p><p><code class="inline">Challenge</code> is a 32-bit big-endian integer. The other fields are node <code class="inline">B</code>'s
+flags, creation and full node name, similar to the <code class="inline">send_name</code> message. Any
+extra data after the node <code class="inline">Name</code> must be accepted and ignored.</p></li><li><p><strong>4B) <code class="inline">send_complement</code>/<code class="inline">recv_complement</code></strong> - The complement message, from <code class="inline">A</code>
+to <code class="inline">B</code>, is only sent if node <code class="inline">A</code> initially sent an old name message. It
+contains complementary information missing in the initial old name message
+from node <code class="inline">A</code>.</p><table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">4</th><th style="text-align: left;">4</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">'c'</code></td><td style="text-align: left;"><code class="inline">FlagsHigh</code></td><td style="text-align: left;"><code class="inline">Creation</code></td></tr></tbody></table><p><em>Table: The complement message</em></p><p><code class="inline">FlagsHigh</code> are the high capability flags (bit 33-64) of node <code class="inline">A</code> as a 32-bit
+big endian integer. <code class="inline">Creation</code> is the incarnation identifier of node <code class="inline">A</code>.</p></li><li><p><strong>5) <code class="inline">send_challenge_reply</code>/<code class="inline">recv_challenge_reply</code></strong> - Now <code class="inline">A</code> has generated a
+digest and its own challenge. Those are sent together in a package to <code class="inline">B</code>:</p><table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">4</th><th style="text-align: left;">16</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">'r'</code></td><td style="text-align: left;"><code class="inline">Challenge</code></td><td style="text-align: left;"><code class="inline">Digest</code></td></tr></tbody></table><p><em>Table: The challenge_reply message</em></p><p><code class="inline">Challenge</code> is <code class="inline">A</code>'s challenge for <code class="inline">B</code> to handle. <code class="inline">Digest</code> is the MD5 digest
+that <code class="inline">A</code> constructed from the challenge <code class="inline">B</code> sent in the previous step.</p></li><li><p><strong>6) <code class="inline">recv_challenge_ack</code>/<code class="inline">send_challenge_ack</code></strong> - <code class="inline">B</code> checks that the digest
+received from <code class="inline">A</code> is correct and generates a digest from the challenge
+received from <code class="inline">A</code>. The digest is then sent to <code class="inline">A</code>. The message is as follows:</p><table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">16</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">'a'</code></td><td style="text-align: left;"><code class="inline">Digest</code></td></tr></tbody></table><p><em>Table: The challenge_ack message</em></p><p><code class="inline">Digest</code> is the digest calculated by <code class="inline">B</code> for <code class="inline">A</code>'s challenge.</p></li><li><p><strong>7) check</strong> - <code class="inline">A</code> checks the digest from <code class="inline">B</code> and the connection is up.</p></li></ul><h3 id="semigraphic-view" class="section-heading">
+  <a href="#semigraphic-view" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Semigraphic View</span>
+</h3>
+<pre><code class="makeup erlang" translate="no"><span class="n">A</span><span class="w"> </span><span class="p" data-group-id="4013771493-1">(</span><span class="ss">initiator</span><span class="p" data-group-id="4013771493-1">)</span><span class="w">                                      </span><span class="n">B</span><span class="w"> </span><span class="p" data-group-id="4013771493-2">(</span><span class="ss">acceptor</span><span class="p" data-group-id="4013771493-2">)</span><span class="w">
+
+</span><span class="n">TCP</span><span class="w"> </span><span class="ss">connect</span><span class="w"> </span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">&gt;</span><span class="w">
+                                                   </span><span class="n">TCP</span><span class="w"> </span><span class="ss">accept</span><span class="w">
+
+</span><span class="ss">send_name</span><span class="w"> </span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">&gt;</span><span class="w">
+                                                   </span><span class="ss">recv_name</span><span class="w">
+
+  </span><span class="o">&lt;-</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">-</span><span class="w"> </span><span class="ss">send_status</span><span class="w">
+</span><span class="nf">recv_status</span><span class="w">
+</span><span class="p" data-group-id="4013771493-3">(</span><span class="k">if</span><span class="w"> </span><span class="ss">status</span><span class="w"> </span><span class="ss">was</span><span class="w"> </span><span class="ss">&#39;alive&#39;</span><span class="w">
+ </span><span class="ss">send_status</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                                                   </span><span class="ss">recv_status</span><span class="p" data-group-id="4013771493-3">)</span><span class="w">
+
+                          </span><span class="p" data-group-id="4013771493-4">(</span><span class="n">ChB</span><span class="p" data-group-id="4013771493-4">)</span><span class="w">                      </span><span class="n">ChB</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">gen_challenge</span><span class="p" data-group-id="4013771493-5">(</span><span class="p" data-group-id="4013771493-5">)</span><span class="w">
+  </span><span class="o">&lt;-</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">-</span><span class="w"> </span><span class="ss">send_challenge</span><span class="w">
+</span><span class="nf">recv_challenge</span><span class="w">
+
+</span><span class="p" data-group-id="4013771493-6">(</span><span class="k">if</span><span class="w"> </span><span class="ss">old</span><span class="w"> </span><span class="ss">send_name</span><span class="w">
+ </span><span class="ss">send_complement</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                                                   </span><span class="ss">recv_complement</span><span class="p" data-group-id="4013771493-6">)</span><span class="w">
+
+</span><span class="n">ChA</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">gen_challenge</span><span class="p" data-group-id="4013771493-7">(</span><span class="p" data-group-id="4013771493-7">)</span><span class="p">,</span><span class="w">
+</span><span class="n">OCA</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">out_cookie</span><span class="p" data-group-id="4013771493-8">(</span><span class="n">B</span><span class="p" data-group-id="4013771493-8">)</span><span class="p">,</span><span class="w">
+</span><span class="n">DiA</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">gen_digest</span><span class="p" data-group-id="4013771493-9">(</span><span class="n">ChB</span><span class="p">,</span><span class="w"> </span><span class="n">OCA</span><span class="p" data-group-id="4013771493-9">)</span><span class="w">
+                          </span><span class="p" data-group-id="4013771493-10">(</span><span class="n">ChA</span><span class="p">,</span><span class="w"> </span><span class="n">DiA</span><span class="p" data-group-id="4013771493-10">)</span><span class="w">
+</span><span class="ss">send_challenge_reply</span><span class="w"> </span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="p">-&gt;</span><span class="w">
+                                                   </span><span class="ss">recv_challenge_reply</span><span class="w">
+                                                   </span><span class="n">ICB</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">in_cookie</span><span class="p" data-group-id="4013771493-11">(</span><span class="n">A</span><span class="p" data-group-id="4013771493-11">)</span><span class="p">,</span><span class="w">
+                                                   </span><span class="nc">check</span><span class="p">:</span><span class="w">
+                                                   </span><span class="n">DiA</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nf">gen_digest</span><span class="w"> </span><span class="p" data-group-id="4013771493-12">(</span><span class="n">ChB</span><span class="p">,</span><span class="w"> </span><span class="n">ICB</span><span class="p" data-group-id="4013771493-12">)</span><span class="o">?</span><span class="w">
+</span><span class="w">                                                   </span><span class="p">-</span><span class="w"> </span><span class="na">if</span><span class="w"> </span><span class="n">OK</span><span class="p">:</span><span class="w">
+                                                    </span><span class="n">OCB</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">out_cookie</span><span class="p" data-group-id="4013771493-13">(</span><span class="n">A</span><span class="p" data-group-id="4013771493-13">)</span><span class="p">,</span><span class="w">
+                                                    </span><span class="n">DiB</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">gen_digest</span><span class="w"> </span><span class="p" data-group-id="4013771493-14">(</span><span class="n">ChA</span><span class="p">,</span><span class="w"> </span><span class="n">OCB</span><span class="p" data-group-id="4013771493-14">)</span><span class="w">
+                          </span><span class="p" data-group-id="4013771493-15">(</span><span class="n">DiB</span><span class="p" data-group-id="4013771493-15">)</span><span class="w">
+  </span><span class="o">&lt;-</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="w"> </span><span class="ss">send_challenge_ack</span><span class="w">
+</span><span class="ss">recv_challenge_ack</span><span class="w">                                  </span><span class="n">DONE</span><span class="w">
+</span><span class="n">ICA</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">in_cookie</span><span class="p" data-group-id="4013771493-16">(</span><span class="n">B</span><span class="p" data-group-id="4013771493-16">)</span><span class="p">,</span><span class="w">                                </span><span class="o">-</span><span class="w"> </span><span class="nc">else</span><span class="p">:</span><span class="w">
+</span><span class="nc">check</span><span class="p">:</span><span class="w">                                              </span><span class="n">CLOSE</span><span class="w">
+</span><span class="n">DiB</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nf">gen_digest</span><span class="p" data-group-id="4013771493-17">(</span><span class="n">ChA</span><span class="p">,</span><span class="w"> </span><span class="n">ICA</span><span class="p" data-group-id="4013771493-17">)</span><span class="o">?</span><span class="w">
+</span><span class="p">-</span><span class="w"> </span><span class="na">if</span><span class="w"> </span><span class="n">OK</span><span class="p">:</span><span class="w">
+ </span><span class="n">DONE</span><span class="w">
+</span><span class="p">-</span><span class="w"> </span><span class="na">else</span><span class="p">:</span><span class="w">
+ </span><span class="n">CLOSE</span></code></pre><p><a href="" id="dflags"></a></p><h3 id="distribution-flags" class="section-heading">
+  <a href="#distribution-flags" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Distribution Flags</span>
+</h3>
+<p>Early in the distribution handshake the two participating nodes exchange
+capability flags. This is done in order to determine how the communication
+between the two nodes should be performed. The intersection of the capabilities
+presented by the two nodes defines the capabilities that will be used. The
+following capability flags are defined:</p><ul><li><p><strong><code class="inline">-define(DFLAG_PUBLISHED,16#1).</code></strong> - The node is to be published and part of
+the global namespace.</p></li><li><p><strong><code class="inline">-define(DFLAG_ATOM_CACHE,16#2).</code></strong> - The node implements an atom cache
+(obsolete).</p></li><li><p><strong><code class="inline">-define(DFLAG_EXTENDED_REFERENCES,16#4).</code></strong> - The node implements extended
+(3 × 32 bits) references. This flag is mandatory. If not present, the
+connection is refused.</p></li><li><p><strong><code class="inline">-define(DFLAG_DIST_MONITOR,16#8).</code></strong> - The node implements distributed
+process monitoring.</p></li><li><p><strong><code class="inline">-define(DFLAG_FUN_TAGS,16#10).</code></strong> - The node uses separate tags for funs
+(lambdas) in the distribution protocol. This flag is mandatory. If not
+present, the connection is refused.</p></li><li><p><strong><code class="inline">-define(DFLAG_DIST_MONITOR_NAME,16#20).</code></strong> - The node implements
+distributed named process monitoring.</p></li><li><p><strong><code class="inline">-define(DFLAG_HIDDEN_ATOM_CACHE,16#40).</code></strong> - The (hidden) node implements
+atom cache (obsolete).</p></li><li><p><strong><code class="inline">-define(DFLAG_NEW_FUN_TAGS,16#80).</code></strong> - The node understands the
+<a href="erl_ext_dist.html#new_fun_ext"><code class="inline">NEW_FUN_EXT</code></a> tag. This flag is mandatory. If
+not present, the connection is refused.</p></li><li><p><strong><code class="inline">-define(DFLAG_EXTENDED_PIDS_PORTS,16#100).</code></strong> - The node can handle
+extended pids and ports. This flag is mandatory. If not present, the
+connection is refused.</p></li><li><p><strong><code class="inline">-define(DFLAG_EXPORT_PTR_TAG,16#200).</code></strong> - The node understands the
+<a href="erl_ext_dist.html#export_ext"><code class="inline">EXPORT_EXT</code></a> tag. This flag is mandatory. If not
+present, the connection is refused.</p></li><li><p><strong><code class="inline">-define(DFLAG_BIT_BINARIES,16#400).</code></strong> - The node understands the
+<a href="erl_ext_dist.html#bit_binary_ext"><code class="inline">BIT_BINARY_EXT</code></a> tag. This flag is
+mandatory. If not present, the connection is refused.</p></li><li><p><strong><code class="inline">-define(DFLAG_NEW_FLOATS,16#800).</code></strong> - The node understands the
+<a href="erl_ext_dist.html#new_float_ext"><code class="inline">NEW_FLOAT_EXT</code></a> tag. This flag is mandatory.
+If not present, the connection is refused.</p></li><li><p><strong><code class="inline">-define(DFLAG_UNICODE_IO,16#1000).</code></strong></p></li><li><p><strong><code class="inline">-define(DFLAG_DIST_HDR_ATOM_CACHE,16#2000).</code></strong> - The node implements atom
+cache in distribution header.</p></li><li><p><strong><code class="inline" id="DFLAG_SMALL_ATOM_TAGS">-define(DFLAG_SMALL_ATOM_TAGS, 16#4000).</code></strong> -
+The node understands the <a href="erl_ext_dist.html#small_atom_ext"><code class="inline">SMALL_ATOM_EXT</code></a>
+tag.</p></li><li><p><strong><code class="inline" id="DFLAG_UTF8_ATOMS">-define(DFLAG_UTF8_ATOMS, 16#10000).</code></strong> - The node
+understands UTF-8 atoms encoded with
+<a href="erl_ext_dist.html#atom_utf8_ext"><code class="inline">ATOM_UTF8_EXT</code></a> and
+<a href="erl_ext_dist.html#small_atom_utf8_ext"><code class="inline">SMALL ATOM_UTF8_EXT</code></a>. This flag is
+mandatory. If not present, the connection is refused.</p></li><li><p><strong><code class="inline">-define(DFLAG_MAP_TAG, 16#20000).</code></strong> - The node understands the map tag
+<a href="erl_ext_dist.html#map_ext"><code class="inline">MAP_EXT</code></a>. This flag is mandatory. If not present,
+the connection is refused.</p></li><li><p><strong><code class="inline" id="DFLAG_BIG_CREATION">-define(DFLAG_BIG_CREATION, 16#40000).</code></strong> - The
+node understands big node creation tags
+<a href="erl_ext_dist.html#new_pid_ext"><code class="inline">NEW_PID_EXT</code></a>,
+<a href="erl_ext_dist.html#new_port_ext"><code class="inline">NEW_PORT_EXT</code></a> and
+<a href="erl_ext_dist.html#newer_reference_ext"><code class="inline">NEWER_REFERENCE_EXT</code></a>. This flag is
+mandatory. If not present, the connection is refused.</p></li><li><p><strong><code class="inline">-define(DFLAG_SEND_SENDER, 16#80000).</code></strong> - Use the <code class="inline">SEND_SENDER</code>
+<a href="erl_dist_protocol.html#control_message">control message</a> instead of the <code class="inline">SEND</code>
+control message and use the <code class="inline">SEND_SENDER_TT</code> control message instead of the
+<code class="inline">SEND_TT</code> control message.</p></li><li><p><strong><code class="inline">-define(DFLAG_BIG_SEQTRACE_LABELS, 16#100000).</code></strong> - The node understands
+any term as the seqtrace label.</p></li><li><p><strong><code class="inline">-define(DFLAG_EXIT_PAYLOAD, 16#400000).</code></strong> - Use the <code class="inline">PAYLOAD_EXIT</code>,
+<code class="inline">PAYLOAD_EXIT_TT</code>, <code class="inline">PAYLOAD_EXIT2</code>, <code class="inline">PAYLOAD_EXIT2_TT</code> and
+<code class="inline">PAYLOAD_MONITOR_P_EXIT</code>
+<a href="erl_dist_protocol.html#control_message">control message</a>s instead of the
+non-PAYLOAD variants.</p></li><li><p><strong><code class="inline" id="DFLAG_FRAGMENTS">-define(DFLAG_FRAGMENTS, 16#800000).</code></strong> - Use
+<a href="erl_ext_dist.html#fragments">fragmented</a> distribution messages to send large
+messages.</p></li><li><p><strong><code class="inline" id="DFLAG_HANDSHAKE_23">-define(DFLAG_HANDSHAKE_23, 16#1000000).</code></strong> - The
+node supports the new connection setup handshake (version 6) introduced in
+OTP 23. This flag is mandatory (from OTP 25). If not present, the connection
+is refused.</p></li><li><p><strong><code class="inline" id="DFLAG_UNLINK_ID">-define(DFLAG_UNLINK_ID, 16#2000000).</code></strong> - Use the
+<a href="erl_dist_protocol.html#link_protocol">new link protocol</a>.</p><blockquote><h4 class="info">Note</h4><p>This flag is mandatory as of OTP 26.</p></blockquote></li><li><p><strong><code class="inline">-define(DFLAG_MANDATORY_25_DIGEST, (1 bsl 36)).</code></strong> - The node supports all
+capabilities that are mandatory in OTP 25. Introduced in OTP 25.</p><blockquote><h4 class="info">Note</h4><p>This flag will become mandatory in OTP 27.</p></blockquote></li><li><p><strong><code class="inline" id="DFLAG_SPAWN">-define(DFLAG_SPAWN, (1 bsl 32)).</code></strong> - Set if the
+<a href="erl_dist_protocol.html#SPAWN_REQUEST"><code class="inline">SPAWN_REQUEST</code></a>,
+<a href="erl_dist_protocol.html#SPAWN_REQUEST_TT"><code class="inline">SPAWN_REQUEST_TT</code></a>,
+<a href="erl_dist_protocol.html#SPAWN_REPLY"><code class="inline">SPAWN_REPLY</code></a>,
+<a href="erl_dist_protocol.html#SPAWN_REPLY_TT"><code class="inline">SPAWN_REPLY_TT</code></a> control messages are
+supported.</p></li><li><p><strong><code class="inline" id="DFLAG_NAME_ME">-define(DFLAG_NAME_ME, (1 bsl 33)).</code></strong> - Dynamic node
+name. This is not a capability but rather used as a request from the
+connecting node to receive its node name from the accepting node as part of
+the handshake.</p></li><li><p><strong><code class="inline" id="DFLAG_V4_NC">-define(DFLAG_V4_NC, (1 bsl 34)).</code></strong> - The node accepts a
+larger amount of data in pids, ports and references (node container types
+version 4). In the pid case full 32-bit <code class="inline">ID</code> and <code class="inline">Serial</code> fields in
+<a href="erl_ext_dist.html#new_pid_ext"><code class="inline">NEW_PID_EXT</code></a>, in the port case a 64-bit
+integer in <a href="erl_ext_dist.html#v4_port_ext"><code class="inline">V4_PORT_EXT</code></a>, and in the reference
+case up to 5 32-bit ID words are now accepted in
+<a href="erl_ext_dist.html#newer_reference_ext"><code class="inline">NEWER_REFERENCE_EXT</code></a>. This flag was
+introduced in OTP 24 and became mandatory in OTP 26.</p></li><li><p><strong><code class="inline" id="DFLAG_ALIAS">-define(DFLAG_ALIAS, (1 bsl 35)).</code></strong> - The node supports
+process alias and can by this handle the
+<a href="erl_dist_protocol.html#ALIAS_SEND"><code class="inline">ALIAS_SEND</code></a> and
+<a href="erl_dist_protocol.html#ALIAS_SEND_TT"><code class="inline">ALIAS_SEND_TT</code></a> control messages.
+Introduced in OTP 24.</p></li></ul><p>There is also function <code class="inline">dist_util:strict_order_flags/0</code> returning all flags
+(bitwise or:ed together) corresponding to features that require strict ordering
+of data over distribution channels.</p><p><a href="" id="connected_nodes"></a></p><h2 id="protocol-between-connected-nodes" class="section-heading">
+  <a href="#protocol-between-connected-nodes" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Protocol between Connected Nodes</span>
+</h2>
+<p>Since ERTS 5.7.2 (OTP R13B) the runtime system passes a distribution flag in the
+handshake stage that enables the use of a
+<a href="erl_ext_dist.html#distribution-header">distribution header </a>on all messages
+passed. Messages passed between nodes have in this case the following format:</p><table><thead><tr><th style="text-align: left;">4</th><th style="text-align: left;">d</th><th style="text-align: left;">n</th><th style="text-align: left;">m</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">Length</code></td><td style="text-align: left;"><code class="inline">DistributionHeader</code></td><td style="text-align: left;"><code class="inline">ControlMessage</code></td><td style="text-align: left;"><code class="inline">Message</code></td></tr></tbody></table><p><em>Table: Format of Messages Passed between Nodes (as from ERTS 5.7.2 (OTP R13B))</em></p><ul><li><p><strong><code class="inline">Length</code></strong> - Equal to d + n + m.</p></li><li><p><strong><code class="inline">DistributionHeader</code></strong> -
+<a href="erl_ext_dist.html#distribution-header">Distribution header describing the atom cache and fragmented distribution messages.</a></p></li><li><p><strong><code class="inline">ControlMessage</code></strong> - A tuple passed using the external format of Erlang.</p></li><li><p><strong><code class="inline">Message</code></strong> - The message sent to another node using the '!' or the reason
+for a EXIT, EXIT2 or DOWN signal using the external term format.</p></li></ul><p>Notice that
+<a href="erl_ext_dist.html#overall_format">the version number is omitted from the terms that follow a distribution header </a>.</p><p>Nodes with an ERTS version earlier than 5.7.2 (OTP R13B) does not pass the
+distribution flag that enables the distribution header. Messages passed between
+nodes have in this case the following format:</p><table><thead><tr><th style="text-align: left;">4</th><th style="text-align: left;">1</th><th style="text-align: left;">n</th><th style="text-align: left;">m</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">Length</code></td><td style="text-align: left;"><code class="inline">Type</code></td><td style="text-align: left;"><code class="inline">ControlMessage</code></td><td style="text-align: left;"><code class="inline">Message</code></td></tr></tbody></table><p><em>Table: Format of Messages Passed between Nodes (before ERTS 5.7.2 (OTP R13B))</em></p><ul><li><p><strong><code class="inline">Length</code></strong> - Equal to 1 + n + m.</p></li><li><p><strong><code class="inline">Type</code></strong> - Equal to <code class="inline">112</code> (pass through).</p></li><li><p><strong><code class="inline">ControlMessage</code></strong> - A tuple passed using the external format of Erlang.</p></li><li><p><strong><code class="inline">Message</code></strong> - The message sent to another node using the '!' (in external
+format). Notice that <code class="inline">Message</code> is only passed in combination with a
+<code class="inline">ControlMessage</code> encoding a send ('!').</p></li></ul><p><a href="" id="control_message"></a></p><p>The <code class="inline">ControlMessage</code> is a tuple, where the first element indicates which
+distributed operation it encodes:</p><ul><li><p><strong><code class="inline" id="LINK">LINK</code></strong> - <code class="inline">{1, FromPid, ToPid}</code></p><p>This signal is sent by <code class="inline">FromPid</code> in order to create a link between <code class="inline">FromPid</code>
+and <code class="inline">ToPid</code>.</p></li><li><p><strong><code class="inline">SEND</code></strong> - <code class="inline">{2, Unused, ToPid}</code></p><p>Followed by <code class="inline">Message</code>.</p><p><code class="inline">Unused</code> is kept for backward compatibility.</p></li><li><p><strong><code class="inline">EXIT</code></strong> - <code class="inline">{3, FromPid, ToPid, Reason}</code></p><p>This signal is sent when a link has been broken</p></li><li><p><strong><code class="inline" id="UNLINK">UNLINK</code> (obsolete)</strong> - <code class="inline">{4, FromPid, ToPid}</code></p><blockquote><h4 class="warning">Warning</h4><p>This signal is obsolete and not supported as of OTP 26. For more information
+see the documentation of the
+<a href="erl_dist_protocol.html#link_protocol">link protocol</a>.</p></blockquote></li><li><p><strong><code class="inline">NODE_LINK</code></strong> - <code class="inline">{5}</code></p></li><li><p><strong><code class="inline">REG_SEND</code></strong> - <code class="inline">{6, FromPid, Unused, ToName}</code></p><p>Followed by <code class="inline">Message</code>.</p><p><code class="inline">Unused</code> is kept for backward compatibility.</p></li><li><p><strong><code class="inline">GROUP_LEADER</code></strong> - <code class="inline">{7, FromPid, ToPid}</code></p></li><li><p><strong><code class="inline">EXIT2</code></strong> - <code class="inline">{8, FromPid, ToPid, Reason}</code></p><p>This signal is sent by a call to the erlang:exit/2 bif</p></li><li><p><strong><code class="inline">SEND_TT</code></strong> - <code class="inline">{12, Unused, ToPid, TraceToken}</code></p><p>Followed by <code class="inline">Message</code>.</p><p><code class="inline">Unused</code> is kept for backward compatibility.</p></li><li><p><strong><code class="inline">EXIT_TT</code></strong> - <code class="inline">{13, FromPid, ToPid, TraceToken, Reason}</code></p></li><li><p><strong><code class="inline">REG_SEND_TT</code></strong> - <code class="inline">{16, FromPid, Unused, ToName, TraceToken}</code></p><p>Followed by <code class="inline">Message</code>.</p><p><code class="inline">Unused</code> is kept for backward compatibility.</p></li><li><p><strong><code class="inline">EXIT2_TT</code></strong> - <code class="inline">{18, FromPid, ToPid, TraceToken, Reason}</code></p></li><li><p><strong><code class="inline">MONITOR_P</code></strong> - <code class="inline">{19, FromPid, ToProc, Ref}</code>, where <code class="inline">FromPid</code> = monitoring
+process and <code class="inline">ToProc</code> = monitored process pid or name (atom)</p></li><li><p><strong><code class="inline">DEMONITOR_P</code></strong> - <code class="inline">{20, FromPid, ToProc, Ref}</code>, where <code class="inline">FromPid</code> = monitoring
+process and <code class="inline">ToProc</code> = monitored process pid or name (atom)</p><p>We include <code class="inline">FromPid</code> just in case we want to trace this.</p></li><li><p><strong><code class="inline">MONITOR_P_EXIT</code></strong> - <code class="inline">{21, FromProc, ToPid, Ref, Reason}</code>, where <code class="inline">FromProc</code>
+= monitored process pid or name (atom), <code class="inline">ToPid</code> = monitoring process, and
+<code class="inline">Reason</code> = exit reason for the monitored process</p></li></ul><h3 id="new-ctrlmessages-for-erlang-otp-21" class="section-heading">
+  <a href="#new-ctrlmessages-for-erlang-otp-21" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">New Ctrlmessages for Erlang/OTP 21</span>
+</h3>
+<ul><li><p><strong><code class="inline">SEND_SENDER</code></strong> - <code class="inline">{22, FromPid, ToPid}</code></p><p>Followed by <code class="inline">Message</code>.</p><p>This control message replaces the <code class="inline">SEND</code> control message and will be sent when
+the distribution flag <a href="erl_dist_protocol.html#dflags"><code class="inline">DFLAG_SEND_SENDER</code></a> has
+been negotiated in the connection setup handshake.</p><blockquote><h4 class="info">Note</h4><p>Messages encoded before the connection has been set up may still use the
+<code class="inline">SEND</code> control message. However, once a <code class="inline">SEND_SENDER</code> or <code class="inline">SEND_SENDER_TT</code>
+control message has been sent, no more <code class="inline">SEND</code> control messages will be sent
+in the same direction on the connection.</p></blockquote></li><li><p><strong><code class="inline">SEND_SENDER_TT</code></strong> - <code class="inline">{23, FromPid, ToPid, TraceToken}</code></p><p>Followed by <code class="inline">Message</code>.</p><p>This control message replaces the <code class="inline">SEND_TT</code> control message and will be sent
+when the distribution flag <a href="erl_dist_protocol.html#dflags"><code class="inline">DFLAG_SEND_SENDER</code></a>
+has been negotiated in the connection setup handshake.</p><blockquote><h4 class="info">Note</h4><p>Messages encoded before the connection has been set up may still use the
+<code class="inline">SEND_TT</code> control message. However, once a <code class="inline">SEND_SENDER</code> or <code class="inline">SEND_SENDER_TT</code>
+control message has been sent, no more <code class="inline">SEND_TT</code> control messages will be
+sent in the same direction on the connection.</p></blockquote></li></ul><h3 id="new-ctrlmessages-for-erlang-otp-22" class="section-heading">
+  <a href="#new-ctrlmessages-for-erlang-otp-22" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">New Ctrlmessages for Erlang/OTP 22</span>
+</h3>
+<blockquote><h4 class="info">Note</h4><p>Messages encoded before the connection has been set up may still use the
+non-PAYLOAD variant. However, once a PAYLOAD control message has been sent, no
+more non-PAYLOAD control messages will be sent in the same direction on the
+connection.</p></blockquote><ul><li><p><strong><code class="inline">PAYLOAD_EXIT</code></strong> - <code class="inline">{24, FromPid, ToPid}</code></p><p>Followed by <code class="inline">Reason</code>.</p><p>This control message replaces the <code class="inline">EXIT</code> control message and will be sent when
+the distribution flag <a href="erl_dist_protocol.html#dflags"><code class="inline">DFLAG_EXIT_PAYLOAD</code></a> has
+been negotiated in the connection setup handshake.</p></li><li><p><strong><code class="inline">PAYLOAD_EXIT_TT</code></strong> - <code class="inline">{25, FromPid, ToPid, TraceToken}</code></p><p>Followed by <code class="inline">Reason</code>.</p><p>This control message replaces the <code class="inline">EXIT_TT</code> control message and will be sent
+when the distribution flag <a href="erl_dist_protocol.html#dflags"><code class="inline">DFLAG_EXIT_PAYLOAD</code></a>
+has been negotiated in the connection setup handshake.</p></li><li><p><strong><code class="inline">PAYLOAD_EXIT2</code></strong> - <code class="inline">{26, FromPid, ToPid}</code></p><p>Followed by <code class="inline">Reason</code>.</p><p>This control message replaces the <code class="inline">EXIT2</code> control message and will be sent
+when the distribution flag <a href="erl_dist_protocol.html#dflags"><code class="inline">DFLAG_EXIT_PAYLOAD</code></a>
+has been negotiated in the connection setup handshake.</p></li><li><p><strong><code class="inline">PAYLOAD_EXIT2_TT</code></strong> - <code class="inline">{27, FromPid, ToPid, TraceToken}</code></p><p>Followed by <code class="inline">Reason</code>.</p><p>This control message replaces the <code class="inline">EXIT2_TT</code> control message and will be sent
+when the distribution flag <a href="erl_dist_protocol.html#dflags"><code class="inline">DFLAG_EXIT_PAYLOAD</code></a>
+has been negotiated in the connection setup handshake.</p></li><li><p><strong><code class="inline">PAYLOAD_MONITOR_P_EXIT</code></strong> - <code class="inline">{28, FromProc, ToPid, Ref}</code></p><p>Followed by <code class="inline">Reason</code>.</p><p>This control message replaces the <code class="inline">MONITOR_P_EXIT</code> control message and will be
+sent when the distribution flag
+<a href="erl_dist_protocol.html#dflags"><code class="inline">DFLAG_EXIT_PAYLOAD</code></a> has been negotiated in the
+connection setup handshake.</p></li></ul><h3 id="new-ctrlmessages-for-erlang-otp-23" class="section-heading">
+  <a href="#new-ctrlmessages-for-erlang-otp-23" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">New Ctrlmessages for Erlang/OTP 23</span>
+</h3>
+<ul><li><p><strong><code class="inline" id="SPAWN_REQUEST">SPAWN_REQUEST</code></strong> -
+<code class="inline">{29, ReqId, From, GroupLeader, {Module, Function, Arity}, OptList}</code></p><p>Followed by <code class="inline">ArgList</code>.</p><p>This signal is sent by the <a href="erlang.html#spawn_request/5"><code class="inline">spawn_request()</code></a> BIF.</p><ul><li><p><strong><code class="inline">ReqId :: reference()</code></strong> - Request identifier. Also used as monitor
+reference in case the <code class="inline">monitor</code> option has been passed.</p></li><li><p><strong><code class="inline">From :: pid()</code></strong> - Process identifier of the process making the request.
+That is, the parent process to be.</p></li><li><p><strong><code class="inline">GroupLeader :: pid()</code></strong> - Process identifier of the group leader of the
+newly created process.</p></li><li><p><strong><code class="inline">{Module :: atom(), Function :: atom(), Arity :: integer() &gt;= 0}</code></strong> -
+Entry point for the new process.</p></li><li><p><strong><code class="inline">OptList :: [term()]</code></strong> - A proper list of spawn options to use when
+spawning.</p></li><li><p><strong><code class="inline">ArgList :: [term()]</code></strong> - A proper list of arguments to use in the call to
+the entry point.</p></li></ul><p>Only supported when the <a href="erl_dist_protocol.html#DFLAG_SPAWN"><code class="inline">DFLAG_SPAWN</code></a>
+<a href="erl_dist_protocol.html#dflags">distribution flag</a> has been passed.</p></li><li><p><strong><code class="inline" id="SPAWN_REQUEST_TT">SPAWN_REQUEST_TT</code></strong> -
+<code class="inline">{30, ReqId, From, GroupLeader, {Module, Function, Arity}, OptList, Token}</code></p><p>Followed by <code class="inline">ArgList</code>.</p><p>Same as <a href="erl_dist_protocol.html#SPAWN_REQUEST"><code class="inline">SPAWN_REQUEST</code></a>, but also with a
+sequential trace <code class="inline">Token</code>.</p><p>Only supported when the <a href="erl_dist_protocol.html#DFLAG_SPAWN"><code class="inline">DFLAG_SPAWN</code></a>
+<a href="erl_dist_protocol.html#dflags">distribution flag</a> has been passed.</p></li><li><p><strong><code class="inline" id="SPAWN_REPLY">SPAWN_REPLY</code></strong> - <code class="inline">{31, ReqId, To, Flags, Result}</code></p><p>This signal is sent as a reply to a process previously sending a
+<a href="erl_dist_protocol.html#SPAWN_REQUEST"><code class="inline">SPAWN_REQUEST</code></a> signal.</p><ul><li><p><strong><code class="inline">ReqId :: reference()</code></strong> - Request identifier. Also used as monitor
+reference in case the <code class="inline">monitor</code> option has been passed.</p></li><li><p><strong><code class="inline">To :: pid()</code></strong> - Process identifier of the process making the spawn
+request.</p></li><li><p><strong><code class="inline">Flags :: integer() &gt;= 0</code></strong> - A bit flag field of bit flags bitwise or:ed
+together. Currently the following flags are defined:</p><ul><li><p><strong><code class="inline">1</code></strong> - A link between <code class="inline">To</code> and <code class="inline">Result</code> was set up on the node where
+<code class="inline">Result</code> resides.</p></li><li><p><strong><code class="inline">2</code></strong> - A monitor from <code class="inline">To</code> to <code class="inline">Result</code> was set up on the node where
+<code class="inline">Result</code> resides.</p></li></ul></li><li><p><strong><code class="inline">Result :: pid() | atom()</code></strong> - Result of the operation. If <code class="inline">Result</code> is a
+process identifier, the operation succeeded and the process identifier is
+the identifier of the newly created process. If <code class="inline">Result</code> is an atom, the
+operation failed and the atom identifies failure reason.</p></li></ul><p>Only supported when the <a href="erl_dist_protocol.html#DFLAG_SPAWN"><code class="inline">DFLAG_SPAWN</code></a>
+<a href="erl_dist_protocol.html#dflags">distribution flag</a> has been passed.</p></li><li><p><strong><code class="inline" id="SPAWN_REPLY_TT">SPAWN_REPLY_TT</code></strong> -
+<code class="inline">{32, ReqId, To, Flags, Result, Token}</code></p><p>Same as <a href="erl_dist_protocol.html#SPAWN_REPLY"><code class="inline">SPAWN_REPLY</code></a>, but also with a
+sequential trace <code class="inline">Token</code>.</p><p>Only supported when the <a href="erl_dist_protocol.html#DFLAG_SPAWN"><code class="inline">DFLAG_SPAWN</code></a>
+<a href="erl_dist_protocol.html#dflags">distribution flag</a> has been passed.</p></li><li><p><strong><code class="inline" id="UNLINK_ID">UNLINK_ID</code></strong> - <code class="inline">{35, Id, FromPid, ToPid}</code></p><p>This signal is sent by <code class="inline">FromPid</code> in order to remove a link between <code class="inline">FromPid</code>
+and <code class="inline">ToPid</code>. This unlink signal replaces the
+<a href="erl_dist_protocol.html#UNLINK"><code class="inline">UNLINK</code></a> signal. Besides process identifiers of
+the sender and receiver the <code class="inline">UNLINK_ID</code> signal also contains an integer
+identifier <code class="inline">Id</code>. Valid range of <code class="inline">Id</code> is <code class="inline">[1, (1 bsl 64) - 1]</code>. <code class="inline">Id</code> is to be
+passed back to the sender by the receiver in an
+<a href="erl_dist_protocol.html#UNLINK_ID_ACK"><code class="inline">UNLINK_ID_ACK</code></a> signal. <code class="inline">Id</code> must
+uniquely identify the <code class="inline">UNLINK_ID</code> signal among all not yet acknowledged
+<code class="inline">UNLINK_ID</code> signals from <code class="inline">FromPid</code> to <code class="inline">ToPid</code>.</p><p>This signal is part of the
+<a href="erl_dist_protocol.html#link_protocol">new link protocol</a> which became mandatory
+as of OTP 26.</p></li><li><p><strong><code class="inline" id="UNLINK_ID_ACK">UNLINK_ID_ACK</code></strong> - <code class="inline">{36, Id, FromPid, ToPid}</code></p><p>An unlink acknowledgement signal. This signal is sent as an acknowledgement of
+the reception of an <a href="erl_dist_protocol.html#UNLINK_ID"><code class="inline">UNLINK_ID</code></a> signal. The
+<code class="inline">Id</code> element should be the same <code class="inline">Id</code> as present in the <code class="inline">UNLINK_ID</code> signal.
+<code class="inline">FromPid</code> identifies the sender of the <code class="inline">UNLINK_ID_ACK</code> signal and <code class="inline">ToPid</code>
+identifies the sender of the <code class="inline">UNLINK_ID</code> signal.</p><p>This signal is part of the
+<a href="erl_dist_protocol.html#link_protocol">new link protocol</a> which became mandatory
+as of OTP 26.</p></li></ul><h3 id="new-ctrlmessages-for-erlang-otp-24" class="section-heading">
+  <a href="#new-ctrlmessages-for-erlang-otp-24" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">New Ctrlmessages for Erlang/OTP 24</span>
+</h3>
+<ul><li><p><strong><code class="inline" id="ALIAS_SEND">ALIAS_SEND</code></strong> - <code class="inline">{33, FromPid, Alias}</code></p><p>Followed by <code class="inline">Message</code>.</p><p>This control message is used when sending the message <code class="inline">Message</code> to the process
+identified by the process alias <code class="inline">Alias</code>. Nodes that can handle this control
+message sets the distribution flag
+<a href="erl_dist_protocol.html#dflags"><code class="inline">DFLAG_ALIAS</code></a> in the connection setup
+handshake.</p></li><li><p><strong><code class="inline" id="ALIAS_SEND_TT">ALIAS_SEND_TT</code></strong> - <code class="inline">{34, FromPid, Alias, Token}</code></p><p>Followed by <code class="inline">Message</code>.</p><p>Same as <a href="erl_dist_protocol.html#ALIAS_SEND"><code class="inline">ALIAS_SEND</code></a>, but also with a
+sequential trace <code class="inline">Token</code>.</p></li></ul><p><a href="" id="link_protocol"></a> <a href="" id="new_link_protocol"></a> <a href="" id="old_link_protocol"></a></p><h3 id="link-protocol" class="section-heading">
+  <a href="#link-protocol" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Link Protocol</span>
+</h3>
+<p>The new link protocol introduced in OTP 23.3 became mandatory as of OTP 26. As
+of OTP 26, OTP nodes will therefor refuse to connect to nodes that do not
+indicate that they support the new link protocol using the
+<a href="erl_dist_protocol.html#DFLAG_UNLINK_ID"><code class="inline">DFLAG_UNLINK_ID</code></a>
+<a href="erl_dist_protocol.html#dflags">distribution flag</a>.</p><p>The new link protocol introduced two new signals,
+<a href="erl_dist_protocol.html#UNLINK_ID"><code class="inline">UNLINK_ID</code></a> and
+<a href="erl_dist_protocol.html#UNLINK_ID"><code class="inline">UNLINK_ID_ACK</code></a>, which replaced the old
+<a href="erl_dist_protocol.html#UNLINK"><code class="inline">UNLINK</code></a> signal. The old
+<a href="erl_dist_protocol.html#LINK"><code class="inline">LINK</code></a> signal is still sent in order to set up a
+link, but handled differently upon reception.</p><p>In order to set up a link, a <code class="inline">LINK</code> signal is sent, from the process initiating
+the operation, to the process that it wants to link to. In order to remove a
+link, an <code class="inline">UNLINK_ID</code> signal is sent, from the process initiating the operation,
+to the linked process. The receiver of an <code class="inline">UNLINK_ID</code> signal responds with an
+<code class="inline">UNLINK_ID_ACK</code> signal. Upon reception of an <code class="inline">UNLINK_ID</code> signal, the
+corresponding <code class="inline">UNLINK_ID_ACK</code> signal <em>must</em> be sent before any other signals are
+sent to the sender of the <code class="inline">UNLINK_ID</code> signal. Together with
+<a href="../../system/ref_man_processes.html#signal-delivery">the signal ordering guarantee</a>
+of Erlang this makes it possible for the sender of the <code class="inline">UNLINK_ID</code> signal to
+know the order of other signals which is essential for the protocol. The
+<code class="inline">UNLINK_ID_ACK</code> signal should contain the same <code class="inline">Id</code> as the <code class="inline">Id</code> contained in the
+<code class="inline">UNLINK_ID</code> signal being acknowledged.</p><p>Processes also need to maintain process local information about links. The state
+of this process local information is changed when the signals above are sent and
+received. This process local information also determines if a signal should be
+sent when a process calls <a href="erlang.html#link/1"><code class="inline">link/1</code></a> or
+<a href="erlang.html#unlink/1"><code class="inline">unlink/1</code></a>. A <code class="inline">LINK</code> signal is only sent if there does not
+currently exist an active link between the processes according to the process
+local information and an <code class="inline">UNLINK_ID</code> signal is only sent if there currently
+exists an active link between the processes according to the process local
+information.</p><p>The process local information about a link contains:</p><ul><li><p><strong>Pid</strong> - Process identifier of the linked process.</p></li><li><p><strong>Active Flag</strong> - If set, the link is active and the process will react on
+<a href="../../system/ref_man_processes.html#receiving_exit_signals">incoming exit signals</a>
+issued due to the link. If not set, the link is inactive and incoming exit
+signals, issued due to the link, will be ignored. That is, the processes are
+considered as <em>not</em> linked.</p></li><li><p><strong>Unlink Id</strong> - Identifier of an outstanding unlink operation. That is, an
+unlink operation that has not yet been acknowledged. This information is only
+used when the active flag is not set.</p></li></ul><p>A process is only considered linked to another process if it has process local
+information about the link containing the process identifier of the other
+process and with the active flag set.</p><p>The process local information about a link is updated as follows:</p><ul><li><p><strong>A <code class="inline">LINK</code> signal is sent</strong> - Link information is created if not already
+existing. The active flag is set, and unlink id is cleared. That is, if we had
+an outstanding unlink operation we will ignore the result of that operation
+and enable the link.</p></li><li><p><strong>A <code class="inline">LINK</code> signal is received</strong> - If no link information already exists, it is
+created, the active flag is set and unlink id is cleared. If the link
+information already exists, the signal is silently ignored, regardless of
+whether the active flag is set or not. That is, if we have an outstanding
+unlink operation we will <em>not</em> activate the link. In this scenario, the sender
+of the <code class="inline">LINK</code> signal has not yet sent an <code class="inline">UNLINK_ID_ACK</code> signal corresponding
+to our <code class="inline">UNLINK_ID</code> signal which means that it will receive our <code class="inline">UNLINK_ID</code>
+signal after it sent its <code class="inline">LINK</code> signal. This in turn means that both processes
+in the end will agree that there is no link between them.</p></li><li><p><strong>An <code class="inline">UNLINK_ID</code> signal is sent</strong> - Link information already exists and the
+active flag is set (otherwise the signal would not be sent). The active flag
+is unset, and the unlink id of the signal is saved in the link information.</p></li><li><p><strong>An <code class="inline">UNLINK_ID</code> signal is received</strong> - If the active flag is set, information
+about the link is removed. If the active flag is not set (that is, we have an
+outstanding unlink operation), the information about the link is left
+unchanged.</p></li><li><p><strong>An <code class="inline">UNLINK_ID_ACK</code> signal is sent</strong> - This is done when an <code class="inline">UNLINK_ID</code>
+signal is received and causes no further changes of the link information.</p></li><li><p><strong>An <code class="inline">UNLINK_ID_ACK</code> signal is received</strong> - If information about the link
+exists, the active flag is not set, and the unlink id in the link information
+equals the <code class="inline">Id</code> in the signal, the link information is removed; otherwise, the
+signal is ignored.</p></li></ul><p>When a process receives an exit signal due to a link, the process will first
+react to the exit signal if the link is active and then remove the process local
+information about the link.</p><p>In case the connection is lost between two nodes, exit signals with exit reason
+<code class="inline">noconnection</code> are sent to all processes with links over the connection. This
+will cause all process local information about links over the connection to be
+removed.</p><p>Exactly the same link protocol is also used internally on an Erlang node. The
+signals however have different formats since they do not have to be sent over
+the wire.</p>
+<div class="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="erl_ext_dist.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+External Term Format
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="epmd_cmd.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+epmd
+        </span>
+      </a>
+
+  </div>
+</div>
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

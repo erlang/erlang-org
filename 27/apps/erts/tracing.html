@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="erts v14.3">
+
+
+    <title>Tracing — erts v14.3</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-218663D5.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="erts" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+erts
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v14.3
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of erts</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/erts/emulator/internal_doc/Tracing.md#L1" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+
+  <span>Tracing</span>
+</h1>
+
+<h2 id="implementation" class="section-heading">
+  <a href="#implementation" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Implementation</span>
+</h2>
+<h3 id="call-return-and-exception-tracing" class="section-heading">
+  <a href="#call-return-and-exception-tracing" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Call, return, and exception tracing</span>
+</h3>
+<p>Tracing is implemented by setting breakpoints in the traced functions,
+and sending the appropriate trace messages when they're hit.</p><ul><li>Call trace messages are sent immediately.</li><li>Return tracing pushes a frame to the stack which <em>returns to</em> an
+instruction that sends a trace message when encountered.</li><li>Exception tracing also pushes a frame to the stack, but will only send
+a trace message if we encounter it in stack scanning while throwing an
+exception.</li></ul><p>This means that one must be careful not to use return or exception tracing
+on functions that never return, as each call pushes a frame that will
+never be removed.</p><p>Another limitation is that since the breakpoint is in the <em>callee</em> and not
+the <em>caller</em>, we're limited to the information we have on function ingress.
+This means that we can't actually tell who called us: since we're limited
+to inspecting the stack we can only say where we're <em>going to return to</em>,
+which is not quite the same thing.</p><p>As an illustration, when the <code class="inline">caller</code> option is enabled all trace messages
+from <code class="inline">bar/1</code>  will say that they were called from <code class="inline">foo/0</code>, even though it
+went through a bunch of other functions on the way:</p><pre><code class="makeup erlang" translate="no"><span class="nf">foo</span><span class="p" data-group-id="6915270842-1">(</span><span class="p" data-group-id="6915270842-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">lots</span><span class="p" data-group-id="6915270842-2">(</span><span class="p" data-group-id="6915270842-2">)</span><span class="p">,</span><span class="w">
+    </span><span class="ss">ok</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">lots</span><span class="p" data-group-id="6915270842-3">(</span><span class="p" data-group-id="6915270842-3">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">&#39;of&#39;</span><span class="p" data-group-id="6915270842-4">(</span><span class="p" data-group-id="6915270842-4">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">&#39;of&#39;</span><span class="p" data-group-id="6915270842-5">(</span><span class="p" data-group-id="6915270842-5">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">indirections</span><span class="p" data-group-id="6915270842-6">(</span><span class="p" data-group-id="6915270842-6">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">indirections</span><span class="p" data-group-id="6915270842-7">(</span><span class="p" data-group-id="6915270842-7">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">bar</span><span class="p" data-group-id="6915270842-8">(</span><span class="mi">10</span><span class="p" data-group-id="6915270842-8">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">bar</span><span class="p" data-group-id="6915270842-9">(</span><span class="mi">0</span><span class="p" data-group-id="6915270842-9">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="ss">done</span><span class="p">;</span><span class="w">
+</span><span class="nf">bar</span><span class="p" data-group-id="6915270842-10">(</span><span class="n">N</span><span class="p" data-group-id="6915270842-10">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">bar</span><span class="p" data-group-id="6915270842-11">(</span><span class="n">N</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p" data-group-id="6915270842-11">)</span><span class="p">.</span></code></pre><h3 id="export-tracing" class="section-heading">
+  <a href="#export-tracing" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Export tracing</span>
+</h3>
+<p>In the interpreter, breakpoints are set inside the code trampoline for
+export entries, and their address vector is updated to point to them.
+This way, only remote calls will hit the breakpoint while local calls to
+the same function are left alone, but it otherwise acts the same way as
+local breakpoints.</p><p>Things get a bit more involved in the JIT. See <code class="inline">BeamAsm.md</code> for more
+details.</p><h2 id="setting-breakpoints" class="section-heading">
+  <a href="#setting-breakpoints" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Setting breakpoints</span>
+</h2>
+<h3 id="introduction" class="section-heading">
+  <a href="#introduction" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Introduction</span>
+</h3>
+<p>Before OTP R16 when trace settings were changed by <code class="inline">erlang:trace_pattern</code>,
+all other execution in the VM were halted while the trace operation
+was carried out in single threaded mode. Similar to code loading, this
+can impose a severe problem for availability that grows with the
+number of cores.</p><p>In OTP R16, breakpoints are set in the code without blocking the VM.
+Erlang processes may continue executing undisturbed in parallel during the
+entire operation. The same base technique is used as for code loading. A
+staging area of breakpoints is prepared and then made active with a single
+atomic operation.</p><h3 id="redesign-of-breakpoint-wheel" class="section-heading">
+  <a href="#redesign-of-breakpoint-wheel" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Redesign of Breakpoint Wheel</span>
+</h3>
+<p>To make it easier to manage breakpoints without single threaded mode a
+redesign of the breakpoint mechanism has been made. The old
+&quot;breakpoint wheel&quot; data structure was a circular double-linked list of
+breakpoints for each instrumented function. It was invented before the
+SMP emulator. To support it in the SMP emulator, is was essentially
+expanded to one breakpoint wheel per scheduler. As more breakpoint
+types have been added, the implementation have become messy and hard
+to understand and maintain.</p><p>In the new design the old wheel was dropped and instead replaced by
+one struct (<code class="inline">GenericBp</code>) to hold the data for all types of breakpoints
+for each instrumented function. A bit-flag field is used to indicate
+what different type of break actions that are enabled.</p><h3 id="same-same-but-different" class="section-heading">
+  <a href="#same-same-but-different" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Same Same but Different</span>
+</h3>
+<p>Even though <code class="inline">trace_pattern</code> use the same technique as the non-blocking
+code loading with replicated generations of data structures and an
+atomic switch, the implementations are quite separate from each
+other. One initial idea was to use the existing mechanism of code
+loading to do a dummy load operation that would make a copy of the
+affected modules. That copy could then be instrumented with
+breakpoints before making it reachable with the same atomic switch as
+done for code loading. This approach seems straight forward but has a
+number of shortcomings, one being the large memory footprint when many
+modules are instrumented. Another problem is how execution will reach
+the new instrumented code. Normally loaded code can only be reached
+through external functions calls. Trace settings must be activated
+instantaneously without the need of external function calls.</p><p>The chosen solution is instead for tracing to use the technique of
+replication applied on the data structures for breakpoints. Two
+generations of breakpoints are kept and identified by index of 0 and
+1. The global atomic variables <code class="inline">erts_active_bp_index</code> will determine
+which generation of breakpoints running code will use.</p><h3 id="atomicity-without-atomic-operations" class="section-heading">
+  <a href="#atomicity-without-atomic-operations" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Atomicity Without Atomic Operations</span>
+</h3>
+<p>Not using the code loading generations (or any other code duplication)
+means that <code class="inline">trace_pattern</code> must at some point write to the active beam
+code in order for running processes to reach the staged breakpoints
+structures. This can be done with one single atomic write operation
+per instrumented function. The beam instruction words are however read
+with normal memory loads and not through the atomic API. The only
+guarantee we need is that the written instruction word is seen as
+atomic. Either fully written or not at all. This is true for word
+aligned write operation on all hardware architectures we use.</p><h3 id="adding-a-new-breakpoint" class="section-heading">
+  <a href="#adding-a-new-breakpoint" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Adding a new Breakpoint</span>
+</h3>
+<p>This is a simplified sequence describing what <code class="inline">trace_pattern</code> goes
+through when adding a new breakpoint.</p><ol><li><p>Seize exclusive code modification permission (suspend process until we get
+it).</p></li><li><p>Allocate breakpoint structure <code class="inline">GenericBp</code> including both generations.
+Set the active area as disabled with a zeroed flagfield. Save the original
+instruction word in the breakpoint.</p></li><li><p>Write a pointer to the breakpoint at offset <code class="inline">-sizeof(UWord)</code> from the first
+instruction <code class="inline">ErtsFuncInfo</code> header.</p></li><li><p>Set the staging area of the breakpoint as enabled with specified
+breakpoint data.</p></li><li><p>Wait for thread progress.</p></li><li><p>Write a <code class="inline">op_i_generic_breakpoint</code> as the first instruction for the function.
+This instruction will execute the breakpoint that it finds at offset
+<code class="inline">-sizeof(UWord)</code>.</p></li><li><p>Wait for thread progress.</p></li><li><p>Commit the breakpoint by switching <code class="inline">erts_active_bp_index</code>.</p></li><li><p>Wait for thread progress.</p></li><li><p>&quot;Consolidate&quot;
+Prepare for next call to <code class="inline">trace_pattern</code> by updating the new staging area
+(the old active) of the breakpoint to be identical to the new active area.</p></li><li><p>Release code modification permission and return from <code class="inline">trace_pattern</code>.</p></li></ol><p>The code modification permission &quot;lock&quot; seized in step 1 is also taken by code
+loading. This ensures that only one process at a time can stage new trace
+settings, and also prevents concurrent codeloading and make sure we see a
+consistent view of the beam code during the entire sequence.</p><p>Between step 6 and 8, runninng processes might execute the written
+<code class="inline">op_i_generic_breakpoint</code> instruction. They will get the breakpoint
+structure written in step 3, read <code class="inline">erts_active_bp_index</code> and execute
+the corresponding part of the breakpoint. Before the switch in step 8
+becomes visible they will however execute the disabled part of the
+breakpoint structure and do nothing other than executing the saved
+original instruction.</p><p>The consolidation in step 10 will make the new staging area identical
+to the new active area. This will make it simpler for the next call to
+<code class="inline">trace_pattern</code> that may not affect all existing breakpoints. The staging area
+of all unaffected breakpoints are then ready to become active without any
+visitation by <code class="inline">trace_pattern</code>.</p><h3 id="to-update-and-remove-breakpoints" class="section-heading">
+  <a href="#to-update-and-remove-breakpoints" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">To Update and Remove Breakpoints</span>
+</h3>
+<p>The above sequence did only describe adding a new breakpoint. We do
+basically the same sequence to update the settings of an existing
+breakpoint except step 2,3 and 6 can be skipped as it has already been
+done.</p><p>To remove a breakpoint some more steps are needed. The idea is to
+first stage the breakpoint as disabled, do the switch, wait for thread
+progress and then remove the disabled breakpoint by restoring the
+original beam instruction.</p><p>Here is a more complete sequence that contains both adding, updating
+and removing breakpoints.</p><ol><li><p>Seize exclusive code modification permission (suspend process until we get
+it).</p></li><li><p>Allocate new breakpoint structures with a disabled active area and
+the original beam instruction. Write a pointer to the breakpoint in
+<code class="inline">ErtsFuncInfo</code> header at offset <code class="inline">-sizeof(UWord)</code>.</p></li><li><p>Update the staging area of all affected breakpoints. Disable
+breakpoints that are to be removed.</p></li><li><p>Wait for thread progress.</p></li><li><p>Write a <code class="inline">op_i_generic_breakpoint</code> as the first instruction for all
+functions with new breakpoints.</p></li><li><p>Wait for thread progress.</p></li><li><p>Commit all staged breakpoints by switching <code class="inline">erts_active_bp_index</code>.</p></li><li><p>Wait for thread progress.</p></li><li><p>Uninstall.
+Restore original beam instruction for disabled breakpoints.</p></li><li><p>Wait for thread progress.</p></li><li><p>Consolidate.
+Prepare for next call to <code class="inline">trace_pattern</code> by updating the new
+staging area (the old active) for all enabled breakpoints.</p></li><li><p>Deallocate disabled breakpoint structures.</p></li><li><p>Release code modification permission and return from <code class="inline">trace_pattern</code>.</p></li></ol><h3 id="all-that-waiting-for-thread-progress" class="section-heading">
+  <a href="#all-that-waiting-for-thread-progress" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">All that Waiting for Thread Progress</span>
+</h3>
+<p>There are four rounds of waiting for thread progress in the above
+sequence. In the code loading sequence we sacrificed memory overhead
+of three generations to avoid a second round of thread progress. The
+latency of <code class="inline">trace_pattern</code> should not be such a big problem for
+however, as it is normally not called in a rapid sequence.</p><p>The waiting in step 4 is to make sure all threads will see an updated
+view of the breakpoint structures once they become reachable through
+the <code class="inline">op_i_generic_breakpoint</code> instruction written in step 5.</p><p>The waiting in step 6 is to make the activation of the new trace
+settings &quot;as atomic as possible&quot;. Different cores might see the new
+value of <code class="inline">erts_active_bp_index</code> at different times as it is read
+without any memory barrier. But this is the best we can do without
+more expensive thread synchronization.</p><p>The waiting in step 8 is to make sure we don't restore the original
+bream instructions for disabled breakpoints until we know that no
+thread is still accessing the old enabled area of a disabled
+breakpoint.</p><p>The waiting in step 10 is to make sure no lingering thread is still
+accessing disabled breakpoint structures to be deallocated in step
+12.</p><h3 id="global-tracing" class="section-heading">
+  <a href="#global-tracing" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Global Tracing</span>
+</h3>
+<p>Call tracing with <code class="inline">global</code> option only affects external function
+calls. This was earlier handled by inserting a special trace
+instruction in export entries without the use of breakpoints. With the
+new non-blocking tracing we want to avoid special handling for global
+tracing and make use of the staging and atomic switching within the
+breakpoint mechanism. The solution was to create the same type of
+breakpoint structure for a global call trace. The difference to local
+tracing is that we insert the <code class="inline">op_i_generic_breakpoint</code> instruction
+(with its pointer at offset -4) in the export entry rather than in the
+code.</p><h3 id="future-work" class="section-heading">
+  <a href="#future-work" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Future work</span>
+</h3>
+<p>We still go to single threaded mode when new code is loaded for a
+module that is traced, or when loading code when there is a default
+trace pattern set. That is not impossible to fix, but that requires
+much closer cooperation between tracing BIFs and the loader BIFs.</p>
+<div class="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="threadprogress.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Thread Progress
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="beam_makeops.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+The beam_makeops script
+        </span>
+      </a>
+
+  </div>
+</div>
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

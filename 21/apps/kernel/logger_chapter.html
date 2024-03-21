@@ -1,0 +1,1415 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html xmlns:erl="http://erlang.org" xmlns:fn="http://www.w3.org/2005/02/xpath-functions">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" href="../../otp_doc.css" type="text/css">
+<title>Erlang -- Logging</title>
+</head>
+<body>
+<div id="container">
+<script id="js" type="text/javascript" language="JavaScript" src="../../js/flipmenu/flipmenu.js"></script><script id="js2" type="text/javascript" src="../../js/erlresolvelinks.js"></script><script language="JavaScript" type="text/javascript">
+            <!--
+              function getWinHeight() {
+                var myHeight = 0;
+                if( typeof( window.innerHeight ) == 'number' ) {
+                  //Non-IE
+                  myHeight = window.innerHeight;
+                } else if( document.documentElement && ( document.documentElement.clientWidth ||
+                                                         document.documentElement.clientHeight ) ) {
+                  //IE 6+ in 'standards compliant mode'
+                  myHeight = document.documentElement.clientHeight;
+                } else if( document.body && ( document.body.clientWidth || document.body.clientHeight ) ) {
+                  //IE 4 compatible
+                  myHeight = document.body.clientHeight;
+                }
+                return myHeight;
+              }
+
+              function setscrollpos() {
+                var objf=document.getElementById('loadscrollpos');
+                 document.getElementById("leftnav").scrollTop = objf.offsetTop - getWinHeight()/2;
+              }
+
+              function addEvent(obj, evType, fn){
+                if (obj.addEventListener){
+                obj.addEventListener(evType, fn, true);
+                return true;
+              } else if (obj.attachEvent){
+                var r = obj.attachEvent("on"+evType, fn);
+                return r;
+              } else {
+                return false;
+              }
+             }
+
+             addEvent(window, 'load', setscrollpos);
+
+             //--></script><div id="leftnav"><div class="innertube">
+<div class="erlang-logo-wrapper"><a href="../../index.html"><img alt="Erlang Logo" src="../../../../doc/erlang-logo.png" class="erlang-logo"></a></div>
+<p class="section-title">Kernel</p>
+<p class="section-subtitle">User's Guide</p>
+<p class="section-version">Version 6.3.1.3</p>
+<ul class="panel-sections">
+<li><a href="users_guide.html">User's Guide</a></li>
+<li><a href="index.html">Reference Manual</a></li>
+<li><a href="release_notes.html">Release Notes</a></li>
+<li><a href="kernel.pdf">PDF</a></li>
+<li><a href="../../index.html">Top</a></li>
+</ul>
+<ul class="expand-collapse-items">
+<li><a href="javascript:openAllFlips()">Expand All</a></li>
+<li><a href="javascript:closeAllFlips()">Contract All</a></li>
+</ul>
+<h3>Chapters</h3>
+<ul class="flipMenu" imagePath="../../js/flipmenu">
+<li id="no" title="Introduction" expanded="false">Introduction<ul>
+<li><a href="introduction.html">
+              Top of chapter
+            </a></li>
+<li title="Scope"><a href="introduction.html#scope">Scope</a></li>
+<li title="Prerequisites"><a href="introduction.html#prerequisites">Prerequisites</a></li>
+</ul>
+</li>
+<li id="loadscrollpos" title="Logging" expanded="true">Logging<ul>
+<li><a href="logger_chapter.html">
+              Top of chapter
+            </a></li>
+<li title="Overview"><a href="logger_chapter.html#overview">Overview</a></li>
+<li title="Logger API"><a href="logger_chapter.html#logger-api">Logger API</a></li>
+<li title="Filters"><a href="logger_chapter.html#filters">Filters</a></li>
+<li title="Handlers"><a href="logger_chapter.html#handlers">Handlers</a></li>
+<li title="Formatters"><a href="logger_chapter.html#formatters">Formatters</a></li>
+<li title="Configuration"><a href="logger_chapter.html#configuration">Configuration</a></li>
+<li title="Backwards Compatibility with error_logger"><a href="logger_chapter.html#backwards-compatibility-with-error_logger">Backwards Compatibility with error_logger</a></li>
+<li title="Error Handling"><a href="logger_chapter.html#error-handling">Error Handling</a></li>
+<li title="Example: Add a handler to log info events to file"><a href="logger_chapter.html#example--add-a-handler-to-log-info-events-to-file">Example: Add a handler to log info events to file</a></li>
+<li title="Example: Implement a handler"><a href="logger_chapter.html#example--implement-a-handler">Example: Implement a handler</a></li>
+<li title="Protecting the Handler from Overload"><a href="logger_chapter.html#protecting-the-handler-from-overload">Protecting the Handler from Overload</a></li>
+<li title="Logger Proxy"><a href="logger_chapter.html#logger-proxy">Logger Proxy</a></li>
+<li title="See Also"><a href="logger_chapter.html#see-also">See Also</a></li>
+</ul>
+</li>
+</ul>
+</div></div>
+<div id="content">
+<div class="innertube">
+<h1>2 Logging</h1>
+  
+
+  <p>Erlang/OTP 21.0 provides a standard API for logging
+    through <span class="code">Logger</span>, which is part of the Kernel
+    application. Logger consists of the API for issuing log events,
+    and a customizable backend where log handlers, filters and
+    formatters can be plugged in.</p>
+  <p>By default, the Kernel application installs one log handler at
+    system start. This handler is named <span class="code">default</span>. It receives
+    and processes standard log events produced by the Erlang runtime
+    system, standard behaviours and different Erlang/OTP
+    applications. The log events are by default written to the
+    terminal.</p>
+  <p>You can also configure the system so that the default handler
+    prints log events to a single file, or to a set of wrap logs
+    via <span class="bold_code bc-19"><a href="../../man/disk_log.html"><span class="code">disk_log</span></a></span>.</p>
+  <p>By configuration, you can also modify or disable the default
+    handler, replace it by a custom handler, and install additional
+    handlers.</p>
+
+  <div class="note">
+<div class="label">Note</div>
+<div class="content"><p>
+    <p>Since Logger is new in Erlang/OTP 21.0, we do reserve the right
+      to introduce changes to the Logger API and functionality in
+      patches following this release. These changes might or might not
+      be backwards compatible with the initial version.</p>
+  </p></div>
+</div>
+
+  <h3><span onMouseOver="document.getElementById('ghlink-overview-idm85').style.visibility = 'visible';" onMouseOut="document.getElementById('ghlink-overview-idm85').style.visibility = 'hidden';"><span id="ghlink-overview-idm85" class="ghlink"><a href="https://github.com/erlang/otp/edit/maint/lib/kernel/doc/src/logger_chapter.xml#L58" title="Found an issue with the documentation? Fix it by clicking here!"><span class="pencil"></span></a></span><a class="title_link" name="overview" href="#overview">2.1 
+          Overview</a></span></h3>
+    
+    <p>A <strong>log event</strong> consists of a <strong>log level</strong>, the
+      <strong>message</strong> to be logged, and <strong>metadata</strong>.</p>
+    <p>The Logger backend forwards log events from the API, first
+      through a set of <strong>primary filters</strong>, then through a set of
+      secondary filters attached to each log handler. The secondary
+      filters are in the following named <strong>handler filters</strong>.</p>
+    <p>Each filter set consists of a <strong>log level check</strong>,
+      followed by zero or more <strong>filter functions</strong>.</p>
+    <p>The following figure shows a conceptual overview of Logger. The
+      figure shows two log handlers, but any number of handlers can be
+      installed.</p>
+
+    
+    <div class="doc-image-wrapper">
+<img alt="IMAGE MISSING" src="logger_arch.png" class="doc-image">
+      <p class="doc-image-caption">Figure
+        2.1:
+         
+        Conceptual Overview</p>
+    </div>
+
+    <p>Log levels are expressed as atoms. Internally in Logger, the
+      atoms are mapped to integer values, and a log event passes the
+      log level check if the integer value of its log level is less
+      than or equal to the currently configured log level. That is,
+      the check passes if the event is equally or more severe than the
+      configured level. See section <span class="bold_code bc-17"><a href="#log_level">Log Level</a></span> for a listing and description of all log
+      levels.</p>
+    <p>The primary log level can be overridden by a log level
+      configured per module. This is to, for instance, allow more
+      verbose logging from a specific part of the system.</p>
+    <p>Filter functions can be used for more sophisticated filtering
+      than the log level check provides. A filter function can stop or
+      pass a log event, based on any of the event's contents. It can
+      also modify all parts of the log event. See see
+      section <span class="bold_code bc-17"><a href="#filters">Filters</a></span> for more
+      details.</p>
+    <p>If a log event passes through all primary filters and all
+      handler filters for a specific handler, Logger forwards the
+      event to the <strong>handler callback</strong>. The handler formats and
+      prints the event to its destination. See
+      section <span class="bold_code bc-17"><a href="#handlers">Handlers</a></span> for more
+      details.</p>
+    <p>Everything up to and including the call to the handler
+      callbacks is executed on the client process, that is, the
+      process where the log event was issued. It is up to the handler
+      implementation if other processes are involved or not.</p>
+    <p>The handlers are called in sequence, and the order is not
+      defined.</p>
+  
+  <h3>
+<a name="logger_api"></a><span onMouseOver="document.getElementById('ghlink-logger-api-idm111').style.visibility = 'visible';" onMouseOut="document.getElementById('ghlink-logger-api-idm111').style.visibility = 'hidden';"><span id="ghlink-logger-api-idm111" class="ghlink"><a href="https://github.com/erlang/otp/edit/maint/lib/kernel/doc/src/logger_chapter.xml#L108" title="Found an issue with the documentation? Fix it by clicking here!"><span class="pencil"></span></a></span><a class="title_link" name="logger-api" href="#logger-api">2.2 
+          Logger API</a></span>
+</h3>
+    
+    
+    <p>The API for logging consists of a set
+      of <span class="bold_code bc-15"><a href="../../man/logger.html#macros">macros</a></span>, and a set
+      of functions on the form <span class="code">logger:Level/1,2,3</span>, which are
+      all shortcuts
+      for <span class="bold_code bc-15"><a href="../../man/logger.html#log-2"><span class="code">logger:log(Level,Arg1[,Arg2[,Arg3]])</span></a></span>.</p>
+    <p>The macros are defined in <span class="code">logger.hrl</span>, which is included
+      in a module with the directive</p>
+    <div class="example"><pre>-include_lib("kernel/include/logger.hrl").</pre></div>
+    <p>The difference between using the macros and the exported
+      functions is that macros add location (originator) information
+      to the metadata, and performs lazy evaluation by wrapping the
+      logger call in a case statement, so it is only evaluated if the
+      log level of the event passes the primary log level check.</p>
+    <h4>
+<a name="log_level"></a><span onMouseOver="document.getElementById('ghlink-log-level-idm123').style.visibility = 'visible';" onMouseOut="document.getElementById('ghlink-log-level-idm123').style.visibility = 'hidden';"><span id="ghlink-log-level-idm123" class="ghlink"><a href="https://github.com/erlang/otp/edit/maint/lib/kernel/doc/src/logger_chapter.xml#L125" title="Found an issue with the documentation? Fix it by clicking here!"><span class="pencil"></span></a></span><a class="title_link" name="log-level" href="#log-level">Log Level</a></span>
+</h4>
+      
+      
+      <p>The log level indicates the severity of a event. In
+	accordance with the Syslog protocol,
+	<span class="bold_code bc-20"><a href="https://www.ietf.org/rfc/rfc5424.txt">RFC
+	5424</a></span>, eight log levels can be specified. The following
+	table lists all possible log levels by name (atom), integer
+	value, and description:</p>
+
+      <div class="doc-table-wrapper">
+<table class="doc-table">
+<tr>
+	  <td align="left" valign="middle"><strong>Level</strong></td>
+	  <td align="left" valign="middle"><strong>Integer</strong></td>
+	  <td align="left" valign="middle"><strong>Description</strong></td>
+	</tr>
+<tr>
+	  <td align="left" valign="middle">emergency</td>
+	  <td align="left" valign="middle">0</td>
+	  <td align="left" valign="middle">system is unusable</td>
+	</tr>
+<tr>
+	  <td align="left" valign="middle">alert</td>
+	  <td align="left" valign="middle">1</td>
+	  <td align="left" valign="middle">action must be taken immediately</td>
+	</tr>
+<tr>
+	  <td align="left" valign="middle">critical</td>
+	  <td align="left" valign="middle">2</td>
+	  <td align="left" valign="middle">critical conditions</td>
+	</tr>
+<tr>
+	  <td align="left" valign="middle">error</td>
+	  <td align="left" valign="middle">3</td>
+	  <td align="left" valign="middle">error conditions</td>
+	</tr>
+<tr>
+	  <td align="left" valign="middle">warning</td>
+	  <td align="left" valign="middle">4</td>
+	  <td align="left" valign="middle">warning conditions</td>
+	</tr>
+<tr>
+	  <td align="left" valign="middle">notice</td>
+	  <td align="left" valign="middle">5</td>
+	  <td align="left" valign="middle">normal but significant conditions</td>
+	</tr>
+<tr>
+	  <td align="left" valign="middle">info</td>
+	  <td align="left" valign="middle">6</td>
+	  <td align="left" valign="middle">informational messages</td>
+	</tr>
+<tr>
+	  <td align="left" valign="middle">debug</td>
+	  <td align="left" valign="middle">7</td>
+	  <td align="left" valign="middle">debug-level messages</td>
+	</tr>
+</table>
+<p class="doc-table-caption">Table
+        2.1:
+         
+        Log Levels</p>
+</div>
+      <p>Notice that the integer value is only used internally in
+	Logger. In the API, you must always use the atom. To compare
+	the severity of two log levels,
+	use <span class="bold_code bc-15"><a href="../../man/logger.html#compare_levels-2"><span class="code">logger:compare_levels/2</span></a></span>.</p>
+    
+    <h4>
+<a name="log_message"></a><span onMouseOver="document.getElementById('ghlink-log-message-idm172').style.visibility = 'visible';" onMouseOut="document.getElementById('ghlink-log-message-idm172').style.visibility = 'hidden';"><span id="ghlink-log-message-idm172" class="ghlink"><a href="https://github.com/erlang/otp/edit/maint/lib/kernel/doc/src/logger_chapter.xml#L189" title="Found an issue with the documentation? Fix it by clicking here!"><span class="pencil"></span></a></span><a class="title_link" name="log-message" href="#log-message">Log Message</a></span>
+</h4>
+      
+      
+      <p>The log message contains the information to be logged. The
+	message can consist of a format string and arguments (given as
+	two separate parameters in the Logger API), a string or a
+	report. The latter, which is either a map or a key-value list,
+	can be accompanied by a <strong>report callback</strong> specified in
+	the log event's <span class="bold_code bc-17"><a href="#metadata">metadata</a></span>.
+	The report callback is a convenience function that
+	the <span class="bold_code bc-17"><a href="#formatters">formatter</a></span> can use
+	to convert the report to a format string and arguments, or
+	directly to a string. The
+	formatter can also use its own conversion function, if no
+	callback is provided, or if a customized formatting is
+	desired.</p>
+      <p>The report callback must be a fun with one or two
+	arguments. If it takes one argument, this is the report
+	itself, and the fun returns a format string and arguments:</p>
+      <div class="example"><pre>fun((<span class="bold_code bc-15"><a href="../../man/logger.html#type-report"><span class="code">logger:report()</span></a></span>) -&gt; {<span class="bold_code bc-13"><a href="../../man/io.html#type-format"><span class="code">io:format()</span></a></span>,[term()]})</pre></div>
+      <p>If it takes two arguments, the first is the report, and the
+	second is a map containing extra data that allows direct
+	coversion to a string:</p>
+      <div class="example"><pre>fun((<span class="bold_code bc-15"><a href="../../man/logger.html#type-report"><span class="code">logger:report()</span></a></span>,<span class="bold_code bc-15"><a href="../../man/logger.html#type-report_cb_config"><span class="code">logger:report_cb_config()</span></a></span>) -&gt; <span class="bold_code bc-13"><a href="../../man/unicode.html#type-chardata"><span class="code">unicode:chardata()</span></a></span>)
+      </pre></div>
+      <p>The fun must obey the <span class="code">depth</span> and <span class="code">chars_limit</span>
+      parameters provided in the second argument, as the formatter can
+      not do anything useful of these parameters with the returned
+      string. The extra data also contains a field named
+      <span class="code">single_line</span>, indicating if the printed log message may
+      contain line breaks or not. This variant is used when the
+      formatting of the report depends on the size or single line
+      parameters.</p>
+      <p>Example, format string and arguments:</p>
+      <div class="example"><pre>logger:error("The file does not exist: ~ts",[Filename])</pre></div>
+      <p>Example, string:</p>
+      <div class="example"><pre>logger:notice("Something strange happened!")</pre></div>
+      <p>Example, report, and metadata with report callback:</p>
+      <div class="example"><pre>logger:debug(#{got =&gt; connection_request, id =&gt; Id, state =&gt; State},
+             #{report_cb =&gt; fun(R) -&gt; {"~p",[R]} end})</pre></div>
+      <p>The log message can also be provided through a fun for lazy
+	evaluation. The fun is only evaluated if the primary log level
+	check passes, and is therefore recommended if it is expensive
+	to generate the message. The lazy fun must return a string, a
+	report, or a tuple with format string and arguments.</p>
+    
+    <h4><span onMouseOver="document.getElementById('ghlink-metadata-idm204').style.visibility = 'visible';" onMouseOut="document.getElementById('ghlink-metadata-idm204').style.visibility = 'hidden';"><span id="ghlink-metadata-idm204" class="ghlink"><a href="https://github.com/erlang/otp/edit/maint/lib/kernel/doc/src/logger_chapter.xml#L236" title="Found an issue with the documentation? Fix it by clicking here!"><span class="pencil"></span></a></span><a class="title_link" name="metadata" href="#metadata">Metadata</a></span></h4>
+      
+      <p>Metadata contains additional data associated with a log
+	message. Logger inserts some metadata fields by default, and
+	the client can add custom metadata in two different ways:</p>
+      <dl>
+	<dt><strong>Set process metadata</strong></dt>
+	<dd>
+	  <p>Process metadata is set and updated
+	    with <span class="bold_code bc-15"><a href="../../man/logger.html#set_process_metadata-1"><span class="code">logger:set_process_metadata/1</span></a></span>
+	    and <span class="bold_code bc-15"><a href="../../man/logger.html#update_process_metadata-1"><span class="code">logger:update_process_metadata/1</span></a></span>,
+	    respectively. This metadata applies to the process on
+	    which these calls are made, and Logger adds the metadata
+	    to all log events issued on that process.</p>
+	</dd>
+	<dt><strong>Add metadata to a specific log event</strong></dt>
+	<dd>
+	  <p>Metadata associated with one specific log event is given
+	    as the last parameter to the log macro or Logger API
+	    function when the event is issued. For example:</p>
+	  <div class="example"><pre>?LOG_ERROR("Connection closed",#{context =&gt; server})</pre></div>
+	</dd>
+      </dl>
+      <p>See the description of
+	the <span class="bold_code bc-15"><a href="../../man/logger.html#type-metadata"><span class="code">logger:metadata()</span></a></span> type for information
+	about which default keys Logger inserts, and how the different
+	metadata maps are merged.</p>
+    
+  
+  <h3>
+<a name="filter"></a><span onMouseOver="document.getElementById('ghlink-filters-idm222').style.visibility = 'visible';" onMouseOut="document.getElementById('ghlink-filters-idm222').style.visibility = 'hidden';"><span id="ghlink-filters-idm222" class="ghlink"><a href="https://github.com/erlang/otp/edit/maint/lib/kernel/doc/src/logger_chapter.xml#L268" title="Found an issue with the documentation? Fix it by clicking here!"><span class="pencil"></span></a></span><a class="title_link" name="filters" href="#filters">2.3 
+          Filters</a></span>
+</h3>
+    
+    
+    <p>Filters can be primary, or attached to a specific
+      handler. Logger calls the primary filters first, and if they all
+      pass, it calls the handler filters for each handler. Logger
+      calls the handler callback only if all filters attached to the
+      handler in question also pass.</p>
+    <p>A filter is defined as:</p>
+    <div class="example"><pre>{FilterFun, Extra}</pre></div>
+    <p>where <span class="code">FilterFun</span> is a function of arity 2,
+      and <span class="code">Extra</span> is any term. When applying the filter, Logger
+      calls the function with the log event as the first argument,
+      and the value of <span class="code">Extra</span> as the second
+      argument. See <span class="bold_code bc-15"><a href="../../man/logger.html#type-filter"><span class="code">logger:filter()</span></a></span> for type definitions.</p>
+    <p>The filter function can return <span class="code">stop</span>, <span class="code">ignore</span> or
+      the (possibly modified) log event.</p>
+    <p>If <span class="code">stop</span> is returned, the log event is immediately
+      discarded. If the filter is primary, no handler filters or
+      callbacks are called. If it is a handler filter, the
+      corresponding handler callback is not called, but the log event
+      is forwarded to filters attached to the next handler, if
+      any.</p>
+    <p>If the log event is returned, the next filter function is
+      called with the returned value as the first argument. That is,
+      if a filter function modifies the log event, the next filter
+      function receives the modified event. The value returned from
+      the last filter function is the value that the handler callback
+      receives.</p>
+    <p>If the filter function returns <span class="code">ignore</span>, it means that it
+      did not recognize the log event, and thus leaves to other
+      filters to decide the event's destiny.</p>
+    <p>The configuration option <span class="code">filter_default</span> specifies the
+      behaviour if all filter functions return <span class="code">ignore</span>, or if no
+      filters exist. <span class="code">filter_default</span> is by default set
+      to <span class="code">log</span>, meaning that if all existing filters ignore a log
+      event, Logger forwards the event to the handler
+      callback. If <span class="code">filter_default</span> is set to <span class="code">stop</span>, Logger
+      discards such events.</p>
+    <p>Primary filters are added
+      with <span class="bold_code bc-15"><a href="../../man/logger.html#add_primary_filter-2"><span class="code">logger:add_primary_filter/2</span></a></span>
+      and removed
+      with <span class="bold_code bc-15"><a href="../../man/logger.html#remove_primary_filter-1"><span class="code">logger:remove_primary_filter/1</span></a></span>. They can also
+      be added at system start via the Kernel configuration
+      parameter <span class="bold_code bc-17"><a href="#logger_parameter"><span class="code">logger</span></a></span>.</p>
+    <p>Handler filters are added
+      with <span class="bold_code bc-15"><a href="../../man/logger.html#add_handler_filter-3"><span class="code">logger:add_handler_filter/3</span></a></span>
+      and removed
+      with <span class="bold_code bc-15"><a href="../../man/logger.html#remove_handler_filter-2"><span class="code">logger:remove_handler_filter/2</span></a></span>. They can also
+      be specified directly in the configuration when adding a handler
+      with <span class="bold_code bc-15"><a href="../../man/logger.html#add_handler-3"><span class="code">logger:add_handler/3</span></a></span>
+      or via the Kernel configuration
+      parameter <span class="bold_code bc-17"><a href="#logger_parameter"><span class="code">logger</span></a></span>.</p>
+
+    <p>To see which filters are currently installed in the system,
+      use <span class="bold_code bc-15"><a href="../../man/logger.html#get_config-0"><span class="code">logger:get_config/0</span></a></span>,
+      or <span class="bold_code bc-15"><a href="../../man/logger.html#get_primary_config-0"><span class="code">logger:get_primary_config/0</span></a></span>
+      and <span class="bold_code bc-15"><a href="../../man/logger.html#get_handler_config-1"><span class="code">logger:get_handler_config/1</span></a></span>. Filters are
+	listed in the order they are applied, that is, the first
+	filter in the list is applied first, and so on.</p>
+
+    <p>For convenience, the following built-in filters exist:</p>
+
+    <dl>
+	<dt><strong><span class="bold_code bc-15"><a href="../../man/logger_filters.html#domain-2"><span class="code">logger_filters:domain/2</span></a></span></strong></dt>
+	<dd>
+	  <p>Provides a way of filtering log events based on a
+	  <span class="code">domain</span> field in <span class="code">Metadata</span>.</p>
+	</dd>
+	<dt><strong><span class="bold_code bc-15"><a href="../../man/logger_filters.html#level-2"><span class="code">logger_filters:level/2</span></a></span></strong></dt>
+	<dd>
+	  <p>Provides a way of filtering log events based on the log
+	    level.</p>
+	</dd>
+	<dt><strong><span class="bold_code bc-15"><a href="../../man/logger_filters.html#progress-2"><span class="code">logger_filters:progress/2</span></a></span></strong></dt>
+	<dd>
+	  <p>Stops or allows progress reports from <span class="code">supervisor</span>
+	    and <span class="code">application_controller</span>.</p>
+	</dd>
+	<dt><strong><span class="bold_code bc-15"><a href="../../man/logger_filters.html#remote_gl-2"><span class="code">logger_filters:remote_gl/2</span></a></span></strong></dt>
+	<dd>
+	  <p>Stops or allows log events originating from a process
+	    that has its group leader on a remote node.</p>
+	</dd>
+    </dl>
+  
+
+  <h3>
+<a name="handlers"></a><span onMouseOver="document.getElementById('ghlink-handlers-idm298').style.visibility = 'visible';" onMouseOut="document.getElementById('ghlink-handlers-idm298').style.visibility = 'hidden';"><span id="ghlink-handlers-idm298" class="ghlink"><a href="https://github.com/erlang/otp/edit/maint/lib/kernel/doc/src/logger_chapter.xml#L368" title="Found an issue with the documentation? Fix it by clicking here!"><span class="pencil"></span></a></span><a class="title_link" name="handlers" href="#handlers">2.4 
+          Handlers</a></span>
+</h3>
+    
+    
+    <p>A handler is defined as a module exporting at least the
+      following callback function:</p>
+
+    <div class="example"><pre><span class="bold_code bc-15"><a href="../../man/logger.html#HModule:log-2">log(LogEvent, Config) -&gt; void()</a></span></pre></div>
+
+    <p>This function is called when a log event has passed through all
+      primary filters, and all handler filters attached to the handler
+      in question. The function call is executed on the client
+      process, and it is up to the handler implementation if other
+      processes are involved or not.</p>
+
+    <p>Logger allows adding multiple instances of a handler
+      callback. That is, if a callback module implementation allows
+      it, you can add multiple handler instances using the same
+      callback module. The different instances are identified by
+      unique handler identities.</p>
+
+    <p>In addition to the mandatory callback function <span class="code">log/2</span>, a
+      handler module can export the optional callback
+      functions <span class="code">adding_handler/1</span>, <span class="code">changing_config/3</span>,
+      <span class="code">filter_config/1</span>, and <span class="code">removing_handler/1</span>. See
+      section <span class="bold_code bc-15"><a href="../../man/logger.html#handler_callback_functions">Handler Callback Functions</a></span> in the logger(3) manual page for
+      more information about these function.</p>
+
+    <p>The following built-in handlers exist:</p>
+
+    <dl>
+      <dt><strong><span class="code">logger_std_h</span></strong></dt>
+      <dd>
+	<p>This is the default handler used by OTP. Multiple instances
+	  can be started, and each instance will write log events to a
+	  given destination, terminal or file.</p>
+      </dd>
+
+      <dt><strong><span class="code">logger_disk_log_h</span></strong></dt>
+      <dd>
+	<p>This handler behaves much like <span class="code">logger_std_h</span>, except it uses
+	  <span class="bold_code bc-19"><a href="../../man/disk_log.html"><span class="code">disk_log</span></a></span> as its
+	  destination.</p>
+      </dd>
+
+      <dt><strong><a name="ErrorLoggerManager"></a><span class="code">error_logger</span></strong></dt>
+      <dd>
+	<p>This handler is provided for backwards compatibility
+	  only. It is not started by default, but will be
+	  automatically started the first time an <span class="code">error_logger</span>
+	  event handler is added
+	  with <span class="bold_code bc-15"><a href="../../man/error_logger.html#add_report_handler-1"><span class="code">error_logger:add_report_handler/1,2</span></a></span>.</p>
+
+	<p>The old <span class="code">error_logger</span> event handlers in STDLIB and
+	  SASL still exist, but they are not added by Erlang/OTP 21.0
+	  or later.</p>
+      </dd>
+    </dl>
+  
+
+  <h3>
+<a name="formatters"></a><span onMouseOver="document.getElementById('ghlink-formatters-idm336').style.visibility = 'visible';" onMouseOut="document.getElementById('ghlink-formatters-idm336').style.visibility = 'hidden';"><span id="ghlink-formatters-idm336" class="ghlink"><a href="https://github.com/erlang/otp/edit/maint/lib/kernel/doc/src/logger_chapter.xml#L429" title="Found an issue with the documentation? Fix it by clicking here!"><span class="pencil"></span></a></span><a class="title_link" name="formatters" href="#formatters">2.5 
+          Formatters</a></span>
+</h3>
+    
+    
+    <p>A formatter can be used by the handler implementation to do the
+      final formatting of a log event, before printing to the
+      handler's destination. The handler callback receives the
+      formatter information as part of the handler configuration,
+      which is passed as the second argument
+      to <span class="bold_code bc-15"><a href="../../man/logger.html#HModule:log-2"><span class="code">HModule:log/2</span></a></span>.</p>
+    <p>The formatter information consist of a formatter
+      module, <span class="code">FModule</span> and its
+      configuration, <span class="code">FConfig</span>. <span class="code">FModule</span> must export the
+      following function, which can be called by the handler:</p>
+    <div class="example"><pre><span class="bold_code bc-15"><a href="../../man/logger.html#FModule:format-2">format(LogEvent,FConfig) -&gt; FormattedLogEntry</a></span></pre></div>
+    <p>The formatter information for a handler is set as a part of its
+      configuration when the handler is added. It can also be changed
+      during runtime
+      with <span class="bold_code bc-15"><a href="../../man/logger.html#set_handler_config-3"><span class="code">logger:set_handler_config(HandlerId,formatter,{FModule,FConfig})</span></a></span>, which overwrites the current formatter information,
+      or with <span class="bold_code bc-15"><a href="../../man/logger.html#update_formatter_config-2"><span class="code">logger:update_formatter_config/2,3</span></a></span>, which
+	only modifies the formatter configuration.</p>
+    <p>If the formatter module exports the optional callback
+      function <span class="bold_code bc-15"><a href="../../man/logger.html#FModule:check_config-1"><span class="code">check_config(FConfig)</span></a></span>, Logger calls this
+      function when the formatter information is set or modified, to
+      verify the validity of the formatter configuration.</p>
+    <p>If no formatter information is specified for a handler, Logger
+      uses <span class="code">logger_formatter</span> as default. See
+      the <span class="bold_code bc-19"><a href="../../man/logger_formatter.html"><span class="code">logger_formatter(3)</span></a></span>
+      manual page for more information about this module.</p>
+  
+
+  <h3><span onMouseOver="document.getElementById('ghlink-configuration-idm360').style.visibility = 'visible';" onMouseOut="document.getElementById('ghlink-configuration-idm360').style.visibility = 'hidden';"><span id="ghlink-configuration-idm360" class="ghlink"><a href="https://github.com/erlang/otp/edit/maint/lib/kernel/doc/src/logger_chapter.xml#L465" title="Found an issue with the documentation? Fix it by clicking here!"><span class="pencil"></span></a></span><a class="title_link" name="configuration" href="#configuration">2.6 
+          Configuration</a></span></h3>
+    
+
+    <p>At system start, Logger is configured through Kernel
+      configuration parameters. The parameters that apply to Logger
+      are described in
+      section <span class="bold_code bc-17"><a href="#kernel_config_params">Kernel Configuration Parameters</a></span>. Examples are found in
+      section <span class="bold_code bc-17"><a href="#config_examples">Configuration Examples</a></span>.</p>
+    <p>During runtime, Logger configuration is changed via API
+      functions. See
+      section <span class="bold_code bc-15"><a href="../../man/logger.html#configuration_API">Configuration API Functions</a></span> in the <span class="code">logger(3)</span> manual page.</p>
+
+    <h4><span onMouseOver="document.getElementById('ghlink-primary-logger-configuration-idm368').style.visibility = 'visible';" onMouseOut="document.getElementById('ghlink-primary-logger-configuration-idm368').style.visibility = 'hidden';"><span id="ghlink-primary-logger-configuration-idm368" class="ghlink"><a href="https://github.com/erlang/otp/edit/maint/lib/kernel/doc/src/logger_chapter.xml#L480" title="Found an issue with the documentation? Fix it by clicking here!"><span class="pencil"></span></a></span><a class="title_link" name="primary-logger-configuration" href="#primary-logger-configuration">Primary Logger Configuration</a></span></h4>
+      
+      <p>Logger API functions that apply to the primary Logger
+	configuration are:</p>
+      <ul>
+	<li><span class="bold_code bc-15"><a href="../../man/logger.html#get_primary_config-0"><span class="code">get_primary_config/0</span></a></span></li>
+	<li><span class="bold_code bc-15"><a href="../../man/logger.html#set_primary_config-1"><span class="code">set_primary_config/1,2</span></a></span></li>
+	<li><span class="bold_code bc-15"><a href="../../man/logger.html#update_primary_config-1"><span class="code">update_primary_config/1</span></a></span></li>
+	<li><span class="bold_code bc-15"><a href="../../man/logger.html#add_primary_filter-2"><span class="code">add_primary_filter/2</span></a></span></li>
+	<li><span class="bold_code bc-15"><a href="../../man/logger.html#remove_primary_filter-1"><span class="code">remove_primary_filter/1</span></a></span></li>
+      </ul>
+      <p>The primary Logger configuration is a map with the following
+	keys:</p>
+      <dl>
+	<dt><strong><a name="primary_level"></a>
+	  <span class="code">level = </span><span class="bold_code bc-15"><a href="../../man/logger.html#type-level"><span class="code">logger:level()</span></a></span><span class="code"> | all | none</span></strong></dt>
+	<dd>
+	  <p>Specifies the primary log level, that is, log event that
+	    are equally or more severe than this level, are forwarded
+	    to the primary filters. Less severe log events are
+	    immediately discarded.</p>
+	  <p>See section <span class="bold_code bc-17"><a href="#log_level">Log Level</a></span> for a listing and description of
+	      possible log levels.</p>
+	  <p>The initial value of this option is set by the Kernel
+	    configuration parameter <span class="bold_code bc-17"><a href="#logger_level"><span class="code">logger_level</span></a></span>. It is changed during
+	    runtime with <span class="bold_code bc-15"><a href="../../man/logger.html#set_primary_config-2"><span class="code">logger:set_primary_config(level,Level)</span></a></span>.</p>
+	  <p>Defaults to <span class="code">notice</span>.</p>
+	</dd>
+	<dt><strong><span class="code">filters = [{FilterId,Filter}]</span></strong></dt>
+	<dd>
+	  <p>Specifies the primary filters.</p>
+	  <ul>
+	    <li>
+<span class="code">FilterId = </span><span class="bold_code bc-15"><a href="../../man/logger.html#type-filter_id"><span class="code">logger:filter_id()</span></a></span>
+</li>
+	    <li>
+<span class="code">Filter = </span><span class="bold_code bc-15"><a href="../../man/logger.html#type-filter"><span class="code">logger:filter()</span></a></span>
+</li>
+	  </ul>
+	  <p>The initial value of this option is set by the Kernel
+	    configuration
+	    parameter <span class="bold_code bc-17"><a href="#logger_parameter"><span class="code">logger</span></a></span>.
+	    During runtime, primary filters are added and removed with
+	    <span class="bold_code bc-15"><a href="../../man/logger.html#add_primary_filter-2"><span class="code">logger:add_primary_filter/2</span></a></span> and
+	    <span class="bold_code bc-15"><a href="../../man/logger.html#remove_primary_filter-1"><span class="code">logger:remove_primary_filter/1</span></a></span>,
+	    respectively.</p>
+	  <p>See section <span class="bold_code bc-17"><a href="#filters">Filters</a></span>
+	    for more detailed information.</p>
+	  <p>Defaults to <span class="code">[]</span>.</p>
+	</dd>
+	<dt><strong><span class="code">filter_default = log | stop</span></strong></dt>
+	<dd>
+	  <p>Specifies what happens to a log event if all filters
+	    return <span class="code">ignore</span>, or if no filters exist.</p>
+	  <p>See section <span class="bold_code bc-17"><a href="#filters">Filters</a></span>
+	    for more information about how this option is used.</p>
+	  <p>Defaults to <span class="code">log</span>.</p>
+	</dd>
+      </dl>
+    
+
+    <h4>
+<a name="handler_configuration"></a><span onMouseOver="document.getElementById('ghlink-handler-configuration-idm439').style.visibility = 'visible';" onMouseOut="document.getElementById('ghlink-handler-configuration-idm439').style.visibility = 'hidden';"><span id="ghlink-handler-configuration-idm439" class="ghlink"><a href="https://github.com/erlang/otp/edit/maint/lib/kernel/doc/src/logger_chapter.xml#L550" title="Found an issue with the documentation? Fix it by clicking here!"><span class="pencil"></span></a></span><a class="title_link" name="handler-configuration" href="#handler-configuration">Handler Configuration</a></span>
+</h4>
+      
+      
+      <p>Logger API functions that apply to handler configuration
+	are:</p>
+      <ul>
+	<li><span class="bold_code bc-15"><a href="../../man/logger.html#get_handler_config-0"><span class="code">get_handler_config/0,1</span></a></span></li>
+	<li><span class="bold_code bc-15"><a href="../../man/logger.html#set_handler_config-2"><span class="code">set_handler_config/2,3</span></a></span></li>
+	<li><span class="bold_code bc-15"><a href="../../man/logger.html#update_handler_config-2"><span class="code">update_handler_config/2,3</span></a></span></li>
+	<li><span class="bold_code bc-15"><a href="../../man/logger.html#add_handler_filter-3"><span class="code">add_handler_filter/3</span></a></span></li>
+	<li><span class="bold_code bc-15"><a href="../../man/logger.html#remove_handler_filter-2"><span class="code">remove_handler_filter/2</span></a></span></li>
+	<li><span class="bold_code bc-15"><a href="../../man/logger.html#update_formatter_config-2"><span class="code">update_formatter_config/2,3</span></a></span></li>
+      </ul>
+      <p>The configuration for a handler is a map with the following keys:</p>
+      <dl>
+	<dt><strong><span class="code">id = </span><span class="bold_code bc-15"><a href="../../man/logger.html#type-handler_id"><span class="code">logger:handler_id()</span></a></span></strong></dt>
+	<dd>
+	  <p>Automatically inserted by Logger. The value is the same
+	    as the <span class="code">HandlerId</span> specified when adding the handler,
+	    and it cannot be changed.</p>
+	</dd>
+	<dt><strong><span class="code">module = module()</span></strong></dt>
+	<dd>
+	  <p>Automatically inserted by Logger. The value is the same
+	    as the <span class="code">Module</span> specified when adding the handler,
+	    and it cannot be changed.</p>
+	</dd>
+	<dt><strong><span class="code">level = </span><span class="bold_code bc-15"><a href="../../man/logger.html#type-level"><span class="code">logger:level()</span></a></span><span class="code"> | all | none</span></strong></dt>
+	<dd>
+	  <p>Specifies the log level for the handler, that is, log
+	    events that are equally or more severe than this level,
+	    are forwarded to the handler filters for this
+	    handler.</p>
+	  <p>See section <span class="bold_code bc-17"><a href="#log_level">Log Level</a></span> for a listing and description of
+	      possible log levels.</p>
+	  <p>The log level is specified when adding the handler, or
+	    changed during runtime with, for
+	    instance, <span class="bold_code bc-15"><a href="../../man/logger.html#set_handler_config-3"><span class="code">logger:set_handler_config(HandlerId,level,Level)</span></a></span>.
+	  </p>
+	  <p>Defaults to <span class="code">all</span>.</p>
+	</dd>
+	<dt><strong><span class="code">filters = [{FilterId,Filter}]</span></strong></dt>
+	<dd>
+	  <p>Specifies the handler filters.</p>
+	  <ul>
+	    <li>
+<span class="code">FilterId = </span><span class="bold_code bc-15"><a href="../../man/logger.html#type-filter_id"><span class="code">logger:filter_id()</span></a></span>
+</li>
+	    <li>
+<span class="code">Filter = </span><span class="bold_code bc-15"><a href="../../man/logger.html#type-filter"><span class="code">logger:filter()</span></a></span>
+</li>
+	  </ul>
+	  <p>Handler filters are specified when adding the handler,
+	    or added or removed during runtime with
+	    <span class="bold_code bc-15"><a href="../../man/logger.html#add_handler_filter-3"><span class="code">logger:add_handler_filter/3</span></a></span> and
+	    <span class="bold_code bc-15"><a href="../../man/logger.html#remove_handler_filter-2"><span class="code">logger:remove_handler_filter/2</span></a></span>,
+	    respectively.</p>
+	  <p>See <span class="bold_code bc-17"><a href="#filters">Filters</a></span> for more
+	    detailed information.</p>
+	  <p>Defaults to <span class="code">[]</span>.</p>
+	</dd>
+	<dt><strong><span class="code">filter_default = log | stop</span></strong></dt>
+	<dd>
+	  <p>Specifies what happens to a log event if all filters
+	    return <span class="code">ignore</span>, or if no filters exist.</p>
+	  <p>See section <span class="bold_code bc-17"><a href="#filters">Filters</a></span>
+	    for more information about how this option is used.</p>
+	  <p>Defaults to <span class="code">log</span>.</p>
+	</dd>
+	<dt><strong><span class="code">formatter = {FormatterModule,FormatterConfig}</span></strong></dt>
+	<dd>
+	  <p>Specifies a formatter that the handler can use for
+	    converting the log event term to a printable string.</p>
+	  <ul>
+	    <li><span class="code">FormatterModule = module()</span></li>
+	    <li>
+<span class="code">FormatterConfig = </span>
+		<span class="bold_code bc-15"><a href="../../man/logger.html#type-formatter_config"><span class="code">logger:formatter_config()</span></a></span>
+</li>
+	    </ul>
+	  <p>The formatter information is specified when adding the
+	    handler. The formatter configuration can be changed during
+	    runtime
+	    with <span class="bold_code bc-15"><a href="../../man/logger.html#update_formatter_config-2"><span class="code">logger:update_formatter_config/2,3</span></a></span>,
+	    or the complete formatter information can be overwritten
+	    with, for
+	    instance, <span class="bold_code bc-15"><a href="../../man/logger.html#set_handler_config-3"><span class="code">logger:set_handler_config/3</span></a></span>.</p>
+	  <p>See
+	    section <span class="bold_code bc-17"><a href="#formatters">Formatters</a></span>
+	    for more detailed information.</p>
+	  <p>Defaults
+	    to <span class="code">{logger_formatter,DefaultFormatterConfig}</span>. See
+	    the <span class="bold_code bc-19"><a href="../../man/logger_formatter.html"><span class="code">logger_formatter(3)</span></a></span> manual page for
+	    information about this formatter and its default
+	    configuration.</p>
+	</dd>
+	<dt><strong><span class="code">config = term()</span></strong></dt>
+	<dd>
+	  <p>Handler specific configuration, that is, configuration
+	    data related to a specific handler implementation.</p>
+	  <p>The configuration for the built-in handlers is described
+            in
+            the <span class="bold_code bc-19"><a href="../../man/logger_std_h.html"><span class="code">logger_std_h(3)</span></a></span>
+            and
+            <span class="bold_code bc-19"><a href="../../man/logger_disk_log_h.html"><span class="code">logger_disk_log_h(3)</span></a></span> manual pages.</p>
+	</dd>
+      </dl>
+
+      <p>Notice that <span class="code">level</span> and <span class="code">filters</span> are obeyed by
+	Logger itself before forwarding the log events to each
+	handler, while <span class="code">formatter</span> and all handler specific
+	options are left to the handler implementation.</p>
+    
+
+    <h4>
+<a name="kernel_config_params"></a><span onMouseOver="document.getElementById('ghlink-kernel-configuration-parameters-idm556').style.visibility = 'visible';" onMouseOut="document.getElementById('ghlink-kernel-configuration-parameters-idm556').style.visibility = 'hidden';"><span id="ghlink-kernel-configuration-parameters-idm556" class="ghlink"><a href="https://github.com/erlang/otp/edit/maint/lib/kernel/doc/src/logger_chapter.xml#L677" title="Found an issue with the documentation? Fix it by clicking here!"><span class="pencil"></span></a></span><a class="title_link" name="kernel-configuration-parameters" href="#kernel-configuration-parameters">Kernel Configuration Parameters</a></span>
+</h4>
+      
+      
+
+    <p>The following Kernel configuration parameters apply to
+      Logger:</p>
+    <dl>
+      <dt><strong><a name="logger_parameter"></a><span class="code">logger = [Config]</span></strong></dt>
+      <dd>
+        <p>Specifies the configuration
+	  for <span class="bold_code bc-19"><a href="../../man/logger.html">Logger</a></span>, except the
+	  primary log level, which is specified
+	  with <span class="bold_code bc-17"><a href="#logger_level"><span class="code">logger_level</span></a></span>,
+	  and the compatibility
+	  with <span class="bold_code bc-18"><a href="../../apps/sasl/error_logging.html">SASL Error Logging</a></span>, which is specified
+	  with <span class="bold_code bc-17"><a href="#logger_sasl_compatible"><span class="code">logger_sasl_compatible</span></a></span>.</p>
+	<p>With this parameter, you can modify or disable the default
+	  handler, add custom handlers and primary logger filters, set
+	  log levels per module, and modify
+	  the <span class="bold_code bc-17"><a href="#proxy">proxy</a></span>
+	  configuration.</p>
+	<p><span class="code">Config</span> is any (zero or more) of the following:</p>
+	<dl>
+          <dt><strong><span class="code">{handler, default, undefined}</span></strong></dt>
+          <dd>
+	    <p>Disables the default handler. This allows another
+              application to add its own default handler.</p>
+	    <p>Only one entry of this type is allowed.</p>
+	  </dd>
+          <dt><strong><span class="code">{handler, HandlerId, Module, HandlerConfig}</span></strong></dt>
+          <dd>
+	    <p>If <span class="code">HandlerId</span> is <span class="code">default</span>, then this entry
+	      modifies the default handler, equivalent to calling</p>
+	    <div class="example"><pre><span class="bold_code bc-15"><a href="../../man/logger.html#remove_handler-1">logger:remove_handler(default)</a></span></pre></div>
+	    <p>followed by</p>
+	    <div class="example"><pre><span class="bold_code bc-15"><a href="../../man/logger.html#add_handler-3">logger:add_handler(default, Module, HandlerConfig)</a></span></pre></div>
+	    <p>For all other values of <span class="code">HandlerId</span>, this entry
+	      adds a new handler, equivalent to calling</p>
+	    <div class="example"><pre><span class="bold_code bc-18"><a href="../../apps/logger/add_handler/3.html">logger:add_handler(HandlerId, Module, HandlerConfig)</a></span></pre></div>
+	    <p>Multiple entries of this type are allowed.</p>
+</dd>
+          <dt><strong><span class="code">{filters, FilterDefault, [Filter]}</span></strong></dt>
+          <dd>
+	    <p>Adds the specified primary filters.</p>
+	    <ul>
+              <li><span class="code">FilterDefault = log | stop</span></li>
+              <li><span class="code">Filter = {FilterId, {FilterFun, FilterConfig}}</span></li>
+	    </ul>
+	    <p>Equivalent to calling</p>
+	    <div class="example"><pre><span class="bold_code bc-15"><a href="../../man/logger.html#add_primary_filter-2">logger:add_primary_filter(FilterId, {FilterFun, FilterConfig})</a></span></pre></div>
+	    <p>for each <span class="code">Filter</span>.</p>
+	    <p><span class="code">FilterDefault</span> specifies the behaviour if all
+	      primary filters return <span class="code">ignore</span>, see
+	      section <span class="bold_code bc-17"><a href="#filters">Filters</a></span>.</p>
+	    <p>Only one entry of this type is allowed.</p>
+	  </dd>
+          <dt><strong><span class="code">{module_level, Level, [Module]}</span></strong></dt>
+          <dd>
+	    <p>Sets module log level for the given modules. Equivalent
+	      to calling</p>
+	    <div class="example"><pre><span class="bold_code bc-15"><a href="../../man/logger.html#set_module_level-2">logger:set_module_level(Module, Level)</a></span></pre></div>
+	    <p>for each <span class="code">Module</span>.</p>
+	    <p>Multiple entries of this type are allowed.</p>
+	  </dd>
+	  <dt><strong><span class="code">{proxy, ProxyConfig}</span></strong></dt>
+	  <dd>
+	    <p>Sets the proxy configuration, equivalent to calling</p>
+	    <div class="example"><pre><span class="bold_code bc-15"><a href="../../man/logger.html#set_proxy_config-1">logger:set_proxy_config(ProxyConfig)</a></span></pre></div>
+	    <p>Only one entry of this type is allowed.</p>
+	  </dd>
+	</dl>
+	<p>See
+	  section <span class="bold_code bc-17"><a href="#config_examples">Configuration Examples</a></span> for examples using the <span class="code">logger</span>
+	  parameter for system configuration.</p>
+      </dd>
+      <dt><strong><a name="logger_level"></a>
+	<span class="code">logger_level = Level</span></strong></dt>
+      <dd>
+	<p>Specifies the primary log level. See
+	  the <span class="bold_code bc-15"><a href="../../man/kernel_app.html#logger_level"><span class="code">kernel(6)</span></a></span>
+	  manual page for more information about this parameter.</p>
+      </dd>
+      <dt><strong><a name="logger_sasl_compatible"></a>
+	<span class="code">logger_sasl_compatible = true | false</span></strong></dt>
+      <dd>
+	<p>Specifies Logger's compatibility
+	  with <span class="bold_code bc-18"><a href="../../apps/sasl/error_logging.html">SASL Error Logging</a></span>. See
+	  the <span class="bold_code bc-15"><a href="../../man/kernel_app.html#logger_sasl_compatible"><span class="code">kernel(6)</span></a></span> manual page for more
+	  information about this parameter.</p>
+      </dd>
+    </dl>
+    
+
+    <h4>
+<a name="config_examples"></a><span onMouseOver="document.getElementById('ghlink-configuration-examples-idm651').style.visibility = 'visible';" onMouseOut="document.getElementById('ghlink-configuration-examples-idm651').style.visibility = 'hidden';"><span id="ghlink-configuration-examples-idm651" class="ghlink"><a href="https://github.com/erlang/otp/edit/maint/lib/kernel/doc/src/logger_chapter.xml#L785" title="Found an issue with the documentation? Fix it by clicking here!"><span class="pencil"></span></a></span><a class="title_link" name="configuration-examples" href="#configuration-examples">Configuration Examples</a></span>
+</h4>
+      
+      
+      <p>The value of the Kernel configuration parameter <span class="code">logger</span>
+	is a list of tuples. It is possible to write the term on the
+	command line when starting an erlang node, but as the term
+	grows, a better approach is to use the system configuration
+	file. See
+	the <span class="bold_code bc-19"><a href="../../man/config.html"><span class="code">config(4)</span></a></span> manual
+	page for more information about this file.</p>
+      <p>Each of the following examples shows a simple system
+	configuration file that configures Logger according to the
+	description.</p>
+      <p>Modify the default handler to print to a file instead of
+	<span class="code">standard_io</span>:</p>
+      <div class="example"><pre>[{kernel,
+  [{logger,
+    [{handler, default, logger_std_h,  % {handler, HandlerId, Module,
+      #{config =&gt; #{file =&gt; "log/erlang.log"}}}  % Config}
+    ]}]}].</pre></div>
+      <p>Modify the default handler to print each log event as a
+	single line:</p>
+      <div class="example"><pre>[{kernel,
+  [{logger,
+    [{handler, default, logger_std_h,
+      #{formatter =&gt; {logger_formatter, #{single_line =&gt; true}}}}
+    ]}]}].</pre></div>
+      <p>Modify the default handler to print the pid of the logging
+	process for each log event:</p>
+      <div class="example"><pre>[{kernel,
+  [{logger,
+    [{handler, default, logger_std_h,
+      #{formatter =&gt; {logger_formatter,
+                        #{template =&gt; [time," ",pid," ",msg,"\n"]}}}}
+    ]}]}].</pre></div>
+      <p>Modify the default handler to only print errors and more
+	severe log events to "log/erlang.log", and add another handler
+	to print all log events to "log/debug.log".</p>
+      <div class="example"><pre>[{kernel,
+  [{logger,
+    [{handler, default, logger_std_h,
+      #{level =&gt; error,
+        config =&gt; #{file =&gt; "log/erlang.log"}}},
+     {handler, info, logger_std_h,
+      #{level =&gt; debug,
+        config =&gt; #{file =&gt; "log/debug.log"}}}
+    ]}]}].</pre></div>
+    
+
+  
+
+  <h3>
+<a name="compatibility"></a><span onMouseOver="document.getElementById('ghlink-backwards-compatibility-with-error_logger-idm668').style.visibility = 'visible';" onMouseOut="document.getElementById('ghlink-backwards-compatibility-with-error_logger-idm668').style.visibility = 'hidden';"><span id="ghlink-backwards-compatibility-with-error_logger-idm668" class="ghlink"><a href="https://github.com/erlang/otp/edit/maint/lib/kernel/doc/src/logger_chapter.xml#L844" title="Found an issue with the documentation? Fix it by clicking here!"><span class="pencil"></span></a></span><a class="title_link" name="backwards-compatibility-with-error_logger" href="#backwards-compatibility-with-error_logger">2.7 
+          Backwards Compatibility with error_logger</a></span>
+</h3>
+    
+    
+    <p>Logger provides backwards compatibility with
+      <span class="code">error_logger</span> in the following ways:</p>
+
+    <dl>
+      <dt><strong>API for Logging</strong></dt>
+      <dd>
+	<p>The <span class="code">error_logger</span> API still exists, but should only
+	  be used by legacy code. It will be removed in a later
+	  release.</p>
+	<p>Calls
+	  to <span class="bold_code bc-15"><a href="../../man/error_logger.html#error_report-1"><span class="code">error_logger:error_report/1,2</span></a></span>,
+	  <span class="bold_code bc-15"><a href="../../man/error_logger.html#error_msg-1"><span class="code">error_logger:error_msg/1,2</span></a></span>, and
+	  corresponding functions for warning and info messages, are
+	  all forwarded to Logger as calls
+	  to <span class="bold_code bc-15"><a href="../../man/logger.html#log-3"><span class="code">logger:log(Level,Report,Metadata)</span></a></span>.</p>
+	<p><span class="code">Level = error | warning | info</span> and is taken
+	  from the function name. <span class="code">Report</span> contains the actual
+	  log message, and <span class="code">Metadata</span> contains additional
+	  information which can be used for creating backwards
+	  compatible events for legacy <span class="code">error_logger</span> event
+	  handlers, see
+	  section <span class="bold_code bc-17"><a href="#legacy_event_handlers">Legacy Event Handlers</a></span>.</p>
+      </dd>
+      <dt><strong>Output Format</strong></dt>
+      <dd>
+	<p>To get log events on the same format as produced
+	  by <span class="code">error_logger_tty_h</span> and <span class="code">error_logger_file_h</span>,
+	  use the default formatter, <span class="code">logger_formatter</span>, with
+	  configuration parameter <span class="code">legacy_header</span> set
+	  to <span class="code">true</span>. This is the default configuration of
+	  the <span class="code">default</span> handler started by Kernel.</p>
+      </dd>
+      <dt><strong>Default Format of Log Events from OTP</strong></dt>
+      <dd>
+	<p>By default, all log events originating from within OTP,
+	  except the former so called "SASL reports", look the same as
+	  before.</p>
+      </dd>
+      <dt><strong><a name="sasl_reports"></a>SASL Reports</strong></dt>
+      <dd>
+	<p>By SASL reports we mean supervisor reports, crash reports
+	  and progress reports.</p>
+	<p>Prior to Erlang/OTP 21.0, these reports were only logged
+	  when the SASL application was running, and they were printed
+	  trough SASL's own event handlers <span class="code">sasl_report_tty_h</span>
+	  and <span class="code">sasl_report_file_h</span>.</p>
+	<p>The destination of these log events was configured by
+	  <span class="bold_code bc-13"><a href="../../man/sasl_app.html#deprecated_error_logger_config">SASL configuration parameters</a></span>.</p>
+	<p>Due to the specific event handlers, the output format
+	  slightly differed from other log events.</p>
+	<p>As of Erlang/OTP 21.0, the concept of SASL reports is
+	  removed, meaning that the default behaviour is as
+	  follows:</p>
+	<ul>
+	  <li>Supervisor reports, crash reports, and progress reports
+	    are no longer connected to the SASL application.</li>
+	  <li>Supervisor reports and crash reports are issued
+	    as <span class="code">error</span> level log events, and are logged through
+	    the default handler started by Kernel.</li>
+	  <li>Progress reports are issued as <span class="code">info</span> level log
+	    events, and since the default primary log level
+	    is <span class="code">notice</span>, these are not logged by default. To
+	    enable printing of progress reports, set
+	    the <span class="bold_code bc-17"><a href="#primary_level">primary log level</a></span> to <span class="code">info</span>.</li>
+	  <li>The output format is the same for all log
+	    events.</li>
+	</ul>
+	<p>If the old behaviour is preferred, the Kernel configuration
+	  parameter <span class="bold_code bc-15"><a href="../../man/kernel_app.html#logger_sasl_compatible"><span class="code">logger_sasl_compatible</span></a></span> can be set
+	  to <span class="code">true</span>. The
+	  <span class="bold_code bc-13"><a href="../../man/sasl_app.html#deprecated_error_logger_config">SASL configuration parameters</a></span> can then be used as
+	  before, and the SASL reports will only be printed if the
+	  SASL application is running, through a second log handler
+	  named <span class="code">sasl</span>.</p>
+	<p>All SASL reports have a metadata field <span class="code">domain</span> which
+	  is set to <span class="code">[otp,sasl]</span>. This field can be
+	  used by filters to stop or allow the log events.</p>
+	<p>See section <span class="bold_code bc-18"><a href="../../apps/sasl/error_logging.html">SASL User's Guide</a></span> for more information about the old SASL
+	  error logging functionality.</p>
+      </dd>
+      <dt><strong><a name="legacy_event_handlers"></a>Legacy Event Handlers</strong></dt>
+      <dd>
+	<p>To use event handlers written for <span class="code">error_logger</span>, just
+	  add your event handler with</p>
+	<div class="example"><pre>error_logger:add_report_handler/1,2.</pre></div>
+	<p>This automatically starts the error logger event manager,
+	  and adds <span class="code">error_logger</span> as a handler to Logger, with
+	  the following configuration:</p>
+<div class="example"><pre>#{level =&gt; info,
+  filter_default =&gt; log,
+  filters =&gt; []}.</pre></div>
+	<div class="note">
+<div class="label">Note</div>
+<div class="content"><p>
+	  <p>This handler ignores events that do not originate from
+	    the <span class="code">error_logger</span> API, or from within OTP. This
+	    means that if your code uses the Logger API for logging,
+	    then your log events will be discarded by this
+	    handler.</p>
+	  <p>The handler is not overload protected.</p>
+	</p></div>
+</div>
+      </dd>
+    </dl>
+  
+
+
+  <h3><span onMouseOver="document.getElementById('ghlink-error-handling-idm748').style.visibility = 'visible';" onMouseOut="document.getElementById('ghlink-error-handling-idm748').style.visibility = 'hidden';"><span id="ghlink-error-handling-idm748" class="ghlink"><a href="https://github.com/erlang/otp/edit/maint/lib/kernel/doc/src/logger_chapter.xml#L964" title="Found an issue with the documentation? Fix it by clicking here!"><span class="pencil"></span></a></span><a class="title_link" name="error-handling" href="#error-handling">2.8 
+          Error Handling</a></span></h3>
+    
+    <p>Logger does, to a certain extent, check its input data before
+      forwarding a log event to filters and handlers. It does,
+      however, not evaluate report callbacks, or check the validity of
+      format strings and arguments. This means that all filters and
+      handlers must be careful when formatting the data of a log
+      event, making sure that it does not crash due to bad input data
+      or faulty callbacks.</p>
+    <p>If a filter or handler still crashes, Logger will remove the
+      filter or handler in question from the configuration, and print
+      a short error message to the terminal. A debug event containing
+      the crash reason and other details is also issued.</p>
+    <p>See section <span class="bold_code bc-17"><a href="#log_message">Log Message</a></span> for more information about report callbacks
+      and valid forms of log messages.</p>
+  
+
+  <h3><span onMouseOver="document.getElementById('ghlink-example--add-a-handler-to-log-info-events-to-file-idm754').style.visibility = 'visible';" onMouseOut="document.getElementById('ghlink-example--add-a-handler-to-log-info-events-to-file-idm754').style.visibility = 'hidden';"><span id="ghlink-example--add-a-handler-to-log-info-events-to-file-idm754" class="ghlink"><a href="https://github.com/erlang/otp/edit/maint/lib/kernel/doc/src/logger_chapter.xml#L982" title="Found an issue with the documentation? Fix it by clicking here!"><span class="pencil"></span></a></span><a class="title_link" name="example--add-a-handler-to-log-info-events-to-file" href="#example--add-a-handler-to-log-info-events-to-file">2.9 
+          Example: Add a handler to log info events to file</a></span></h3>
+    
+    <p>When starting an Erlang node, the default behaviour is that all
+      log events on level <span class="code">notice</span> or more severe, are logged to
+      the terminal via the default handler. To also log info events,
+      you can either change the primary log level to <span class="code">info</span>:</p>
+    <div class="example"><pre>
+1&gt; <span class="bold_code bc-12">logger:set_primary_config(level, info).</span>
+ok</pre></div>
+    <p>or set the level for one or a few modules only:</p>
+    <div class="example"><pre>
+2&gt; <span class="bold_code bc-12">logger:set_module_level(mymodule, info).</span>
+ok</pre></div>
+    <p>This allows info events to pass through to the default handler,
+      and be printed to the terminal as well. If there are many info
+      events, it can be useful to print these to a file instead.</p>
+    <p>First, set the log level of the default handler
+      to <span class="code">notice</span>, preventing it from printing info events to the
+      terminal:</p>
+    <div class="example"><pre>
+3&gt; <span class="bold_code bc-12">logger:set_handler_config(default, level, notice).</span>
+ok</pre></div>
+    <p>Then, add a new handler which prints to file. You can use the
+      handler
+      module <span class="bold_code bc-19"><a href="../../man/logger_std_h.html"><span class="code">logger_std_h</span></a></span>,
+      and configure it to log to file:</p>
+    <div class="example"><pre>
+4&gt; <span class="bold_code bc-12">Config = #{config =&gt; #{file =&gt; "./info.log"}, level =&gt; info}.</span>
+#{config =&gt; #{file =&gt; "./info.log"},level =&gt; info}
+5&gt; <span class="bold_code bc-12">logger:add_handler(myhandler, logger_std_h, Config).</span>
+ok</pre></div>
+    <p>Since <span class="code">filter_default</span> defaults to <span class="code">log</span>, this
+      handler now receives all log events. If you want info events
+      only in the file, you must add a filter to stop all non-info
+      events. The built-in
+      filter <span class="bold_code bc-15"><a href="../../man/logger_filters.html#level-2"><span class="code">logger_filters:level/2</span></a></span>
+      can do this:</p>
+    <div class="example"><pre>
+6&gt; <span class="bold_code bc-12">logger:add_handler_filter(myhandler, stop_non_info,
+                             {fun logger_filters:level/2, {stop, neq, info}}).</span>
+ok</pre></div>
+    <p>See section <span class="bold_code bc-17"><a href="#filters">Filters</a></span> for
+      more information about the filters and the <span class="code">filter_default</span>
+      configuration parameter.</p>
+
+  
+
+  <h3><span onMouseOver="document.getElementById('ghlink-example--implement-a-handler-idm785').style.visibility = 'visible';" onMouseOut="document.getElementById('ghlink-example--implement-a-handler-idm785').style.visibility = 'hidden';"><span id="ghlink-example--implement-a-handler-idm785" class="ghlink"><a href="https://github.com/erlang/otp/edit/maint/lib/kernel/doc/src/logger_chapter.xml#L1030" title="Found an issue with the documentation? Fix it by clicking here!"><span class="pencil"></span></a></span><a class="title_link" name="example--implement-a-handler" href="#example--implement-a-handler">2.10 
+          Example: Implement a handler</a></span></h3>
+    
+    <p>Section <span class="bold_code bc-15"><a href="../../man/logger.html#handler_callback_functions">Handler Callback Functions</a></span> in the logger(3) manual page
+	describes the callback functions that can be implemented for a
+	Logger handler.</p>
+    <p>A handler callback module must export:</p>
+    <ul>
+      <li><span class="code">log(Log, Config)</span></li>
+    </ul>
+    <p>It can optionally also export some, or all, of the following:</p>
+    <ul>
+      <li><span class="code">adding_handler(Config)</span></li>
+      <li><span class="code">removing_handler(Config)</span></li>
+      <li><span class="code">changing_config(SetOrUpdate, OldConfig, NewConfig)</span></li>
+      <li><span class="code">filter_config(Config)</span></li>
+    </ul>
+    <p>When a handler is added, by for example a call
+      to <span class="bold_code bc-15"><a href="../../man/logger.html#add_handler-3"><span class="code">logger:add_handler(Id, HModule, Config)</span></a></span>,
+      Logger first calls <span class="code">HModule:adding_handler(Config)</span>. If
+      this function returns <span class="code">{ok,Config1}</span>, Logger
+      writes <span class="code">Config1</span> to the configuration database, and
+      the <span class="code">logger:add_handler/3</span> call returns. After this, the
+      handler is installed and must be ready to receive log events as
+      calls to <span class="code">HModule:log/2</span>.</p>
+    <p>A handler can be removed by calling
+      <span class="bold_code bc-15"><a href="../../man/logger.html#remove_handler-1"><span class="code">logger:remove_handler(Id)</span></a></span>. Logger calls
+      <span class="code">HModule:removing_handler(Config)</span>, and removes the
+      handler's configuration from the configuration database.</p>
+    <p>When <span class="bold_code bc-15"><a href="../../man/logger.html#set_handler_config-2"><span class="code">logger:set_handler_config/2,3</span></a></span>
+      or <span class="bold_code bc-15"><a href="../../man/logger.html#update_handler_config-2"><span class="code">logger:update_handler_config/2,3</span></a></span> is called,
+      Logger
+      calls <span class="code">HModule:changing_config(SetOrUpdate, OldConfig, NewConfig)</span>. If
+      this function returns <span class="code">{ok,NewConfig1}</span>, Logger
+      writes <span class="code">NewConfig1</span> to the configuration database.</p>
+    <p>When <span class="bold_code bc-15"><a href="../../man/logger.html#get_config-0"><span class="code">logger:get_config/0</span></a></span> or
+      <span class="bold_code bc-15"><a href="../../man/logger.html#get_handler_config-0"><span class="code">logger:get_handler_config/0,1</span></a></span> is called,
+      Logger calls <span class="code">HModule:filter_config(Config)</span>. This function
+      must return the handler configuration where internal data is
+      removed.</p>
+
+    <p>A simple handler that prints to the terminal can be implemented
+      as follows:</p>
+    <div class="example"><pre>-module(myhandler1).
+-export([log/2]).
+
+log(LogEvent, #{formatter := {FModule, FConfig}}) -&gt;
+    io:put_chars(FModule:format(LogEvent, FConfig)).</pre></div>
+
+    <p>Notice that the above handler does not have any overload
+      protection, and all log events are printed directly from the
+      client process.</p>
+    <p>For information and examples of overload protection, please
+      refer to
+      section <span class="bold_code bc-17"><a href="#overload_protection">Protecting the Handler from Overload</a></span>, and the implementation
+      of <span class="bold_code bc-19"><a href="../../man/logger_std_h.html"><span class="code">logger_std_h</span></a></span>
+      and <span class="bold_code bc-19"><a href="../../man/logger_disk_log_h.html"><span class="code">logger_disk_log_h</span></a></span>.</p>
+    <p>The following is a simpler example of a handler which logs to a
+      file through one single process:</p>
+    <div class="example"><pre>-module(myhandler2).
+-export([adding_handler/1, removing_handler/1, log/2]).
+-export([init/1, handle_call/3, handle_cast/2, terminate/2]).
+
+adding_handler(Config) -&gt;
+    MyConfig = maps:get(config,Config,#{file =&gt; "myhandler2.log"}),
+    {ok, Pid} = gen_server:start(?MODULE, MyConfig, []),
+    {ok, Config#{config =&gt; MyConfig#{pid =&gt; Pid}}}.
+
+removing_handler(#{config := #{pid := Pid}}) -&gt;
+    gen_server:stop(Pid).
+
+log(LogEvent,#{config := #{pid := Pid}} = Config) -&gt;
+    gen_server:cast(Pid, {log, LogEvent, Config}).
+
+init(#{file := File}) -&gt;
+    {ok, Fd} = file:open(File, [append, {encoding, utf8}]),
+    {ok, #{file =&gt; File, fd =&gt; Fd}}.
+
+handle_call(_, _, State) -&gt;
+    {reply, {error, bad_request}, State}.
+
+handle_cast({log, LogEvent, Config}, #{fd := Fd} = State) -&gt;
+    do_log(Fd, LogEvent, Config),
+    {noreply, State}.
+
+terminate(_Reason, #{fd := Fd}) -&gt;
+    _ = file:close(Fd),
+    ok.
+
+do_log(Fd, LogEvent, #{formatter := {FModule, FConfig}}) -&gt;
+    String = FModule:format(LogEvent, FConfig),
+    io:put_chars(Fd, String).</pre></div>
+  
+
+  <h3>
+<a name="overload_protection"></a><span onMouseOver="document.getElementById('ghlink-protecting-the-handler-from-overload-idm840').style.visibility = 'visible';" onMouseOut="document.getElementById('ghlink-protecting-the-handler-from-overload-idm840').style.visibility = 'hidden';"><span id="ghlink-protecting-the-handler-from-overload-idm840" class="ghlink"><a href="https://github.com/erlang/otp/edit/maint/lib/kernel/doc/src/logger_chapter.xml#L1136" title="Found an issue with the documentation? Fix it by clicking here!"><span class="pencil"></span></a></span><a class="title_link" name="protecting-the-handler-from-overload" href="#protecting-the-handler-from-overload">2.11 
+          Protecting the Handler from Overload</a></span>
+</h3>
+    
+    
+    <p>The default handlers, <span class="bold_code bc-19"><a href="../../man/logger_std_h.html"><span class="code">logger_std_h</span></a></span> and <span class="bold_code bc-19"><a href="../../man/logger_disk_log_h.html"><span class="code">logger_disk_log_h</span></a></span>, feature an overload protection
+    mechanism, which makes it possible for the handlers to survive,
+    and stay responsive, during periods of high load (when huge
+    numbers of incoming log requests must be handled).
+    The mechanism works as follows:</p>
+    
+    <h4><span onMouseOver="document.getElementById('ghlink-message-queue-length-idm848').style.visibility = 'visible';" onMouseOut="document.getElementById('ghlink-message-queue-length-idm848').style.visibility = 'hidden';"><span id="ghlink-message-queue-length-idm848" class="ghlink"><a href="https://github.com/erlang/otp/edit/maint/lib/kernel/doc/src/logger_chapter.xml#L1147" title="Found an issue with the documentation? Fix it by clicking here!"><span class="pencil"></span></a></span><a class="title_link" name="message-queue-length" href="#message-queue-length">Message Queue Length</a></span></h4>
+      
+      <p>The handler process keeps track of the length of its message
+      queue and takes some form of action when the current length exceeds a
+      configurable threshold. The purpose is to keep the handler in, or to
+      as quickly as possible get the handler into, a state where it can
+      keep up with the pace of incoming log events. The memory use of the
+      handler must never grow larger and larger, since that will eventually
+      cause the handler to crash. These three thresholds, with associated
+      actions, exist:</p>
+      
+      <dl>
+	<dt><strong><span class="code">sync_mode_qlen</span></strong></dt>
+	<dd>
+	  <p>As long as the length of the message queue is lower than this
+	  value, all log events are handled asynchronously. This means that
+	  the client process sending the log event, by calling a log function
+	  in the <span class="bold_code bc-15"><a href="logger_chapter.html#logger_api">Logger API</a></span>,
+	  does not wait for a response from the handler but continues
+	  executing immediately after the event is sent. It is not affected
+	  by the time it takes the handler to print the event to the log
+	  device. If the message queue grows larger than this value,
+	  the handler starts handling log events synchronously instead,
+	  meaning that the client process sending the event must wait for a
+	  response. When the handler reduces the message queue to a
+	  level below the <span class="code">sync_mode_qlen</span> threshold, asynchronous
+	  operation is resumed. The switch from asynchronous to synchronous
+	  mode can slow down the logging tempo of one, or a few, busy senders,
+	  but cannot protect the handler sufficiently in a situation of many
+	  busy concurrent senders.</p>
+	  <p>Defaults to <span class="code">10</span> messages.</p>
+	</dd>
+	<dt><strong><span class="code">drop_mode_qlen</span></strong></dt>
+	<dd>
+	  <p>When the message queue grows larger than this threshold, the
+	  handler switches to a mode in which it drops all new events that
+	  senders want to log. Dropping an event in this mode means that the
+	  call to the log function never results in a message being sent to
+	  the handler, but the function returns without taking any action.
+	  The handler keeps logging the events that are already in its message
+	  queue, and when the length of the message queue is reduced to a level
+	  below the threshold, synchronous or asynchronous mode is resumed.
+	  Notice that when the handler activates or deactivates drop mode,
+	  information about it is printed in the log.</p>
+	  <p>Defaults to <span class="code">200</span> messages.</p>
+	</dd>
+	<dt><strong><span class="code">flush_qlen</span></strong></dt>
+	<dd>
+	  <p>If the length of the message queue grows larger than this threshold,
+	  a flush (delete) operation takes place. To flush events, the handler
+	  discards the messages in the message queue by receiving them in a
+	  loop without logging. Client processes waiting for a response from a
+	  synchronous log request receive a reply from the handler indicating
+	  that the request is dropped. The handler process increases its
+	  priority during the flush loop to make sure that no new events
+	  are received during the operation. Notice that after the flush operation
+	  is performed, the handler prints information in the log about how many
+	  events have been deleted.</p>
+	  <p>Defaults to <span class="code">1000</span> messages.</p>
+	</dd>
+      </dl>
+
+      <p>For the overload protection algorithm to work properly, it is
+      required that:</p>
+
+      <p><span class="code">sync_mode_qlen =&lt; drop_mode_qlen =&lt; flush_qlen</span></p>
+
+      <p>and that:</p>
+
+      <p><span class="code">drop_mode_qlen &gt; 1</span></p>
+
+      <p>To disable certain modes, do the following:</p>
+      <ul>
+	<li>If <span class="code">sync_mode_qlen</span> is set to <span class="code">0</span>, all log events are handled
+	synchronously. That is, asynchronous logging is disabled.</li>
+	<li>If <span class="code">sync_mode_qlen</span> is set to the same value as
+	<span class="code">drop_mode_qlen</span>, synchronous mode is disabled. That is, the handler
+	always runs in asynchronous mode, unless dropping or flushing is invoked.</li>
+	<li>If <span class="code">drop_mode_qlen</span> is set to the same value as <span class="code">flush_qlen</span>,
+	drop mode is disabled and can never occur.</li>
+      </ul>
+
+      <p>During high load scenarios, the length of the handler message queue
+      rarely grows in a linear and predictable way. Instead, whenever the
+      handler process is scheduled in, it can have an almost arbitrary number
+      of messages waiting in the message queue. It is for this reason that the overload
+      protection mechanism is focused on acting quickly, and quite drastically,
+      such as immediately dropping or flushing messages, when a large queue length
+      is detected.</p>
+
+      <p>The values of the previously listed thresholds can be specified by the user.
+      This way, a handler can be configured to, for example, not drop or flush
+      messages unless the message queue length of the handler process grows extremely
+      large. Notice that large amounts of memory can be required for the node under such
+      circumstances. Another example of user configuration is when, for performance
+      reasons, the client processes must never be blocked by synchronous log requests.
+      It is possible, perhaps, that dropping or flushing events is still acceptable, since
+      it does not affect the performance of the client processes sending the log events.</p>
+
+      <p>A configuration example:</p>
+      <div class="example"><pre>logger:add_handler(my_standard_h, logger_std_h,
+                   #{config =&gt; #{file =&gt; "./system_info.log",
+                                 sync_mode_qlen =&gt; 100,
+                                 drop_mode_qlen =&gt; 1000,
+                                 flush_qlen =&gt; 2000}}).</pre></div>
+    
+
+    <h4><span onMouseOver="document.getElementById('ghlink-controlling-bursts-of-log-requests-idm893').style.visibility = 'visible';" onMouseOut="document.getElementById('ghlink-controlling-bursts-of-log-requests-idm893').style.visibility = 'hidden';"><span id="ghlink-controlling-bursts-of-log-requests-idm893" class="ghlink"><a href="https://github.com/erlang/otp/edit/maint/lib/kernel/doc/src/logger_chapter.xml#L1256" title="Found an issue with the documentation? Fix it by clicking here!"><span class="pencil"></span></a></span><a class="title_link" name="controlling-bursts-of-log-requests" href="#controlling-bursts-of-log-requests">Controlling Bursts of Log Requests</a></span></h4>
+      
+      <p>Large bursts of log events - many events received by the handler
+      under a short period of time - can potentially cause problems, such as:</p>
+      <ul>
+	<li>Log files grow very large, very quickly.</li>
+	<li>Circular logs wrap too quickly so that important data is overwritten.</li>
+	<li>Write buffers grow large, which slows down file sync operations.</li>
+      </ul>
+
+      <p>For this reason, both built-in handlers offer the possibility to specify the
+      maximum number of events to be handled within a certain time frame.
+      With this burst control feature enabled, the handler can avoid choking the log with
+      massive amounts of printouts. The configuration parameters are:</p>
+      <dl>
+	<dt><strong><span class="code">burst_limit_enable</span></strong></dt>
+	<dd>
+	  <p>Value <span class="code">true</span> enables burst control and <span class="code">false</span> disables it.</p>
+	  <p>Defaults to <span class="code">true</span>.</p>
+	</dd>
+	<dt><strong><span class="code">burst_limit_max_count</span></strong></dt>
+	<dd>
+	  <p>This is the maximum number of events to handle within a
+	  <span class="code">burst_limit_window_time</span> time frame. After the limit is
+	  reached, successive events are dropped until the end of the time frame.</p>
+	  <p>Defaults to <span class="code">500</span> events.</p>
+	</dd>
+	<dt><strong><span class="code">burst_limit_window_time</span></strong></dt>
+	<dd>
+	  <p>See the previous description of <span class="code">burst_limit_max_count</span>.</p>
+	  <p>Defaults to <span class="code">1000</span> milliseconds.</p>
+	</dd>
+      </dl>
+
+      <p>A configuration example:</p>
+      <div class="example"><pre>logger:add_handler(my_disk_log_h, logger_disk_log_h,
+                   #{config =&gt; #{file =&gt; "./my_disk_log",
+                                 burst_limit_enable =&gt; true,
+                                 burst_limit_max_count =&gt; 20,
+                                 burst_limit_window_time =&gt; 500}}).</pre></div>
+    
+
+    <h4><span onMouseOver="document.getElementById('ghlink-terminating-an-overloaded-handler-idm926').style.visibility = 'visible';" onMouseOut="document.getElementById('ghlink-terminating-an-overloaded-handler-idm926').style.visibility = 'hidden';"><span id="ghlink-terminating-an-overloaded-handler-idm926" class="ghlink"><a href="https://github.com/erlang/otp/edit/maint/lib/kernel/doc/src/logger_chapter.xml#L1300" title="Found an issue with the documentation? Fix it by clicking here!"><span class="pencil"></span></a></span><a class="title_link" name="terminating-an-overloaded-handler" href="#terminating-an-overloaded-handler">Terminating an Overloaded Handler</a></span></h4>
+      
+      <p>It is possible that a handler, even if it can successfully manage peaks
+      of high load without crashing, can build up a large message queue, or use a
+      large amount of memory. The overload protection mechanism includes an
+      automatic termination and restart feature for the purpose of guaranteeing
+      that a handler does not grow out of bounds. The feature is configured
+      with the following parameters:</p>
+      <dl>
+	<dt><strong><span class="code">overload_kill_enable</span></strong></dt>
+	<dd>
+	  <p>Value <span class="code">true</span> enables the feature and <span class="code">false</span> disables it.</p>
+	  <p>Defaults to <span class="code">false</span>.</p>
+	</dd>
+	<dt><strong><span class="code">overload_kill_qlen</span></strong></dt>
+	<dd>
+	  <p>This is the maximum allowed queue length. If the message queue grows
+	  larger than this, the handler process is terminated.</p>
+	  <p>Defaults to <span class="code">20000</span> messages.</p>
+	</dd>
+	<dt><strong><span class="code">overload_kill_mem_size</span></strong></dt>
+	<dd>
+	  <p>This is the maximum memory size that the handler process is allowed to use.
+	  If the handler grows larger than this, the process is terminated.</p>
+	  <p>Defaults to <span class="code">3000000</span> bytes.</p>
+	</dd>
+	<dt><strong><span class="code">overload_kill_restart_after</span></strong></dt>
+	<dd>
+	  <p>If the handler is terminated, it restarts automatically after a
+	  delay specified in milliseconds. The value <span class="code">infinity</span> prevents
+	  restarts.</p>
+	  <p>Defaults to <span class="code">5000</span> milliseconds.</p>
+	</dd>
+      </dl>
+      <p>If the handler process is terminated because of overload, it prints
+      information about it in the log. It also prints information about when a
+      restart has taken place, and the handler is back in action.</p>
+      <div class="note">
+<div class="label">Note</div>
+<div class="content"><p>
+	<p>The sizes of the log events affect the memory needs of the handler.
+	For information about how to limit the size of log events, see the
+	<span class="bold_code bc-19"><a href="../../man/logger_formatter.html"><span class="code">logger_formatter(3)</span></a></span>
+	manual page.</p>
+      </p></div>
+</div>
+    
+  
+
+  <h3>
+<a name="proxy"></a><span onMouseOver="document.getElementById('ghlink-logger-proxy-idm962').style.visibility = 'visible';" onMouseOut="document.getElementById('ghlink-logger-proxy-idm962').style.visibility = 'hidden';"><span id="ghlink-logger-proxy-idm962" class="ghlink"><a href="https://github.com/erlang/otp/edit/maint/lib/kernel/doc/src/logger_chapter.xml#L1346" title="Found an issue with the documentation? Fix it by clicking here!"><span class="pencil"></span></a></span><a class="title_link" name="logger-proxy" href="#logger-proxy">2.12 
+          Logger Proxy</a></span>
+</h3>
+    
+    
+    <p>The Logger proxy is an Erlang process which is part of the
+      Kernel application's supervision tree. During startup, the proxy
+      process registers itself as the <span class="code">system_logger</span>, meaning
+      that log events produced by the emulator are sent to this
+      process.</p>
+    <p>When a log event is issued on a process which has its group
+      leader on a remote node, Logger automatically forwards the log
+      event to the group leader's node. To achieve this, it first
+      sends the log event as an Erlang message from the original
+      client process to the proxy on the local node, and the proxy in
+      turn forwards the event to the proxy on the remote node.</p>
+    <p>When receiving a log event, either from the emulator or from a
+      remote node, the proxy calls the Logger API to log the event.</p>
+    <p>The proxy process is overload protected in the same way as
+      described in
+      section <span class="bold_code bc-17"><a href="#overload_protection">Protecting the Handler from Overload</a></span>, but with the following default
+      values:</p>
+    <div class="example"><pre>    #{sync_mode_qlen =&gt; 500,
+      drop_mode_qlen =&gt; 1000,
+      flush_qlen =&gt; 5000,
+      burst_limit_enable =&gt; false,
+      overload_kill_enable =&gt; false}</pre></div>
+    <p>For log events from the emulator, synchronous message passing
+      mode is not applicable, since all messages are passed
+      asynchronously by the emulator. Drop mode is achieved by setting
+      the <span class="code">system_logger</span> to <span class="code">undefined</span>, forcing the
+      emulator to drop events until it is set back to the proxy pid
+      again.</p>
+    <p>The proxy uses <span class="bold_code bc-13"><a href="../../man/erlang.html#send_nosuspend-2"><span class="code">erlang:send_nosuspend/2</span></a></span> when sending log
+      events to a remote node. If the message could not be sent
+      without suspending the sender, it is dropped. This is to avoid
+      blocking the proxy process.</p>
+  
+
+  <h3><span onMouseOver="document.getElementById('ghlink-see-also-idm978').style.visibility = 'visible';" onMouseOut="document.getElementById('ghlink-see-also-idm978').style.visibility = 'hidden';"><span id="ghlink-see-also-idm978" class="ghlink"><a href="https://github.com/erlang/otp/edit/maint/lib/kernel/doc/src/logger_chapter.xml#L1386" title="Found an issue with the documentation? Fix it by clicking here!"><span class="pencil"></span></a></span><a class="title_link" name="see-also" href="#see-also">2.13 
+          See Also</a></span></h3>
+    
+    <p>
+      <span class="bold_code bc-19"><a href="../../man/disk_log.html"><span class="code">disk_log(3)</span></a></span>,
+      <span class="bold_code bc-18"><a href="../../man/erlang.html"><span class="code">erlang(3)</span></a></span>,
+      <span class="bold_code bc-19"><a href="../../man/error_logger.html"><span class="code">error_logger(3)</span></a></span>,
+      <span class="bold_code bc-19"><a href="../../man/logger.html"><span class="code">logger(3)</span></a></span>,
+      <span class="bold_code bc-19"><a href="../../man/logger_disk_log_h.html"><span class="code">logger_disk_log_h(3)</span></a></span>,
+      <span class="bold_code bc-19"><a href="../../man/logger_filters.html"><span class="code">logger_filters(3)</span></a></span>,
+      <span class="bold_code bc-19"><a href="../../man/logger_formatter.html"><span class="code">logger_formatter(3)</span></a></span>,
+      <span class="bold_code bc-19"><a href="../../man/logger_std_h.html"><span class="code">logger_std_h(3)</span></a></span>,
+        <span class="bold_code bc-18"><a href="../../man/sasl_app.html"><span class="code">sasl(6)</span></a></span></p>
+  
+</div>
+<div class="footer">
+<hr>
+<p>Copyright © 1997-2021 Ericsson AB. All Rights Reserved.</p>
+</div>
+</div>
+</div>
+<script type="text/javascript">window.__otpTopDocDir = '../../js/';</script><script type="text/javascript" src="../../js/highlight.js"></script>
+</body>
+</html>

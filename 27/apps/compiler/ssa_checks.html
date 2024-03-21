@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="compiler v8.5">
+
+
+    <title>BEAM SSA Checks — compiler v8.5</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-920775EC.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="compiler" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+compiler
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v8.5
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of compiler</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/lib/compiler/internal_doc/ssa_checks.md#L1" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+
+  <span>BEAM SSA Checks</span>
+</h1>
+
+<p>While developing optimizations operating on the BEAM SSA it is often
+hard to check that various transforms have the intended effect. For
+example, unless a transform produces crashing code, it is hard to
+detect that the transform is broken. Likewise missing an optimization
+opportunity is also hard to detect.</p><p>To simplify the creation of tests on BEAM SSA the compiler has an
+internal mode in which it parses and checks assertions on the
+structure and content of the produced BEAM SSA code. This is a short
+introduction to the syntax and semantics of the SSA checker
+functionality.</p><h2 id="syntax" class="section-heading">
+  <a href="#syntax" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Syntax</span>
+</h2>
+<p>SSA checks are embedded in the source code as comments starting with
+with one of <code class="inline">%ssa%</code>, <code class="inline">%%ssa%</code> or <code class="inline">%%%ssa%</code>. This is a short
+introduction the syntax, for the full syntax please refer to the
+<code class="inline">ssa_check_when_clause</code> production in <code class="inline">erl_parse.yrl</code>.</p><p>SSA checks can be placed inside any Erlang function, for example:</p><pre><code class="makeup erlang" translate="no"><span class="nf">t0</span><span class="p" data-group-id="0060711901-1">(</span><span class="p" data-group-id="0060711901-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="c1">%ssa% () when post_ssa_opt -&gt;</span><span class="w">
+</span><span class="c1">%ssa%   ret(#{}).</span><span class="w">
+  </span><span class="p" data-group-id="0060711901-2">#{</span><span class="p" data-group-id="0060711901-2">}</span><span class="p">.</span></code></pre><p>will check that <code class="inline">t0/0</code> returns the literal <code class="inline">#{}</code>. If we want to check
+that a function returns its first formal parameter, we can write:</p><pre><code class="makeup erlang" translate="no"><span class="nf">t1</span><span class="p" data-group-id="1181068458-1">(</span><span class="n">A</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">B</span><span class="p" data-group-id="1181068458-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="c1">%ssa% (X, _) when post_ssa_opt -&gt;</span><span class="w">
+</span><span class="c1">%ssa%   ret(X).</span><span class="w">
+  </span><span class="n">A</span><span class="p">.</span></code></pre><p>Note how we match the first formal parameter using <code class="inline">X</code>. The reason for
+having our own formal parameters for the SSA check, is that we don't
+want to introduce new identifiers at the Erlang level to support
+SSA-level checks. Consider if <code class="inline">t1/2</code> had been defined as <code class="inline">t1([A|As], B)</code> we would have had to introduce a new identifier for the aggregate
+value <code class="inline">[A|As]</code>.</p><p>The full syntax for a SSA check clause is:</p><pre><code class="makeup erlang" translate="no"><span class="o">&lt;</span><span class="ss">expected</span><span class="o">-</span><span class="ss">result</span><span class="o">&gt;</span><span class="o">?</span><span class="w"> </span><span class="p" data-group-id="7833618901-1">(</span><span class="o">&lt;</span><span class="ss">formals</span><span class="o">&gt;</span><span class="p" data-group-id="7833618901-1">)</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="o">&lt;</span><span class="ss">pipeline</span><span class="o">-</span><span class="ss">location</span><span class="o">&gt;</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="o">&lt;</span><span class="ss">checks</span><span class="o">&gt;</span><span class="w"> </span><span class="ss">&#39;.&#39;</span></code></pre><p>where <code class="inline">&lt;expected-result&gt;</code> can be one of <code class="inline">pass</code> (the check must
+succeed), <code class="inline">fail</code> and <code class="inline">xfail</code> (the check must fail). Omitting
+<code class="inline">&lt;expected-result&gt;</code> is parsed as an implicit <code class="inline">pass</code>.</p><p><code class="inline">&lt;formals&gt;</code> is a comma-separated list of variables.</p><p><code class="inline">&lt;pipeline-location&gt;</code> specifies when in the compiler pipeline to run
+the checks. For now the only supported value for <code class="inline">&lt;pipeline-location&gt;</code>
+is <code class="inline">post_ssa_opt</code> which runs the checks after the <code class="inline">ssa_opt</code> pass.</p><p><code class="inline">&lt;checks&gt;</code> is a comma-separated list of matches against the BEAM SSA
+code. For non-flow-control operations the syntax is:</p><pre><code class="makeup erlang" translate="no"><span class="o">&lt;</span><span class="ss">variable</span><span class="o">&gt;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">&lt;</span><span class="ss">operation</span><span class="o">&gt;</span><span class="w"> </span><span class="p" data-group-id="8894863996-1">(</span><span class="w"> </span><span class="o">&lt;</span><span class="ss">arguments</span><span class="o">&gt;</span><span class="w"> </span><span class="p" data-group-id="8894863996-1">)</span><span class="w"> </span><span class="o">&lt;</span><span class="ss">annotation</span><span class="o">&gt;</span><span class="o">?</span></code></pre><p>where <code class="inline">&lt;operation&gt;</code> is the <code class="inline">#b_set.op</code> field from the internal SSA
+representation. BIFs are written as <code class="inline">bif:&lt;atom&gt;</code>.</p><p><code class="inline">&lt;arguments&gt;</code> is a comma-separated list of variables or literals.</p><p>For flow control operations and labels, the syntax is as follows:</p><pre><code class="makeup erlang" translate="no"><span class="nf">br</span><span class="p" data-group-id="1678008682-1">(</span><span class="o">&lt;</span><span class="ss">bool</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="o">&lt;</span><span class="ss">true</span><span class="o">-</span><span class="ss">label</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="o">&lt;</span><span class="ss">false</span><span class="o">-</span><span class="ss">label</span><span class="o">&gt;</span><span class="p" data-group-id="1678008682-1">)</span><span class="w">
+
+</span><span class="nf">switch</span><span class="p" data-group-id="1678008682-2">(</span><span class="o">&lt;</span><span class="ss">value</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="o">&lt;</span><span class="ss">fail</span><span class="o">-</span><span class="ss">label</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1678008682-3">[</span><span class="p" data-group-id="1678008682-4">{</span><span class="o">&lt;</span><span class="ss">label</span><span class="o">&gt;</span><span class="p">,</span><span class="o">&lt;</span><span class="ss">value</span><span class="o">&gt;</span><span class="p" data-group-id="1678008682-4">}</span><span class="p">,</span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p" data-group-id="1678008682-3">]</span><span class="p" data-group-id="1678008682-2">)</span><span class="w">
+
+</span><span class="nf">ret</span><span class="p" data-group-id="1678008682-5">(</span><span class="o">&lt;</span><span class="ss">value</span><span class="o">&gt;</span><span class="p" data-group-id="1678008682-5">)</span><span class="w">
+
+</span><span class="ss">label</span><span class="w"> </span><span class="o">&lt;</span><span class="ss">value</span><span class="o">&gt;</span></code></pre><p>where <code class="inline">&lt;value&gt;</code> is a literal or a variable.</p><p>A check can also include an assertion on operation annotations. The
+assertion is written as a map-like pattern following the argument
+list, for example:</p><pre><code class="makeup erlang" translate="no"><span class="nf">t0</span><span class="p" data-group-id="7921446270-1">(</span><span class="p" data-group-id="7921446270-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="c1">%ssa% () when post_ssa_opt -&gt;</span><span class="w">
+</span><span class="c1">%ssa% _ = call(fun return_int/0) { result_type =&gt; {t_integer,{17,17}},</span><span class="w">
+</span><span class="c1">%ssa%                              location =&gt; {_,32} },</span><span class="w">
+</span><span class="c1">%ssa% _ = call(fun return_tuple/0) {</span><span class="w">
+</span><span class="c1">%ssa%    result_type =&gt; {t_tuple,2,true,#{1 =&gt; {t_integer,{1,1}},</span><span class="w">
+</span><span class="c1">%ssa%                                     2 =&gt; {t_integer,{2,2}}}}</span><span class="w">
+</span><span class="c1">%ssa% }.</span><span class="w">
+    </span><span class="n">X</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">return_int</span><span class="p" data-group-id="7921446270-2">(</span><span class="p" data-group-id="7921446270-2">)</span><span class="p">,</span><span class="w">
+    </span><span class="n">Y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">return_tuple</span><span class="p" data-group-id="7921446270-3">(</span><span class="p" data-group-id="7921446270-3">)</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="7921446270-4">{</span><span class="n">X</span><span class="p">,</span><span class="w"> </span><span class="n">Y</span><span class="p" data-group-id="7921446270-4">}</span><span class="p">.</span></code></pre><h2 id="semantics" class="section-heading">
+  <a href="#semantics" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Semantics</span>
+</h2>
+<p>When an SSA assertion is matched against the BEAM SSA for a function,
+patterns are applied sequentially. If the current pattern doesn't
+match, the checker tries with the next instruction. If the checker
+reaches the end of the SSA representation without having matched all
+patterns, the check is considered failed otherwise the assertion is
+considered successful. When a pattern is matched against an SSA
+operation, the values of variables already bound are considered and if
+the patterns matches, free variables introduced in the successfully
+matched pattern are bound to the values they have in the matched
+operation.</p><h2 id="compiler-integration" class="section-heading">
+  <a href="#compiler-integration" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Compiler integration</span>
+</h2>
+<p>The BEAM SSA checker is enabled by the compiler option
+<code class="inline">{check_ssa,post_ssa_opt}</code>. When enabled, a failed SSA assertion will
+be reported using the same mechanisms as an ordinary compilation
+error.</p><h2 id="limitations" class="section-heading">
+  <a href="#limitations" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Limitations</span>
+</h2>
+<ul><li>Unbound variables are not allowed in the key-part of map literals nor
+in annotation assertions.</li></ul>
+<div class="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="beam_ssa.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Invariants on the Structure and Format of BEAM SSA
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+  </div>
+</div>
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+              <a href="compiler.epub" title="ePub version">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

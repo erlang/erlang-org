@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="mnesia v4.23.1">
+
+
+    <title>Miscellaneous Mnesia Features — mnesia v4.23.1</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-1AFE0CAA.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="mnesia" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+mnesia
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v4.23.1
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of mnesia</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/lib/mnesia/doc/guides/mnesia_chap5.md#L1" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+
+  <span>Miscellaneous Mnesia Features</span>
+</h1>
+
+<p>The previous sections describe how to get started with <code class="inline">Mnesia</code> and how to build
+a <code class="inline">Mnesia</code> database. This section describes the more advanced features available
+when building a distributed, fault-tolerant <code class="inline">Mnesia</code> database. The following
+topics are included:</p><ul><li>Indexing</li><li>Distribution and fault tolerance</li><li>Table fragmentation</li><li>Local content tables</li><li>Disc-less nodes</li><li>More about schema management</li><li><code class="inline">Mnesia</code> event handling</li><li>Debugging <code class="inline">Mnesia</code> applications</li><li>Concurrent processes in <code class="inline">Mnesia</code></li><li>Prototyping</li><li>Object-based programming with <code class="inline">Mnesia</code></li></ul><h2 id="indexing" class="section-heading">
+  <a href="#indexing" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Indexing</span>
+</h2>
+<p>Data retrieval and matching can be performed efficiently if the key for the
+record is known. Conversely, if the key is unknown, all records in a table must
+be searched. The larger the table, the more time consuming it becomes. To remedy
+this problem, <code class="inline">Mnesia</code> indexing capabilities are used to improve data retrieval
+and matching of records.</p><p>The following two functions manipulate indexes on existing tables:</p><ul><li><a href="mnesia.html#add_table_index/2">mnesia:add_table_index(Tab, AttributeName) -&gt; {aborted, R} |{atomic, ok}</a></li><li><a href="mnesia.html#del_table_index/2">mnesia:del_table_index(Tab, AttributeName) -&gt; {aborted, R} |{atomic, ok}</a></li></ul><p>These functions create or delete a table index on a field defined by
+<code class="inline">AttributeName</code>. To illustrate this, add an index to the table definition
+<code class="inline">(employee, {emp_no, name, salary, sex, phone, room_no})</code>, which is the example
+table from the <code class="inline">Company</code> database. The function that adds an index on element
+<code class="inline">salary</code> can be expressed as <code class="inline">mnesia:add_table_index(employee, salary)</code>.</p><p>The indexing capabilities of <code class="inline">Mnesia</code> are used with the following three
+functions, which retrieve and match records based on index entries in the
+database:</p><ul><li><p><a href="mnesia.html#index_read/3">mnesia:index_read(Tab, SecondaryKey, AttributeName) -&gt; transaction abort | RecordList</a>
+avoids an exhaustive search of the entire table, by looking up <code class="inline">SecondaryKey</code>
+in the index to find the primary keys.</p></li><li><p><a href="mnesia.html#index_match_object/2">mnesia:index_match_object(Pattern, AttributeName) -&gt; transaction abort | RecordList</a>
+avoids an exhaustive search of the entire table, by looking up the secondary
+key in the index to find the primary keys. The secondary key is found in field
+<code class="inline">AttributeName</code> of <code class="inline">Pattern</code>. The secondary key must be bound.</p></li><li><p><a href="mnesia.html#match_object/1">mnesia:match_object(Pattern) -&gt; transaction abort | RecordList</a>
+uses indexes to avoid exhaustive search of the entire table. Unlike the
+previous functions, this function can use any index as long as the secondary
+key is bound.</p></li></ul><p>These functions are further described and exemplified in
+<a href="mnesia_chap4.html#matching">Pattern Matching</a>.</p><h2 id="distribution-and-fault-tolerance" class="section-heading">
+  <a href="#distribution-and-fault-tolerance" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Distribution and Fault Tolerance</span>
+</h2>
+<p><code class="inline">Mnesia</code> is a distributed, fault-tolerant DBMS. Tables can be replicated on
+different Erlang nodes in various ways. The <code class="inline">Mnesia</code> programmer does not need to
+state where the different tables reside, only the names of the different tables
+need to be specified in the program code. This is known as &quot;location
+transparency&quot; and is an important concept. In particular:</p><ul><li><p>A program works regardless of the data location. It makes no difference
+whether the data resides on the local node or on a remote node.</p><p>Notice that the program runs slower if the data is located on a remote node.</p></li><li><p>The database can be reconfigured, and tables can be moved between nodes. These
+operations do not affect the user programs.</p></li></ul><p>It has previously been shown that each table has a number of system attributes,
+such as <code class="inline">index</code> and <code class="inline">type</code>.</p><p>Table attributes are specified when the table is created. For example, the
+following function creates a table with two RAM replicas:</p><pre><code class="makeup erlang" translate="no"><span class="w">      </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">create_table</span><span class="p" data-group-id="2805447377-1">(</span><span class="ss">foo</span><span class="p">,</span><span class="w">
+                          </span><span class="p" data-group-id="2805447377-2">[</span><span class="p" data-group-id="2805447377-3">{</span><span class="ss">ram_copies</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2805447377-4">[</span><span class="n">N1</span><span class="p">,</span><span class="w"> </span><span class="n">N2</span><span class="p" data-group-id="2805447377-4">]</span><span class="p" data-group-id="2805447377-3">}</span><span class="p">,</span><span class="w">
+                           </span><span class="p" data-group-id="2805447377-5">{</span><span class="ss">attributes</span><span class="p">,</span><span class="w"> </span><span class="nf">record_info</span><span class="p" data-group-id="2805447377-6">(</span><span class="ss">fields</span><span class="p">,</span><span class="w"> </span><span class="ss">foo</span><span class="p" data-group-id="2805447377-6">)</span><span class="p" data-group-id="2805447377-5">}</span><span class="p" data-group-id="2805447377-2">]</span><span class="p" data-group-id="2805447377-1">)</span><span class="p">.</span></code></pre><p>Tables can also have the following properties, where each attribute has a list
+of Erlang nodes as its value:</p><ul><li><p><code class="inline">ram_copies</code>. The value of the node list is a list of Erlang nodes, and a RAM
+replica of the table resides on each node in the list.</p><p>Notice that no disc operations are performed when a program executes write
+operations to these replicas. However, if permanent RAM replicas are required,
+the following alternatives are available:</p><ol><li>The function <a href="mnesia.html#dump_tables/1"><code class="inline">mnesia:dump_tables/1</code></a> can be used to dump RAM table replicas
+to disc.</li><li>The table replicas can be backed up, either from RAM, or from disc if
+dumped there with this function.</li></ol></li><li><p><code class="inline">disc_copies</code>. The value of the attribute is a list of Erlang nodes, and a
+replica of the table resides both in RAM and on disc on each node in the list.
+Write operations addressed to the table address both the RAM and the disc copy
+of the table.</p></li><li><p><code class="inline">disc_only_copies</code>. The value of the attribute is a list of Erlang nodes, and
+a replica of the table resides only as a disc copy on each node in the list.
+The major disadvantage of this type of table replica is the access speed. The
+major advantage is that the table does not occupy space in memory.</p></li></ul><p>In addition, table properties can be set and changed. For details, see
+<a href="mnesia_chap3.html#def_schema">Define a Schema</a>.</p><p>There are basically two reasons for using more than one table replica: fault
+tolerance and speed. Notice that table replication provides a solution to both
+of these system requirements.</p><p>If there are two active table replicas, all information is still available if
+one replica fails. This can be an important property in many applications.
+Furthermore, if a table replica exists at two specific nodes, applications that
+execute at either of these nodes can read data from the table without accessing
+the network. Network operations are considerably slower and consume more
+resources than local operations.</p><p>It can be advantageous to create table replicas for a distributed application
+that reads data often, but writes data seldom, to achieve fast read operations
+on the local node. The major disadvantage with replication is the increased time
+to write data. If a table has two replicas, every write operation must access
+both table replicas. Since one of these write operations must be a network
+operation, it is considerably more expensive to perform a write operation to a
+replicated table than to a non-replicated table.</p><h2 id="table-fragmentation" class="section-heading">
+  <a href="#table-fragmentation" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Table Fragmentation</span>
+</h2>
+<h3 id="concept" class="section-heading">
+  <a href="#concept" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Concept</span>
+</h3>
+<p>A concept of table fragmentation has been introduced to cope with large tables.
+The idea is to split a table into several manageable fragments. Each fragment is
+implemented as a first class <code class="inline">Mnesia</code> table and can be replicated, have indexes,
+and so on, as any other table. But the tables cannot have <code class="inline">local_content</code> or
+have the <code class="inline">snmp</code> connection activated.</p><p>To be able to access a record in a fragmented table, <code class="inline">Mnesia</code> must determine to
+which fragment the actual record belongs. This is done by module <code class="inline">mnesia_frag</code>,
+which implements the <code class="inline">mnesia_access</code> callback behavior. It is recommended to
+read the documentation about the function <a href="mnesia.html#activity/4"><code class="inline">mnesia:activity/4</code></a> to see how
+<code class="inline">mnesia_frag</code> can be used as a <code class="inline">mnesia_access</code> callback module.</p><p>At each record access, <code class="inline">mnesia_frag</code> first computes a hash value from the record
+key. Second, the name of the table fragment is determined from the hash value.
+Finally the actual table access is performed by the same functions as for
+non-fragmented tables. When the key is not known beforehand, all fragments are
+searched for matching records.</p><p>Notice that in <code class="inline">ordered_set</code> tables, the records are ordered per fragment, and
+the order is undefined in results returned by <code class="inline">select</code> and <code class="inline">match_object</code>, as
+well as <code class="inline">first</code>, <code class="inline">next</code>, <code class="inline">prev</code> and <code class="inline">last</code>.</p><p>The following code illustrates how a <code class="inline">Mnesia</code> table is converted to be a
+fragmented table and how more fragments are added later:</p><pre><code class="makeup erlang" translate="no"><span class="n">Eshell</span><span class="w"> </span><span class="n">V4</span><span class="p">.</span><span class="mf">7.3</span><span class="p">.</span><span class="mi">3</span><span class="w">  </span><span class="p" data-group-id="2618174393-1">(</span><span class="ss">abort</span><span class="w"> </span><span class="ss">with</span><span class="w"> </span><span class="err">^</span><span class="n">G</span><span class="p" data-group-id="2618174393-1">)</span><span class="gp unselectable">
+(a@sam)1&gt; </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">start</span><span class="p" data-group-id="2618174393-2">(</span><span class="p" data-group-id="2618174393-2">)</span><span class="p">.</span><span class="w">
+</span><span class="nf">ok</span><span class="w">
+</span><span class="p" data-group-id="2618174393-3">(</span><span class="ss">a@sam</span><span class="p" data-group-id="2618174393-3">)</span><span class="mi">2</span><span class="o">&gt;</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">system_info</span><span class="p" data-group-id="2618174393-4">(</span><span class="ss">running_db_nodes</span><span class="p" data-group-id="2618174393-4">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="2618174393-5">[</span><span class="ss">b@sam</span><span class="p">,</span><span class="ss">c@sam</span><span class="p">,</span><span class="ss">a@sam</span><span class="p" data-group-id="2618174393-5">]</span><span class="gp unselectable">
+(a@sam)3&gt; </span><span class="n">Tab</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">dictionary</span><span class="p">.</span><span class="w">
+</span><span class="nf">dictionary</span><span class="w">
+</span><span class="p" data-group-id="2618174393-6">(</span><span class="ss">a@sam</span><span class="p" data-group-id="2618174393-6">)</span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">create_table</span><span class="p" data-group-id="2618174393-7">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2618174393-8">[</span><span class="p" data-group-id="2618174393-9">{</span><span class="ss">ram_copies</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2618174393-10">[</span><span class="ss">a@sam</span><span class="p">,</span><span class="w"> </span><span class="ss">b@sam</span><span class="p" data-group-id="2618174393-10">]</span><span class="p" data-group-id="2618174393-9">}</span><span class="p" data-group-id="2618174393-8">]</span><span class="p" data-group-id="2618174393-7">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="2618174393-11">{</span><span class="ss">atomic</span><span class="p">,</span><span class="ss">ok</span><span class="p" data-group-id="2618174393-11">}</span><span class="gp unselectable">
+(a@sam)5&gt; </span><span class="n">Write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">fun</span><span class="p" data-group-id="2618174393-12">(</span><span class="n">Keys</span><span class="p" data-group-id="2618174393-12">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="p" data-group-id="2618174393-13">[</span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">write</span><span class="p" data-group-id="2618174393-14">(</span><span class="p" data-group-id="2618174393-15">{</span><span class="n">Tab</span><span class="p">,</span><span class="n">K</span><span class="p">,</span><span class="o">-</span><span class="n">K</span><span class="p" data-group-id="2618174393-15">}</span><span class="p" data-group-id="2618174393-14">)</span><span class="w"> </span><span class="p">||</span><span class="w"> </span><span class="n">K</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="n">Keys</span><span class="p" data-group-id="2618174393-13">]</span><span class="p">,</span><span class="w"> </span><span class="ss">ok</span><span class="w"> </span><span class="k">end</span><span class="p">.</span><span class="w">
+</span><span class="p">#</span><span class="n">Fun</span><span class="o">&lt;</span><span class="ss">erl_eval</span><span class="o">&gt;</span><span class="gp unselectable">
+(a@sam)6&gt; </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">activity</span><span class="p" data-group-id="2618174393-16">(</span><span class="ss">sync_dirty</span><span class="p">,</span><span class="w"> </span><span class="n">Write</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2618174393-17">[</span><span class="nc">lists</span><span class="p">:</span><span class="nf">seq</span><span class="p" data-group-id="2618174393-18">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">256</span><span class="p" data-group-id="2618174393-18">)</span><span class="p" data-group-id="2618174393-17">]</span><span class="p">,</span><span class="w"> </span><span class="ss">mnesia_frag</span><span class="p" data-group-id="2618174393-16">)</span><span class="p">.</span><span class="w">
+</span><span class="nf">ok</span><span class="w">
+</span><span class="p" data-group-id="2618174393-19">(</span><span class="ss">a@sam</span><span class="p" data-group-id="2618174393-19">)</span><span class="mi">7</span><span class="o">&gt;</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">change_table_frag</span><span class="p" data-group-id="2618174393-20">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2618174393-21">{</span><span class="ss">activate</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2618174393-22">[</span><span class="p" data-group-id="2618174393-22">]</span><span class="p" data-group-id="2618174393-21">}</span><span class="p" data-group-id="2618174393-20">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="2618174393-23">{</span><span class="ss">atomic</span><span class="p">,</span><span class="ss">ok</span><span class="p" data-group-id="2618174393-23">}</span><span class="gp unselectable">
+(a@sam)8&gt; </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">table_info</span><span class="p" data-group-id="2618174393-24">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="ss">frag_properties</span><span class="p" data-group-id="2618174393-24">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="2618174393-25">[</span><span class="p" data-group-id="2618174393-26">{</span><span class="ss">base_table</span><span class="p">,</span><span class="ss">dictionary</span><span class="p" data-group-id="2618174393-26">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="2618174393-27">{</span><span class="ss">foreign_key</span><span class="p">,</span><span class="ss">undefined</span><span class="p" data-group-id="2618174393-27">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="2618174393-28">{</span><span class="ss">n_doubles</span><span class="p">,</span><span class="mi">0</span><span class="p" data-group-id="2618174393-28">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="2618174393-29">{</span><span class="ss">n_fragments</span><span class="p">,</span><span class="mi">1</span><span class="p" data-group-id="2618174393-29">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="2618174393-30">{</span><span class="ss">next_n_to_split</span><span class="p">,</span><span class="mi">1</span><span class="p" data-group-id="2618174393-30">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="2618174393-31">{</span><span class="ss">node_pool</span><span class="p">,</span><span class="p" data-group-id="2618174393-32">[</span><span class="ss">a@sam</span><span class="p">,</span><span class="ss">b@sam</span><span class="p">,</span><span class="ss">c@sam</span><span class="p" data-group-id="2618174393-32">]</span><span class="p" data-group-id="2618174393-31">}</span><span class="p" data-group-id="2618174393-25">]</span><span class="gp unselectable">
+(a@sam)9&gt; </span><span class="n">Info</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">fun</span><span class="p" data-group-id="2618174393-33">(</span><span class="n">Item</span><span class="p" data-group-id="2618174393-33">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">table_info</span><span class="p" data-group-id="2618174393-34">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Item</span><span class="p" data-group-id="2618174393-34">)</span><span class="w"> </span><span class="k">end</span><span class="p">.</span><span class="w">
+</span><span class="p">#</span><span class="n">Fun</span><span class="o">&lt;</span><span class="ss">erl_eval</span><span class="o">&gt;</span><span class="gp unselectable">
+(a@sam)10&gt; </span><span class="n">Dist</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">activity</span><span class="p" data-group-id="2618174393-35">(</span><span class="ss">sync_dirty</span><span class="p">,</span><span class="w"> </span><span class="n">Info</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2618174393-36">[</span><span class="ss">frag_dist</span><span class="p" data-group-id="2618174393-36">]</span><span class="p">,</span><span class="w"> </span><span class="ss">mnesia_frag</span><span class="p" data-group-id="2618174393-35">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="2618174393-37">[</span><span class="p" data-group-id="2618174393-38">{</span><span class="ss">c@sam</span><span class="p">,</span><span class="mi">0</span><span class="p" data-group-id="2618174393-38">}</span><span class="p">,</span><span class="p" data-group-id="2618174393-39">{</span><span class="ss">a@sam</span><span class="p">,</span><span class="mi">1</span><span class="p" data-group-id="2618174393-39">}</span><span class="p">,</span><span class="p" data-group-id="2618174393-40">{</span><span class="ss">b@sam</span><span class="p">,</span><span class="mi">1</span><span class="p" data-group-id="2618174393-40">}</span><span class="p" data-group-id="2618174393-37">]</span><span class="gp unselectable">
+(a@sam)11&gt; </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">change_table_frag</span><span class="p" data-group-id="2618174393-41">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2618174393-42">{</span><span class="ss">add_frag</span><span class="p">,</span><span class="w"> </span><span class="n">Dist</span><span class="p" data-group-id="2618174393-42">}</span><span class="p" data-group-id="2618174393-41">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="2618174393-43">{</span><span class="ss">atomic</span><span class="p">,</span><span class="ss">ok</span><span class="p" data-group-id="2618174393-43">}</span><span class="gp unselectable">
+(a@sam)12&gt; </span><span class="n">Dist2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">activity</span><span class="p" data-group-id="2618174393-44">(</span><span class="ss">sync_dirty</span><span class="p">,</span><span class="w"> </span><span class="n">Info</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2618174393-45">[</span><span class="ss">frag_dist</span><span class="p" data-group-id="2618174393-45">]</span><span class="p">,</span><span class="w"> </span><span class="ss">mnesia_frag</span><span class="p" data-group-id="2618174393-44">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="2618174393-46">[</span><span class="p" data-group-id="2618174393-47">{</span><span class="ss">b@sam</span><span class="p">,</span><span class="mi">1</span><span class="p" data-group-id="2618174393-47">}</span><span class="p">,</span><span class="p" data-group-id="2618174393-48">{</span><span class="ss">c@sam</span><span class="p">,</span><span class="mi">1</span><span class="p" data-group-id="2618174393-48">}</span><span class="p">,</span><span class="p" data-group-id="2618174393-49">{</span><span class="ss">a@sam</span><span class="p">,</span><span class="mi">2</span><span class="p" data-group-id="2618174393-49">}</span><span class="p" data-group-id="2618174393-46">]</span><span class="gp unselectable">
+(a@sam)13&gt; </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">change_table_frag</span><span class="p" data-group-id="2618174393-50">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2618174393-51">{</span><span class="ss">add_frag</span><span class="p">,</span><span class="w"> </span><span class="n">Dist2</span><span class="p" data-group-id="2618174393-51">}</span><span class="p" data-group-id="2618174393-50">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="2618174393-52">{</span><span class="ss">atomic</span><span class="p">,</span><span class="ss">ok</span><span class="p" data-group-id="2618174393-52">}</span><span class="gp unselectable">
+(a@sam)14&gt; </span><span class="n">Dist3</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">activity</span><span class="p" data-group-id="2618174393-53">(</span><span class="ss">sync_dirty</span><span class="p">,</span><span class="w"> </span><span class="n">Info</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2618174393-54">[</span><span class="ss">frag_dist</span><span class="p" data-group-id="2618174393-54">]</span><span class="p">,</span><span class="w"> </span><span class="ss">mnesia_frag</span><span class="p" data-group-id="2618174393-53">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="2618174393-55">[</span><span class="p" data-group-id="2618174393-56">{</span><span class="ss">a@sam</span><span class="p">,</span><span class="mi">2</span><span class="p" data-group-id="2618174393-56">}</span><span class="p">,</span><span class="p" data-group-id="2618174393-57">{</span><span class="ss">b@sam</span><span class="p">,</span><span class="mi">2</span><span class="p" data-group-id="2618174393-57">}</span><span class="p">,</span><span class="p" data-group-id="2618174393-58">{</span><span class="ss">c@sam</span><span class="p">,</span><span class="mi">2</span><span class="p" data-group-id="2618174393-58">}</span><span class="p" data-group-id="2618174393-55">]</span><span class="gp unselectable">
+(a@sam)15&gt; </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">change_table_frag</span><span class="p" data-group-id="2618174393-59">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2618174393-60">{</span><span class="ss">add_frag</span><span class="p">,</span><span class="w"> </span><span class="n">Dist3</span><span class="p" data-group-id="2618174393-60">}</span><span class="p" data-group-id="2618174393-59">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="2618174393-61">{</span><span class="ss">atomic</span><span class="p">,</span><span class="ss">ok</span><span class="p" data-group-id="2618174393-61">}</span><span class="gp unselectable">
+(a@sam)16&gt; </span><span class="n">Read</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">fun</span><span class="p" data-group-id="2618174393-62">(</span><span class="n">Key</span><span class="p" data-group-id="2618174393-62">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">read</span><span class="p" data-group-id="2618174393-63">(</span><span class="p" data-group-id="2618174393-64">{</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Key</span><span class="p" data-group-id="2618174393-64">}</span><span class="p" data-group-id="2618174393-63">)</span><span class="w"> </span><span class="k">end</span><span class="p">.</span><span class="w">
+</span><span class="p">#</span><span class="n">Fun</span><span class="o">&lt;</span><span class="ss">erl_eval</span><span class="o">&gt;</span><span class="gp unselectable">
+(a@sam)17&gt; </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">activity</span><span class="p" data-group-id="2618174393-65">(</span><span class="ss">transaction</span><span class="p">,</span><span class="w"> </span><span class="n">Read</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2618174393-66">[</span><span class="mi">12</span><span class="p" data-group-id="2618174393-66">]</span><span class="p">,</span><span class="w"> </span><span class="ss">mnesia_frag</span><span class="p" data-group-id="2618174393-65">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="2618174393-67">[</span><span class="p" data-group-id="2618174393-68">{</span><span class="ss">dictionary</span><span class="p">,</span><span class="mi">12</span><span class="p">,</span><span class="o">-</span><span class="mi">12</span><span class="p" data-group-id="2618174393-68">}</span><span class="p" data-group-id="2618174393-67">]</span><span class="gp unselectable">
+(a@sam)18&gt; </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">activity</span><span class="p" data-group-id="2618174393-69">(</span><span class="ss">sync_dirty</span><span class="p">,</span><span class="w"> </span><span class="n">Info</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2618174393-70">[</span><span class="ss">frag_size</span><span class="p" data-group-id="2618174393-70">]</span><span class="p">,</span><span class="w"> </span><span class="ss">mnesia_frag</span><span class="p" data-group-id="2618174393-69">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="2618174393-71">[</span><span class="p" data-group-id="2618174393-72">{</span><span class="ss">dictionary</span><span class="p">,</span><span class="mi">64</span><span class="p" data-group-id="2618174393-72">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="2618174393-73">{</span><span class="ss">dictionary_frag2</span><span class="p">,</span><span class="mi">64</span><span class="p" data-group-id="2618174393-73">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="2618174393-74">{</span><span class="ss">dictionary_frag3</span><span class="p">,</span><span class="mi">64</span><span class="p" data-group-id="2618174393-74">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="2618174393-75">{</span><span class="ss">dictionary_frag4</span><span class="p">,</span><span class="mi">64</span><span class="p" data-group-id="2618174393-75">}</span><span class="p" data-group-id="2618174393-71">]</span><span class="w">
+</span><span class="p" data-group-id="2618174393-76">(</span><span class="ss">a@sam</span><span class="p" data-group-id="2618174393-76">)</span><span class="mi">19</span><span class="o">&gt;</span></code></pre><h3 id="fragmentation-properties" class="section-heading">
+  <a href="#fragmentation-properties" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Fragmentation Properties</span>
+</h3>
+<p>The table property <code class="inline">frag_properties</code> can be read with the function
+<a href="mnesia.html#table_info/2">mnesia:table_info(Tab, frag_properties)</a>. The
+fragmentation properties are a list of tagged tuples with arity 2. By default
+the list is empty, but when it is non-empty it triggers <code class="inline">Mnesia</code> to regard the
+table as fragmented. The fragmentation properties are as follows:</p><ul><li><p><strong><code class="inline">{n_fragments, Int}</code></strong> - <code class="inline">n_fragments</code> regulates how many fragments that the
+table currently has. This property can explicitly be set at table creation and
+later be changed with <code class="inline">{add_frag, NodesOrDist}</code> or <code class="inline">del_frag</code>. <code class="inline">n_fragments</code>
+defaults to <code class="inline">1</code>.</p></li><li><p><strong><code class="inline">{node_pool, List}</code></strong> - The node pool contains a list of nodes and can
+explicitly be set at table creation and later be changed with
+<code class="inline">{add_node, Node}</code> or <code class="inline">{del_node, Node}</code>. At table creation <code class="inline">Mnesia</code> tries to
+distribute the replicas of each fragment evenly over all the nodes in the node
+pool. Hopefully all nodes end up with the same number of replicas. <code class="inline">node_pool</code>
+defaults to the return value from the function
+<a href="mnesia.html#system_info/1">mnesia:system_info(db_nodes)</a>.</p></li><li><p><strong><code class="inline">{n_ram_copies, Int}</code></strong> - Regulates how many <code class="inline">ram_copies</code> replicas that each
+fragment is to have. This property can explicitly be set at table creation.
+Defaults is <code class="inline">0</code>, but if <code class="inline">n_disc_copies</code> and <code class="inline">n_disc_only_copies</code> also are <code class="inline">0</code>,
+<code class="inline">n_ram_copies</code> defaults to <code class="inline">1</code>.</p></li><li><p><strong><code class="inline">{n_disc_copies, Int}</code></strong> - Regulates how many <code class="inline">disc_copies</code> replicas that
+each fragment is to have. This property can explicitly be set at table
+creation. Default is <code class="inline">0</code>.</p></li><li><p><strong><code class="inline">{n_disc_only_copies, Int}</code></strong> - Regulates how many <code class="inline">disc_only_copies</code>
+replicas that each fragment is to have. This property can explicitly be set at
+table creation. Defaults is <code class="inline">0</code>.</p></li><li><p><strong><code class="inline">{foreign_key, ForeignKey}</code></strong> - <code class="inline">ForeignKey</code> can either be the atom
+<code class="inline">undefined</code> or the tuple <code class="inline">{ForeignTab, Attr}</code>, where <code class="inline">Attr</code> denotes an
+attribute that is to be interpreted as a key in another fragmented table named
+<code class="inline">ForeignTab</code>. <code class="inline">Mnesia</code> ensures that the number of fragments in this table and
+in the foreign table are always the same.</p><p>When fragments are added or deleted, <code class="inline">Mnesia</code> automatically propagates the
+operation to all fragmented tables that have a foreign key referring to this
+table. Instead of using the record key to determine which fragment to access,
+the value of field <code class="inline">Attr</code> is used. This feature makes it possible to colocate
+records automatically in different tables to the same node. <code class="inline">foreign_key</code>
+defaults to <code class="inline">undefined</code>. However, if the foreign key is set to something else,
+it causes the default values of the other fragmentation properties to be the
+same values as the actual fragmentation properties of the foreign table.</p></li><li><p><strong><code class="inline">{hash_module, Atom}</code></strong> - Enables definition of an alternative hashing
+scheme. The module must implement the <a href="mnesia_frag_hash.html"><code class="inline">mnesia_frag_hash</code></a> callback behavior.
+This property can explicitly be set at table creation. Default is
+<code class="inline">mnesia_frag_hash</code>.</p></li><li><p><strong><code class="inline">{hash_state, Term}</code></strong> - Enables a table-specific parameterization of a
+generic hash module. This property can explicitly be set at table creation.
+Default is <code class="inline">undefined</code>.</p><pre><code class="makeup erlang" translate="no"><span class="n">Eshell</span><span class="w"> </span><span class="n">V4</span><span class="p">.</span><span class="mf">7.3</span><span class="p">.</span><span class="mi">3</span><span class="w">  </span><span class="p" data-group-id="7383319680-1">(</span><span class="ss">abort</span><span class="w"> </span><span class="ss">with</span><span class="w"> </span><span class="err">^</span><span class="n">G</span><span class="p" data-group-id="7383319680-1">)</span><span class="gp unselectable">
+(a@sam)1&gt; </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">start</span><span class="p" data-group-id="7383319680-2">(</span><span class="p" data-group-id="7383319680-2">)</span><span class="p">.</span><span class="w">
+</span><span class="nf">ok</span><span class="w">
+</span><span class="p" data-group-id="7383319680-3">(</span><span class="ss">a@sam</span><span class="p" data-group-id="7383319680-3">)</span><span class="mi">2</span><span class="o">&gt;</span><span class="w"> </span><span class="n">PrimProps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="7383319680-4">[</span><span class="p" data-group-id="7383319680-5">{</span><span class="ss">n_fragments</span><span class="p">,</span><span class="w"> </span><span class="mi">7</span><span class="p" data-group-id="7383319680-5">}</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7383319680-6">{</span><span class="ss">node_pool</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7383319680-7">[</span><span class="nf">node</span><span class="p" data-group-id="7383319680-8">(</span><span class="p" data-group-id="7383319680-8">)</span><span class="p" data-group-id="7383319680-7">]</span><span class="p" data-group-id="7383319680-6">}</span><span class="p" data-group-id="7383319680-4">]</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="7383319680-9">[</span><span class="p" data-group-id="7383319680-10">{</span><span class="ss">n_fragments</span><span class="p">,</span><span class="mi">7</span><span class="p" data-group-id="7383319680-10">}</span><span class="p">,</span><span class="p" data-group-id="7383319680-11">{</span><span class="ss">node_pool</span><span class="p">,</span><span class="p" data-group-id="7383319680-12">[</span><span class="ss">a@sam</span><span class="p" data-group-id="7383319680-12">]</span><span class="p" data-group-id="7383319680-11">}</span><span class="p" data-group-id="7383319680-9">]</span><span class="gp unselectable">
+(a@sam)3&gt; </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">create_table</span><span class="p" data-group-id="7383319680-13">(</span><span class="ss">prim_dict</span><span class="p">,</span><span class="w">
+                              </span><span class="p" data-group-id="7383319680-14">[</span><span class="p" data-group-id="7383319680-15">{</span><span class="ss">frag_properties</span><span class="p">,</span><span class="w"> </span><span class="n">PrimProps</span><span class="p" data-group-id="7383319680-15">}</span><span class="p">,</span><span class="w">
+                               </span><span class="p" data-group-id="7383319680-16">{</span><span class="ss">attributes</span><span class="p">,</span><span class="p" data-group-id="7383319680-17">[</span><span class="ss">prim_key</span><span class="p">,</span><span class="ss">prim_val</span><span class="p" data-group-id="7383319680-17">]</span><span class="p" data-group-id="7383319680-16">}</span><span class="p" data-group-id="7383319680-14">]</span><span class="p" data-group-id="7383319680-13">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="7383319680-18">{</span><span class="ss">atomic</span><span class="p">,</span><span class="ss">ok</span><span class="p" data-group-id="7383319680-18">}</span><span class="gp unselectable">
+(a@sam)4&gt; </span><span class="n">SecProps</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="7383319680-19">[</span><span class="p" data-group-id="7383319680-20">{</span><span class="ss">foreign_key</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7383319680-21">{</span><span class="ss">prim_dict</span><span class="p">,</span><span class="w"> </span><span class="ss">sec_val</span><span class="p" data-group-id="7383319680-21">}</span><span class="p" data-group-id="7383319680-20">}</span><span class="p" data-group-id="7383319680-19">]</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="7383319680-22">[</span><span class="p" data-group-id="7383319680-23">{</span><span class="ss">foreign_key</span><span class="p">,</span><span class="p" data-group-id="7383319680-24">{</span><span class="ss">prim_dict</span><span class="p">,</span><span class="ss">sec_val</span><span class="p" data-group-id="7383319680-24">}</span><span class="p" data-group-id="7383319680-23">}</span><span class="p" data-group-id="7383319680-22">]</span><span class="gp unselectable">
+(a@sam)5&gt; </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">create_table</span><span class="p" data-group-id="7383319680-25">(</span><span class="ss">sec_dict</span><span class="p">,</span><span class="w">
+                              </span><span class="p" data-group-id="7383319680-26">[</span><span class="p" data-group-id="7383319680-27">{</span><span class="ss">frag_properties</span><span class="p">,</span><span class="w"> </span><span class="n">SecProps</span><span class="p" data-group-id="7383319680-27">}</span><span class="p">,</span><span class="gp unselectable">
+(a@sam)5&gt; </span><span class="w">                     </span><span class="p" data-group-id="7383319680-28">{</span><span class="ss">attributes</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7383319680-29">[</span><span class="ss">sec_key</span><span class="p">,</span><span class="w"> </span><span class="ss">sec_val</span><span class="p" data-group-id="7383319680-29">]</span><span class="p" data-group-id="7383319680-28">}</span><span class="p" data-group-id="7383319680-26">]</span><span class="p" data-group-id="7383319680-25">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="7383319680-30">{</span><span class="ss">atomic</span><span class="p">,</span><span class="ss">ok</span><span class="p" data-group-id="7383319680-30">}</span><span class="gp unselectable">
+(a@sam)6&gt; </span><span class="n">Write</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">fun</span><span class="p" data-group-id="7383319680-31">(</span><span class="n">Rec</span><span class="p" data-group-id="7383319680-31">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">write</span><span class="p" data-group-id="7383319680-32">(</span><span class="n">Rec</span><span class="p" data-group-id="7383319680-32">)</span><span class="w"> </span><span class="k">end</span><span class="p">.</span><span class="w">
+</span><span class="p">#</span><span class="n">Fun</span><span class="o">&lt;</span><span class="ss">erl_eval</span><span class="o">&gt;</span><span class="gp unselectable">
+(a@sam)7&gt; </span><span class="n">PrimKey</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">11</span><span class="p">.</span><span class="w">
+</span><span class="mi">11</span><span class="gp unselectable">
+(a@sam)8&gt; </span><span class="n">SecKey</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">42</span><span class="p">.</span><span class="w">
+</span><span class="mi">42</span><span class="gp unselectable">
+(a@sam)9&gt; </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">activity</span><span class="p" data-group-id="7383319680-33">(</span><span class="ss">sync_dirty</span><span class="p">,</span><span class="w"> </span><span class="n">Write</span><span class="p">,</span><span class="w">
+                          </span><span class="p" data-group-id="7383319680-34">[</span><span class="p" data-group-id="7383319680-35">{</span><span class="ss">prim_dict</span><span class="p">,</span><span class="w"> </span><span class="n">PrimKey</span><span class="p">,</span><span class="w"> </span><span class="o">-</span><span class="mi">11</span><span class="p" data-group-id="7383319680-35">}</span><span class="p" data-group-id="7383319680-34">]</span><span class="p">,</span><span class="w"> </span><span class="ss">mnesia_frag</span><span class="p" data-group-id="7383319680-33">)</span><span class="p">.</span><span class="w">
+</span><span class="nf">ok</span><span class="w">
+</span><span class="p" data-group-id="7383319680-36">(</span><span class="ss">a@sam</span><span class="p" data-group-id="7383319680-36">)</span><span class="mi">10</span><span class="o">&gt;</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">activity</span><span class="p" data-group-id="7383319680-37">(</span><span class="ss">sync_dirty</span><span class="p">,</span><span class="w"> </span><span class="n">Write</span><span class="p">,</span><span class="w">
+                           </span><span class="p" data-group-id="7383319680-38">[</span><span class="p" data-group-id="7383319680-39">{</span><span class="ss">sec_dict</span><span class="p">,</span><span class="w"> </span><span class="n">SecKey</span><span class="p">,</span><span class="w"> </span><span class="n">PrimKey</span><span class="p" data-group-id="7383319680-39">}</span><span class="p" data-group-id="7383319680-38">]</span><span class="p">,</span><span class="w"> </span><span class="ss">mnesia_frag</span><span class="p" data-group-id="7383319680-37">)</span><span class="p">.</span><span class="w">
+</span><span class="nf">ok</span><span class="w">
+</span><span class="p" data-group-id="7383319680-40">(</span><span class="ss">a@sam</span><span class="p" data-group-id="7383319680-40">)</span><span class="mi">11</span><span class="o">&gt;</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">change_table_frag</span><span class="p" data-group-id="7383319680-41">(</span><span class="ss">prim_dict</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7383319680-42">{</span><span class="ss">add_frag</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7383319680-43">[</span><span class="nf">node</span><span class="p" data-group-id="7383319680-44">(</span><span class="p" data-group-id="7383319680-44">)</span><span class="p" data-group-id="7383319680-43">]</span><span class="p" data-group-id="7383319680-42">}</span><span class="p" data-group-id="7383319680-41">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="7383319680-45">{</span><span class="ss">atomic</span><span class="p">,</span><span class="ss">ok</span><span class="p" data-group-id="7383319680-45">}</span><span class="gp unselectable">
+(a@sam)12&gt; </span><span class="n">SecRead</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">fun</span><span class="p" data-group-id="7383319680-46">(</span><span class="n">PrimKey</span><span class="p">,</span><span class="w"> </span><span class="n">SecKey</span><span class="p" data-group-id="7383319680-46">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+               </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">read</span><span class="p" data-group-id="7383319680-47">(</span><span class="p" data-group-id="7383319680-48">{</span><span class="ss">sec_dict</span><span class="p">,</span><span class="w"> </span><span class="n">PrimKey</span><span class="p" data-group-id="7383319680-48">}</span><span class="p">,</span><span class="w"> </span><span class="n">SecKey</span><span class="p">,</span><span class="w"> </span><span class="ss">read</span><span class="p" data-group-id="7383319680-47">)</span><span class="w"> </span><span class="k">end</span><span class="p">.</span><span class="w">
+</span><span class="p">#</span><span class="n">Fun</span><span class="o">&lt;</span><span class="ss">erl_eval</span><span class="o">&gt;</span><span class="gp unselectable">
+(a@sam)13&gt; </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">activity</span><span class="p" data-group-id="7383319680-49">(</span><span class="ss">transaction</span><span class="p">,</span><span class="w"> </span><span class="n">SecRead</span><span class="p">,</span><span class="w">
+                           </span><span class="p" data-group-id="7383319680-50">[</span><span class="n">PrimKey</span><span class="p">,</span><span class="w"> </span><span class="n">SecKey</span><span class="p" data-group-id="7383319680-50">]</span><span class="p">,</span><span class="w"> </span><span class="ss">mnesia_frag</span><span class="p" data-group-id="7383319680-49">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="7383319680-51">[</span><span class="p" data-group-id="7383319680-52">{</span><span class="ss">sec_dict</span><span class="p">,</span><span class="mi">42</span><span class="p">,</span><span class="mi">11</span><span class="p" data-group-id="7383319680-52">}</span><span class="p" data-group-id="7383319680-51">]</span><span class="gp unselectable">
+(a@sam)14&gt; </span><span class="n">Info</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">fun</span><span class="p" data-group-id="7383319680-53">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Item</span><span class="p" data-group-id="7383319680-53">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">table_info</span><span class="p" data-group-id="7383319680-54">(</span><span class="n">Tab</span><span class="p">,</span><span class="w"> </span><span class="n">Item</span><span class="p" data-group-id="7383319680-54">)</span><span class="w"> </span><span class="k">end</span><span class="p">.</span><span class="w">
+</span><span class="p">#</span><span class="n">Fun</span><span class="o">&lt;</span><span class="ss">erl_eval</span><span class="o">&gt;</span><span class="gp unselectable">
+(a@sam)15&gt; </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">activity</span><span class="p" data-group-id="7383319680-55">(</span><span class="ss">sync_dirty</span><span class="p">,</span><span class="w"> </span><span class="n">Info</span><span class="p">,</span><span class="w">
+                           </span><span class="p" data-group-id="7383319680-56">[</span><span class="ss">prim_dict</span><span class="p">,</span><span class="w"> </span><span class="ss">frag_size</span><span class="p" data-group-id="7383319680-56">]</span><span class="p">,</span><span class="w"> </span><span class="ss">mnesia_frag</span><span class="p" data-group-id="7383319680-55">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="7383319680-57">[</span><span class="p" data-group-id="7383319680-58">{</span><span class="ss">prim_dict</span><span class="p">,</span><span class="mi">0</span><span class="p" data-group-id="7383319680-58">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="7383319680-59">{</span><span class="ss">prim_dict_frag2</span><span class="p">,</span><span class="mi">0</span><span class="p" data-group-id="7383319680-59">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="7383319680-60">{</span><span class="ss">prim_dict_frag3</span><span class="p">,</span><span class="mi">0</span><span class="p" data-group-id="7383319680-60">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="7383319680-61">{</span><span class="ss">prim_dict_frag4</span><span class="p">,</span><span class="mi">1</span><span class="p" data-group-id="7383319680-61">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="7383319680-62">{</span><span class="ss">prim_dict_frag5</span><span class="p">,</span><span class="mi">0</span><span class="p" data-group-id="7383319680-62">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="7383319680-63">{</span><span class="ss">prim_dict_frag6</span><span class="p">,</span><span class="mi">0</span><span class="p" data-group-id="7383319680-63">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="7383319680-64">{</span><span class="ss">prim_dict_frag7</span><span class="p">,</span><span class="mi">0</span><span class="p" data-group-id="7383319680-64">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="7383319680-65">{</span><span class="ss">prim_dict_frag8</span><span class="p">,</span><span class="mi">0</span><span class="p" data-group-id="7383319680-65">}</span><span class="p" data-group-id="7383319680-57">]</span><span class="gp unselectable">
+(a@sam)16&gt; </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">activity</span><span class="p" data-group-id="7383319680-66">(</span><span class="ss">sync_dirty</span><span class="p">,</span><span class="w"> </span><span class="n">Info</span><span class="p">,</span><span class="w">
+                           </span><span class="p" data-group-id="7383319680-67">[</span><span class="ss">sec_dict</span><span class="p">,</span><span class="w"> </span><span class="ss">frag_size</span><span class="p" data-group-id="7383319680-67">]</span><span class="p">,</span><span class="w"> </span><span class="ss">mnesia_frag</span><span class="p" data-group-id="7383319680-66">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="7383319680-68">[</span><span class="p" data-group-id="7383319680-69">{</span><span class="ss">sec_dict</span><span class="p">,</span><span class="mi">0</span><span class="p" data-group-id="7383319680-69">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="7383319680-70">{</span><span class="ss">sec_dict_frag2</span><span class="p">,</span><span class="mi">0</span><span class="p" data-group-id="7383319680-70">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="7383319680-71">{</span><span class="ss">sec_dict_frag3</span><span class="p">,</span><span class="mi">0</span><span class="p" data-group-id="7383319680-71">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="7383319680-72">{</span><span class="ss">sec_dict_frag4</span><span class="p">,</span><span class="mi">1</span><span class="p" data-group-id="7383319680-72">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="7383319680-73">{</span><span class="ss">sec_dict_frag5</span><span class="p">,</span><span class="mi">0</span><span class="p" data-group-id="7383319680-73">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="7383319680-74">{</span><span class="ss">sec_dict_frag6</span><span class="p">,</span><span class="mi">0</span><span class="p" data-group-id="7383319680-74">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="7383319680-75">{</span><span class="ss">sec_dict_frag7</span><span class="p">,</span><span class="mi">0</span><span class="p" data-group-id="7383319680-75">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="7383319680-76">{</span><span class="ss">sec_dict_frag8</span><span class="p">,</span><span class="mi">0</span><span class="p" data-group-id="7383319680-76">}</span><span class="p" data-group-id="7383319680-68">]</span><span class="w">
+</span><span class="p" data-group-id="7383319680-77">(</span><span class="ss">a@sam</span><span class="p" data-group-id="7383319680-77">)</span><span class="mi">17</span><span class="o">&gt;</span></code></pre></li></ul><h3 id="management-of-fragmented-tables" class="section-heading">
+  <a href="#management-of-fragmented-tables" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Management of Fragmented Tables</span>
+</h3>
+<p>The function <code class="inline">mnesia:change_table_frag(Tab, Change)</code> is intended to be used for
+reconfiguration of fragmented tables. Argument <code class="inline">Change</code> is to have one of the
+following values:</p><ul><li><p><strong><code class="inline">{activate, FragProps}</code></strong> - Activates the fragmentation properties of an
+existing table. <code class="inline">FragProps</code> is either to contain <code class="inline">{node_pool, Nodes}</code> or be
+empty.</p></li><li><p><strong><code class="inline">deactivate</code></strong> - Deactivates the fragmentation properties of a table. The
+number of fragments must be <code class="inline">1</code>. No other table can refer to this table in its
+foreign key.</p></li><li><p><strong><code class="inline">{add_frag, NodesOrDist}</code></strong> - Adds a fragment to a fragmented table. All
+records in one of the old fragments are rehashed and about half of them are
+moved to the new (last) fragment. All other fragmented tables, which refer to
+this table in their foreign key, automatically get a new fragment. Also, their
+records are dynamically rehashed in the same manner as for the main table.</p><p>Argument <code class="inline">NodesOrDist</code> can either be a list of nodes or the result from the
+function <a href="mnesia.html#table_info/2">mnesia:table_info(Tab, frag_dist)</a>. Argument
+<code class="inline">NodesOrDist</code> is assumed to be a sorted list with the best nodes to host new
+replicas first in the list. The new fragment gets the same number of replicas
+as the first fragment (see <code class="inline">n_ram_copies</code>, <code class="inline">n_disc_copies</code>, and
+<code class="inline">n_disc_only_copies</code>). The <code class="inline">NodesOrDist</code> list must at least contain one
+element for each replica that needs to be allocated.</p></li><li><p><strong><code class="inline">del_frag</code></strong> - Deletes a fragment from a fragmented table. All records in
+the last fragment are moved to one of the other fragments. All other
+fragmented tables, which refer to this table in their foreign key,
+automatically lose their last fragment. Also, their records are dynamically
+rehashed in the same manner as for the main table.</p></li><li><p><strong><code class="inline">{add_node, Node}</code></strong> - Adds a node to <code class="inline">node_pool</code>. The new node pool affects
+the list returned from the function
+<a href="mnesia.html#table_info/2">mnesia:table_info(Tab, frag_dist)</a>.</p></li><li><p><strong><code class="inline">{del_node, Node}</code></strong> - Deletes a node from <code class="inline">node_pool</code>. The new node pool
+affects the list returned from the function
+<a href="mnesia.html#table_info/2">mnesia:table_info(Tab, frag_dist)</a>.</p></li></ul><h3 id="extensions-of-existing-functions" class="section-heading">
+  <a href="#extensions-of-existing-functions" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Extensions of Existing Functions</span>
+</h3>
+<p>The function <a href="mnesia.html#create_table/2"><code class="inline">mnesia:create_table/2</code></a> creates a brand new fragmented table, by
+setting table property <code class="inline">frag_properties</code> to some proper values.</p><p>The function <a href="mnesia.html#delete_table/1"><code class="inline">mnesia:delete_table/1</code></a> deletes a fragmented table including all
+its fragments. There must however not exist any other fragmented tables that
+refer to this table in their foreign key.</p><p>The function <a href="mnesia.html#table_info/2"><code class="inline">mnesia:table_info/2</code></a> now understands item <code class="inline">frag_properties</code>.</p><p>If the function <a href="mnesia.html#table_info/2"><code class="inline">mnesia:table_info/2</code></a> is started in the activity context of
+module <code class="inline">mnesia_frag</code>, information of several new items can be obtained:</p><ul><li><p><strong><code class="inline">base_table</code></strong> - The name of the fragmented table</p></li><li><p><strong><code class="inline">n_fragments</code></strong> - The actual number of fragments</p></li><li><p><strong><code class="inline">node_pool</code></strong> - The pool of nodes</p></li><li><p><strong><code class="inline">n_ram_copies</code></strong></p></li><li><p><strong><code class="inline">n_disc_copies</code></strong></p></li><li><p><strong><code class="inline">n_disc_only_copies</code></strong> - The number of replicas with storage type
+<code class="inline">ram_copies</code>, <code class="inline">disc_copies</code>, and <code class="inline">disc_only_copies</code>, respectively. The actual
+values are dynamically derived from the first fragment. The first fragment
+serves as a protype. When the actual values need to be computed (for example,
+when adding new fragments) they are determined by counting the number of each
+replica for each storage type. This means that when the functions
+<a href="mnesia.html#add_table_copy/3"><code class="inline">mnesia:add_table_copy/3</code></a>, <a href="mnesia.html#del_table_copy/2"><code class="inline">mnesia:del_table_copy/2</code></a>, and
+<a href="mnesia.html#change_table_copy_type/3">mnesia:change_table_copy_type/2</a> are
+applied on the first fragment, it affects the settings on <code class="inline">n_ram_copies</code>,
+<code class="inline">n_disc_copies</code>, and <code class="inline">n_disc_only_copies</code>.</p></li><li><p><strong><code class="inline">foreign_key</code></strong> - The foreign key</p></li><li><p><strong><code class="inline">foreigners</code></strong> - All other tables that refer to this table in their foreign
+key</p></li><li><p><strong><code class="inline">frag_names</code></strong> - The names of all fragments</p></li><li><p><strong><code class="inline">frag_dist</code></strong> - A sorted list of <code class="inline">{Node, Count}</code> tuples that are sorted in
+increasing <code class="inline">Count</code> order. <code class="inline">Count</code> is the total number of replicas that this
+fragmented table hosts on each <code class="inline">Node</code>. The list always contains at least all
+nodes in <code class="inline">node_pool</code>. Nodes that do not belong to <code class="inline">node_pool</code> are put last in
+the list even if their <code class="inline">Count</code> is lower.</p></li><li><p><strong><code class="inline">frag_size</code></strong> - A list of <code class="inline">{Name, Size}</code> tuples, where <code class="inline">Name</code> is a fragment
+<code class="inline">Name</code>, and <code class="inline">Size</code> is how many records it contains</p></li><li><p><strong><code class="inline">frag_memory</code></strong> - A list of <code class="inline">{Name, Memory}</code> tuples, where <code class="inline">Name</code> is a
+fragment <code class="inline">Name</code>, and <code class="inline">Memory</code> is how much memory it occupies</p></li><li><p><strong><code class="inline">size</code></strong> - Total size of all fragments</p></li><li><p><strong><code class="inline">memory</code></strong> - Total memory of all fragments</p></li></ul><h3 id="load-balancing" class="section-heading">
+  <a href="#load-balancing" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Load Balancing</span>
+</h3>
+<p>There are several algorithms for distributing records in a fragmented table
+evenly over a pool of nodes. No one is best, it depends on the application
+needs. The following examples of situations need some attention:</p><ul><li><code class="inline">permanent change of nodes</code>. When a new permanent <code class="inline">db_node</code> is introduced or
+dropped, it can be time to change the pool of nodes and redistribute the
+replicas evenly over the new pool of nodes. It can also be time to add or
+delete a fragment before the replicas are redistributed.</li><li><code class="inline">size/memory threshold</code>. When the total size or total memory of a fragmented
+table (or a single fragment) exceeds some application-specific threshold, it
+can be time to add a new fragment dynamically to obtain a better distribution
+of records.</li><li><code class="inline">temporary node down</code>. When a node temporarily goes down, it can be time to
+compensate some fragments with new replicas to keep the desired level of
+redundancy. When the node comes up again, it can be time to remove the
+superfluous replica.</li><li><code class="inline">overload threshold</code>. When the load on some node exceeds some
+application-specific threshold, it can be time to either add or move some
+fragment replicas to nodes with lower load. Take extra care if the table has a
+foreign key relation to some other table. To avoid severe performance
+penalties, the same redistribution must be performed for all the related
+tables.</li></ul><p>Use the function <code class="inline">mnesia:change_table_frag/2</code> to add new fragments and apply the
+usual schema manipulation functions (such as <a href="mnesia.html#add_table_copy/3"><code class="inline">mnesia:add_table_copy/3</code></a>,
+<a href="mnesia.html#del_table_copy/2"><code class="inline">mnesia:del_table_copy/2</code></a>, and
+<a href="mnesia.html#change_table_copy_type/3">mnesia:change_table_copy_type/2</a>) on each
+fragment to perform the actual redistribution.</p><h2 id="local-content-tables" class="section-heading">
+  <a href="#local-content-tables" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Local Content Tables</span>
+</h2>
+<p>Replicated tables have the same content on all nodes where they are replicated.
+However, it is sometimes advantageous to have tables, but different content on
+different nodes.</p><p>If attribute <code class="inline">{local_content, true}</code> is specified when you create the table, the
+table resides on the nodes where you specify the table to exist, but the write
+operations on the table are only performed on the local copy.</p><p>Furthermore, when the table is initialized at startup, the table is only
+initialized locally, and the table content is not copied from another node.</p><h2 id="disc-less-nodes" class="section-heading">
+  <a href="#disc-less-nodes" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Disc-Less Nodes</span>
+</h2>
+<p><code class="inline">Mnesia</code> can be run on nodes that do not have a disc. Replicas of <code class="inline">disc_copies</code>
+or <code class="inline">disc_only_copies</code> are not possible on such nodes. This is especially
+troublesome for the <code class="inline">schema</code> table, as <code class="inline">Mnesia</code> needs the schema to initialize
+itself.</p><p>The schema table can, as other tables, reside on one or more nodes. The storage
+type of the schema table can either be <code class="inline">disc_copies</code> or <code class="inline">ram_copies</code> (but not
+<code class="inline">disc_only_copies</code>). At startup, <code class="inline">Mnesia</code> uses its schema to determine with
+which nodes it is to try to establish contact. If any other node is started
+already, the starting node merges its table definitions with the table
+definitions brought from the other nodes. This also applies to the definition of
+the schema table itself. Application parameter <code class="inline">extra_db_nodes</code> contains a list
+of nodes that <code class="inline">Mnesia</code> also is to establish contact with besides those found in
+the schema. Default is <code class="inline">[]</code> (empty list).</p><p>Hence, when a disc-less node needs to find the schema definitions from a remote
+node on the network, this information must be supplied through application
+parameter <code class="inline">-mnesia extra_db_nodes NodeList</code>. Without this configuration
+parameter set, <code class="inline">Mnesia</code> starts as a single node system. Also, the function
+<a href="mnesia.html#change_config/2"><code class="inline">mnesia:change_config/2</code></a> can be used to assign a value to <code class="inline">extra_db_nodes</code> and
+force a connection after <code class="inline">Mnesia</code> has been started, that is,
+<code class="inline">mnesia:change_config(extra_db_nodes, NodeList)</code>.</p><p>Application parameter <code class="inline">schema_location</code> controls where <code class="inline">Mnesia</code> searches for its
+schema. The parameter can be one of the following atoms:</p><ul><li><p><strong><code class="inline">disc</code></strong> - Mandatory disc. The schema is assumed to be located in the
+<code class="inline">Mnesia</code> directory. If the schema cannot be found, <code class="inline">Mnesia</code> refuses to start.</p></li><li><p><strong><code class="inline">ram</code></strong> - Mandatory RAM. The schema resides in RAM only. At startup, a tiny
+new schema is generated. This default schema contains only the definition of
+the schema table and resides on the local node only. Since no other nodes are
+found in the default schema, configuration parameter <code class="inline">extra_db_nodes</code> must be
+used to let the node share its table definitions with other nodes. (Parameter
+<code class="inline">extra_db_nodes</code> can also be used on disc-full nodes.)</p></li><li><p><strong><code class="inline">opt_disc</code></strong> - Optional disc. The schema can reside on either disc or RAM.
+If the schema is found on disc, <code class="inline">Mnesia</code> starts as a disc-full node (the
+storage type of the schema table is disc_copies). If no schema is found on
+disc, <code class="inline">Mnesia</code> starts as a disc-less node (the storage type of the schema
+table is <code class="inline">ram_copies</code>). The default for the application parameter is
+<code class="inline">opt_disc</code>.</p></li></ul><p>When <code class="inline">schema_location</code> is set to <code class="inline">opt_disc</code>, the function
+<a href="mnesia.html#change_table_copy_type/3"><code class="inline">mnesia:change_table_copy_type/3</code></a> can be used to change the storage type of the
+schema. This is illustrated as follows:</p><pre><code class="makeup erlang" translate="no"><span class="w">        </span><span class="mi">1</span><span class="o">&gt;</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">start</span><span class="p" data-group-id="4787425263-1">(</span><span class="p" data-group-id="4787425263-1">)</span><span class="p">.</span><span class="w">
+        </span><span class="ss">ok</span><span class="w">
+        </span><span class="mi">2</span><span class="o">&gt;</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">change_table_copy_type</span><span class="p" data-group-id="4787425263-2">(</span><span class="ss">schema</span><span class="p">,</span><span class="w"> </span><span class="nf">node</span><span class="p" data-group-id="4787425263-3">(</span><span class="p" data-group-id="4787425263-3">)</span><span class="p">,</span><span class="w"> </span><span class="ss">disc_copies</span><span class="p" data-group-id="4787425263-2">)</span><span class="p">.</span><span class="w">
+        </span><span class="p" data-group-id="4787425263-4">{</span><span class="ss">atomic</span><span class="p">,</span><span class="w"> </span><span class="ss">ok</span><span class="p" data-group-id="4787425263-4">}</span></code></pre><p>Assuming that the call to <a href="mnesia.html#start/0"><code class="inline">mnesia:start/0</code></a> does not find any schema to read on
+the disc, <code class="inline">Mnesia</code> starts as a disc-less node, and then change it to a node that
+use the disc to store the schema locally.</p><h2 id="more-about-schema-management" class="section-heading">
+  <a href="#more-about-schema-management" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">More about Schema Management</span>
+</h2>
+<p>Nodes can be added to and removed from a <code class="inline">Mnesia</code> system. This can be done by
+adding a copy of the schema to those nodes.</p><p>The functions <a href="mnesia.html#add_table_copy/3"><code class="inline">mnesia:add_table_copy/3</code></a> and <a href="mnesia.html#del_table_copy/2"><code class="inline">mnesia:del_table_copy/2</code></a> can be
+used to add and delete replicas of the schema table. Adding a node to the list
+of nodes where the schema is replicated affects the following:</p><ul><li>It allows other tables to be replicated to this node.</li><li>It causes <code class="inline">Mnesia</code> to try to contact the node at startup of disc-full nodes.</li></ul><p>The function call <code class="inline">mnesia:del_table_copy(schema, mynode@host)</code> deletes node
+<code class="inline">mynode@host</code> from the <code class="inline">Mnesia</code> system. The call fails if <code class="inline">Mnesia</code> is running on
+<code class="inline">mynode@host</code>. The other <code class="inline">Mnesia</code> nodes never try to connect to that node again.
+Notice that if there is a disc resident schema on node <code class="inline">mynode@host</code>, the entire
+<code class="inline">Mnesia</code> directory is to be deleted. This is done with the function
+<a href="mnesia.html#delete_schema/1"><code class="inline">mnesia:delete_schema/1</code></a>. If <code class="inline">Mnesia</code> is started again on node <code class="inline">mynode@host</code> and
+the directory has not been cleared, the behavior of <code class="inline">Mnesia</code> is undefined.</p><p>If the storage type of the schema is <code class="inline">ram_copies</code>, that is, a disc-less node,
+<code class="inline">Mnesia</code> does not use the disc on that particular node. The disc use is enabled
+by changing the storage type of table <code class="inline">schema</code> to <code class="inline">disc_copies</code>.</p><p>New schemas are created explicitly with the function <a href="mnesia.html#create_schema/1"><code class="inline">mnesia:create_schema/1</code></a> or
+implicitly by starting <code class="inline">Mnesia</code> without a disc resident schema. Whenever a table
+(including the schema table) is created, it is assigned its own unique cookie.
+The schema table is not created with the function <a href="mnesia.html#create_table/2"><code class="inline">mnesia:create_table/2</code></a> as
+normal tables.</p><p>At startup, <code class="inline">Mnesia</code> connects different nodes to each other, then they exchange
+table definitions with each other, and the table definitions are merged. During
+the merge procedure, <code class="inline">Mnesia</code> performs a sanity test to ensure that the table
+definitions are compatible with each other. If a table exists on several nodes,
+the cookie must be the same, otherwise <code class="inline">Mnesia</code> shut down one of the nodes. This
+unfortunate situation occurs if a table has been created on two nodes
+independently of each other while they were disconnected. To solve this, one of
+the tables must be deleted (as the cookies differ, it is regarded to be two
+different tables even if they have the same name).</p><p>Merging different versions of the schema table does not always require the
+cookies to be the same. If the storage type of the schema table is
+<code class="inline">disc_copies</code>, the cookie is immutable, and all other <code class="inline">db_nodes</code> must have the
+same cookie. When the schema is stored as type <code class="inline">ram_copies</code>, its cookie can be
+replaced with a cookie from another node (<code class="inline">ram_copies</code> or <code class="inline">disc_copies</code>). The
+cookie replacement (during merge of the schema table definition) is performed
+each time a RAM node connects to another node.</p><p>Further, the following applies:</p><ul><li><a href="mnesia.html#system_info/1">mnesia:system_info(schema_location)</a> and
+<a href="mnesia.html#system_info/1">mnesia:system_info(extra_db_nodes)</a> can be used to
+determine the actual values of <code class="inline">schema_location</code> and <code class="inline">extra_db_nodes</code>,
+respectively.</li><li><a href="mnesia.html#system_info/1">mnesia:system_info(use_dir)</a> can be used to determine
+whether <code class="inline">Mnesia</code> is actually using the <code class="inline">Mnesia</code> directory.</li><li><code class="inline">use_dir</code> can be determined even before <code class="inline">Mnesia</code> is started.</li></ul><p>The function <a href="mnesia.html#info/0"><code class="inline">mnesia:info/0</code></a> can now be used to print some system information
+even before <code class="inline">Mnesia</code> is started. When <code class="inline">Mnesia</code> is started, the function prints
+more information.</p><p>Transactions that update the definition of a table requires that <code class="inline">Mnesia</code> is
+started on all nodes where the storage type of the schema is <code class="inline">disc_copies</code>. All
+replicas of the table on these nodes must also be loaded. There are a few
+exceptions to these availability rules:</p><ul><li>Tables can be created and new replicas can be added without starting all the
+disc-full nodes.</li><li>New replicas can be added before all other replicas of the table have been
+loaded, provided that at least one other replica is active.</li></ul><p><a href="" id="event_handling"></a></p><h2 id="mnesia-event-handling" class="section-heading">
+  <a href="#mnesia-event-handling" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Mnesia Event Handling</span>
+</h2>
+<p>System events and table events are the two event categories that <code class="inline">Mnesia</code>
+generates in various situations.</p><p>A user process can subscribe on the events generated by <code class="inline">Mnesia</code>. The following
+two functions are provided:</p><ul><li><p><strong><a href="mnesia.html#subscribe/1">mnesia:subscribe(Event-Category)</a></strong> - Ensures that a
+copy of all events of type <code class="inline">Event-Category</code> are sent to the calling process</p></li><li><p><strong><a href="mnesia.html#unsubscribe/1">mnesia:unsubscribe(Event-Category)</a></strong> - Removes the
+subscription on events of type <code class="inline">Event-Category</code></p></li></ul><p><code class="inline">Event-Category</code> can be either of the following:</p><ul><li>The atom <code class="inline">system</code></li><li>The atom <code class="inline">activity</code></li><li>The tuple <code class="inline">{table, Tab, simple}</code></li><li>The tuple <code class="inline">{table, Tab, detailed}</code></li></ul><p>The old event category <code class="inline">{table, Tab}</code> is the same event category as
+<code class="inline">{table, Tab, simple}</code>.</p><p>The subscribe functions activate a subscription of events. The events are
+delivered as messages to the process evaluating the function
+<a href="mnesia.html#subscribe/1"><code class="inline">mnesia:subscribe/1</code></a> The syntax is as follows:</p><ul><li><code class="inline">{mnesia_system_event, Event}</code> for system events</li><li><code class="inline">{mnesia_activity_event, Event}</code> for activity events</li><li><code class="inline">{mnesia_table_event, Event}</code> for table events</li></ul><p>The event types are described in the next sections.</p><p>All system events are subscribed by the <code class="inline">Mnesia</code> <code class="inline">gen_event</code> handler. The
+default <code class="inline">gen_event</code> handler is <code class="inline">mnesia_event</code>, but it can be changed by using
+application parameter <code class="inline">event_module</code>. The value of this parameter must be the
+name of a module implementing a complete handler, as specified by the
+<a href="../../apps/stdlib/gen_event.html"><code class="inline">gen_event</code></a> module in <code class="inline">STDLIB</code>.</p><p><a href="mnesia.html#system_info/1">mnesia:system_info(subscribers)</a> and
+<a href="mnesia.html#table_info/2">mnesia:table_info(Tab, subscribers)</a> can be used to
+determine which processes are subscribed to various events.</p><h3 id="system-events" class="section-heading">
+  <a href="#system-events" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">System Events</span>
+</h3>
+<p>The system events are as follows:</p><ul><li><p><strong><code class="inline">{mnesia_up, Node}</code></strong> - Mnesia is started on a node. <code class="inline">Node</code> is the node
+name. By default this event is ignored.</p></li><li><p><strong><code class="inline">{mnesia_down, Node}</code></strong> - Mnesia is stopped on a node. <code class="inline">Node</code> is the node
+name. By default this event is ignored.</p></li><li><p><strong><code class="inline">{mnesia_checkpoint_activated, Checkpoint}</code></strong> - A checkpoint with the name
+<code class="inline">Checkpoint</code> is activated and the current node is involved in the checkpoint.
+Checkpoints can be activated explicitly with the function
+<a href="mnesia.html#activate_checkpoint/1"><code class="inline">mnesia:activate_checkpoint/1</code></a> or implicitly at backup, when adding table
+replicas, at internal transfer of data between nodes, and so on. By default
+this event is ignored.</p></li><li><p><strong><code class="inline">{mnesia_checkpoint_deactivated, Checkpoint}</code></strong> - A checkpoint with the name
+<code class="inline">Checkpoint</code> is deactivated and the current node is involved in the
+checkpoint. Checkpoints can be deactivated explicitly with the function
+<a href="mnesia.html#deactivate_checkpoint/1">mnesia:deactivate/1</a> or implicitly when the
+last replica of a table (involved in the checkpoint) becomes unavailable, for
+example, at node-down. By default this event is ignored.</p></li><li><p><strong><code class="inline">{mnesia_overload, Details}</code></strong> - <code class="inline">Mnesia</code> on the current node is overloaded
+and the subscriber is to take action.</p><p>A typical overload situation occurs when the applications perform more updates
+on disc resident tables than <code class="inline">Mnesia</code> can handle. Ignoring this kind of
+overload can lead to a situation where the disc space is exhausted (regardless
+of the size of the tables stored on disc).</p><p>Each update is appended to the transaction log and occasionally (depending on
+how it is configured) dumped to the tables files. The table file storage is
+more compact than the transaction log storage, especially if the same record
+is updated repeatedly. If the thresholds for dumping the transaction log are
+reached before the previous dump is finished, an overload event is triggered.</p><p>Another typical overload situation is when the transaction manager cannot
+commit transactions at the same pace as the applications perform updates of
+disc resident tables. When this occurs, the message queue of the transaction
+manager continues to grow until the memory is exhausted or the load decreases.</p><p>The same problem can occur for dirty updates. The overload is detected locally
+on the current node, but its cause can be on another node. Application
+processes can cause high load if any table resides on another node (replicated
+or not). By default this event is reported to <code class="inline">error_logger.</code></p></li><li><p><strong><code class="inline">{inconsistent_database, Context, Node}</code></strong> - <code class="inline">Mnesia</code> regards the database
+as potential inconsistent and gives its applications a chance to recover from
+the inconsistency. For example, by installing a consistent backup as fallback
+and then restart the system. An alternative is to pick a <code class="inline">MasterNode</code> from
+<a href="mnesia.html#system_info/1">mnesia:system_info(db_nodes)</a> and invoke
+[mnesia:set_master_node([MasterNode])](<a href="mnesia.html#set_master_nodes/1"><code class="inline">mnesia:set_master_nodes/1</code></a>). By
+default an error is reported to <code class="inline">error_logger</code>.</p></li><li><p><strong><code class="inline">{mnesia_fatal, Format, Args, BinaryCore}</code></strong> - <code class="inline">Mnesia</code> detected a fatal
+error and terminates soon. The fault reason is explained in <code class="inline">Format</code> and
+<code class="inline">Args</code>, which can be given as input to <a href="../../apps/stdlib/io.html#format/2"><code class="inline">io:format/2</code></a> or sent to
+<code class="inline">error_logger</code>. By default it is sent to <code class="inline">error_logger</code>.</p><p><code class="inline">BinaryCore</code> is a binary containing a summary of the <code class="inline">Mnesia</code> internal state
+at the time when the fatal error was detected. By default the binary is
+written to a unique filename on the current directory. On RAM nodes, the core
+is ignored.</p></li><li><p><strong><code class="inline">{mnesia_info, Format, Args}</code></strong> - <code class="inline">Mnesia</code> detected something that can be of
+interest when debugging the system. This is explained in <code class="inline">Format</code> and <code class="inline">Args</code>,
+which can appear as input to <a href="../../apps/stdlib/io.html#format/2"><code class="inline">io:format/2</code></a> or sent to <code class="inline">error_logger</code>. By
+default this event is printed with <a href="../../apps/stdlib/io.html#format/2"><code class="inline">io:format/2</code></a>.</p></li><li><p><strong><code class="inline">{mnesia_error, Format, Args}</code></strong> - <code class="inline">Mnesia</code> has detected an error. The fault
+reason is explained in <code class="inline">Format</code> and <code class="inline">Args</code>, which can be given as input to
+<a href="../../apps/stdlib/io.html#format/2"><code class="inline">io:format/2</code></a> or sent to <code class="inline">error_logger</code>. By default this event is reported to
+<code class="inline">error_logger</code>.</p></li><li><p><strong><code class="inline">{mnesia_user, Event}</code></strong> - An application started the function
+<a href="mnesia.html#report_event/1">mnesia:report_event(Event)</a>. <code class="inline">Event</code> can be any
+Erlang data structure. When tracing a system of <code class="inline">Mnesia</code> applications, it is
+useful to be able to interleave own events of <code class="inline">Mnesia</code> with
+application-related events that give information about the application
+context. Whenever the application starts with a new and demanding <code class="inline">Mnesia</code>
+activity, or enters a new and interesting phase in its execution, it can be a
+good idea to use <a href="mnesia.html#report_event/1"><code class="inline">mnesia:report_event/1</code></a>.</p></li></ul><h3 id="activity-events" class="section-heading">
+  <a href="#activity-events" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Activity Events</span>
+</h3>
+<p>Currently, there is only one type of activity event:</p><ul><li><p><strong><code class="inline">{complete, ActivityID}</code></strong> - This event occurs when a transaction that
+caused a modification to the database is completed. It is useful for
+determining when a set of table events (see the next section), caused by a
+given activity, have been sent. Once this event is received, it is guaranteed
+that no further table events with the same <code class="inline">ActivityID</code> will be received.
+Notice that this event can still be received even if no table events with a
+corresponding <code class="inline">ActivityID</code> were received, depending on the tables to which the
+receiving process is subscribed.</p><p>Dirty operations always contain only one update and thus no activity event is
+sent.</p></li></ul><h3 id="table-events" class="section-heading">
+  <a href="#table-events" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Table Events</span>
+</h3>
+<p>Table events are events related to table updates. There are two types of table
+events, simple and detailed.</p><p>The <em>simple table events</em> are tuples like <code class="inline">{Oper, Record, ActivityId}</code>, where:</p><ul><li><code class="inline">Oper</code> is the operation performed.</li><li><code class="inline">Record</code> is the record involved in the operation.</li><li><code class="inline">ActivityId</code> is the identity of the transaction performing the operation.</li></ul><p>Notice that the record name is the table name even when <code class="inline">record_name</code> has
+another setting.</p><p>The table-related events that can occur are as follows:</p><ul><li><p><strong><code class="inline">{write, NewRecord, ActivityId}</code></strong> - A new record has been written.
+<code class="inline">NewRecord</code> contains the new record value.</p></li><li><p><strong><code class="inline">{delete_object, OldRecord, ActivityId}</code></strong> - A record has possibly been
+deleted with <a href="mnesia.html#delete_object/1"><code class="inline">mnesia:delete_object/1</code></a>. <code class="inline">OldRecord</code> contains the value of the
+old record, as stated as argument by the application. Notice that other
+records with the same key can remain in the table if it is of type <code class="inline">bag</code>.</p></li><li><p><strong><code class="inline">{delete, {Tab, Key}, ActivityId}</code></strong> - One or more records have possibly
+been deleted. All records with the key <code class="inline">Key</code> in the table <code class="inline">Tab</code> have been
+deleted.</p></li></ul><p>The <em>detailed table events</em> are tuples like
+<code class="inline">{Oper, Table, Data, [OldRecs], ActivityId}</code>, where:</p><ul><li><code class="inline">Oper</code> is the operation performed.</li><li><code class="inline">Table</code> is the table involved in the operation.</li><li><code class="inline">Data</code> is the record/OID written/deleted.</li><li><code class="inline">OldRecs</code> is the contents before the operation.</li><li><code class="inline">ActivityId</code> is the identity of the transaction performing the operation.</li></ul><p>The table-related events that can occur are as follows:</p><ul><li><p><strong><code class="inline">{write, Table, NewRecord, [OldRecords], ActivityId}</code></strong> - A new record has
+been written. <code class="inline">NewRecord</code> contains the new record value and <code class="inline">OldRecords</code>
+contains the records before the operation is performed. Notice that the new
+content depends on the table type.</p></li><li><p><strong><code class="inline">{delete, Table, What, [OldRecords], ActivityId}</code></strong> - Records have possibly
+been deleted. <code class="inline">What</code> is either <code class="inline">{Table, Key}</code> or a record
+<code class="inline">{RecordName, Key, ...}</code> that was deleted. Notice that the new content depends
+on the table type.</p></li></ul><h2 id="debugging-mnesia-applications" class="section-heading">
+  <a href="#debugging-mnesia-applications" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Debugging Mnesia Applications</span>
+</h2>
+<p>Debugging a <code class="inline">Mnesia</code> application can be difficult for various reasons, primarily
+related to difficulties in understanding how the transaction and table load
+mechanisms work. Another source of confusion can be the semantics of nested
+transactions.</p><p>The debug level of <code class="inline">Mnesia</code> is set by calling the function
+<a href="mnesia.html#set_debug_level/1">mnesia:set_debug_level(Level)</a>, where <code class="inline">Level</code>is one
+of the following:</p><ul><li><p><strong><code class="inline">none</code></strong> - No trace outputs. This is the default.</p></li><li><p><strong><code class="inline">verbose</code></strong> - Activates tracing of important debug events. These events
+generate <code class="inline">{mnesia_info, Format, Args}</code> system events. Processes can subscribe
+to these events with the function <a href="mnesia.html#subscribe/1"><code class="inline">mnesia:subscribe/1</code></a>. The events are always
+sent to the <code class="inline">Mnesia</code> event handler.</p></li><li><p><strong><code class="inline">debug</code></strong> - Activates all events at the verbose level plus traces of all
+debug events. These debug events generate <code class="inline">{mnesia_info, Format, Args}</code> system
+events. Processes can subscribe to these events with <a href="mnesia.html#subscribe/1"><code class="inline">mnesia:subscribe/1</code></a>. The
+events are always sent to the <code class="inline">Mnesia</code> event handler. On this debug level, the
+<code class="inline">Mnesia</code> event handler starts subscribing to updates in the schema table.</p></li><li><p><strong><code class="inline">trace</code></strong> - Activates all events at the debug level. On this level, the
+<code class="inline">Mnesia</code> event handler starts subscribing to updates on all <code class="inline">Mnesia</code> tables.
+This level is intended only for debugging small toy systems, as many large
+events can be generated.</p></li><li><p><strong><code class="inline">false</code></strong> - An alias for none.</p></li><li><p><strong><code class="inline">true</code></strong> - An alias for debug.</p></li></ul><p>The debug level of <code class="inline">Mnesia</code> itself is also an application parameter, making it
+possible to start an Erlang system to turn on <code class="inline">Mnesia</code> debug in the initial
+startup phase by using the following code:</p><pre><code class="text">      % erl -mnesia debug verbose</code></pre><h2 id="concurrent-processes-in-mnesia" class="section-heading">
+  <a href="#concurrent-processes-in-mnesia" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Concurrent Processes in Mnesia</span>
+</h2>
+<p>Programming concurrent Erlang systems is the subject of a separate book.
+However, it is worthwhile to draw attention to the following features, which
+permit concurrent processes to exist in a <code class="inline">Mnesia</code> system:</p><ul><li><p>A group of functions or processes can be called within a transaction. A
+transaction can include statements that read, write, or delete data from the
+DBMS. Many such transactions can run concurrently, and the programmer does not
+need to explicitly synchronize the processes that manipulate the data.</p><p>All programs accessing the database through the transaction system can be
+written as if they had sole access to the data. This is a desirable property,
+as all synchronization is taken care of by the transaction handler. If a
+program reads or writes data, the system ensures that no other program tries
+to manipulate the same data at the same time.</p></li><li><p>Tables can be moved or deleted, and the layout of a table can be reconfigured
+in various ways. An important aspect of the implementation of these functions
+is that user programs can continue to use a table while it is being
+reconfigured. For example, it is possible to move a table and perform write
+operations to the table at the same time. This is important for many
+applications that require continuously available services. For more
+information, see
+<a href="mnesia_chap4.html#trans_prop">Transactions and Other Access Contexts</a>.</p></li></ul><h2 id="prototyping" class="section-heading">
+  <a href="#prototyping" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Prototyping</span>
+</h2>
+<p>If and when you would like to start and manipulate <code class="inline">Mnesia</code>, it is often easier
+to write the definitions and data into an ordinary text file. Initially, no
+tables and no data exist, or which tables are required. At the initial stages of
+prototyping, it is prudent to write all data into one file, process that file,
+and have the data in the file inserted into the database. <code class="inline">Mnesia</code> can be
+initialized with data read from a text file. The following two functions can be
+used to work with text files.</p><ul><li><a href="mnesia.html#load_textfile/1">mnesia:load_textfile(Filename)</a> loads a series of
+local table definitions and data found in the file into <code class="inline">Mnesia</code>. This
+function also starts <code class="inline">Mnesia</code> and possibly creates a new schema. The function
+operates on the local node only.</li><li><a href="mnesia.html#dump_to_textfile/1">mnesia:dump_to_textfile(Filename)</a> dumps all
+local tables of a <code class="inline">Mnesia</code> system into a text file, which can be edited (with
+a normal text editor) and later reloaded.</li></ul><p>These functions are much slower than the ordinary store and load functions of
+<code class="inline">Mnesia</code>. However, this is mainly intended for minor experiments and initial
+prototyping. The major advantage of these functions is that they are easy to
+use.</p><p>The format of the text file is as follows:</p><pre><code class="makeup erlang" translate="no"><span class="w">      </span><span class="p" data-group-id="0135671725-1">{</span><span class="ss">tables</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0135671725-2">[</span><span class="p" data-group-id="0135671725-3">{</span><span class="n">Typename</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0135671725-4">[</span><span class="n">Options</span><span class="p" data-group-id="0135671725-4">]</span><span class="p" data-group-id="0135671725-3">}</span><span class="p">,</span><span class="w">
+      </span><span class="p" data-group-id="0135671725-5">{</span><span class="n">Typename2</span><span class="w"> </span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p" data-group-id="0135671725-5">}</span><span class="p" data-group-id="0135671725-2">]</span><span class="p" data-group-id="0135671725-1">}</span><span class="p">.</span><span class="w">
+
+      </span><span class="p" data-group-id="0135671725-6">{</span><span class="n">Typename</span><span class="p">,</span><span class="w"> </span><span class="n">Attribute1</span><span class="p">,</span><span class="w"> </span><span class="n">Attribute2</span><span class="w"> </span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p" data-group-id="0135671725-6">}</span><span class="p">.</span><span class="w">
+      </span><span class="p" data-group-id="0135671725-7">{</span><span class="n">Typename</span><span class="p">,</span><span class="w"> </span><span class="n">Attribute1</span><span class="p">,</span><span class="w"> </span><span class="n">Attribute2</span><span class="w"> </span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p" data-group-id="0135671725-7">}</span><span class="p">.</span></code></pre><p><code class="inline">Options</code> is a list of <code class="inline">{Key,Value}</code> tuples conforming to the options that you
+can give to <a href="mnesia.html#create_table/2"><code class="inline">mnesia:create_table/2</code></a>.</p><p>For example, to start playing with a small database for healthy foods, enter the
+following data into file <code class="inline">FRUITS</code>:</p><pre><code class="makeup erlang" translate="no"><span class="w">
+</span><span class="p" data-group-id="3283779760-1">{</span><span class="ss">tables</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="3283779760-2">[</span><span class="p" data-group-id="3283779760-3">{</span><span class="ss">fruit</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="3283779760-4">[</span><span class="p" data-group-id="3283779760-5">{</span><span class="ss">attributes</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="3283779760-6">[</span><span class="ss">name</span><span class="p">,</span><span class="w"> </span><span class="ss">color</span><span class="p">,</span><span class="w"> </span><span class="ss">taste</span><span class="p" data-group-id="3283779760-6">]</span><span class="p" data-group-id="3283779760-5">}</span><span class="p" data-group-id="3283779760-4">]</span><span class="p" data-group-id="3283779760-3">}</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="3283779760-7">{</span><span class="ss">vegetable</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="3283779760-8">[</span><span class="p" data-group-id="3283779760-9">{</span><span class="ss">attributes</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="3283779760-10">[</span><span class="ss">name</span><span class="p">,</span><span class="w"> </span><span class="ss">color</span><span class="p">,</span><span class="w"> </span><span class="ss">taste</span><span class="p">,</span><span class="w"> </span><span class="ss">price</span><span class="p" data-group-id="3283779760-10">]</span><span class="p" data-group-id="3283779760-9">}</span><span class="p" data-group-id="3283779760-8">]</span><span class="p" data-group-id="3283779760-7">}</span><span class="p" data-group-id="3283779760-2">]</span><span class="p" data-group-id="3283779760-1">}</span><span class="p">.</span><span class="w">
+
+
+</span><span class="p" data-group-id="3283779760-11">{</span><span class="ss">fruit</span><span class="p">,</span><span class="w"> </span><span class="ss">orange</span><span class="p">,</span><span class="w"> </span><span class="ss">orange</span><span class="p">,</span><span class="w"> </span><span class="ss">sweet</span><span class="p" data-group-id="3283779760-11">}</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="3283779760-12">{</span><span class="ss">fruit</span><span class="p">,</span><span class="w"> </span><span class="ss">apple</span><span class="p">,</span><span class="w"> </span><span class="ss">green</span><span class="p">,</span><span class="w"> </span><span class="ss">sweet</span><span class="p" data-group-id="3283779760-12">}</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="3283779760-13">{</span><span class="ss">vegetable</span><span class="p">,</span><span class="w"> </span><span class="ss">carrot</span><span class="p">,</span><span class="w"> </span><span class="ss">orange</span><span class="p">,</span><span class="w"> </span><span class="ss">carrotish</span><span class="p">,</span><span class="w"> </span><span class="mf">2.55</span><span class="p" data-group-id="3283779760-13">}</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="3283779760-14">{</span><span class="ss">vegetable</span><span class="p">,</span><span class="w"> </span><span class="ss">potato</span><span class="p">,</span><span class="w"> </span><span class="ss">yellow</span><span class="p">,</span><span class="w"> </span><span class="ss">none</span><span class="p">,</span><span class="w"> </span><span class="mf">0.45</span><span class="p" data-group-id="3283779760-14">}</span><span class="p">.</span></code></pre><p>The following session with the Erlang shell shows how to load the <code class="inline">FRUITS</code>
+database:</p><pre><code class="makeup erlang" translate="no"><span class="w">      </span><span class="c1">% erl</span><span class="w">
+      </span><span class="n">Erlang</span><span class="w"> </span><span class="p" data-group-id="9689512114-1">(</span><span class="n">BEAM</span><span class="p" data-group-id="9689512114-1">)</span><span class="w"> </span><span class="ss">emulator</span><span class="w"> </span><span class="ss">version</span><span class="w"> </span><span class="mf">4.9</span><span class="w">
+
+      </span><span class="n">Eshell</span><span class="w"> </span><span class="n">V4</span><span class="p">.</span><span class="mi">9</span><span class="w">  </span><span class="p" data-group-id="9689512114-2">(</span><span class="ss">abort</span><span class="w"> </span><span class="ss">with</span><span class="w"> </span><span class="err">^</span><span class="n">G</span><span class="p" data-group-id="9689512114-2">)</span><span class="w">
+      </span><span class="mi">1</span><span class="o">&gt;</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">load_textfile</span><span class="p" data-group-id="9689512114-3">(</span><span class="s">&quot;FRUITS&quot;</span><span class="p" data-group-id="9689512114-3">)</span><span class="p">.</span><span class="w">
+      </span><span class="n">New</span><span class="w"> </span><span class="ss">table</span><span class="w"> </span><span class="ss">fruit</span><span class="w">
+      </span><span class="n">New</span><span class="w"> </span><span class="ss">table</span><span class="w"> </span><span class="ss">vegetable</span><span class="w">
+      </span><span class="p" data-group-id="9689512114-4">{</span><span class="ss">atomic</span><span class="p">,</span><span class="ss">ok</span><span class="p" data-group-id="9689512114-4">}</span><span class="w">
+      </span><span class="mi">2</span><span class="o">&gt;</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">info</span><span class="p" data-group-id="9689512114-5">(</span><span class="p" data-group-id="9689512114-5">)</span><span class="p">.</span><span class="w">
+      </span><span class="o">--</span><span class="p">-&gt;</span><span class="w"> </span><span class="n">Processes</span><span class="w"> </span><span class="ss">holding</span><span class="w"> </span><span class="ss">locks</span><span class="w"> </span><span class="o">&lt;-</span><span class="o">--</span><span class="w">
+      </span><span class="o">--</span><span class="p">-&gt;</span><span class="w"> </span><span class="n">Processes</span><span class="w"> </span><span class="ss">waiting</span><span class="w"> </span><span class="ss">for</span><span class="w"> </span><span class="ss">locks</span><span class="w"> </span><span class="o">&lt;-</span><span class="o">--</span><span class="w">
+      </span><span class="o">--</span><span class="p">-&gt;</span><span class="w"> </span><span class="n">Pending</span><span class="w"> </span><span class="p" data-group-id="9689512114-6">(</span><span class="ss">remote</span><span class="p" data-group-id="9689512114-6">)</span><span class="w"> </span><span class="ss">transactions</span><span class="w"> </span><span class="o">&lt;-</span><span class="o">--</span><span class="w">
+      </span><span class="o">--</span><span class="p">-&gt;</span><span class="w"> </span><span class="n">Active</span><span class="w"> </span><span class="p" data-group-id="9689512114-7">(</span><span class="ss">local</span><span class="p" data-group-id="9689512114-7">)</span><span class="w"> </span><span class="ss">transactions</span><span class="w"> </span><span class="o">&lt;-</span><span class="o">--</span><span class="w">
+      </span><span class="o">--</span><span class="p">-&gt;</span><span class="w"> </span><span class="n">Uncertain</span><span class="w"> </span><span class="ss">transactions</span><span class="w"> </span><span class="o">&lt;-</span><span class="o">--</span><span class="w">
+      </span><span class="o">--</span><span class="p">-&gt;</span><span class="w"> </span><span class="n">Active</span><span class="w"> </span><span class="ss">tables</span><span class="w"> </span><span class="o">&lt;-</span><span class="o">--</span><span class="w">
+      </span><span class="ss">vegetable</span><span class="w">      </span><span class="p">:</span><span class="w"> </span><span class="ss">with</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="ss">records</span><span class="w"> </span><span class="ss">occuping</span><span class="w"> </span><span class="mi">299</span><span class="w"> </span><span class="ss">words</span><span class="w"> </span><span class="k">of</span><span class="w"> </span><span class="ss">mem</span><span class="w">
+      </span><span class="ss">fruit</span><span class="w">          </span><span class="p">:</span><span class="w"> </span><span class="ss">with</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="ss">records</span><span class="w"> </span><span class="ss">occuping</span><span class="w"> </span><span class="mi">291</span><span class="w"> </span><span class="ss">words</span><span class="w"> </span><span class="k">of</span><span class="w"> </span><span class="ss">mem</span><span class="w">
+      </span><span class="ss">schema</span><span class="w">         </span><span class="p">:</span><span class="w"> </span><span class="ss">with</span><span class="w"> </span><span class="mi">3</span><span class="w"> </span><span class="ss">records</span><span class="w"> </span><span class="ss">occuping</span><span class="w"> </span><span class="mi">401</span><span class="w"> </span><span class="ss">words</span><span class="w"> </span><span class="k">of</span><span class="w"> </span><span class="ss">mem</span><span class="w">
+      </span><span class="o">==</span><span class="p">=&gt;</span><span class="w"> </span><span class="n">System</span><span class="w"> </span><span class="ss">info</span><span class="w"> </span><span class="ss">in</span><span class="w"> </span><span class="ss">version</span><span class="w"> </span><span class="s">&quot;1.1&quot;</span><span class="p">,</span><span class="w"> </span><span class="ss">debug</span><span class="w"> </span><span class="ss">level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">none</span><span class="w"> </span><span class="o">&lt;</span><span class="o">==</span><span class="o">=</span><span class="w">
+      </span><span class="ss">opt_disc</span><span class="p">.</span><span class="w"> </span><span class="n">Directory</span><span class="w"> </span><span class="s">&quot;/var/tmp/Mnesia.nonode@nohost&quot;</span><span class="w"> </span><span class="ss">is</span><span class="w"> </span><span class="ss">used</span><span class="p">.</span><span class="w">
+      </span><span class="ss">use</span><span class="w"> </span><span class="ss">fallback</span><span class="w"> </span><span class="ss">at</span><span class="w"> </span><span class="ss">restart</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">false</span><span class="w">
+      </span><span class="ss">running</span><span class="w"> </span><span class="ss">db</span><span class="w"> </span><span class="nb">nodes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="9689512114-8">[</span><span class="ss">nonode@nohost</span><span class="p" data-group-id="9689512114-8">]</span><span class="w">
+      </span><span class="ss">stopped</span><span class="w"> </span><span class="ss">db</span><span class="w"> </span><span class="nb">nodes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="9689512114-9">[</span><span class="p" data-group-id="9689512114-9">]</span><span class="w">
+      </span><span class="ss">remote</span><span class="w">           </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="9689512114-10">[</span><span class="p" data-group-id="9689512114-10">]</span><span class="w">
+      </span><span class="ss">ram_copies</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="9689512114-11">[</span><span class="ss">fruit</span><span class="p">,</span><span class="ss">vegetable</span><span class="p" data-group-id="9689512114-11">]</span><span class="w">
+      </span><span class="ss">disc_copies</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="9689512114-12">[</span><span class="ss">schema</span><span class="p" data-group-id="9689512114-12">]</span><span class="w">
+      </span><span class="ss">disc_only_copies</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="9689512114-13">[</span><span class="p" data-group-id="9689512114-13">]</span><span class="w">
+      </span><span class="p" data-group-id="9689512114-14">[</span><span class="p" data-group-id="9689512114-15">{</span><span class="ss">nonode@nohost</span><span class="p">,</span><span class="ss">disc_copies</span><span class="p" data-group-id="9689512114-15">}</span><span class="p" data-group-id="9689512114-14">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="9689512114-16">[</span><span class="ss">schema</span><span class="p" data-group-id="9689512114-16">]</span><span class="w">
+      </span><span class="p" data-group-id="9689512114-17">[</span><span class="p" data-group-id="9689512114-18">{</span><span class="ss">nonode@nohost</span><span class="p">,</span><span class="ss">ram_copies</span><span class="p" data-group-id="9689512114-18">}</span><span class="p" data-group-id="9689512114-17">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="9689512114-19">[</span><span class="ss">fruit</span><span class="p">,</span><span class="ss">vegetable</span><span class="p" data-group-id="9689512114-19">]</span><span class="w">
+      </span><span class="mi">3</span><span class="w"> </span><span class="ss">transactions</span><span class="w"> </span><span class="ss">committed</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="ss">aborted</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="ss">restarted</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="ss">logged</span><span class="w"> </span><span class="ss">to</span><span class="w"> </span><span class="ss">disc</span><span class="w">
+      </span><span class="mi">0</span><span class="w"> </span><span class="ss">held</span><span class="w"> </span><span class="ss">locks</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="ss">in</span><span class="w"> </span><span class="ss">queue</span><span class="p">;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="ss">local</span><span class="w"> </span><span class="ss">transactions</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="ss">remote</span><span class="w">
+      </span><span class="mi">0</span><span class="w"> </span><span class="ss">transactions</span><span class="w"> </span><span class="ss">waits</span><span class="w"> </span><span class="ss">for</span><span class="w"> </span><span class="ss">other</span><span class="w"> </span><span class="nc">nodes</span><span class="p">:</span><span class="w"> </span><span class="p" data-group-id="9689512114-20">[</span><span class="p" data-group-id="9689512114-20">]</span><span class="w">
+      </span><span class="ss">ok</span><span class="w">
+      </span><span class="mi">3</span><span class="o">&gt;</span></code></pre><p>It can be seen that the DBMS was initiated from a regular text file.</p><h2 id="object-based-programming-with-mnesia" class="section-heading">
+  <a href="#object-based-programming-with-mnesia" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Object-Based Programming with Mnesia</span>
+</h2>
+<p>The <code class="inline">Company</code> database, introduced in
+<a href="mnesia_chap2.html#getting_started">Getting Started</a>, has three tables that store
+records (<code class="inline">employee</code>, <code class="inline">dept</code>, <code class="inline">project</code>), and three tables that store
+relationships (<code class="inline">manager</code>, <code class="inline">at_dep</code>, <code class="inline">in_proj</code>). This is a normalized data model,
+which has some advantages over a non-normalized data model.</p><p>It is more efficient to do a generalized search in a normalized database. Some
+operations are also easier to perform on a normalized data model. For example,
+one project can easily be removed, as the following example illustrates:</p><pre><code class="makeup erlang" translate="no"><span class="w">
+</span><span class="nf">remove_proj</span><span class="p" data-group-id="2078590163-1">(</span><span class="n">ProjName</span><span class="p" data-group-id="2078590163-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">F</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">fun</span><span class="p" data-group-id="2078590163-2">(</span><span class="p" data-group-id="2078590163-2">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                </span><span class="n">Ip</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">qlc</span><span class="p">:</span><span class="nf">e</span><span class="p" data-group-id="2078590163-3">(</span><span class="nc">qlc</span><span class="p">:</span><span class="nf">q</span><span class="p" data-group-id="2078590163-4">(</span><span class="p" data-group-id="2078590163-5">[</span><span class="n">X</span><span class="w"> </span><span class="p">||</span><span class="w"> </span><span class="n">X</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">table</span><span class="p" data-group-id="2078590163-6">(</span><span class="ss">in_proj</span><span class="p" data-group-id="2078590163-6">)</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="w">       </span><span class="n">X</span><span class="o">#</span><span class="ss">in_proj</span><span class="p">.</span><span class="ss">proj_name</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">ProjName</span><span class="p" data-group-id="2078590163-5">]</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="p" data-group-id="2078590163-4">)</span><span class="p" data-group-id="2078590163-3">)</span><span class="p">,</span><span class="w">
+                </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">delete</span><span class="p" data-group-id="2078590163-7">(</span><span class="p" data-group-id="2078590163-8">{</span><span class="ss">project</span><span class="p">,</span><span class="w"> </span><span class="n">ProjName</span><span class="p" data-group-id="2078590163-8">}</span><span class="p" data-group-id="2078590163-7">)</span><span class="p">,</span><span class="w">
+                </span><span class="nf">del_in_projs</span><span class="p" data-group-id="2078590163-9">(</span><span class="n">Ip</span><span class="p" data-group-id="2078590163-9">)</span><span class="w">
+        </span><span class="k">end</span><span class="p">,</span><span class="w">
+    </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">transaction</span><span class="p" data-group-id="2078590163-10">(</span><span class="n">F</span><span class="p" data-group-id="2078590163-10">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">del_in_projs</span><span class="p" data-group-id="2078590163-11">(</span><span class="p" data-group-id="2078590163-12">[</span><span class="n">Ip</span><span class="p">|</span><span class="n">Tail</span><span class="p" data-group-id="2078590163-12">]</span><span class="p" data-group-id="2078590163-11">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">delete_object</span><span class="p" data-group-id="2078590163-13">(</span><span class="n">Ip</span><span class="p" data-group-id="2078590163-13">)</span><span class="p">,</span><span class="w">
+    </span><span class="nf">del_in_projs</span><span class="p" data-group-id="2078590163-14">(</span><span class="n">Tail</span><span class="p" data-group-id="2078590163-14">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">del_in_projs</span><span class="p" data-group-id="2078590163-15">(</span><span class="p" data-group-id="2078590163-16">[</span><span class="p" data-group-id="2078590163-16">]</span><span class="p" data-group-id="2078590163-15">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="ss">done</span><span class="p">.</span></code></pre><p>In reality, data models are seldom fully normalized. A realistic alternative to
+a normalized database model would be a data model that is not even in first
+normal form. <code class="inline">Mnesia</code> is suitable for applications such as telecommunications,
+because it is easy to organize data in a flexible manner. A <code class="inline">Mnesia</code> database is
+always organized as a set of tables. Each table is filled with rows, objects,
+and records. What sets <code class="inline">Mnesia</code> apart is that individual fields in a record can
+contain any type of compound data structures. An individual field in a record
+can contain lists, tuples, functions, and even record code.</p><p>Many telecommunications applications have unique requirements on lookup times
+for certain types of records. If the <code class="inline">Company</code> database had been a part of a
+telecommunications system, it could be to minimize the lookup time of an
+employee <em>together</em> with a list of the projects the employee is working on. If
+this is the case, a drastically different data model without direct
+relationships can be chosen. You would then have only the records themselves,
+and different records could contain either direct references to other records,
+or contain other records that are not part of the <code class="inline">Mnesia</code> schema.</p><p>The following record definitions can be created:</p><pre><code class="makeup erlang" translate="no"><span class="w">
+</span><span class="p">-</span><span class="na">record</span><span class="p" data-group-id="1834566080-1">(</span><span class="ss">employee</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1834566080-2">{</span><span class="ss">emp_no</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">   </span><span class="ss">name</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">   </span><span class="ss">salary</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">   </span><span class="ss">sex</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">   </span><span class="ss">phone</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">   </span><span class="ss">room_no</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">   </span><span class="ss">dept</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">   </span><span class="ss">projects</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="w">   </span><span class="ss">manager</span><span class="p" data-group-id="1834566080-2">}</span><span class="p" data-group-id="1834566080-1">)</span><span class="p">.</span><span class="w">
+</span><span class="w">
+
+</span><span class="p">-</span><span class="na">record</span><span class="p" data-group-id="1834566080-3">(</span><span class="ss">dept</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1834566080-4">{</span><span class="ss">id</span><span class="p">,</span><span class="w">
+               </span><span class="ss">name</span><span class="p" data-group-id="1834566080-4">}</span><span class="p" data-group-id="1834566080-3">)</span><span class="p">.</span><span class="w">
+</span><span class="w">
+</span><span class="p">-</span><span class="na">record</span><span class="p" data-group-id="1834566080-5">(</span><span class="ss">project</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1834566080-6">{</span><span class="ss">name</span><span class="p">,</span><span class="w">
+                  </span><span class="ss">number</span><span class="p">,</span><span class="w">
+                  </span><span class="ss">location</span><span class="p" data-group-id="1834566080-6">}</span><span class="p" data-group-id="1834566080-5">)</span><span class="p">.</span></code></pre><p>A record that describes an employee can look as follows:</p><pre><code class="makeup erlang" translate="no"><span class="w">        </span><span class="n">Me</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">#</span><span class="ss">employee</span><span class="p" data-group-id="6993864052-1">{</span><span class="ss">emp_no</span><span class="o">=</span><span class="w"> </span><span class="mi">104732</span><span class="p">,</span><span class="w">
+        </span><span class="ss">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">klacke</span><span class="p">,</span><span class="w">
+        </span><span class="ss">salary</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">7</span><span class="p">,</span><span class="w">
+        </span><span class="ss">sex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">male</span><span class="p">,</span><span class="w">
+        </span><span class="ss">phone</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">99586</span><span class="p">,</span><span class="w">
+        </span><span class="ss">room_no</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="6993864052-2">{</span><span class="mi">221</span><span class="p">,</span><span class="w"> </span><span class="mi">015</span><span class="p" data-group-id="6993864052-2">}</span><span class="p">,</span><span class="w">
+        </span><span class="ss">dept</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">&#39;B/SFR&#39;</span><span class="p">,</span><span class="w">
+        </span><span class="ss">projects</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="6993864052-3">[</span><span class="ss">erlang</span><span class="p">,</span><span class="w"> </span><span class="ss">mnesia</span><span class="p">,</span><span class="w"> </span><span class="ss">otp</span><span class="p" data-group-id="6993864052-3">]</span><span class="p">,</span><span class="w">
+        </span><span class="ss">manager</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">114872</span><span class="p" data-group-id="6993864052-1">}</span><span class="p">,</span></code></pre><p>This model has only three different tables, and the employee records contain
+references to other records. The record has the following references:</p><ul><li><code class="inline">'B/SFR'</code> refers to a <code class="inline">dept</code> record.</li><li><code class="inline">[erlang, mnesia, otp]</code> is a list of three direct references to three
+different <code class="inline">projects</code> records.</li><li><code class="inline">114872</code> refers to another employee record.</li></ul><p>The <code class="inline">Mnesia</code> record identifiers (<code class="inline">{Tab, Key}</code>) can also be used as references.
+In this case, attribute <code class="inline">dept</code> would be set to value <code class="inline">{dept, 'B/SFR'}</code> instead
+of <code class="inline">'B/SFR'</code>.</p><p>With this data model, some operations execute considerably faster than they do
+with the normalized data model in the <code class="inline">Company</code> database. However, some other
+operations become much more complicated. In particular, it becomes more
+difficult to ensure that records do not contain dangling pointers to other
+non-existent, or deleted, records.</p><p>The following code exemplifies a search with a non-normalized data model. To
+find all employees at department <code class="inline">Dep</code> with a salary higher than <code class="inline">Salary</code>, use
+the following code:</p><pre><code class="makeup erlang" translate="no"><span class="w">
+</span><span class="nf">get_emps</span><span class="p" data-group-id="4284494025-1">(</span><span class="n">Salary</span><span class="p">,</span><span class="w"> </span><span class="n">Dep</span><span class="p" data-group-id="4284494025-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">Q</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">qlc</span><span class="p">:</span><span class="nf">q</span><span class="p" data-group-id="4284494025-2">(</span><span class="w">
+          </span><span class="p" data-group-id="4284494025-3">[</span><span class="n">E</span><span class="w"> </span><span class="p">||</span><span class="w"> </span><span class="n">E</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="nc">mnesia</span><span class="p">:</span><span class="nf">table</span><span class="p" data-group-id="4284494025-4">(</span><span class="ss">employee</span><span class="p" data-group-id="4284494025-4">)</span><span class="p">,</span><span class="w">
+                </span><span class="n">E</span><span class="o">#</span><span class="ss">employee</span><span class="p">.</span><span class="ss">salary</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">Salary</span><span class="p">,</span><span class="w">
+                </span><span class="n">E</span><span class="o">#</span><span class="ss">employee</span><span class="p">.</span><span class="ss">dept</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">Dep</span><span class="p" data-group-id="4284494025-3">]</span><span class="w">
+</span><span class="err">	</span><span class="w"> </span><span class="p" data-group-id="4284494025-2">)</span><span class="p">,</span><span class="w">
+    </span><span class="n">F</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">fun</span><span class="p" data-group-id="4284494025-5">(</span><span class="p" data-group-id="4284494025-5">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">qlc</span><span class="p">:</span><span class="nf">e</span><span class="p" data-group-id="4284494025-6">(</span><span class="n">Q</span><span class="p" data-group-id="4284494025-6">)</span><span class="w"> </span><span class="k">end</span><span class="p">,</span><span class="w">
+    </span><span class="nf">transaction</span><span class="p" data-group-id="4284494025-7">(</span><span class="n">F</span><span class="p" data-group-id="4284494025-7">)</span><span class="p">.</span></code></pre><p>This code is easier to write and to understand, and it also executes much
+faster.</p><p>It is easy to show examples of code that executes faster if a non-normalized
+data model is used, instead of a normalized model. The main reason is that fewer
+tables are required. Therefore, data from different tables can more easily be
+combined in join operations. In the previous example, the function <code class="inline">get_emps/2</code>
+is transformed from a join operation into a simple query, which consists of a
+selection and a projection on one single table.</p>
+<div class="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="mnesia_chap4.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Transactions and Other Access Contexts
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="mnesia_chap7.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+Mnesia System Information
+        </span>
+      </a>
+
+  </div>
+</div>
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+              <a href="mnesia.epub" title="ePub version">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

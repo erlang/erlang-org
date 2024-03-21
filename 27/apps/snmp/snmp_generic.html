@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="snmp v5.16">
+
+
+    <title>snmp_generic — snmp v5.16</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-CA7878C5.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="modules" class="page-module">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="snmp" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+snmp
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v5.16
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of snmp</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/lib/snmp/src/agent/snmp_generic.erl#L20" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+  <span translate="no">snmp_generic</span> 
+  <small class="app-vsn" translate="no">(snmp v5.16)</small>
+
+</h1>
+
+
+  <section id="moduledoc">
+<p>Generic Functions for Implementing SNMP Objects in a Database</p><p><a href="" id="description"></a></p><p>The module <code class="inline">snmp_generic</code> contains generic functions for implementing tables
+(and variables) using the SNMP built-in database or Mnesia. These default
+functions are used if no instrumentation function is provided for a managed
+object in a MIB. Sometimes, it might be necessary to customize the behaviour of
+the default functions. For example, in some situations a trap should be sent if
+a row is deleted or modified, or some hardware is to be informed, when
+information is changed.</p><p>The overall structure is shown in the following figure:</p><pre><code class="makeup c" translate="no"><span class="w">         </span><span class="o">+</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">-</span><span class="o">+</span><span class="w">
+         </span><span class="o">|</span><span class="w">   </span><span class="no">SNMP</span><span class="w"> </span><span class="no">Agent</span><span class="w">  </span><span class="o">|</span><span class="w">
+         </span><span class="o">+</span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="o">-</span><span class="o">+</span><span class="w">
+         </span><span class="o">|</span><span class="w">      </span><span class="no">MIB</span><span class="w">      </span><span class="o">|</span><span class="w">
+         </span><span class="o">+</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">-</span><span class="o">+</span><span class="w">
+                 </span><span class="o">|</span><span class="w">
+         </span><span class="no">Association</span><span class="w"> </span><span class="n">file</span><span class="w">       </span><span class="p" data-group-id="5648975436-1">(</span><span class="n">associates</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="no">MIB</span><span class="w"> </span><span class="n">object</span><span class="w"> </span><span class="n">with</span><span class="w">
+                 </span><span class="o">|</span><span class="w">               </span><span class="n">snmp_generic</span><span class="o">:</span><span class="n">table_funct</span><span class="w">
+                 </span><span class="o">|</span><span class="w">               </span><span class="n">snmp_generic</span><span class="o">:</span><span class="n">variable_func</span><span class="p" data-group-id="5648975436-1">)</span><span class="w">
+</span><span class="o">+</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">+</span><span class="w">
+</span><span class="o">|</span><span class="w">           </span><span class="n">snmp_generic</span><span class="w">               </span><span class="o">|</span><span class="w">  </span><span class="no">Support</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">get</span><span class="o">-</span><span class="n">next</span><span class="p">,</span><span class="w">
+</span><span class="o">|</span><span class="w">                                      </span><span class="o">|</span><span class="w">  </span><span class="no">RowStatus</span><span class="w"> </span><span class="n">operations</span><span class="w">
+</span><span class="o">+</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">+</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">-</span><span class="o">+</span><span class="w">
+</span><span class="o">|</span><span class="w">    </span><span class="n">snmpa_local_db</span><span class="w">    </span><span class="o">|</span><span class="w">    </span><span class="no">Mnesia</span><span class="w">     </span><span class="o">|</span><span class="w">  </span><span class="no">Database</span><span class="w">
+</span><span class="o">+</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">+</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">-</span><span class="o">+</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">-</span><span class="o">+</span><span class="w">
+</span><span class="o">|</span><span class="w">     </span><span class="n">dets</span><span class="w">     </span><span class="o">|</span><span class="w">  </span><span class="n">ets</span><span class="w">  </span><span class="o">|</span><span class="w">
+</span><span class="o">|</span><span class="w"> </span><span class="p" data-group-id="5648975436-2">(</span><span class="n">persistent</span><span class="p" data-group-id="5648975436-2">)</span><span class="w"> </span><span class="o">|</span><span class="w">       </span><span class="o">|</span><span class="w">
+</span><span class="o">+</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">+</span><span class="o">--</span><span class="o">--</span><span class="o">--</span><span class="o">-</span><span class="o">+</span></code></pre><p>Each function takes the argument <code class="inline">NameDb</code>, which is a tuple <code class="inline">{Name, Db}</code>, to
+identify which database the functions should use. <code class="inline">Name</code> is the symbolic name of
+the managed object as defined in the MIB, and <code class="inline">Db</code> is either <code class="inline">volatile</code>,
+<code class="inline">persistent</code>, or <code class="inline">mnesia</code>. If it is <code class="inline">mnesia</code>, all variables are stored in the
+Mnesia table <code class="inline">snmp_variables</code> which must be a table with two attributes (not a
+Mnesia SNMP table). The SNMP tables are stored in Mnesia tables with the same
+names as the SNMP tables. All functions assume that a Mnesia table exists with
+the correct name and attributes. It is the programmer's responsibility to ensure
+this. Specifically, if variables are stored in Mnesia, the table
+<code class="inline">snmp_variables</code> must be created by the programmer. The record definition for
+this table is defined in the file <code class="inline">snmp/include/snmp_types.hrl</code>.</p><p>If an instrumentation function in the association file for a variable <code class="inline">myVar</code>
+does not have a name when compiling an MIB, the compiler generates an entry.</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="4753363855-1">{</span><span class="ss">myVar</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="4753363855-2">{</span><span class="ss">snmp_generic</span><span class="p">,</span><span class="w"> </span><span class="ss">variable_func</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="4753363855-3">[</span><span class="p" data-group-id="4753363855-4">{</span><span class="ss">myVar</span><span class="p">,</span><span class="w"> </span><span class="n">Db</span><span class="p">]</span><span class="p" data-group-id="4753363855-4">}</span><span class="p">}</span><span class="p">.</span></code></pre><p>And for a table:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="9494795007-1">{</span><span class="ss">myTable</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="9494795007-2">{</span><span class="ss">snmp_generic</span><span class="p">,</span><span class="w"> </span><span class="ss">table_func</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="9494795007-3">[</span><span class="p" data-group-id="9494795007-4">{</span><span class="ss">myTable</span><span class="p">,</span><span class="w"> </span><span class="n">Db</span><span class="p">]</span><span class="p" data-group-id="9494795007-4">}</span><span class="p">}</span><span class="p">.</span></code></pre><p><a href="" id="data_types"></a></p><h2 id="module-data-types" class="section-heading">
+  <a href="#module-data-types" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">DATA TYPES</span>
+</h2>
+<p>In the functions defined below, the following types are used:</p><pre><code class="makeup erlang" translate="no"><span class="nf">name_db</span><span class="p" data-group-id="8885415595-1">(</span><span class="p" data-group-id="8885415595-1">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="8885415595-2">{</span><span class="nf">name</span><span class="p" data-group-id="8885415595-3">(</span><span class="p" data-group-id="8885415595-3">)</span><span class="p">,</span><span class="w"> </span><span class="nf">db</span><span class="p" data-group-id="8885415595-4">(</span><span class="p" data-group-id="8885415595-4">)</span><span class="p" data-group-id="8885415595-2">}</span><span class="w">
+</span><span class="nf">name</span><span class="p" data-group-id="8885415595-5">(</span><span class="p" data-group-id="8885415595-5">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">atom</span><span class="p" data-group-id="8885415595-6">(</span><span class="p" data-group-id="8885415595-6">)</span><span class="w">
+</span><span class="nf">db</span><span class="p" data-group-id="8885415595-7">(</span><span class="p" data-group-id="8885415595-7">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">volatile</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="ss">persistent</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="ss">mnesia</span><span class="w">
+</span><span class="nf">row_index</span><span class="p" data-group-id="8885415595-8">(</span><span class="p" data-group-id="8885415595-8">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="8885415595-9">[</span><span class="nf">int</span><span class="p" data-group-id="8885415595-10">(</span><span class="p" data-group-id="8885415595-10">)</span><span class="p" data-group-id="8885415595-9">]</span><span class="w">
+</span><span class="nf">columns</span><span class="p" data-group-id="8885415595-11">(</span><span class="p" data-group-id="8885415595-11">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="8885415595-12">[</span><span class="nf">column</span><span class="p" data-group-id="8885415595-13">(</span><span class="p" data-group-id="8885415595-13">)</span><span class="p" data-group-id="8885415595-12">]</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="8885415595-14">[</span><span class="p" data-group-id="8885415595-15">{</span><span class="nf">column</span><span class="p" data-group-id="8885415595-16">(</span><span class="p" data-group-id="8885415595-16">)</span><span class="p">,</span><span class="w"> </span><span class="nf">value</span><span class="p" data-group-id="8885415595-17">(</span><span class="p" data-group-id="8885415595-17">)</span><span class="p" data-group-id="8885415595-15">}</span><span class="p" data-group-id="8885415595-14">]</span><span class="w">
+</span><span class="nf">column</span><span class="p" data-group-id="8885415595-18">(</span><span class="p" data-group-id="8885415595-18">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">int</span><span class="p" data-group-id="8885415595-19">(</span><span class="p" data-group-id="8885415595-19">)</span><span class="w">
+</span><span class="nf">value</span><span class="p" data-group-id="8885415595-20">(</span><span class="p" data-group-id="8885415595-20">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">term</span><span class="p" data-group-id="8885415595-21">(</span><span class="p" data-group-id="8885415595-21">)</span></code></pre><ul><li><p><strong><code class="inline">row_index()</code></strong> - Denotes the last part of the OID which specifies the index
+of the row in the table (see RFC1212, 4.1.6 for more information about INDEX).</p></li><li><p><strong><a href="#t:columns/0"><code class="inline">columns/0</code></a></strong> - Is a list of column numbers in the case of a <code class="inline">get</code>
+operation, and a list of column numbers and values in the case of a <code class="inline">set</code>
+operation.</p></li></ul><p><a href="" id="get_status_col2"></a> <a href="" id="example"></a></p><h2 id="module-example" class="section-heading">
+  <a href="#module-example" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Example</span>
+</h2>
+<p>The following example shows an implementation of a table which is stored in
+Mnesia, but with some checks performed at set-request operations.</p><pre><code class="makeup erlang" translate="no"><span class="nf">myTable_func</span><span class="p" data-group-id="0442981824-1">(</span><span class="ss">new</span><span class="p">,</span><span class="w"> </span><span class="n">NameDb</span><span class="p" data-group-id="0442981824-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">   </span><span class="c1">% pass unchanged</span><span class="w">
+  </span><span class="nc">snmp_generic</span><span class="p">:</span><span class="nf">table_func</span><span class="p" data-group-id="0442981824-2">(</span><span class="ss">new</span><span class="p">,</span><span class="w"> </span><span class="n">NameDb</span><span class="p" data-group-id="0442981824-2">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">myTable_func</span><span class="p" data-group-id="0442981824-3">(</span><span class="ss">delete</span><span class="p">,</span><span class="w"> </span><span class="n">NameDb</span><span class="p" data-group-id="0442981824-3">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">   </span><span class="c1">% pass unchanged</span><span class="w">
+  </span><span class="nc">snmp_generic</span><span class="p">:</span><span class="nf">table_func</span><span class="p" data-group-id="0442981824-4">(</span><span class="ss">delete</span><span class="p">,</span><span class="w"> </span><span class="n">NameDb</span><span class="p" data-group-id="0442981824-4">)</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%% change row</span><span class="w">
+</span><span class="nf">myTable_func</span><span class="p" data-group-id="0442981824-5">(</span><span class="ss">is_set_ok</span><span class="p">,</span><span class="w"> </span><span class="n">RowIndex</span><span class="p">,</span><span class="w"> </span><span class="n">Cols</span><span class="p">,</span><span class="w"> </span><span class="n">NameDb</span><span class="p" data-group-id="0442981824-5">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+  </span><span class="k">case</span><span class="w"> </span><span class="nc">snmp_generic</span><span class="p">:</span><span class="nf">table_func</span><span class="p" data-group-id="0442981824-6">(</span><span class="ss">is_set_ok</span><span class="p">,</span><span class="w"> </span><span class="n">RowIndex</span><span class="p">,</span><span class="w">
+                               </span><span class="n">Cols</span><span class="p">,</span><span class="w"> </span><span class="n">NameDb</span><span class="p" data-group-id="0442981824-6">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+    </span><span class="p" data-group-id="0442981824-7">{</span><span class="ss">noError</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p" data-group-id="0442981824-7">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+      </span><span class="nc">myApplication</span><span class="p">:</span><span class="nf">is_set_ok</span><span class="p" data-group-id="0442981824-8">(</span><span class="n">RowIndex</span><span class="p">,</span><span class="w"> </span><span class="n">Cols</span><span class="p" data-group-id="0442981824-8">)</span><span class="p">;</span><span class="w">
+    </span><span class="n">Err</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+      </span><span class="n">Err</span><span class="w">
+  </span><span class="k">end</span><span class="p">;</span><span class="w">
+
+</span><span class="nf">myTable_func</span><span class="p" data-group-id="0442981824-9">(</span><span class="ss">set</span><span class="p">,</span><span class="w"> </span><span class="n">RowIndex</span><span class="p">,</span><span class="w"> </span><span class="n">Cols</span><span class="p">,</span><span class="w"> </span><span class="n">NameDb</span><span class="p" data-group-id="0442981824-9">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+  </span><span class="k">case</span><span class="w"> </span><span class="nc">snmp_generic</span><span class="p">:</span><span class="nf">table_func</span><span class="p" data-group-id="0442981824-10">(</span><span class="ss">set</span><span class="p">,</span><span class="w"> </span><span class="n">RowIndex</span><span class="p">,</span><span class="w"> </span><span class="n">Cols</span><span class="p">,</span><span class="w">
+                               </span><span class="n">NameDb</span><span class="p" data-group-id="0442981824-10">)</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="0442981824-11">{</span><span class="ss">noError</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p" data-group-id="0442981824-11">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+      </span><span class="c1">% Now the row is updated, tell the application</span><span class="w">
+      </span><span class="nc">myApplication</span><span class="p">:</span><span class="nf">update</span><span class="p" data-group-id="0442981824-12">(</span><span class="n">RowIndex</span><span class="p">,</span><span class="w"> </span><span class="n">Cols</span><span class="p" data-group-id="0442981824-12">)</span><span class="p">;</span><span class="w">
+    </span><span class="n">Err</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+      </span><span class="n">Err</span><span class="w">
+  </span><span class="k">end</span><span class="p">;</span><span class="w">
+
+</span><span class="nf">myTable_func</span><span class="p" data-group-id="0442981824-13">(</span><span class="n">Op</span><span class="p">,</span><span class="w"> </span><span class="n">RowIndex</span><span class="p">,</span><span class="w"> </span><span class="n">Cols</span><span class="p">,</span><span class="w"> </span><span class="n">NameDb</span><span class="p" data-group-id="0442981824-13">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">   </span><span class="c1">% pass unchanged</span><span class="w">
+  </span><span class="nc">snmp_generic</span><span class="p">:</span><span class="nf">table_func</span><span class="p" data-group-id="0442981824-14">(</span><span class="n">Op</span><span class="p">,</span><span class="w"> </span><span class="n">RowIndex</span><span class="p">,</span><span class="w"> </span><span class="n">Cols</span><span class="p">,</span><span class="w"> </span><span class="n">NameDb</span><span class="p" data-group-id="0442981824-14">)</span><span class="p">.</span></code></pre><p>The <code class="inline">.funcs</code> file would look like:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="6168926269-1">{</span><span class="ss">myTable</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6168926269-2">{</span><span class="ss">myModule</span><span class="p">,</span><span class="w"> </span><span class="ss">myTable_func</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6168926269-3">[</span><span class="p" data-group-id="6168926269-4">{</span><span class="ss">myTable</span><span class="p">,</span><span class="w"> </span><span class="ss">mnesia</span><span class="p" data-group-id="6168926269-4">}</span><span class="p" data-group-id="6168926269-3">]</span><span class="p" data-group-id="6168926269-2">}</span><span class="p" data-group-id="6168926269-1">}</span><span class="p">.</span></code></pre>
+  </section>
+
+
+  <section id="summary" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#summary">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Summary</span>
+    </h1>
+<div class="summary-types summary">
+  <h2>
+    <a href="#types">Types</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:column/0" translate="no">column()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:columns/0" translate="no">columns()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Is a list of column numbers in the case of a get operation, and a list of column
+numbers and values in the case of a set operation.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:table_info_item/0" translate="no">table_info_item()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>For an ordinary table, the types will be the following</p></div>
+
+    </div>
+
+</div>
+<div class="summary-functions summary">
+  <h2>
+    <a href="#functions">Functions</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#get_index_types/1" translate="no">get_index_types(Name)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Gets the index types of <code class="inline">Name</code></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#get_status_col/2" translate="no">get_status_col(Name, Cols)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Gets the value of the status column from <code class="inline">Cols</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#get_table_info/2" translate="no">get_table_info/2</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Get the specific table info item (nbr_of_cols).</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#table_func/2" translate="no">table_func(Op, NameDb)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>This is the default instrumentation function for tables.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#table_func/4" translate="no">table_func(Op, RowIndex, Cols, NameDb)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>This is the default instrumentation function for tables.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#table_get_elements/3" translate="no">table_get_elements(NameDb, RowIndex, Cols)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns a list with values for all columns in <code class="inline">Cols</code>. If a column is undefined,
+its value is <code class="inline">noinit</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#table_next/2" translate="no">table_next/2</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>table_next(NameDb, RestOid) -&gt; RowIndex | endOfTable</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#table_row_exists/2" translate="no">table_row_exists(NameDb, RowIndex)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>table_row_exists(NameDb, RowIndex) -&gt; bool()</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#table_set_elements/3" translate="no">table_set_elements/3</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>table_set_elements(NameDb, RowIndex, Cols) -&gt; bool()</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#variable_func/2" translate="no">variable_func/2</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>This is the default instrumentation function for variables.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#variable_func/3" translate="no">variable_func/3</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>This is the default instrumentation function for variables.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#variable_get/1" translate="no">variable_get(Name)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Gets the value of a variable.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#variable_set/2" translate="no">variable_set(Name, Value)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Sets a new value to a variable. The variable is created if it does not exist. No
+checks are made on the type of the new value.</p></div>
+
+    </div>
+
+</div>
+
+  </section>
+
+
+  <section id="types" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#types">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Types</span>
+    </h1>
+    <div class="types-list">
+<section class="detail" id="t:column/0">
+
+  <div class="detail-header">
+    <a href="#t:column/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">column()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/snmp/src/agent/snmp_generic.erl#L184" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> column() :: <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:columns/0">
+
+  <div class="detail-header">
+    <a href="#t:columns/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">columns()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/snmp/src/agent/snmp_generic.erl#L189" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> columns() :: [<a href="#t:column/0">column</a>()] | [{<a href="#t:column/0">column</a>(), Value :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()}].</pre>
+
+      </div>
+
+<p>Is a list of column numbers in the case of a get operation, and a list of column
+numbers and values in the case of a set operation.</p>
+  </section>
+</section>
+<section class="detail" id="t:table_info_item/0">
+
+  <div class="detail-header">
+    <a href="#t:table_info_item/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">table_info_item()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/snmp/src/agent/snmp_generic.erl#L236" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> table_info_item() ::
+    nbr_of_cols | defvals | status_col | not_accessible | index_types | first_accessible |
+    first_own_index.</pre>
+
+      </div>
+
+<p>For an ordinary table, the types will be the following:</p><ul><li><p><strong><code class="inline">nbr_of_cols</code></strong> - Number of columns.</p><p>Value type: <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer()</a></p></li><li><p><strong><code class="inline">defvals</code></strong> - A list of default values, ordered by column.</p><p>Value type: [{Col :: <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer()</a>, DefVal ::
+<a href="../../apps/erts/erlang.html#t:term/0">term()</a>}]</p></li><li><p><strong><code class="inline">status_col</code></strong> - Column number of the status column.</p><p>Value type: <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer()</a></p></li><li><p><strong><code class="inline">not_accessible</code></strong> - A sorted list of columns (&gt; first_accessible) that are
+'not-accessible'.</p><p>Value type: [<a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer()</a>]</p></li><li><p><strong><code class="inline">index_types</code></strong> - A list of <a href="snmp.html#t:asn1_type/0">asn1_type()</a> for the
+index columns, ordered by column number or an &quot;augment&quot;-tuple (see below).</p><p>Value type: [<a href="snmp.html#t:asn1_type/0">asn1_type()</a>]</p></li><li><p><strong><code class="inline">first_accessible</code></strong> - The first accessible column.</p><p>Value type: <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer()</a></p></li><li><p><strong><code class="inline">first_own_index</code></strong> - Column number of the first own index. Will be <code class="inline">0</code> if
+there is no such index for this table.</p><p>Value type: <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer()</a></p></li></ul><p>For a augmented table, it will instead look like this:</p><ul><li><p><strong><code class="inline">index_types</code></strong> - Value type: {augments, {<a href="../../apps/erts/erlang.html#t:atom/0">atom()</a>,
+<a href="snmp.html#t:asn1_type/0">asn1_type()</a>}}</p></li><li><p><strong><code class="inline">nbr_of_cols</code></strong> - Value type: <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer()</a></p></li><li><p><strong><code class="inline">not_accessible</code></strong> - Value type: [<a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer()</a>]</p></li><li><p><strong><code class="inline">first_accessible</code></strong> - Value type: <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer()</a></p></li></ul>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+  <section id="functions" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#functions">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Functions</span>
+    </h1>
+    <div class="functions-list">
+<section class="detail" id="get_index_types/1">
+
+  <div class="detail-header">
+    <a href="#get_index_types/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">get_index_types(Name)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/snmp/src/agent/snmp_generic.erl#L1419" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> get_index_types(Name) -> IndexTypes
+                   when Name :: <a href="snmpa.html#t:name/0">snmpa:name</a>() | <a href="snmpa.html#t:name_db/0">snmpa:name_db</a>(), IndexTypes :: [<a href="snmp.html#t:asn1_type/0">snmp:asn1_type</a>()].</pre>
+
+      </div>
+
+<p>Gets the index types of <code class="inline">Name</code></p><p>This function can be used in instrumentation functions to retrieve the index
+types part of the table info.</p><p><a href="" id="get_table_info"></a> <a href="" id="get_table_info_1"></a></p>
+  </section>
+</section>
+<section class="detail" id="get_status_col/2">
+
+  <div class="detail-header">
+    <a href="#get_status_col/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">get_status_col(Name, Cols)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/snmp/src/agent/snmp_generic.erl#L1268" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> get_status_col(Name, Cols) -> false | {value, StatusCol}
+                  when
+                      Name :: <a href="snmpa.html#t:name/0">snmpa:name</a>() | <a href="snmpa.html#t:name_db/0">snmpa:name_db</a>(),
+                      Cols :: <a href="#t:columns/0">columns</a>(),
+                      StatusCol :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+<p>Gets the value of the status column from <code class="inline">Cols</code>.</p><p>This function can be used in instrumentation functions for <code class="inline">is_set_ok</code>, <code class="inline">undo</code>
+or <code class="inline">set</code> to check if the status column of a table is modified.</p><p><a href="" id="get_index_types"></a></p>
+  </section>
+</section>
+<section class="detail" id="get_table_info/2">
+
+  <div class="detail-header">
+    <a href="#get_table_info/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">get_table_info/2</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/snmp/src/agent/snmp_generic.erl#L1377" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP R15B01)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> get_table_info(Name, Item :: nbr_of_cols) -> Result
+                  when Name :: <a href="snmpa.html#t:name/0">snmpa:name</a>() | <a href="snmpa.html#t:name_db/0">snmpa:name_db</a>(), Result :: <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer</a>();
+              (Name, Item :: defvals) -> Result
+                  when
+                      Name :: <a href="snmpa.html#t:name/0">snmpa:name</a>() | <a href="snmpa.html#t:name_db/0">snmpa:name_db</a>(),
+                      Result :: [{Col, DefVal}],
+                      Col :: <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer</a>(),
+                      DefVal :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>();
+              (Name, Item :: status_col) -> Result
+                  when Name :: <a href="snmpa.html#t:name/0">snmpa:name</a>() | <a href="snmpa.html#t:name_db/0">snmpa:name_db</a>(), Result :: <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer</a>();
+              (Name, Item :: not_accessible) -> Result
+                  when Name :: <a href="snmpa.html#t:name/0">snmpa:name</a>() | <a href="snmpa.html#t:name_db/0">snmpa:name_db</a>(), Result :: [<a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer</a>()];
+              (Name, Item :: index_types) -> Result
+                  when Name :: <a href="snmpa.html#t:name/0">snmpa:name</a>() | <a href="snmpa.html#t:name_db/0">snmpa:name_db</a>(), Result :: [<a href="snmp.html#t:asn1_type/0">snmp:asn1_type</a>()];
+              (Name, Item :: first_accessible) -> Result
+                  when Name :: <a href="snmpa.html#t:name/0">snmpa:name</a>() | <a href="snmpa.html#t:name_db/0">snmpa:name_db</a>(), Result :: <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer</a>();
+              (Name, Item :: first_own_index) -> Result
+                  when Name :: <a href="snmpa.html#t:name/0">snmpa:name</a>() | <a href="snmpa.html#t:name_db/0">snmpa:name_db</a>(), Result :: <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>();
+              (Name, Item :: all) -> Result
+                  when
+                      Name :: <a href="snmpa.html#t:name/0">snmpa:name</a>() | <a href="snmpa.html#t:name_db/0">snmpa:name_db</a>(),
+                      Result :: [{<a href="#t:table_info_item/0">table_info_item</a>(), <a href="../../apps/erts/erlang.html#t:term/0">term</a>()}].</pre>
+
+      </div>
+
+<p>Get the specific table info item (nbr_of_cols).</p><p>This function can be used in instrumentation functions to retrieve a given part
+of the table info.</p><p><a href="" id="get_table_info_2"></a></p><p>Get a specific table info item (defvals).</p><p>This function can be used in instrumentation functions to retrieve a given part
+of the table info.</p><p><a href="" id="get_table_info_3"></a></p><p>Get a specific table info item (status_col).</p><p>This function can be used in instrumentation functions to retrieve a given part
+of the table info.</p><p><a href="" id="get_table_info_4"></a></p><p>Get a specific table info item (not_accessible).</p><p>This function can be used in instrumentation functions to retrieve a given part
+of the table info.</p><p><a href="" id="get_table_info_5"></a></p><p>Get a specific table info item (index_types).</p><p>This function can be used in instrumentation functions to retrieve a given part
+of the table info.</p><p><a href="" id="get_table_info_6"></a></p><p>Get a specific table info item (first_accessible).</p><p>This function can be used in instrumentation functions to retrieve a given part
+of the table info.</p><p><a href="" id="get_table_info_7"></a></p><p>Get a specific table info item (first_own_index).</p><p>This function can be used in instrumentation functions to retrieve a given part
+of the table info.</p><p><a href="" id="get_table_info_8"></a></p><p>Get all table info item(s), a two tuple list (property list) is returned with
+all the items and their respctive values of the given table.</p><p>This function can be used in instrumentation functions to retrieve a given part
+of the table info.</p><p><a href="" id="table_func"></a> <a href="" id="table_func2"></a></p>
+  </section>
+</section>
+<section class="detail" id="table_func/2">
+
+  <div class="detail-header">
+    <a href="#table_func/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">table_func(Op, NameDb)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/snmp/src/agent/snmp_generic.erl#L552" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> table_func(Op, NameDb) -> Return
+              when Op :: new | delete, NameDb :: <a href="snmpa.html#t:name_db/0">snmpa:name_db</a>(), Return :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+<p>This is the default instrumentation function for tables.</p><ul><li>The <code class="inline">new</code> function creates the table if it does not exist, but only if the
+database is the SNMP internal db.</li><li>The <code class="inline">delete</code> function does not delete the table from the database since
+unloading an MIB does not necessarily mean that the table should be destroyed.</li></ul><p>If it is possible for a manager to create or delete rows in the table, there
+must be a <code class="inline">RowStatus</code> column for <code class="inline">is_set_ok</code>, <code class="inline">set</code> and <code class="inline">undo</code> to work properly.</p><p>The function returns according to the specification of an instrumentation
+function.</p><p><a href="" id="table_func4"></a></p>
+  </section>
+</section>
+<section class="detail" id="table_func/4">
+
+  <div class="detail-header">
+    <a href="#table_func/4" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">table_func(Op, RowIndex, Cols, NameDb)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/snmp/src/agent/snmp_generic.erl#L586" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> table_func(Op, RowIndex, Cols, NameDb) -> Return
+              when
+                  Op :: get | next | is_set_ok | set | undo,
+                  RowIndex :: <a href="snmp.html#t:row_index/0">snmp:row_index</a>(),
+                  Cols :: <a href="#t:columns/0">columns</a>(),
+                  NameDb :: <a href="snmpa.html#t:name_db/0">snmpa:name_db</a>(),
+                  Return :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+<p>This is the default instrumentation function for tables.</p><ul><li>The <code class="inline">is_set_ok</code> function checks that a row which is to be modified or deleted
+exists, and that a row which is to be created does not exist.</li><li>The <code class="inline">undo</code> function does nothing.</li><li>The <code class="inline">set</code> function checks if it has enough information to make the row change
+its status from <code class="inline">notReady</code> to <code class="inline">notInService</code> (when a row has been been set to
+<code class="inline">createAndWait</code>). If a row is set to <code class="inline">createAndWait</code>, columns without a value
+are set to <code class="inline">noinit</code>. If Mnesia is used, the set functionality is handled
+within a transaction.</li></ul><p>If it is possible for a manager to create or delete rows in the table, there
+must be a <code class="inline">RowStatus</code> column for <code class="inline">is_set_ok</code>, <code class="inline">set</code> and <code class="inline">undo</code> to work properly.</p><p>The function returns according to the specification of an instrumentation
+function.</p><p><a href="" id="table_get_elements"></a></p>
+  </section>
+</section>
+<section class="detail" id="table_get_elements/3">
+
+  <div class="detail-header">
+    <a href="#table_get_elements/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">table_get_elements(NameDb, RowIndex, Cols)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/snmp/src/agent/snmp_generic.erl#L327" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> table_get_elements(NameDb, RowIndex, Cols) -> Values
+                      when
+                          NameDb :: <a href="snmpa.html#t:name_db/0">snmpa:name_db</a>(),
+                          RowIndex :: <a href="snmp.html#t:row_index/0">snmp:row_index</a>(),
+                          Cols :: <a href="#t:columns/0">columns</a>(),
+                          Values :: [noinit | Value],
+                          Value :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+<p>Returns a list with values for all columns in <code class="inline">Cols</code>. If a column is undefined,
+its value is <code class="inline">noinit</code>.</p><p><a href="" id="table_next"></a></p>
+  </section>
+</section>
+<section class="detail" id="table_next/2">
+
+  <div class="detail-header">
+    <a href="#table_next/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">table_next/2</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/snmp/src/agent/snmp_generic.erl#L386" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+<p>table_next(NameDb, RestOid) -&gt; RowIndex | endOfTable</p><p>Finds the indices of the next row in the table. <code class="inline">RestOid</code> does not have to
+specify an existing row.</p><p><a href="" id="table_row_exists"></a></p>
+  </section>
+</section>
+<section class="detail" id="table_row_exists/2">
+
+  <div class="detail-header">
+    <a href="#table_row_exists/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">table_row_exists(NameDb, RowIndex)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/snmp/src/agent/snmp_generic.erl#L1084" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+<p>table_row_exists(NameDb, RowIndex) -&gt; bool()</p><p>Checks if a row in a table exists.</p><p><a href="" id="table_set_elements"></a></p>
+  </section>
+</section>
+<section class="detail" id="table_set_elements/3">
+
+  <div class="detail-header">
+    <a href="#table_set_elements/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">table_set_elements/3</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/snmp/src/agent/snmp_generic.erl#L373" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+<p>table_set_elements(NameDb, RowIndex, Cols) -&gt; bool()</p><p>Sets the elements in <code class="inline">Cols</code> to the row specified by <code class="inline">RowIndex</code>. No checks are
+performed on the new values.</p><p>If the Mnesia database is used, this function calls <code class="inline">mnesia:write</code> to store the
+values. This means that this function must be called from within a transaction
+(<a href="../../apps/mnesia/mnesia.html#transaction/1"><code class="inline">mnesia:transaction/1</code></a>).</p><p><a href="" id="variable_func"></a> <a href="" id="variable_func2"></a> <a href="" id="variable_func21"></a></p>
+  </section>
+</section>
+<section class="detail" id="variable_func/2">
+
+  <div class="detail-header">
+    <a href="#variable_func/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">variable_func/2</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/snmp/src/agent/snmp_generic.erl#L452" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> variable_func(Op :: new, Name) -> Result
+                 when Name :: <a href="snmpa.html#t:name/0">snmpa:name</a>() | <a href="snmpa.html#t:name_db/0">snmpa:name_db</a>(), Result :: ok | <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>();
+             (Op :: delete, Name) -> Result
+                 when Name :: <a href="snmpa.html#t:name/0">snmpa:name</a>() | <a href="snmpa.html#t:name_db/0">snmpa:name_db</a>(), Result :: ok;
+             (Op :: get, Name) -> Result
+                 when
+                     Name :: <a href="snmpa.html#t:name/0">snmpa:name</a>() | <a href="snmpa.html#t:name_db/0">snmpa:name_db</a>(),
+                     Result :: {value, Value} | genErr,
+                     Value :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+<p>This is the default instrumentation function for variables.</p><p>The <code class="inline">new</code> function creates a new variable in the database with a default value
+as defined in the MIB, or a zero value (depending on the type).</p><p>The function returns according to the specification of an instrumentation
+function.</p><p><a href="" id="variable_func22"></a></p><p>This is the default instrumentation function for variables.</p><p>The <code class="inline">delete</code> function does not delete the variable from the database.</p><p>The function returns according to the specification of an instrumentation
+function.</p><p><a href="" id="variable_func23"></a></p><p>This is the default instrumentation function for variables.</p><p>The function returns according to the specification of an instrumentation
+function.</p><p><a href="" id="variable_func3"></a> <a href="" id="variable_func31"></a></p>
+  </section>
+</section>
+<section class="detail" id="variable_func/3">
+
+  <div class="detail-header">
+    <a href="#variable_func/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">variable_func/3</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/snmp/src/agent/snmp_generic.erl#L505" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> variable_func(Op :: is_set_ok, Value, Name) -> Result
+                 when Value :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(), Name :: <a href="snmpa.html#t:name/0">snmpa:name</a>() | <a href="snmpa.html#t:name_db/0">snmpa:name_db</a>(), Result :: noError;
+             (Op :: set, Value, Name) -> Result
+                 when
+                     Value :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(),
+                     Name :: <a href="snmpa.html#t:name/0">snmpa:name</a>() | <a href="snmpa.html#t:name_db/0">snmpa:name_db</a>(),
+                     Result :: noError | commitFailed;
+             (Op :: undo, Value, Name) -> Result
+                 when Value :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(), Name :: <a href="snmpa.html#t:name/0">snmpa:name</a>() | <a href="snmpa.html#t:name_db/0">snmpa:name_db</a>(), Result :: noError.</pre>
+
+      </div>
+
+<p>This is the default instrumentation function for variables.</p><p>The function returns according to the specification of an instrumentation
+function.</p><p><a href="" id="variable_func32"></a></p><p>This is the default instrumentation function for variables.</p><p>The function returns according to the specification of an instrumentation
+function.</p><p><a href="" id="variable_func33"></a></p><p>This is the default instrumentation function for variables.</p><p>The function returns according to the specification of an instrumentation
+function.</p><p><a href="" id="variable_get"></a></p>
+  </section>
+</section>
+<section class="detail" id="variable_get/1">
+
+  <div class="detail-header">
+    <a href="#variable_get/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">variable_get(Name)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/snmp/src/agent/snmp_generic.erl#L264" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> variable_get(Name) -> {value, Value} | undefined
+                when Name :: <a href="snmpa.html#t:name/0">snmpa:name</a>() | <a href="snmpa.html#t:name_db/0">snmpa:name_db</a>(), Value :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+<p>Gets the value of a variable.</p><p><a href="" id="variable_set"></a></p>
+  </section>
+</section>
+<section class="detail" id="variable_set/2">
+
+  <div class="detail-header">
+    <a href="#variable_set/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">variable_set(Name, Value)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/snmp/src/agent/snmp_generic.erl#L281" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> variable_set(Name, Value) -> <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>()
+                when Name :: <a href="snmpa.html#t:name/0">snmpa:name</a>() | <a href="snmpa.html#t:name_db/0">snmpa:name_db</a>(), Value :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+<p>Sets a new value to a variable. The variable is created if it does not exist. No
+checks are made on the type of the new value.</p><p>Returns <code class="inline">false</code> if the <code class="inline">NameDb</code> argument is incorrectly specified, otherwise
+<code class="inline">true</code>.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+              <a href="snmp.epub" title="ePub version">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

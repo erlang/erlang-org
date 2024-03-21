@@ -1,0 +1,207 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html xmlns:fn="http://www.w3.org/2005/02/xpath-functions">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" href="../../otp_doc.css" type="text/css">
+<title>Erlang -- SystemTap and Erlang/OTP</title>
+</head>
+<body bgcolor="white" text="#000000" link="#0000ff" vlink="#ff00ff" alink="#ff0000"><div id="container">
+<script id="js" type="text/javascript" language="JavaScript" src="../../js/flipmenu/flipmenu.js"></script><script id="js2" type="text/javascript" src="../../js/erlresolvelinks.js"></script><script language="JavaScript" type="text/javascript">
+            <!--
+              function getWinHeight() {
+                var myHeight = 0;
+                if( typeof( window.innerHeight ) == 'number' ) {
+                  //Non-IE
+                  myHeight = window.innerHeight;
+                } else if( document.documentElement && ( document.documentElement.clientWidth ||
+                                                         document.documentElement.clientHeight ) ) {
+                  //IE 6+ in 'standards compliant mode'
+                  myHeight = document.documentElement.clientHeight;
+                } else if( document.body && ( document.body.clientWidth || document.body.clientHeight ) ) {
+                  //IE 4 compatible
+                  myHeight = document.body.clientHeight;
+                }
+                return myHeight;
+              }
+
+              function setscrollpos() {
+                var objf=document.getElementById('loadscrollpos');
+                 document.getElementById("leftnav").scrollTop = objf.offsetTop - getWinHeight()/2;
+              }
+
+              function addEvent(obj, evType, fn){
+                if (obj.addEventListener){
+                obj.addEventListener(evType, fn, true);
+                return true;
+              } else if (obj.attachEvent){
+                var r = obj.attachEvent("on"+evType, fn);
+                return r;
+              } else {
+                return false;
+              }
+             }
+
+             addEvent(window, 'load', setscrollpos);
+
+             //--></script><div id="leftnav"><div class="innertube">
+<img alt="Erlang logo" src="../../../../doc/erlang-logo.png"><br><small><a href="users_guide.html">User's Guide</a><br><a href="index.html">Reference Manual</a><br><a href="release_notes.html">Release Notes</a><br><a href="runtime_tools.pdf">PDF</a><br><a href="../../index.html">Top</a></small><p><strong>Runtime_Tools</strong><br><strong>User's Guide</strong><br><small>Version 1.8.16</small></p>
+<br><a href="javascript:openAllFlips()">Expand All</a><br><a href="javascript:closeAllFlips()">Contract All</a><p><small><strong>Chapters</strong></small></p>
+<ul class="flipMenu" imagePath="../../js/flipmenu">
+<li id="no" title="DTrace and Erlang/OTP" expanded="false">DTrace and Erlang/OTP<ul>
+<li><a href="DTRACE.html">
+              Top of chapter
+            </a></li>
+<li title="History"><a href="DTRACE.html#id56686">History</a></li>
+<li title="Goals"><a href="DTRACE.html#id61061">Goals</a></li>
+<li title="Supported platforms"><a href="DTRACE.html#id60387">Supported platforms</a></li>
+<li title="Status"><a href="DTRACE.html#id60717">Status</a></li>
+<li title="Implementation summary"><a href="DTRACE.html#id60736">Implementation summary</a></li>
+<li title="Example DTrace probe specification"><a href="DTRACE.html#id60098">Example DTrace probe specification</a></li>
+<li title="Guide to efile_drv.c probe arguments"><a href="DTRACE.html#id60946">Guide to efile_drv.c probe arguments</a></li>
+</ul>
+</li>
+<li id="loadscrollpos" title="SystemTap and Erlang/OTP" expanded="true">SystemTap and Erlang/OTP<ul>
+<li><a href="SYSTEMTAP.html">
+              Top of chapter
+            </a></li>
+<li title="Introduction"><a href="SYSTEMTAP.html#id60699">Introduction</a></li>
+<li title="Requisites"><a href="SYSTEMTAP.html#id58784">Requisites</a></li>
+<li title="Building Erlang"><a href="SYSTEMTAP.html#id59470">Building Erlang</a></li>
+<li title="Testing"><a href="SYSTEMTAP.html#id59491">Testing</a></li>
+<li title="Running SystemTap scripts"><a href="SYSTEMTAP.html#id61145">Running SystemTap scripts</a></li>
+</ul>
+</li>
+</ul>
+</div></div>
+<div id="content">
+<div class="innertube">
+<h1>2 SystemTap and Erlang/OTP</h1>
+
+
+<a name="Introduction"></a>
+<h3><a name="id60699">2.1 
+        Introduction</a></h3>
+
+
+<p>
+SystemTap is DTrace for Linux. In fact Erlang's SystemTap support
+is build using SystemTap's DTrace compatibility's layer. For an
+introduction to Erlang DTrace support read <span class="bold_code"><a href="DTRACE.html">$ERL_TOP/HOWTO/DTRACE.md</a></span>.
+</p>
+
+
+
+<a name="Requisites"></a>
+<h3><a name="id58784">2.2 
+        Requisites</a></h3>
+
+
+<ul>
+<li>
+<p>Linux Kernel with UTRACE support
+</p>
+
+<p>check for UTRACE support in your current kernel:
+</p>
+
+<div class="example"><pre>
+# grep CONFIG_UTRACE /boot/config-`uname -r`
+CONFIG_UTRACE=y
+</pre></div>
+<p>Fedora 16 is known to contain UTRACE, for most other Linux distributions
+a custom build kernel will be required.
+Check Fedora's SystemTap documentation for additional required packages
+(e.g. Kernel Debug Symbols)
+</p>
+
+</li>
+<li>
+<p>SystemTap &gt; 1.6
+</p>
+
+<p>A the time of writing this, the latest released version of SystemTap is
+version 1.6. Erlang's DTrace support requires a MACRO that was introduced
+after that release. So either get a newer release or build SystemTap from
+git yourself (see: http://sourceware.org/systemtap/getinvolved.html)
+</p>
+</li>
+</ul>
+
+
+<a name="Building-Erlang"></a>
+<h3><a name="id59470">2.3 
+        Building Erlang</a></h3>
+
+
+<p>
+Configure and build Erlang with SystemTap support:
+</p>
+
+<div class="example"><pre>
+# ./configure --with-dynamic-trace=systemtap + whatever args you need
+# make
+</pre></div>
+
+
+<a name="Testing"></a>
+<h3><a name="id59491">2.4 
+        Testing</a></h3>
+
+
+<p>
+SystemTap, unlike DTrace, needs to know what binary it is tracing and has to
+be able to read that binary before it starts tracing. Your probe script
+therefor has to reference the correct beam emulator and stap needs to be able
+to find that binary.
+The examples are written for "beam", but other versions such as "beam.smp" or
+"beam.debug.smp" might exist (depending on your configuration). Make sure you
+either specify the full the path of the binary in the probe or your "beam"
+binary is in the search path.
+</p>
+
+<p>
+All available probes can be listed like this:
+</p>
+
+<div class="example"><pre>
+# stap -L 'process("beam").mark("*")'
+</pre></div>
+<p>
+or:
+</p>
+
+<div class="example"><pre>
+# PATH=/path/to/beam:$PATH stap -L 'process("beam").mark("*")'
+</pre></div>
+<p>
+Probes in the dtrace.so NIF library like this:
+</p>
+
+<div class="example"><pre>
+# PATH=/path/to/dtrace/priv/lib:$PATH stap -L 'process("dtrace.so").mark("*")'
+</pre></div>
+
+
+<a name="Running-SystemTap-scripts"></a>
+<h3><a name="id61145">2.5 
+        Running SystemTap scripts</a></h3>
+
+
+<p>
+Adjust the process("beam") reference to your beam version and attach the script
+to a running "beam" instance:
+</p>
+
+<div class="example"><pre>
+# stap /path/to/probe/script/port1.systemtap -x &lt;pid of beam&gt;
+</pre></div>
+
+
+</div>
+<div class="footer">
+<hr>
+<p>Copyright © 1999-2015 Ericsson AB. All Rights Reserved.</p>
+</div>
+</div>
+</div></body>
+</html>

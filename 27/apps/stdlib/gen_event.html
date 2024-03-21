@@ -1,0 +1,3020 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="stdlib v6.0">
+
+
+    <title>gen_event — stdlib v6.0</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-C7A0AB26.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="modules" class="page-behaviour">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="stdlib" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+stdlib
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v6.0
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of stdlib</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L20" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+  <span translate="no">gen_event</span> <small>behaviour</small>
+  <small class="app-vsn" translate="no">(stdlib v6.0)</small>
+
+</h1>
+
+
+  <section id="moduledoc">
+<p>Generic event handling behavior.</p><p>This behavior module provides event handling functionality. It consists of a
+generic event manager process with any number of event handlers that are added
+and deleted dynamically.</p><p>An event manager implemented using this module has a standard set of interface
+functions and includes functionality for tracing and error reporting. It also
+fits into an OTP supervision tree. For more information, see
+<a href="../../system/events.html">OTP Design Principles</a>.</p><p>Each event handler is implemented as a callback module exporting a predefined
+set of functions. The relationship between the behavior functions and the
+callback functions is as follows:</p><pre><code class="text">gen_event module                   Callback module
+----------------                   ---------------
+gen_event:start
+gen_event:start_monitor
+gen_event:start_link       -----&gt;  -
+
+gen_event:add_handler
+gen_event:add_sup_handler  -----&gt;  Module:init/1
+
+gen_event:notify
+gen_event:sync_notify      -----&gt;  Module:handle_event/2
+
+gen_event:send_request
+gen_event:call             -----&gt;  Module:handle_call/2
+
+-                          -----&gt;  Module:handle_info/2
+
+gen_event:delete_handler   -----&gt;  Module:terminate/2
+
+gen_event:swap_handler
+gen_event:swap_sup_handler -----&gt;  Module1:terminate/2
+                                   Module2:init/1
+
+gen_event:which_handlers   -----&gt;  -
+
+gen_event:stop             -----&gt;  Module:terminate/2
+
+-                          -----&gt;  Module:code_change/3</code></pre><p>As each event handler is one callback module, an event manager has many callback
+modules that are added and deleted dynamically. <code class="inline">gen_event</code> is therefore more
+tolerant of callback module errors than the other behaviors. If a callback
+function for an installed event handler fails with <code class="inline">Reason</code>, or returns a bad
+value <code class="inline">Term</code>, the event manager does not fail. It deletes the event handler by
+calling callback function <a href="#c:terminate/2"><code class="inline">Module:terminate/2</code></a>, giving as
+argument <code class="inline">{error,{'EXIT',Reason}}</code> or <code class="inline">{error,Term}</code>, respectively. No other
+event handler is affected.</p><p>A <code class="inline">gen_event</code> process handles system messages as described in <a href="sys.html"><code class="inline">sys</code></a>. The <code class="inline">sys</code>
+module can be used for debugging an event manager.</p><p>Notice that an event manager <em>does</em> trap exit signals automatically.</p><p>The <code class="inline">gen_event</code> process can go into hibernation (see <a href="../../apps/erts/erlang.html#hibernate/3"><code class="inline">erlang:hibernate/3</code></a>) if a
+callback function in a handler module specifies <code class="inline">hibernate</code> in its return value.
+This can be useful if the server is expected to be idle for a long time.
+However, use this feature with care, as hibernation implies at least two garbage
+collections (when hibernating and shortly after waking up) and is not something
+you want to do between each event handled by a busy event manager.</p><p>Notice that when multiple event handlers are invoked, it is sufficient that one
+single event handler returns a <code class="inline">hibernate</code> request for the whole event manager
+to go into hibernation.</p><p>Unless otherwise stated, all functions in this module fail if the specified
+event manager does not exist or if bad arguments are specified.</p><blockquote><h4 class="info">Note</h4><p>For some important information about distributed signals, see the
+<a href="../../system/ref_man_processes.html#blocking-signaling-over-distribution"><em>Blocking Signaling Over Distribution</em></a>
+section in the <em>Processes</em> chapter of the <em>Erlang Reference Manual</em>. Blocking
+signaling can, for example, cause call timeouts in <code class="inline">gen_event</code> to be
+significantly delayed.</p></blockquote><h2 id="module-see-also" class="section-heading">
+  <a href="#module-see-also" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">See Also</span>
+</h2>
+<p><a href="supervisor.html"><code class="inline">supervisor</code></a>, <a href="sys.html"><code class="inline">sys</code></a></p>
+  </section>
+
+
+  <section id="summary" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#summary">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Summary</span>
+    </h1>
+<div class="summary-types summary">
+  <h2>
+    <a href="#types">Types</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:add_handler_ret/0" translate="no">add_handler_ret()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:debug_flag/0" translate="no">debug_flag()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:del_handler_ret/0" translate="no">del_handler_ret()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:emgr_name/0" translate="no">emgr_name()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>The name given to an event manager when starting it.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:emgr_ref/0" translate="no">emgr_ref()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>A reference used to locate an event manager.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:format_status/0" translate="no">format_status()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>A map that describes the <code class="inline">gen_event</code> process status.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:handler/0" translate="no">handler()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:handler_args/0" translate="no">handler_args()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:options/0" translate="no">options()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Options that can be used to configure an event handler when it is started.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:request_id/0" translate="no">request_id()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>An opaque request identifier. See <a href="#send_request/3"><code class="inline">send_request/3</code></a> for details.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:request_id_collection/0" translate="no">request_id_collection()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>An opaque collection of request identifiers (<a href="#t:request_id/0"><code class="inline">request_id/0</code></a>) where each
+request identifier can be associated with a label chosen by the user. For more
+information see <a href="#reqids_new/0"><code class="inline">reqids_new/0</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:response_timeout/0" translate="no">response_timeout()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Used to set a time limit on how long to wait for a response using either
+<a href="#receive_response/2"><code class="inline">receive_response/2</code></a>, <a href="#receive_response/3"><code class="inline">receive_response/3</code></a>, <a href="#wait_response/2"><code class="inline">wait_response/2</code></a>, or
+<a href="#wait_response/3"><code class="inline">wait_response/3</code></a>. The time unit used is <code class="inline">millisecond</code>. Currently valid values</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:start_mon_ret/0" translate="no">start_mon_ret()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:start_ret/0" translate="no">start_ret()</a>
+
+      </div>
+
+    </div>
+
+</div>
+<div class="summary-callbacks summary">
+  <h2>
+    <a href="#callbacks">Callbacks</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#c:code_change/3" translate="no">code_change(OldVsn, State, Extra)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>This function is called for an installed event handler that is to update its
+internal state during a release upgrade/downgrade, that is, when the instruction
+<code class="inline">{update,Module,Change,...}</code>, is specified in the <a href="../../apps/sasl/appup.html"><code class="inline">appup</code></a> file.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#c:format_status/1" translate="no">format_status(Status)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>This function is called by a <code class="inline">gen_event</code> process in in order to format/limit the
+server state for debugging and logging purposes.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#c:format_status/2" translate="no">format_status(Opt, StatusData)</a>
+
+          <span class="deprecated" title="the callback gen_event:format_status(_,_) is deprecated; use format_status/1 instead">deprecated</span>
+
+      </div>
+
+        <div class="summary-synopsis"><p>This function is called by a <code class="inline">gen_event</code> process in in order to format/limit the
+server state for debugging and logging purposes.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#c:handle_call/2" translate="no">handle_call(Request, State)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Whenever an event manager receives a request sent using <a href="#call/3"><code class="inline">call/3,4</code></a>,
+this function is called for the specified event handler to handle the request.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#c:handle_event/2" translate="no">handle_event(Event, State)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Whenever an event manager receives an event sent using <a href="#notify/2"><code class="inline">notify/2</code></a> or
+<a href="#sync_notify/2"><code class="inline">sync_notify/2</code></a>, this function is called for each installed event handler to
+handle the event.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#c:handle_info/2" translate="no">handle_info(Info, State)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>This function is called for each installed event handler when an event manager
+receives any other message than an event or a synchronous request (or a system
+message).</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#c:init/1" translate="no">init(InitArgs)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Whenever a new event handler is added to an event manager, this function is
+called to initialize the event handler.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#c:terminate/2" translate="no">terminate(Args, State)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Whenever an event handler is deleted from an event manager, this function is
+called. It is to be the opposite of <a href="#c:init/1"><code class="inline">Module:init/1</code></a> and do any
+necessary cleaning up.</p></div>
+
+    </div>
+
+</div>
+<div class="summary-functions summary">
+  <h2>
+    <a href="#functions">Functions</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#add_handler/3" translate="no">add_handler(EventMgrRef, Handler, Args)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Adds a new event handler to event manager <code class="inline">EventMgrRef</code>. The event manager calls
+<a href="#c:init/1"><code class="inline">Module:init/1</code></a> to initiate the event handler and its internal
+state.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#add_sup_handler/3" translate="no">add_sup_handler(EventMgrRef, Handler, Args)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Adds a new event handler in the same way as <a href="#add_handler/3"><code class="inline">add_handler/3</code></a>, but also supervises
+the connection by linking the event handler and the calling process.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#call/3" translate="no">call(EventMgrRef, Handler, Request)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#call/4"><code class="inline">call(EventMgrRef, Handler, Request, 5000)</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#call/4" translate="no">call(EventMgrRef, Handler, Request, Timeout)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Makes a synchronous call to event handler <code class="inline">Handler</code> installed in event manager
+<code class="inline">EventMgrRef</code> by sending a request and waiting until a reply arrives or a
+time-out occurs. The event manager calls
+<a href="#c:handle_call/2"><code class="inline">Module:handle_call/2</code></a> to handle the request.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#check_response/2" translate="no">check_response(Msg, ReqId)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Check if <code class="inline">Msg</code> is a response corresponding to the request identifier <code class="inline">ReqId</code>.
+The request must have been made by <a href="#send_request/3"><code class="inline">send_request/3</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#check_response/3" translate="no">check_response(Msg, ReqIdCollection, Delete)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Check if <code class="inline">Msg</code> is a response corresponding to a request identifier saved in
+<code class="inline">ReqIdCollection</code>. All request identifiers of <code class="inline">ReqIdCollection</code> must correspond
+to requests that have been made using <a href="#send_request/3"><code class="inline">send_request/3</code></a> or <a href="#send_request/5"><code class="inline">send_request/5</code></a>, and
+all requests must have been made by the process calling this function.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#delete_handler/3" translate="no">delete_handler(EventMgrRef, Handler, Args)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Deletes an event handler from event manager <code class="inline">EventMgrRef</code>. The event manager
+calls <a href="#c:terminate/2"><code class="inline">Module:terminate/2</code></a> to terminate the event handler.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#notify/2" translate="no">notify(EventMgrRef, Event)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Sends an asynchronous event notification to event manager <code class="inline">EventMgrRef</code>. The event
+manager calls <a href="#c:handle_event/2"><code class="inline">Module:handle_event/2</code></a> for each installed
+event handler to handle the event.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#receive_response/2" translate="no">receive_response(ReqId, Timeout)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Receive a response corresponding to the request identifier <code class="inline">ReqId</code>. The request
+must have been made by <a href="#send_request/3"><code class="inline">send_request/3</code></a> to the <code class="inline">gen_statem</code> process. This
+function must be called from the same process from which <a href="#send_request/3"><code class="inline">send_request/3</code></a> was
+made.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#receive_response/3" translate="no">receive_response(ReqIdCollection, Timeout, Delete)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Receive a response corresponding to a request identifier saved in
+<code class="inline">ReqIdCollection</code>. All request identifiers of <code class="inline">ReqIdCollection</code> must correspond
+to requests that have been made using <a href="#send_request/3"><code class="inline">send_request/3</code></a> or <a href="#send_request/5"><code class="inline">send_request/5</code></a>, and
+all requests must have been made by the process calling this function.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#reqids_add/3" translate="no">reqids_add(ReqId, Label, ReqIdCollection)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Saves <code class="inline">ReqId</code> and associates a <code class="inline">Label</code> with the request identifier by adding
+this information to <code class="inline">ReqIdCollection</code> and returning the resulting request
+identifier collection.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#reqids_new/0" translate="no">reqids_new()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns a new empty request identifier collection. A request identifier
+collection can be utilized in order the handle multiple outstanding requests.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#reqids_size/1" translate="no">reqids_size(ReqIdCollection)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns the amount of request identifiers saved in <code class="inline">ReqIdCollection</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#reqids_to_list/1" translate="no">reqids_to_list(ReqIdCollection)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns a list of <code class="inline">{ReqId, Label}</code> tuples which corresponds to all request
+identifiers with their associated labels present in the <code class="inline">ReqIdCollection</code>
+collection.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#send_request/3" translate="no">send_request(EventMgrRef, Handler, Request)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Sends an asynchronous <code class="inline">call</code> request <code class="inline">Request</code> to event handler <code class="inline">Handler</code>
+installed in the event manager identified by <code class="inline">EventMgrRef</code> and returns a request
+identifier <code class="inline">ReqId</code>. The return value <code class="inline">ReqId</code> shall later be used with
+<a href="#receive_response/2"><code class="inline">receive_response/2</code></a>, <a href="#wait_response/2"><code class="inline">wait_response/2</code></a>, or <a href="#check_response/2"><code class="inline">check_response/2</code></a> to fetch the
+actual result of the request.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#send_request/5" translate="no">send_request(EventMgrRef, Handler, Request, Label, ReqIdCollection)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Sends an asynchronous <code class="inline">call</code> request <code class="inline">Request</code> to event handler <code class="inline">Handler</code>
+installed in the event manager identified by <code class="inline">EventMgrRef</code>. The <code class="inline">Label</code> will be
+associated with the request identifier of the operation and added to the returned
+request identifier collection <code class="inline">NewReqIdCollection</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#start/0" translate="no">start()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#start/1"><code class="inline">start([])</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#start/1" translate="no">start(EventMgrNameOrOptions)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Creates a stand-alone event manager process, that is, an event manager that is
+not part of a supervision tree and thus has no supervisor.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#start/2" translate="no">start(EventMgrName, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Creates a stand-alone event manager process, that is, an event manager that is
+not part of a supervision tree and thus has no supervisor.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#start_link/0" translate="no">start_link()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#start_link/1"><code class="inline">start_link([])</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#start_link/1" translate="no">start_link(EventMgrNameOrOptions)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Creates an event manager process as part of a supervision tree.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#start_link/2" translate="no">start_link(EventMgrName, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Creates an event manager process as part of a supervision tree.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#start_monitor/0" translate="no">start_monitor()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#start_monitor/1"><code class="inline">start_monitor([])</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#start_monitor/1" translate="no">start_monitor(EventMgrNameOrOptions)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Creates a stand-alone event manager process, that is, an event manager that is
+not part of a supervision tree (and thus has no supervisor) and atomically sets
+up a monitor to the newly created process.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#start_monitor/2" translate="no">start_monitor(EventMgtName, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Creates a stand-alone event manager process, that is, an event manager that is
+not part of a supervision tree (and thus has no supervisor) and atomically sets
+up a monitor to the newly created process.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#stop/1" translate="no">stop(EventMgrRef)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#stop/3"><code class="inline">stop(EventMgrRef, normal, infinity)</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#stop/3" translate="no">stop(EventMgrRef, Reason, Timeout)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Orders event manager <code class="inline">EventMgrRef</code> to exit with the specifies <code class="inline">Reason</code> and waits
+for it to terminate. Before terminating, <code class="inline">gen_event</code> calls
+<a href="#c:terminate/2"><code class="inline">Module:terminate(stop,...)</code></a> for each installed event
+handler.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#swap_handler/3" translate="no">swap_handler(EventMgrRef, OldHandler, NewHandler)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Replaces an old event handler with a new event handler in event manager
+<code class="inline">EventMgrRef</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#swap_sup_handler/3" translate="no">swap_sup_handler(EventMgrRef, OldHandler, NewHandler)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Replaces an event handler in event manager <code class="inline">EventMgrRef</code> in the same way as
+<a href="#swap_handler/3"><code class="inline">swap_handler/3</code></a>, but also supervises the connection between
+<code class="inline">NewHandler</code> and the calling process.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#sync_notify/2" translate="no">sync_notify(EventMgrRef, Event)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Sends a synchronous event notification to event manager <code class="inline">EventMgrRef</code>. The event
+manager calls <a href="#c:handle_event/2"><code class="inline">Module:handle_event/2</code></a> for each installed event
+handler to handle the event. This function will return <code class="inline">ok</code> after the event has
+been handled by all event handlers.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#wait_response/2" translate="no">wait_response(ReqId, WaitTime)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Wait for a response corresponding to the request identifier <code class="inline">ReqId</code>. The request
+must have been made by <a href="#send_request/3"><code class="inline">send_request/3</code></a> to the <code class="inline">gen_statem</code> process. This
+function must be called from the same process from which <a href="#send_request/3"><code class="inline">send_request/3</code></a> was
+made.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#wait_response/3" translate="no">wait_response(ReqIdCollection, WaitTime, Delete)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Wait for a response corresponding to a request identifier saved in
+<code class="inline">ReqIdCollection</code>. All request identifiers of <code class="inline">ReqIdCollection</code> must correspond
+to requests that have been made using <a href="#send_request/3"><code class="inline">send_request/3</code></a> or <a href="#send_request/5"><code class="inline">send_request/5</code></a>, and
+all requests must have been made by the process calling this function.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#which_handlers/1" translate="no">which_handlers(EventMgrRef)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns a list of all event handlers installed in event manager <code class="inline">EventMgrRef</code>.</p></div>
+
+    </div>
+
+</div>
+
+  </section>
+
+
+  <section id="types" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#types">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Types</span>
+    </h1>
+    <div class="types-list">
+<section class="detail" id="t:add_handler_ret/0">
+
+  <div class="detail-header">
+    <a href="#t:add_handler_ret/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">add_handler_ret()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L477" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> add_handler_ret() :: ok | <a href="../../apps/erts/erlang.html#t:term/0">term</a>() | {'EXIT', <a href="../../apps/erts/erlang.html#t:term/0">term</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:debug_flag/0">
+
+  <div class="detail-header">
+    <a href="#t:debug_flag/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">debug_flag()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L496" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> debug_flag() :: trace | log | statistics | debug | {logfile, <a href="../../apps/erts/erlang.html#t:string/0">string</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:del_handler_ret/0">
+
+  <div class="detail-header">
+    <a href="#t:del_handler_ret/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">del_handler_ret()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L478" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> del_handler_ret() :: ok | <a href="../../apps/erts/erlang.html#t:term/0">term</a>() | {'EXIT', <a href="../../apps/erts/erlang.html#t:term/0">term</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:emgr_name/0">
+
+  <div class="detail-header">
+    <a href="#t:emgr_name/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">emgr_name()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L494" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> emgr_name() :: {local, <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>()} | {global, <a href="../../apps/erts/erlang.html#t:term/0">term</a>()} | {via, <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), <a href="../../apps/erts/erlang.html#t:term/0">term</a>()}.</pre>
+
+      </div>
+
+<p>The name given to an event manager when starting it.</p><ul><li><em><code class="inline">{local,Name}</code></em> - the event manager is registered locally as
+<code class="inline">Name</code> using <a href="../../apps/erts/erlang.html#register/2"><code class="inline">register/2</code></a>.</li><li><em><code class="inline">{global,GlobalName}</code></em> - The event manager is registered
+globally as <code class="inline">GlobalName</code> using <a href="../../apps/kernel/global.html#register_name/2"><code class="inline">global:register_name/2</code></a>. If no name is
+provided, the event manager is not registered.</li><li><em><code class="inline">{via,Module,ViaName}</code></em>, the event manager registers with the
+registry represented by <code class="inline">Module</code>. The <code class="inline">Module</code> callback is to export the
+functions <code class="inline">register_name/2</code>, <code class="inline">unregister_name/1</code>, <code class="inline">whereis_name/1</code>, and
+<code class="inline">send/2</code>, which are to behave as the corresponding functions in <a href="../../apps/kernel/global.html"><code class="inline">global</code></a>.
+Thus, <code class="inline">{via,global,GlobalName}</code> is a valid reference.</li></ul>
+  </section>
+</section>
+<section class="detail" id="t:emgr_ref/0">
+
+  <div class="detail-header">
+    <a href="#t:emgr_ref/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">emgr_ref()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L515" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> emgr_ref() :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>() | {<a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), <a href="../../apps/erts/erlang.html#t:node/0">node</a>()} | {global, <a href="../../apps/erts/erlang.html#t:term/0">term</a>()} | {via, <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), <a href="../../apps/erts/erlang.html#t:term/0">term</a>()} | <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>().</pre>
+
+      </div>
+
+<p>A reference used to locate an event manager.</p><p>The reference can be any of the following:</p><ul><li>The pid of the event manager</li><li><code class="inline">Name</code>, if the event manager is locally registered</li><li><code class="inline">{Name,Node}</code>, if the event manager is locally registered at another node</li><li><code class="inline">{global,GlobalName}</code>, if the event manager is globally registered</li><li><code class="inline">{via,Module,ViaName}</code>, if the event manager is registered through an
+alternative process registry</li></ul>
+  </section>
+</section>
+<section class="detail" id="t:format_status/0">
+
+  <div class="detail-header">
+    <a href="#t:format_status/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">format_status()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L416" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> format_status() ::
+    #{state => <a href="../../apps/erts/erlang.html#t:term/0">term</a>(), message => <a href="../../apps/erts/erlang.html#t:term/0">term</a>(), reason => <a href="../../apps/erts/erlang.html#t:term/0">term</a>(), log => [<a href="sys.html#t:system_event/0">sys:system_event</a>()]}.</pre>
+
+      </div>
+
+<p>A map that describes the <code class="inline">gen_event</code> process status.</p><p>The keys are:</p><ul><li><p><strong><code class="inline">state</code></strong> - The internal state of the event handler.</p></li><li><p><strong><code class="inline">message</code></strong> - The message that caused the event handler to terminate.</p></li><li><p><strong><code class="inline">reason</code></strong> - The reason that caused the event handler to terminate.</p></li><li><p><strong><code class="inline">log</code></strong> - The <a href="sys.html#log/2">sys log</a> of the server.</p></li></ul><p>New associations may be added into the status map without prior notice.</p>
+  </section>
+</section>
+<section class="detail" id="t:handler/0">
+
+  <div class="detail-header">
+    <a href="#t:handler/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">handler()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L475" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> handler() :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>() | {<a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), <a href="../../apps/erts/erlang.html#t:term/0">term</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:handler_args/0">
+
+  <div class="detail-header">
+    <a href="#t:handler_args/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">handler_args()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L476" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> handler_args() :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:options/0">
+
+  <div class="detail-header">
+    <a href="#t:options/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">options()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L499" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> options() ::
+    [{timeout, <a href="../../apps/erts/erlang.html#t:timeout/0">timeout</a>()} |
+     {debug, [<a href="#t:debug_flag/0">debug_flag</a>()]} |
+     {spawn_opt, [<a href="proc_lib.html#t:start_spawn_option/0">proc_lib:start_spawn_option</a>()]} |
+     {hibernate_after, <a href="../../apps/erts/erlang.html#t:timeout/0">timeout</a>()}].</pre>
+
+      </div>
+
+<p>Options that can be used to configure an event handler when it is started.</p>
+  </section>
+</section>
+<section class="detail" id="t:request_id/0">
+
+  <div class="detail-header">
+    <a href="#t:request_id/0" class="detail-link" title="Link to this opaque">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this opaque</span>
+    </a>
+    <h1 class="signature" translate="no">request_id()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L521" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(opaque)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-opaque</span> request_id()</pre>
+
+      </div>
+
+<p>An opaque request identifier. See <a href="#send_request/3"><code class="inline">send_request/3</code></a> for details.</p>
+  </section>
+</section>
+<section class="detail" id="t:request_id_collection/0">
+
+  <div class="detail-header">
+    <a href="#t:request_id_collection/0" class="detail-link" title="Link to this opaque">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this opaque</span>
+    </a>
+    <h1 class="signature" translate="no">request_id_collection()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L528" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(opaque)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-opaque</span> request_id_collection()</pre>
+
+      </div>
+
+<p>An opaque collection of request identifiers (<a href="#t:request_id/0"><code class="inline">request_id/0</code></a>) where each
+request identifier can be associated with a label chosen by the user. For more
+information see <a href="#reqids_new/0"><code class="inline">reqids_new/0</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="t:response_timeout/0">
+
+  <div class="detail-header">
+    <a href="#t:response_timeout/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">response_timeout()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L550" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> response_timeout() :: <a href="../../apps/erts/erlang.html#t:timeout/0">timeout</a>() | {abs, <a href="../../apps/erts/erlang.html#t:integer/0">integer</a>()}.</pre>
+
+      </div>
+
+<p>Used to set a time limit on how long to wait for a response using either
+<a href="#receive_response/2"><code class="inline">receive_response/2</code></a>, <a href="#receive_response/3"><code class="inline">receive_response/3</code></a>, <a href="#wait_response/2"><code class="inline">wait_response/2</code></a>, or
+<a href="#wait_response/3"><code class="inline">wait_response/3</code></a>. The time unit used is <code class="inline">millisecond</code>. Currently valid values:</p><ul><li><p><strong><code class="inline">0..4294967295</code></strong> - Timeout relative to current time in milliseconds.</p></li><li><p><strong><code class="inline">infinity</code></strong> - Infinite timeout. That is, the operation will never time out.</p></li><li><p><strong><code class="inline">{abs, Timeout}</code></strong> - An absolute
+<a href="../../apps/erts/erlang.html#monotonic_time/1">Erlang monotonic time</a> timeout in milliseconds.
+That is, the operation will time out when
+<a href="../../apps/erts/erlang.html#monotonic_time/1"><code class="inline">erlang:monotonic_time(millisecond)</code></a> returns a
+value larger than or equal to <code class="inline">Timeout</code>. <code class="inline">Timeout</code> is not allowed to identify
+a time further into the future than <code class="inline">4294967295</code> milliseconds. Identifying the
+timeout using an absolute timeout value is especially handy when you have a
+deadline for responses corresponding to a complete collection of requests
+(<a href="#t:request_id_collection/0"><code class="inline">request_id_collection/0</code></a>) , since you do not have to recalculate the
+relative time until the deadline over and over again.</p></li></ul>
+  </section>
+</section>
+<section class="detail" id="t:start_mon_ret/0">
+
+  <div class="detail-header">
+    <a href="#t:start_mon_ret/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">start_mon_ret()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L518" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> start_mon_ret() :: {ok, {<a href="../../apps/erts/erlang.html#t:pid/0">pid</a>(), <a href="../../apps/erts/erlang.html#t:reference/0">reference</a>()}} | {error, <a href="../../apps/erts/erlang.html#t:term/0">term</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:start_ret/0">
+
+  <div class="detail-header">
+    <a href="#t:start_ret/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">start_ret()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L517" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> start_ret() :: {ok, <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>()} | {error, <a href="../../apps/erts/erlang.html#t:term/0">term</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+
+    </div>
+  </section>
+
+  <section id="callbacks" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#callbacks">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Callbacks</span>
+    </h1>
+    <div class="callbacks-list">
+<section class="detail" id="c:code_change/3">
+
+  <div class="detail-header">
+    <a href="#c:code_change/3" class="detail-link" title="Link to this callback">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this callback</span>
+    </a>
+    <h1 class="signature" translate="no">code_change(OldVsn, State, Extra)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L350" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(optional)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-callback</span> code_change(OldVsn :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>() | {down, <a href="../../apps/erts/erlang.html#t:term/0">term</a>()}, State :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(), Extra :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()) ->
+               {ok, NewState :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()}.</pre>
+
+      </div>
+
+<p>This function is called for an installed event handler that is to update its
+internal state during a release upgrade/downgrade, that is, when the instruction
+<code class="inline">{update,Module,Change,...}</code>, is specified in the <a href="../../apps/sasl/appup.html"><code class="inline">appup</code></a> file.</p><p>For more information, see <a href="../../system/index.html">OTP Design Principles</a>.</p><p>For an upgrade, <code class="inline">OldVsn</code> is <code class="inline">Vsn</code>, and for a downgrade, <code class="inline">OldVsn</code> is
+<code class="inline">{down,Vsn}</code>. <code class="inline">Vsn</code> is defined by the <code class="inline">vsn</code> attribute(s) of the old version of
+the callback module <code class="inline">Module</code>. If no such attribute is defined, the version is
+the checksum of the Beam file.</p><p><code class="inline">State</code> is the internal state of the event handler.</p><p><code class="inline">Extra</code> is passed &quot;as is&quot; from the <code class="inline">{advanced,Extra}</code> part of the update
+instruction.</p><p>The function is to return the updated internal state.</p><blockquote><h4 class="info">Note</h4><p>If a release upgrade/downgrade with <code class="inline">Change={advanced,Extra}</code> specified in the
+<a href="../../apps/sasl/appup.html"><code class="inline">.appup</code></a> file is made when <a href="#c:code_change/3"><code class="inline">code_change/3</code></a> isn't
+implemented the event handler will crash with an <code class="inline">undef</code> error reason.</p></blockquote>
+  </section>
+</section>
+<section class="detail" id="c:format_status/1">
+
+  <div class="detail-header">
+    <a href="#c:format_status/1" class="detail-link" title="Link to this callback">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this callback</span>
+    </a>
+    <h1 class="signature" translate="no">format_status(Status)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L466" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(optional)</span>
+
+      <span class="note">(since OTP 19.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-callback</span> format_status(Status) -> NewStatus when Status :: <a href="#t:format_status/0">format_status</a>(), NewStatus :: <a href="#t:format_status/0">format_status</a>().</pre>
+
+      </div>
+
+<p>This function is called by a <code class="inline">gen_event</code> process in in order to format/limit the
+server state for debugging and logging purposes.</p><p>It is called in the following situations:</p><ul><li>One of <a href="sys.html#get_status/1"><code class="inline">sys:get_status/1,2</code></a> is invoked to get the
+<code class="inline">gen_event</code> status.</li><li>The event handler terminates abnormally and <code class="inline">gen_event</code> logs an error.</li></ul><p>This callback is used to limit the status of the event handler returned by
+<a href="sys.html#get_status/1"><code class="inline">sys:get_status/1,2</code></a> or sent to <a href="../../apps/kernel/logger.html"><code class="inline">logger</code></a>.</p><p>The callback gets a map <code class="inline">Status</code> describing the current status and shall return
+a map <code class="inline">NewStatus</code> with the same keys, but it may transform some values.</p><p>Two possible use cases for this callback is to remove sensitive information from
+the state to prevent it from being printed in log files, or to compact large
+irrelevant status items that would only clutter the logs.</p><p><em>Example</em>:</p><pre><code class="makeup erlang" translate="no"><span class="nf">format_status</span><span class="p" data-group-id="9207298487-1">(</span><span class="n">Status</span><span class="p" data-group-id="9207298487-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+  </span><span class="nc">maps</span><span class="p">:</span><span class="nf">map</span><span class="p" data-group-id="9207298487-2">(</span><span class="w">
+    </span><span class="nf">fun</span><span class="p" data-group-id="9207298487-3">(</span><span class="ss">state</span><span class="p">,</span><span class="n">State</span><span class="p" data-group-id="9207298487-3">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="nc">maps</span><span class="p">:</span><span class="nf">remove</span><span class="p" data-group-id="9207298487-4">(</span><span class="ss">private_key</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="9207298487-4">)</span><span class="p">;</span><span class="w">
+       </span><span class="p" data-group-id="9207298487-5">(</span><span class="ss">message</span><span class="p">,</span><span class="p" data-group-id="9207298487-6">{</span><span class="ss">password</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">Pass</span><span class="p" data-group-id="9207298487-6">}</span><span class="p" data-group-id="9207298487-5">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="p" data-group-id="9207298487-7">{</span><span class="ss">password</span><span class="p">,</span><span class="w"> </span><span class="ss">removed</span><span class="p" data-group-id="9207298487-7">}</span><span class="p">;</span><span class="w">
+       </span><span class="p" data-group-id="9207298487-8">(</span><span class="p">_</span><span class="p">,</span><span class="n">Value</span><span class="p" data-group-id="9207298487-8">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="n">Value</span><span class="w">
+    </span><span class="k">end</span><span class="p">,</span><span class="w"> </span><span class="n">Status</span><span class="p" data-group-id="9207298487-2">)</span><span class="p">.</span></code></pre><blockquote><h4 class="info">Note</h4><p>This callback is optional, so event handler modules need not export it. If a
+handler does not export this function, the <code class="inline">gen_event</code> module uses the handler
+state directly for the purposes described below.</p><p>If this callback is exported but fails, to hide possibly sensitive data, the
+default function will instead return the fact that
+<a href="#c:format_status/1"><code class="inline">format_status/1</code></a> has crashed.</p></blockquote>
+  </section>
+</section>
+<section class="detail" id="c:format_status/2">
+
+  <div class="detail-header">
+    <a href="#c:format_status/2" class="detail-link" title="Link to this callback">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this callback</span>
+    </a>
+    <h1 class="signature" translate="no">format_status(Opt, StatusData)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L395" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(optional)</span>
+
+      <span class="note">(since OTP R14B)</span>
+
+  </div>
+
+    <div class="deprecated">
+      This callback is deprecated. the callback gen_event:format_status(_,_) is deprecated; use format_status/1 instead.
+    </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-callback</span> format_status(Opt, StatusData) -> Status
+                 when
+                     Opt :: normal | terminate,
+                     StatusData :: [PDict | State],
+                     PDict :: [{Key :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(), Value :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()}],
+                     State :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(),
+                     Status :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+<p>This function is called by a <code class="inline">gen_event</code> process in in order to format/limit the
+server state for debugging and logging purposes.</p><p>It is called in the following situations:</p><ul><li>One of <a href="sys.html#get_status/1"><code class="inline">sys:get_status/1,2</code></a> is invoked to get the
+<code class="inline">gen_event</code> status. <code class="inline">Opt</code> is set to the atom <code class="inline">normal</code> for this case.</li><li>The event handler terminates abnormally and <code class="inline">gen_event</code> logs an error. <code class="inline">Opt</code>
+is set to the atom <code class="inline">terminate</code> for this case.</li></ul><p>This function is useful for changing the form and appearance of the event
+handler state for these cases. An event handler callback module wishing to
+change the <code class="inline">sys:get_status/1,2</code> return value as well as how its state appears in
+termination error logs, exports an instance of
+<a href="#c:format_status/2"><code class="inline">format_status/2</code></a> that returns a term describing the
+current state of the event handler.</p><p><code class="inline">PDict</code> is the current value of the process dictionary of <code class="inline">gen_event</code>.</p><p><code class="inline">State</code> is the internal state of the event handler.</p><p>The function is to return <code class="inline">Status</code>, a term that change the details of the
+current state of the event handler. Any term is allowed for <code class="inline">Status</code>. The
+<code class="inline">gen_event</code> module uses <code class="inline">Status</code> as follows:</p><ul><li>When <code class="inline">sys:get_status/1,2</code> is called, <code class="inline">gen_event</code> ensures that its return value
+contains <code class="inline">Status</code> in place of the state term of the event handler.</li><li>When an event handler terminates abnormally, <code class="inline">gen_event</code> logs <code class="inline">Status</code> in
+place of the state term of the event handler.</li></ul><p>One use for this function is to return compact alternative state representations
+to avoid that large state terms are printed in log files.</p><blockquote><h4 class="info">Note</h4><p>This callback is optional, so event handler modules need not export it. If a
+handler does not export this function, the <code class="inline">gen_event</code> module uses the handler
+state directly for the purposes described below.</p></blockquote>
+  </section>
+</section>
+<section class="detail" id="c:handle_call/2">
+
+  <div class="detail-header">
+    <a href="#c:handle_call/2" class="detail-link" title="Link to this callback">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this callback</span>
+    </a>
+    <h1 class="signature" translate="no">handle_call(Request, State)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L246" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-callback</span> handle_call(Request :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(), State :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()) ->
+               {ok, Reply :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(), NewState :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()} |
+               {ok, Reply :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(), NewState :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(), hibernate} |
+               {swap_handler,
+                Reply :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(),
+                Args1 :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(),
+                NewState :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(),
+                Handler2 :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>() | {<a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), Id :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()},
+                Args2 :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()} |
+               {remove_handler, Reply :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()}.</pre>
+
+      </div>
+
+<p>Whenever an event manager receives a request sent using <a href="#call/3"><code class="inline">call/3,4</code></a>,
+this function is called for the specified event handler to handle the request.</p><p><code class="inline">Request</code> is the <code class="inline">Request</code> argument of <code class="inline">call/3,4</code>.</p><p><code class="inline">State</code> is the internal state of the event handler.</p><p>The return values are the same as for
+<a href="#c:handle_event/2"><code class="inline">Module:handle_event/2</code></a> except that they also contain a
+term <code class="inline">Reply</code>, which is the reply to the client as the return value of
+<code class="inline">call/3,4</code>.</p>
+  </section>
+</section>
+<section class="detail" id="c:handle_event/2">
+
+  <div class="detail-header">
+    <a href="#c:handle_event/2" class="detail-link" title="Link to this callback">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this callback</span>
+    </a>
+    <h1 class="signature" translate="no">handle_event(Event, State)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L227" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-callback</span> handle_event(Event :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(), State :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()) ->
+                {ok, NewState :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()} |
+                {ok, NewState :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(), hibernate} |
+                {swap_handler,
+                 Args1 :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(),
+                 NewState :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(),
+                 Handler2 :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>() | {<a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), Id :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()},
+                 Args2 :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()} |
+                remove_handler.</pre>
+
+      </div>
+
+<p>Whenever an event manager receives an event sent using <a href="#notify/2"><code class="inline">notify/2</code></a> or
+<a href="#sync_notify/2"><code class="inline">sync_notify/2</code></a>, this function is called for each installed event handler to
+handle the event.</p><p><code class="inline">Event</code> is the <code class="inline">Event</code> argument of
+<a href="#notify/2"><code class="inline">notify/2</code></a>/<a href="#sync_notify/2"><code class="inline">sync_notify/2</code></a>.</p><p><code class="inline">State</code> is the internal state of the event handler.</p><ul><li>If <code class="inline">{ok,NewState}</code> or <code class="inline">{ok,NewState,hibernate}</code> is returned, the event handler
+remains in the event manager with the possible updated internal state
+<code class="inline">NewState</code>.</li><li>If <code class="inline">{ok,NewState,hibernate}</code> is returned, the event manager also goes into
+hibernation (by calling <a href="proc_lib.html#hibernate/3"><code class="inline">proc_lib:hibernate/3</code></a>), waiting for the next event to
+occur. It is sufficient that one of the event handlers return
+<code class="inline">{ok,NewState,hibernate}</code> for the whole event manager process to hibernate.</li><li>If <code class="inline">{swap_handler,Args1,NewState,Handler2,Args2}</code> is returned, the event
+handler is replaced by <code class="inline">Handler2</code> by first calling
+<a href="#c:terminate/2"><code class="inline">Module:terminate(Args1,NewState)</code></a> and then
+<a href="#c:init/1"><code class="inline">Module2:init({Args2,Term})</code></a>, where <code class="inline">Term</code> is the return value
+of <a href="#c:terminate/2"><code class="inline">Module:terminate/2</code></a>. For more information, see
+<a href="#swap_handler/3"><code class="inline">swap_handler/3</code></a>.</li><li>If <code class="inline">remove_handler</code> is returned, the event handler is deleted by calling
+<a href="#c:terminate/2"><code class="inline">Module:terminate(remove_handler,State)</code></a>.</li></ul>
+  </section>
+</section>
+<section class="detail" id="c:handle_info/2">
+
+  <div class="detail-header">
+    <a href="#c:handle_info/2" class="detail-link" title="Link to this callback">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this callback</span>
+    </a>
+    <h1 class="signature" translate="no">handle_info(Info, State)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L273" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(optional)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-callback</span> handle_info(Info :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(), State :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()) ->
+               {ok, NewState :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()} |
+               {ok, NewState :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(), hibernate} |
+               {swap_handler,
+                Args1 :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(),
+                NewState :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(),
+                Handler2 :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>() | {<a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), Id :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()},
+                Args2 :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()} |
+               remove_handler.</pre>
+
+      </div>
+
+<p>This function is called for each installed event handler when an event manager
+receives any other message than an event or a synchronous request (or a system
+message).</p><p><code class="inline">Info</code> is the received message.</p><p>In particular, this callback will be made when a process terminated after
+calling <a href="#add_sup_handler/3"><code class="inline">add_sup_handler/3</code></a>. Any event handler attached to an event manager
+which in turn has a supervised handler should expect callbacks of the shape
+<a href="#c:handle_info/2"><code class="inline">Module:handle_info({'EXIT', Pid, Reason}, State)</code></a>.</p><p>For a description of <code class="inline">State</code> and possible return values, see
+<a href="#c:handle_event/2"><code class="inline">Module:handle_event/2</code></a>.</p><blockquote><h4 class="info">Note</h4><p>This callback is optional, so callback modules need not export it. The
+<code class="inline">gen_event</code> module provides a default implementation of this function that
+logs about the unexpected <code class="inline">Info</code> message, drops it and returns <code class="inline">{ok, State}</code>.</p></blockquote>
+  </section>
+</section>
+<section class="detail" id="c:init/1">
+
+  <div class="detail-header">
+    <a href="#c:init/1" class="detail-link" title="Link to this callback">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this callback</span>
+    </a>
+    <h1 class="signature" translate="no">init(InitArgs)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L197" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-callback</span> init(InitArgs :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()) ->
+        {ok, State :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()} | {ok, State :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(), hibernate} | {error, Reason :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()}.</pre>
+
+      </div>
+
+<p>Whenever a new event handler is added to an event manager, this function is
+called to initialize the event handler.</p><p>If the event handler is added because of a call to <a href="#add_handler/3"><code class="inline">add_handler/3</code></a> or
+<a href="#add_sup_handler/3"><code class="inline">add_sup_handler/3</code></a>, <code class="inline">InitArgs</code> is the <code class="inline">Args</code> argument of these functions.</p><p>If the event handler replaces another event handler because of a call to
+<a href="#swap_handler/3"><code class="inline">swap_handler/3</code></a> or <a href="#swap_sup_handler/3"><code class="inline">swap_sup_handler/3</code></a>, or because of a <code class="inline">swap</code> return tuple
+from one of the other callback functions, <code class="inline">InitArgs</code> is a tuple <code class="inline">{Args,Term}</code>,
+where <code class="inline">Args</code> is the argument provided in the function call/return tuple and
+<code class="inline">Term</code> is the result of terminating the old event handler, see <a href="#swap_handler/3"><code class="inline">swap_handler/3</code></a>.</p><p>If successful, the function returns <code class="inline">{ok,State}</code> or <code class="inline">{ok,State,hibernate}</code>,
+where <code class="inline">State</code> is the initial internal state of the event handler.</p><p>If <code class="inline">{ok,State,hibernate}</code> is returned, the event manager goes into hibernation
+(by calling <a href="proc_lib.html#hibernate/3"><code class="inline">proc_lib:hibernate/3</code></a>), waiting for the next event to occur.</p>
+  </section>
+</section>
+<section class="detail" id="c:terminate/2">
+
+  <div class="detail-header">
+    <a href="#c:terminate/2" class="detail-link" title="Link to this callback">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this callback</span>
+    </a>
+    <h1 class="signature" translate="no">terminate(Args, State)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L319" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(optional)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-callback</span> terminate(Args ::
+              <a href="../../apps/erts/erlang.html#t:term/0">term</a>() |
+              {stop, Reason :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()} |
+              stop | remove_handler |
+              {error, {'EXIT', Reason :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()}} |
+              {error, <a href="../../apps/erts/erlang.html#t:term/0">term</a>()},
+          State :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()) ->
+             <a href="../../apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+<p>Whenever an event handler is deleted from an event manager, this function is
+called. It is to be the opposite of <a href="#c:init/1"><code class="inline">Module:init/1</code></a> and do any
+necessary cleaning up.</p><p>If the event handler is deleted because of a call to <a href="#delete_handler/3"><code class="inline">delete_handler/3</code></a>,
+<a href="#swap_handler/3"><code class="inline">swap_handler/3</code></a>, or <a href="#swap_sup_handler/3"><code class="inline">swap_sup_handler/3</code></a>, <code class="inline">Arg</code> is the <code class="inline">Args</code> argument of this
+function call.</p><p><code class="inline">Arg={stop,Reason}</code> if the event handler has a supervised connection to a
+process that has terminated with reason <code class="inline">Reason</code>.</p><p><code class="inline">Arg=stop</code> if the event handler is deleted because the event manager is
+terminating.</p><p>The event manager terminates if it is part of a supervision tree and it is
+ordered by its supervisor to terminate. Even if it is <em>not</em> part of a
+supervision tree, it terminates if it receives an <code class="inline">'EXIT'</code> message from its
+parent.</p><p><code class="inline">Arg=remove_handler</code> if the event handler is deleted because another callback
+function has returned <code class="inline">remove_handler</code> or <code class="inline">{remove_handler,Reply}</code>.</p><p><code class="inline">Arg={error,Term}</code> if the event handler is deleted because a callback function
+returned an unexpected value <code class="inline">Term</code>, or <code class="inline">Arg={error,{'EXIT',Reason}}</code> if a
+callback function failed.</p><p><code class="inline">State</code> is the internal state of the event handler.</p><p>The function can return any term. If the event handler is deleted because of a
+call to <a href="#delete_handler/3"><code class="inline">gen_event:delete_handler/3</code></a>, the return value of that function becomes
+the return value of this function. If the event handler is to be replaced with
+another event handler because of a swap, the return value is passed to the
+<code class="inline">init</code> function of the new event handler. Otherwise the return value is ignored.</p><blockquote><h4 class="info">Note</h4><p>This callback is optional, so callback modules need not export it. The
+<code class="inline">gen_event</code> module provides a default implementation without cleanup.</p></blockquote>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+  <section id="functions" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#functions">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Functions</span>
+    </h1>
+    <div class="functions-list">
+<section class="detail" id="add_handler/3">
+
+  <div class="detail-header">
+    <a href="#add_handler/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">add_handler(EventMgrRef, Handler, Args)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L760" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> add_handler(EventMgrRef :: <a href="#t:emgr_ref/0">emgr_ref</a>(), Handler :: <a href="#t:handler/0">handler</a>(), Args :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()) -> <a href="../../apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+<p>Adds a new event handler to event manager <code class="inline">EventMgrRef</code>. The event manager calls
+<a href="#c:init/1"><code class="inline">Module:init/1</code></a> to initiate the event handler and its internal
+state.</p><p><code class="inline">Handler</code> is the name of the callback module <code class="inline">Module</code> or a tuple <code class="inline">{Module,Id}</code>,
+where <code class="inline">Id</code> is any term. The <code class="inline">{Module,Id}</code> representation makes it possible to
+identify a specific event handler when many event handlers use the same callback
+module.</p><p><code class="inline">Args</code> is any term that is passed as the argument to
+<a href="#c:init/1"><code class="inline">Module:init/1</code></a>.</p><p>If <a href="#c:init/1"><code class="inline">Module:init/1</code></a> returns a correct value indicating successful
+completion, the event manager adds the event handler and this function returns
+<code class="inline">ok</code>. If <a href="#c:init/1"><code class="inline">Module:init/1</code></a> fails with <code class="inline">Reason</code> or returns
+<code class="inline">{error,Reason}</code>, the event handler is ignored and this function returns
+<code class="inline">{'EXIT',Reason}</code> or <code class="inline">{error,Reason}</code>, respectively.</p>
+  </section>
+</section>
+<section class="detail" id="add_sup_handler/3">
+
+  <div class="detail-header">
+    <a href="#add_sup_handler/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">add_sup_handler(EventMgrRef, Handler, Args)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L788" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> add_sup_handler(EventMgrRef :: <a href="#t:emgr_ref/0">emgr_ref</a>(), Handler :: <a href="#t:handler/0">handler</a>(), Args :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()) -> <a href="../../apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+<p>Adds a new event handler in the same way as <a href="#add_handler/3"><code class="inline">add_handler/3</code></a>, but also supervises
+the connection by linking the event handler and the calling process.</p><ul><li>If the calling process later terminates with <code class="inline">Reason</code>, the event manager
+deletes any supervised event handlers by calling
+<a href="#c:terminate/2"><code class="inline">Module:terminate/2</code></a>, then calls
+<a href="#c:handle_info/2"><code class="inline">Module:handle_info/2</code></a> for each remaining handler.</li><li>If the event handler is deleted later, the event manager sends a message
+<code class="inline">{gen_event_EXIT,Handler,Reason}</code> to the calling process. <code class="inline">Reason</code> is one of
+the following:<ul><li><code class="inline">normal</code>, if the event handler has been removed because of a call to
+<a href="#delete_handler/3"><code class="inline">delete_handler/3</code></a>, or <code class="inline">remove_handler</code> has been
+returned by a callback function (see below).</li><li><code class="inline">shutdown</code>, if the event handler has been removed because the event manager
+is terminating.</li><li><code class="inline">{swapped,NewHandler,Pid}</code>, if the process <code class="inline">Pid</code> has replaced the event
+handler with another event handler <code class="inline">NewHandler</code> using a call to
+<a href="#swap_handler/3"><code class="inline">swap_handler/3</code></a> or <a href="#swap_sup_handler/3"><code class="inline">swap_sup_handler/3</code></a>.</li><li>A term, if the event handler is removed because of an error. Which term
+depends on the error.</li></ul></li></ul><p>For a description of the arguments and return values, see <a href="#add_handler/3"><code class="inline">add_handler/3</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="call/3">
+
+  <div class="detail-header">
+    <a href="#call/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">call(EventMgrRef, Handler, Request)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L820" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> call(EventMgrRef :: <a href="#t:emgr_ref/0">emgr_ref</a>(), Handler :: <a href="#t:handler/0">handler</a>(), Request :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()) -> <a href="../../apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#call/4"><code class="inline">call(EventMgrRef, Handler, Request, 5000)</code></a></p>
+  </section>
+</section>
+<section class="detail" id="call/4">
+
+  <div class="detail-header">
+    <a href="#call/4" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">call(EventMgrRef, Handler, Request, Timeout)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L849" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> call(EventMgrRef :: <a href="#t:emgr_ref/0">emgr_ref</a>(), Handler :: <a href="#t:handler/0">handler</a>(), Request :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(), Timeout :: <a href="../../apps/erts/erlang.html#t:timeout/0">timeout</a>()) ->
+        <a href="../../apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+<p>Makes a synchronous call to event handler <code class="inline">Handler</code> installed in event manager
+<code class="inline">EventMgrRef</code> by sending a request and waiting until a reply arrives or a
+time-out occurs. The event manager calls
+<a href="#c:handle_call/2"><code class="inline">Module:handle_call/2</code></a> to handle the request.</p><p><code class="inline">Request</code> is any term that is passed as one of the arguments to
+<a href="#c:handle_call/2"><code class="inline">Module:handle_call/2</code></a>.</p><p><code class="inline">Timeout</code> is an integer greater than zero that specifies how many milliseconds
+to wait for a reply, or the atom <code class="inline">infinity</code> to wait indefinitely. Defaults
+to 5000. If no reply is received within the specified time, the function call
+fails.</p><p>The return value <code class="inline">Reply</code> is defined in the return value of
+<a href="#c:handle_call/2"><code class="inline">Module:handle_call/2</code></a>. If the specified event handler is
+not installed, the function returns <code class="inline">{error,bad_module}</code>. If the callback
+function fails with <code class="inline">Reason</code> or returns an unexpected value <code class="inline">Term</code>, this
+function returns <code class="inline">{error,{'EXIT',Reason}}</code> or <code class="inline">{error,Term}</code>, respectively.</p><p>When this call fails it <a href="../../apps/erts/erlang.html#exit/1">exits</a> the calling process. The exit
+term is on the form <code class="inline">{Reason, Location}</code> where
+<code class="inline">Location = {gen_event,call,ArgList}</code>. See
+<a href="gen_server.html#call/3"><code class="inline">gen_server:call/3</code> </a>that has a description of relevant
+values for the <code class="inline">Reason</code> in the exit term.</p>
+  </section>
+</section>
+<section class="detail" id="check_response/2">
+
+  <div class="detail-header">
+    <a href="#check_response/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">check_response(Msg, ReqId)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L1166" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 23.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> check_response(Msg, ReqId) -> Result
+                  when
+                      Msg :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(),
+                      ReqId :: <a href="#t:request_id/0">request_id</a>(),
+                      Response ::
+                          {reply, Reply :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()} | {error, {Reason :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(), <a href="#t:emgr_ref/0">emgr_ref</a>()}},
+                      Result :: Response | no_reply.</pre>
+
+      </div>
+
+<p>Check if <code class="inline">Msg</code> is a response corresponding to the request identifier <code class="inline">ReqId</code>.
+The request must have been made by <a href="#send_request/3"><code class="inline">send_request/3</code></a>.</p><p>If <code class="inline">Msg</code> is a response corresponding to <code class="inline">ReqId</code> the response is returned;
+otherwise, <code class="inline">no_reply</code> is returned and no cleanup is done, and thus the function
+must be invoked repeatedly until a response is returned.</p><p>If the specified event handler is not installed, the function returns
+<code class="inline">{error,bad_module}</code>. If the callback function fails with <code class="inline">Reason</code> or returns an
+unexpected value <code class="inline">Term</code>, this function returns <code class="inline">{error,{'EXIT',Reason}}</code> or
+<code class="inline">{error,Term}</code>, respectively. If the event manager dies before or during the
+request this function returns <code class="inline">{error,{Reason, EventMgrRef}}</code>.</p>
+  </section>
+</section>
+<section class="detail" id="check_response/3">
+
+  <div class="detail-header">
+    <a href="#check_response/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">check_response(Msg, ReqIdCollection, Delete)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L1224" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 25.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> check_response(Msg, ReqIdCollection, Delete) -> Result
+                  when
+                      Msg :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(),
+                      ReqIdCollection :: <a href="#t:request_id_collection/0">request_id_collection</a>(),
+                      Delete :: <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>(),
+                      Response ::
+                          {reply, Reply :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()} | {error, {Reason :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(), <a href="#t:emgr_ref/0">emgr_ref</a>()}},
+                      Result ::
+                          {Response,
+                           Label :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(),
+                           NewReqIdCollection :: <a href="#t:request_id_collection/0">request_id_collection</a>()} |
+                          no_request | no_reply.</pre>
+
+      </div>
+
+<p>Check if <code class="inline">Msg</code> is a response corresponding to a request identifier saved in
+<code class="inline">ReqIdCollection</code>. All request identifiers of <code class="inline">ReqIdCollection</code> must correspond
+to requests that have been made using <a href="#send_request/3"><code class="inline">send_request/3</code></a> or <a href="#send_request/5"><code class="inline">send_request/5</code></a>, and
+all requests must have been made by the process calling this function.</p><p>The <code class="inline">Label</code> in the response equals the <code class="inline">Label</code> associated with the request
+identifier that the response corresponds to. The <code class="inline">Label</code> of a request identifier
+is associated when <a href="#reqids_add/3">saving the request id</a> in a request
+identifier collection, or when sending the request using <a href="#send_request/5"><code class="inline">send_request/5</code></a>.</p><p>Compared to <a href="#check_response/2"><code class="inline">check_response/2</code></a>, the returned result associated with a specific
+request identifier or an exception associated with a specific request identifier
+will be wrapped in a 3-tuple. The first element of this tuple equals the value
+that would have been produced by <a href="#check_response/2"><code class="inline">check_response/2</code></a>, the
+second element equals the <code class="inline">Label</code> associated with the specific request
+identifier, and the third element <code class="inline">NewReqIdCollection</code> is a possibly modified
+request identifier collection.</p><p>If <code class="inline">ReqIdCollection</code> is empty, the atom <code class="inline">no_request</code> will be returned. If <code class="inline">Msg</code>
+does not correspond to any of the request identifiers in <code class="inline">ReqIdCollection</code>, the
+atom <code class="inline">no_reply</code> is returned.</p><p>If <code class="inline">Delete</code> equals <code class="inline">true</code>, the association with <code class="inline">Label</code> will have been deleted
+from <code class="inline">ReqIdCollection</code> in the resulting <code class="inline">NewReqIdCollection</code>. If <code class="inline">Delete</code> equals
+<code class="inline">false</code>, <code class="inline">NewReqIdCollection</code> will equal <code class="inline">ReqIdCollection</code>. Note that deleting
+an association is not for free and that a collection containing already handled
+requests can still be used by subsequent calls to
+<a href="#check_response/3"><code class="inline">check_response/3</code></a>, <a href="#receive_response/3"><code class="inline">receive_response/3</code></a>, and
+<a href="#wait_response/3"><code class="inline">wait_response/3</code></a>. However, without deleting handled associations, the above
+calls will not be able to detect when there are no more outstanding requests to
+handle, so you will have to keep track of this some other way than relying on a
+<code class="inline">no_request</code> return. Note that if you pass a collection only containing
+associations of already handled or abandoned requests to
+<a href="#check_response/3"><code class="inline">check_response/3</code></a>, it will always return <code class="inline">no_reply</code>.</p>
+  </section>
+</section>
+<section class="detail" id="delete_handler/3">
+
+  <div class="detail-header">
+    <a href="#delete_handler/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">delete_handler(EventMgrRef, Handler, Args)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L1313" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> delete_handler(EventMgrRef :: <a href="#t:emgr_ref/0">emgr_ref</a>(), Handler :: <a href="#t:handler/0">handler</a>(), Args :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()) -> <a href="../../apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+<p>Deletes an event handler from event manager <code class="inline">EventMgrRef</code>. The event manager
+calls <a href="#c:terminate/2"><code class="inline">Module:terminate/2</code></a> to terminate the event handler.</p><p><code class="inline">Args</code> is any term that is passed as one of the arguments to
+<a href="#c:terminate/2"><code class="inline">Module:terminate/2</code></a>.</p><p>The return value is the return value of <a href="#c:terminate/2"><code class="inline">Module:terminate/2</code></a>.
+If the specified event handler is not installed, the function returns
+<code class="inline">{error,module_not_found}</code>. If the callback function fails with <code class="inline">Reason</code>, the
+function returns <code class="inline">{'EXIT',Reason}</code>.</p>
+  </section>
+</section>
+<section class="detail" id="notify/2">
+
+  <div class="detail-header">
+    <a href="#notify/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">notify(EventMgrRef, Event)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L804" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> notify(EventMgrRef :: <a href="#t:emgr_ref/0">emgr_ref</a>(), Event :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()) -> ok.</pre>
+
+      </div>
+
+<p>Sends an asynchronous event notification to event manager <code class="inline">EventMgrRef</code>. The event
+manager calls <a href="#c:handle_event/2"><code class="inline">Module:handle_event/2</code></a> for each installed
+event handler to handle the event.</p><p><code class="inline">Event</code> is any term that is passed as one of the arguments to
+<a href="#c:handle_event/2"><code class="inline">Module:handle_event/2</code></a>.</p><p><code class="inline">notify/1</code> does not fail even if the specified event manager does not exist,
+unless it is specified as <code class="inline">Name</code>.</p>
+  </section>
+</section>
+<section class="detail" id="receive_response/2">
+
+  <div class="detail-header">
+    <a href="#receive_response/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">receive_response(ReqId, Timeout)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L1065" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 24.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> receive_response(ReqId, Timeout) -> Result
+                    when
+                        ReqId :: <a href="#t:request_id/0">request_id</a>(),
+                        Timeout :: <a href="#t:response_timeout/0">response_timeout</a>(),
+                        Response ::
+                            {reply, Reply :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()} | {error, {Reason :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(), <a href="#t:emgr_ref/0">emgr_ref</a>()}},
+                        Result :: Response | timeout.</pre>
+
+      </div>
+
+<p>Receive a response corresponding to the request identifier <code class="inline">ReqId</code>. The request
+must have been made by <a href="#send_request/3"><code class="inline">send_request/3</code></a> to the <code class="inline">gen_statem</code> process. This
+function must be called from the same process from which <a href="#send_request/3"><code class="inline">send_request/3</code></a> was
+made.</p><p><code class="inline">Timeout</code> specifies how long to wait for a response. If no response is received
+within the specified time, the function returns <code class="inline">timeout</code>. Assuming that the
+server executes on a node supporting aliases (introduced in OTP 24) the request
+will also be abandoned. That is, no response will be received after a timeout.
+Otherwise, a stray response might be received at a later time.</p><p>The return value <code class="inline">Reply</code> is defined in the return value of
+<a href="#c:handle_call/2"><code class="inline">Module:handle_call/2</code></a>.</p><p>If the specified event handler is not installed, the function returns
+<code class="inline">{error,bad_module}</code>. If the callback function fails with <code class="inline">Reason</code> or returns an
+unexpected value <code class="inline">Term</code>, this function returns <code class="inline">{error,{'EXIT',Reason}}</code> or
+<code class="inline">{error,Term}</code>, respectively. If the event manager dies before or during the
+request this function returns <code class="inline">{error,{Reason, EventMgrRef}}</code>.</p><p>The difference between <a href="#wait_response/2"><code class="inline">wait_response/2</code></a> and
+<a href="#receive_response/2"><code class="inline">receive_response/2</code></a> is that
+<a href="#receive_response/2"><code class="inline">receive_response/2</code></a> abandons the request at timeout so
+that a potential future response is ignored, while
+<a href="#wait_response/2"><code class="inline">wait_response/2</code></a> does not.</p>
+  </section>
+</section>
+<section class="detail" id="receive_response/3">
+
+  <div class="detail-header">
+    <a href="#receive_response/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">receive_response(ReqIdCollection, Timeout, Delete)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L1133" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 25.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> receive_response(ReqIdCollection, Timeout, Delete) -> Result
+                    when
+                        ReqIdCollection :: <a href="#t:request_id_collection/0">request_id_collection</a>(),
+                        Timeout :: <a href="#t:response_timeout/0">response_timeout</a>(),
+                        Delete :: <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>(),
+                        Response ::
+                            {reply, Reply :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()} | {error, {Reason :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(), <a href="#t:emgr_ref/0">emgr_ref</a>()}},
+                        Result ::
+                            {Response,
+                             Label :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(),
+                             NewReqIdCollection :: <a href="#t:request_id_collection/0">request_id_collection</a>()} |
+                            no_request | timeout.</pre>
+
+      </div>
+
+<p>Receive a response corresponding to a request identifier saved in
+<code class="inline">ReqIdCollection</code>. All request identifiers of <code class="inline">ReqIdCollection</code> must correspond
+to requests that have been made using <a href="#send_request/3"><code class="inline">send_request/3</code></a> or <a href="#send_request/5"><code class="inline">send_request/5</code></a>, and
+all requests must have been made by the process calling this function.</p><p>The <code class="inline">Label</code> in the response equals the <code class="inline">Label</code> associated with the request
+identifier that the response corresponds to. The <code class="inline">Label</code> of a request identifier
+is associated when <a href="#reqids_add/3">adding the request id</a> in a request
+identifier collection, or when sending the request using <a href="#send_request/5"><code class="inline">send_request/5</code></a>.</p><p>Compared to <a href="#receive_response/2"><code class="inline">receive_response/2</code></a>, the returned result associated with a specific
+request identifier will be wrapped in a 3-tuple. The first element of this tuple
+equals the value that would have been produced by
+<a href="#receive_response/2"><code class="inline">receive_response/2</code></a>, the second element equals the
+<code class="inline">Label</code> associated with the specific request identifier, and the third element
+<code class="inline">NewReqIdCollection</code> is a possibly modified request identifier collection.</p><p>If <code class="inline">ReqIdCollection</code> is empty, the atom <code class="inline">no_request</code> will be returned.</p><p><code class="inline">Timeout</code> specifies how long to wait for a response. If no response is received
+within the specified time, the function returns <code class="inline">timeout</code>. Assuming that the
+server executes on a node supporting aliases (introduced in OTP 24) all requests
+identified by <code class="inline">ReqIdCollection</code> will also be abandoned. That is, no responses
+will be received after a timeout. Otherwise, stray responses might be received
+at a later time.</p><p>The difference between <a href="#receive_response/3"><code class="inline">receive_response/3</code></a> and
+<a href="#wait_response/3"><code class="inline">wait_response/3</code></a> is that <a href="#receive_response/3"><code class="inline">receive_response/3</code></a> abandons
+the requests at timeout so that potential future responses are ignored, while
+<a href="#wait_response/3"><code class="inline">wait_response/3</code></a> does not.</p><p>If <code class="inline">Delete</code> equals <code class="inline">true</code>, the association with <code class="inline">Label</code> will have been deleted
+from <code class="inline">ReqIdCollection</code> in the resulting <code class="inline">NewReqIdCollection</code>. If <code class="inline">Delete</code> equals
+<code class="inline">false</code>, <code class="inline">NewReqIdCollection</code> will equal <code class="inline">ReqIdCollection</code>. Note that deleting
+an association is not for free and that a collection containing already handled
+requests can still be used by subsequent calls to
+<a href="#receive_response/3"><code class="inline">receive_response/3</code></a>, <a href="#check_response/3"><code class="inline">check_response/3</code></a>, and
+<a href="#wait_response/3"><code class="inline">wait_response/3</code></a>. However, without deleting handled associations, the above
+calls will not be able to detect when there are no more outstanding requests to
+handle, so you will have to keep track of this some other way than relying on a
+<code class="inline">no_request</code> return. Note that if you pass a collection only containing
+associations of already handled or abandoned requests to
+<a href="#receive_response/3"><code class="inline">receive_response/3</code></a>, it will always block until a
+timeout determined by <code class="inline">Timeout</code> is triggered.</p>
+  </section>
+</section>
+<section class="detail" id="reqids_add/3">
+
+  <div class="detail-header">
+    <a href="#reqids_add/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">reqids_add(ReqId, Label, ReqIdCollection)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L1277" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 25.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> reqids_add(ReqId :: <a href="#t:request_id/0">request_id</a>(), Label :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(), ReqIdCollection :: <a href="#t:request_id_collection/0">request_id_collection</a>()) ->
+              NewReqIdCollection :: <a href="#t:request_id_collection/0">request_id_collection</a>().</pre>
+
+      </div>
+
+<p>Saves <code class="inline">ReqId</code> and associates a <code class="inline">Label</code> with the request identifier by adding
+this information to <code class="inline">ReqIdCollection</code> and returning the resulting request
+identifier collection.</p>
+  </section>
+</section>
+<section class="detail" id="reqids_new/0">
+
+  <div class="detail-header">
+    <a href="#reqids_new/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">reqids_new()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L1252" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 25.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> reqids_new() -> NewReqIdCollection :: <a href="#t:request_id_collection/0">request_id_collection</a>().</pre>
+
+      </div>
+
+<p>Returns a new empty request identifier collection. A request identifier
+collection can be utilized in order the handle multiple outstanding requests.</p><p>Request identifiers of requests made by <a href="#send_request/3"><code class="inline">send_request/3</code></a> can be saved in a
+request identifier collection using <a href="#reqids_add/3"><code class="inline">reqids_add/3</code></a>. Such a collection of request
+identifiers can later be used in order to get one response corresponding to a
+request in the collection by passing the collection as argument to
+<a href="#receive_response/3"><code class="inline">receive_response/3</code></a>, <a href="#wait_response/3"><code class="inline">wait_response/3</code></a>, or, <a href="#check_response/3"><code class="inline">check_response/3</code></a>.</p><p><a href="#reqids_size/1"><code class="inline">reqids_size/1</code></a> can be used to determine the amount of request identifiers in a
+request identifier collection.</p>
+  </section>
+</section>
+<section class="detail" id="reqids_size/1">
+
+  <div class="detail-header">
+    <a href="#reqids_size/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">reqids_size(ReqIdCollection)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L1260" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 25.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> reqids_size(ReqIdCollection :: <a href="#t:request_id_collection/0">request_id_collection</a>()) -> <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>().</pre>
+
+      </div>
+
+<p>Returns the amount of request identifiers saved in <code class="inline">ReqIdCollection</code>.</p>
+  </section>
+</section>
+<section class="detail" id="reqids_to_list/1">
+
+  <div class="detail-header">
+    <a href="#reqids_to_list/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">reqids_to_list(ReqIdCollection)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L1293" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 25.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> reqids_to_list(ReqIdCollection :: <a href="#t:request_id_collection/0">request_id_collection</a>()) ->
+                  [{ReqId :: <a href="#t:request_id/0">request_id</a>(), Label :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()}].</pre>
+
+      </div>
+
+<p>Returns a list of <code class="inline">{ReqId, Label}</code> tuples which corresponds to all request
+identifiers with their associated labels present in the <code class="inline">ReqIdCollection</code>
+collection.</p>
+  </section>
+</section>
+<section class="detail" id="send_request/3">
+
+  <div class="detail-header">
+    <a href="#send_request/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">send_request(EventMgrRef, Handler, Request)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L882" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 23.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> send_request(EventMgrRef :: <a href="#t:emgr_ref/0">emgr_ref</a>(), Handler :: <a href="#t:handler/0">handler</a>(), Request :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()) ->
+                ReqId :: <a href="#t:request_id/0">request_id</a>().</pre>
+
+      </div>
+
+<p>Sends an asynchronous <code class="inline">call</code> request <code class="inline">Request</code> to event handler <code class="inline">Handler</code>
+installed in the event manager identified by <code class="inline">EventMgrRef</code> and returns a request
+identifier <code class="inline">ReqId</code>. The return value <code class="inline">ReqId</code> shall later be used with
+<a href="#receive_response/2"><code class="inline">receive_response/2</code></a>, <a href="#wait_response/2"><code class="inline">wait_response/2</code></a>, or <a href="#check_response/2"><code class="inline">check_response/2</code></a> to fetch the
+actual result of the request.</p><p>Besides passing the request identifier directly to these functions, it can also
+be saved in a request identifier collection using <a href="#reqids_add/3"><code class="inline">reqids_add/3</code></a>. Such a
+collection of request identifiers can later be used in
+order to get one response corresponding to a request in the collection by
+passing the collection as argument to <a href="#receive_response/3"><code class="inline">receive_response/3</code></a>, <a href="#wait_response/3"><code class="inline">wait_response/3</code></a>,
+or <a href="#check_response/3"><code class="inline">check_response/3</code></a>. If you are about to save the request identifier in a
+request identifier collection, you may want to consider using <a href="#send_request/5"><code class="inline">send_request/5</code></a>
+instead.</p><p>The call
+<code class="inline">gen_event:receive_response(gen_event:send_request(EventMgrRef, Handler, Request), Timeout)</code>
+can be seen as equivalent to
+<a href="#call/3"><code class="inline">gen_event:call(EventMgrRef, Handler, Request, Timeout)</code></a>, ignoring
+the error handling.</p><p>The event manager calls <a href="#c:handle_call/2"><code class="inline">Module:handle_call/2</code></a> to handle
+the request.</p><p><code class="inline">Request</code> is any term that is passed as one of the arguments to
+<a href="#c:handle_call/2"><code class="inline">Module:handle_call/2</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="send_request/5">
+
+  <div class="detail-header">
+    <a href="#send_request/5" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">send_request(EventMgrRef, Handler, Request, Label, ReqIdCollection)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L911" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 25.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> send_request(EventMgrRef :: <a href="#t:emgr_ref/0">emgr_ref</a>(),
+             Handler :: <a href="#t:handler/0">handler</a>(),
+             Request :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(),
+             Label :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(),
+             ReqIdCollection :: <a href="#t:request_id_collection/0">request_id_collection</a>()) ->
+                NewReqIdCollection :: <a href="#t:request_id_collection/0">request_id_collection</a>().</pre>
+
+      </div>
+
+<p>Sends an asynchronous <code class="inline">call</code> request <code class="inline">Request</code> to event handler <code class="inline">Handler</code>
+installed in the event manager identified by <code class="inline">EventMgrRef</code>. The <code class="inline">Label</code> will be
+associated with the request identifier of the operation and added to the returned
+request identifier collection <code class="inline">NewReqIdCollection</code>.</p><p>The collection can later be used in order to get one response corresponding to a
+request in the collection by passing the collection as argument to <a href="#receive_response/3"><code class="inline">receive_response/3</code></a>,
+<a href="#wait_response/3"><code class="inline">wait_response/3</code></a>, or <a href="#check_response/3"><code class="inline">check_response/3</code></a>.</p><p>The same as calling
+<a href="#reqids_add/3"><code class="inline">gen_event:reqids_add</code></a><code class="inline">(</code><a href="#send_request/3"><code class="inline">gen_event:send_request</code></a><code class="inline">(EventMgrRef, Handler, Request), Label, ReqIdCollection)</code>,
+but calling <a href="#send_request/5"><code class="inline">send_request/5</code></a> is slightly more efficient.</p>
+  </section>
+</section>
+<section class="detail" id="start/0">
+
+  <div class="detail-header">
+    <a href="#start/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">start()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L577" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 20.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> start() -> <a href="#t:start_ret/0">start_ret</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#start/1"><code class="inline">start([])</code></a></p>
+  </section>
+</section>
+<section class="detail" id="start/1">
+
+  <div class="detail-header">
+    <a href="#start/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">start(EventMgrNameOrOptions)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L589" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 20.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> start(EventMgrNameOrOptions :: <a href="#t:emgr_name/0">emgr_name</a>() | <a href="#t:options/0">options</a>()) -> <a href="#t:start_ret/0">start_ret</a>().</pre>
+
+      </div>
+
+<p>Creates a stand-alone event manager process, that is, an event manager that is
+not part of a supervision tree and thus has no supervisor.</p><p>For a description of the arguments and return values, see
+<a href="#start_link/1"><code class="inline">start_link/1</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="start/2">
+
+  <div class="detail-header">
+    <a href="#start/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">start(EventMgrName, Options)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L605" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 20.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> start(EventMgrName :: <a href="#t:emgr_name/0">emgr_name</a>(), Options :: <a href="#t:options/0">options</a>()) -> <a href="#t:start_ret/0">start_ret</a>().</pre>
+
+      </div>
+
+<p>Creates a stand-alone event manager process, that is, an event manager that is
+not part of a supervision tree and thus has no supervisor.</p><p>For a description of the arguments and return values, see
+<a href="#start_link/2"><code class="inline">start_link/2</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="start_link/0">
+
+  <div class="detail-header">
+    <a href="#start_link/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">start_link()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L613" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 20.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> start_link() -> <a href="#t:start_ret/0">start_ret</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#start_link/1"><code class="inline">start_link([])</code></a></p>
+  </section>
+</section>
+<section class="detail" id="start_link/1">
+
+  <div class="detail-header">
+    <a href="#start_link/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">start_link(EventMgrNameOrOptions)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L628" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 20.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> start_link(EventMgrNameOrOptions :: <a href="#t:emgr_name/0">emgr_name</a>() | <a href="#t:options/0">options</a>()) -> <a href="#t:start_ret/0">start_ret</a>().</pre>
+
+      </div>
+
+<p>Creates an event manager process as part of a supervision tree.</p><p>If called with <a href="#t:emgr_name/0"><code class="inline">emgr_name/0</code></a>, then it is equivalent to <a href="#start/2"><code class="inline">start(EventMgrName, [])</code></a>.</p><p>If called with <a href="#t:options/0"><code class="inline">options/0</code></a>, then a nameless event manager is created using <code class="inline">Options</code>.</p><p>For a description of the arguments and return values, see
+<a href="#start_link/2"><code class="inline">start_link/2</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="start_link/2">
+
+  <div class="detail-header">
+    <a href="#start_link/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">start_link(EventMgrName, Options)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L680" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 20.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> start_link(EventMgrName :: <a href="#t:emgr_name/0">emgr_name</a>(), Options :: <a href="#t:options/0">options</a>()) -> <a href="#t:start_ret/0">start_ret</a>().</pre>
+
+      </div>
+
+<p>Creates an event manager process as part of a supervision tree.</p><p>The function is to be called, directly or indirectly, by the supervisor.
+For example, it ensures that the event manager is linked to the caller (supervisor).</p><ul><li>If option <code class="inline">{hibernate_after,HibernateAfterTimeout}</code> is present, the
+<code class="inline">gen_event</code> process awaits any message for <code class="inline">HibernateAfterTimeout</code>
+milliseconds and if no message is received, the process goes into hibernation
+automatically (by calling <a href="proc_lib.html#hibernate/3"><code class="inline">proc_lib:hibernate/3</code></a>).</li></ul><p>If the event manager is successfully created, the function returns <code class="inline">{ok,Pid}</code>,
+where <code class="inline">Pid</code> is the pid of the event manager.</p><p>If a process with the specified <code class="inline">EventMgrName</code> exists already, the function
+returns <code class="inline">{error,{already_started,OtherPid}}</code>, where <code class="inline">OtherPid</code> is the pid of
+that process, and the event manager process exits with reason <code class="inline">normal</code>.</p><p>If the event manager fails to start within the specified start timeout
+<code class="inline">{timeout,Time}</code>, which is very unlikely since the start does not interact with
+other processes, the function returns <code class="inline">{error,timeout}</code> and the failed event
+manager is killed with <a href="../../apps/erts/erlang.html#exit/2"><code class="inline">exit(_, kill)</code></a>.</p><p>If <code class="inline">start_link/1,2</code> returns <code class="inline">{error,_}</code>, the started event manager process has
+terminated. If an <code class="inline">'EXIT'</code> message was delivered to the calling process (due to
+the process link), that message has been consumed.</p><blockquote><h4 class="warning">Warning</h4><p>Before OTP 26.0, if the started event manager failed to register its name,
+this founction could return <code class="inline">{error,{already_started,OtherPid}}</code> <em>before</em> the
+started event manager process had terminated so starting again might fail
+because the registered name was not yet unregistered, and an <code class="inline">'EXIT'</code> message
+could arrive later to the process calling this function.</p><p>But if the start timed out, this function killed the started event manager
+process and returned <code class="inline">{error,timeout}</code>, and then the process link
+<code class="inline">{'EXIT',Pid,killed}</code> message <em>was</em> consumed.</p><p>The start was made synchronous in OTP 26.0 and the guarantee was implemented
+that no process link <code class="inline">'EXIT'</code> message from a failed start will linger in the
+caller's inbox.</p></blockquote>
+  </section>
+</section>
+<section class="detail" id="start_monitor/0">
+
+  <div class="detail-header">
+    <a href="#start_monitor/0" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">start_monitor()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L688" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 23.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> start_monitor() -> <a href="#t:start_mon_ret/0">start_mon_ret</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#start_monitor/1"><code class="inline">start_monitor([])</code></a></p>
+  </section>
+</section>
+<section class="detail" id="start_monitor/1">
+
+  <div class="detail-header">
+    <a href="#start_monitor/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">start_monitor(EventMgrNameOrOptions)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L701" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 23.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> start_monitor(EventMgrNameOrOptions :: <a href="#t:emgr_name/0">emgr_name</a>() | <a href="#t:options/0">options</a>()) -> <a href="#t:start_mon_ret/0">start_mon_ret</a>().</pre>
+
+      </div>
+
+<p>Creates a stand-alone event manager process, that is, an event manager that is
+not part of a supervision tree (and thus has no supervisor) and atomically sets
+up a monitor to the newly created process.</p><p>For a description of the arguments and return values, see <a href="#start_monitor/2"><code class="inline">start_monitor/2</code></a> and
+<a href="#start_link/1"><code class="inline">start_link/1</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="start_monitor/2">
+
+  <div class="detail-header">
+    <a href="#start_monitor/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">start_monitor(EventMgtName, Options)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L723" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 23.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> start_monitor(EventMgtName :: <a href="#t:emgr_name/0">emgr_name</a>(), Options :: <a href="#t:options/0">options</a>()) -> <a href="#t:start_mon_ret/0">start_mon_ret</a>().</pre>
+
+      </div>
+
+<p>Creates a stand-alone event manager process, that is, an event manager that is
+not part of a supervision tree (and thus has no supervisor) and atomically sets
+up a monitor to the newly created process.</p><p>For a description of the arguments and return values, see
+<a href="#start_link/2"><code class="inline">start_link/2</code></a>. Note that the return value on successful
+start differs from <a href="#start_link/2"><code class="inline">start_link/2</code></a>. <code class="inline">start_monitor/0,1,2</code> will return
+<code class="inline">{ok,{Pid,Mon}}</code> where <code class="inline">Pid</code> is the process identifier of the process, and <code class="inline">Mon</code>
+is a reference to the monitor set up to monitor the process. If the start is not
+successful, the caller will be blocked until the <code class="inline">DOWN</code> message has been
+received and removed from the message queue.</p>
+  </section>
+</section>
+<section class="detail" id="stop/1">
+
+  <div class="detail-header">
+    <a href="#stop/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">stop(EventMgrRef)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L1376" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 18.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> stop(EventMgrRef :: <a href="#t:emgr_ref/0">emgr_ref</a>()) -> ok.</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#stop/3"><code class="inline">stop(EventMgrRef, normal, infinity)</code></a></p>
+  </section>
+</section>
+<section class="detail" id="stop/3">
+
+  <div class="detail-header">
+    <a href="#stop/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">stop(EventMgrRef, Reason, Timeout)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L1401" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 18.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> stop(EventMgrRef :: <a href="#t:emgr_ref/0">emgr_ref</a>(), Reason :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(), Timeout :: <a href="../../apps/erts/erlang.html#t:timeout/0">timeout</a>()) -> ok.</pre>
+
+      </div>
+
+<p>Orders event manager <code class="inline">EventMgrRef</code> to exit with the specifies <code class="inline">Reason</code> and waits
+for it to terminate. Before terminating, <code class="inline">gen_event</code> calls
+<a href="#c:terminate/2"><code class="inline">Module:terminate(stop,...)</code></a> for each installed event
+handler.</p><p>The function returns <code class="inline">ok</code> if the event manager terminates with the expected
+reason. Any other reason than <code class="inline">normal</code>, <code class="inline">shutdown</code>, or <code class="inline">{shutdown,Term}</code> causes
+an error report to be issued using <a href="../../apps/kernel/logger.html"><code class="inline">logger</code></a>.</p><p><code class="inline">Timeout</code> is an integer greater than zero that specifies how many milliseconds
+to wait for the event manager to terminate, or the atom <code class="inline">infinity</code> to wait
+indefinitely. If the event manager has not terminated
+within the specified time, the call exits the calling process with reason
+<code class="inline">timeout</code>.</p><p>If the process does not exist, the call exits the calling process with reason
+<code class="inline">noproc</code>, and with reason <code class="inline">{nodedown,Node}</code> if the connection fails to the
+remote <code class="inline">Node</code> where the server runs.</p>
+  </section>
+</section>
+<section class="detail" id="swap_handler/3">
+
+  <div class="detail-header">
+    <a href="#swap_handler/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">swap_handler(EventMgrRef, OldHandler, NewHandler)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L1349" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> swap_handler(EventMgrRef :: <a href="#t:emgr_ref/0">emgr_ref</a>(),
+             OldHandler :: {<a href="#t:handler/0">handler</a>(), <a href="../../apps/erts/erlang.html#t:term/0">term</a>()},
+             NewHandler :: {<a href="#t:handler/0">handler</a>(), <a href="../../apps/erts/erlang.html#t:term/0">term</a>()}) ->
+                ok | {error, <a href="../../apps/erts/erlang.html#t:term/0">term</a>()}.</pre>
+
+      </div>
+
+<p>Replaces an old event handler with a new event handler in event manager
+<code class="inline">EventMgrRef</code>.</p><p>For a description of <code class="inline">OldHandler</code> and <code class="inline">NewHandler</code>, see <a href="#add_handler/3"><code class="inline">add_handler/3</code></a>.</p><p>First the old event handler <code class="inline">OldHandler</code> is deleted. The event manager calls
+<code class="inline">OldModule:terminate(Args1, ...)</code>, where <code class="inline">OldModule</code> is the callback module of
+<code class="inline">OldHandler</code>, and collects the return value.</p><p>Then the new event handler <code class="inline">NewHandler</code> is added and initiated by calling
+<a href="#c:init/1"><code class="inline">NewModule:init({Args2,Term})</code></a>, where <code class="inline">NewModule</code> is the callback
+module of <code class="inline">OldHandler</code> and <code class="inline">Term</code> is the return value of
+<a href="#c:terminate/2"><code class="inline">OldModule:terminate/2</code></a>. This makes it possible to transfer
+information from <code class="inline">OldHandler</code> to <code class="inline">NewHandler</code>.</p><p>The new handler is added even if the the specified old event handler is not
+installed, in which case <code class="inline">Term=error</code>, or if
+<a href="#c:terminate/2"><code class="inline">OldModule:terminate/2</code></a> fails with <code class="inline">Reason</code>, in which case
+<code class="inline">Term={'EXIT',Reason}</code>. The old handler is deleted even if
+<a href="#c:init/1"><code class="inline">NewModule:init/1</code></a> fails.</p><p>If there was a supervised connection between <code class="inline">OldHandler</code> and a process <code class="inline">Pid</code>,
+there is a supervised connection between <code class="inline">NewHandler</code> and <code class="inline">Pid</code> instead.</p><p>If <a href="#c:init/1"><code class="inline">NewModule:init/1</code></a> returns a correct value, this function returns
+<code class="inline">ok</code>. If <a href="#c:init/1"><code class="inline">NewModule:init/1</code></a> fails with <code class="inline">Reason</code> or returns an
+unexpected value <code class="inline">Term</code>, this function returns <code class="inline">{error,{'EXIT',Reason}}</code> or
+<code class="inline">{error,Term}</code>, respectively.</p>
+  </section>
+</section>
+<section class="detail" id="swap_sup_handler/3">
+
+  <div class="detail-header">
+    <a href="#swap_sup_handler/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">swap_sup_handler(EventMgrRef, OldHandler, NewHandler)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L1362" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> swap_sup_handler(EventMgrRef :: <a href="#t:emgr_ref/0">emgr_ref</a>(),
+                 OldHandler :: {<a href="#t:handler/0">handler</a>(), <a href="../../apps/erts/erlang.html#t:term/0">term</a>()},
+                 NewHandler :: {<a href="#t:handler/0">handler</a>(), <a href="../../apps/erts/erlang.html#t:term/0">term</a>()}) ->
+                    ok | {error, <a href="../../apps/erts/erlang.html#t:term/0">term</a>()}.</pre>
+
+      </div>
+
+<p>Replaces an event handler in event manager <code class="inline">EventMgrRef</code> in the same way as
+<a href="#swap_handler/3"><code class="inline">swap_handler/3</code></a>, but also supervises the connection between
+<code class="inline">NewHandler</code> and the calling process.</p><p>For a description of the arguments and return values, see <a href="#swap_handler/3"><code class="inline">swap_handler/3</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="sync_notify/2">
+
+  <div class="detail-header">
+    <a href="#sync_notify/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">sync_notify(EventMgrRef, Event)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L816" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> sync_notify(EventMgrRef :: <a href="#t:emgr_ref/0">emgr_ref</a>(), Event :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()) -> ok.</pre>
+
+      </div>
+
+<p>Sends a synchronous event notification to event manager <code class="inline">EventMgrRef</code>. The event
+manager calls <a href="#c:handle_event/2"><code class="inline">Module:handle_event/2</code></a> for each installed event
+handler to handle the event. This function will return <code class="inline">ok</code> after the event has
+been handled by all event handlers.</p><p><code class="inline">Event</code> is any term that is passed as one of the arguments to
+<a href="#c:handle_event/2"><code class="inline">Module:handle_event/2</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="wait_response/2">
+
+  <div class="detail-header">
+    <a href="#wait_response/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">wait_response(ReqId, WaitTime)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L952" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 23.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> wait_response(ReqId, WaitTime) -> Result
+                 when
+                     ReqId :: <a href="#t:request_id/0">request_id</a>(),
+                     WaitTime :: <a href="#t:response_timeout/0">response_timeout</a>(),
+                     Response ::
+                         {reply, Reply :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()} | {error, {Reason :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(), <a href="#t:emgr_ref/0">emgr_ref</a>()}},
+                     Result :: Response | timeout.</pre>
+
+      </div>
+
+<p>Wait for a response corresponding to the request identifier <code class="inline">ReqId</code>. The request
+must have been made by <a href="#send_request/3"><code class="inline">send_request/3</code></a> to the <code class="inline">gen_statem</code> process. This
+function must be called from the same process from which <a href="#send_request/3"><code class="inline">send_request/3</code></a> was
+made.</p><p><code class="inline">WaitTime</code> specifies how long to wait for a response. If no response is received
+within the specified time, the function returns <code class="inline">timeout</code> and no cleanup is
+done, and thus the function can be invoked repeatedly until a reply is returned.</p><p>The return value <code class="inline">Reply</code> is defined in the return value of
+<a href="#c:handle_call/2"><code class="inline">Module:handle_call/2</code></a>.</p><p>If the specified event handler is not installed, the function returns
+<code class="inline">{error,bad_module}</code>. If the callback function fails with <code class="inline">Reason</code> or returns an
+unexpected value <code class="inline">Term</code>, this function returns <code class="inline">{error,{'EXIT',Reason}}</code> or
+<code class="inline">{error,Term}</code>, respectively. If the event manager dies before or during the
+request this function returns <code class="inline">{error,{Reason, EventMgrRef}}</code>.</p><p>The difference between <a href="#receive_response/2"><code class="inline">receive_response/2</code></a> and
+<a href="#wait_response/2"><code class="inline">wait_response/2</code></a> is that
+<a href="#receive_response/2"><code class="inline">receive_response/2</code></a> abandons the request at timeout so
+that a potential future response is ignored, while
+<a href="#wait_response/2"><code class="inline">wait_response/2</code></a> does not.</p>
+  </section>
+</section>
+<section class="detail" id="wait_response/3">
+
+  <div class="detail-header">
+    <a href="#wait_response/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">wait_response(ReqIdCollection, WaitTime, Delete)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L1019" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 25.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> wait_response(ReqIdCollection, WaitTime, Delete) -> Result
+                 when
+                     ReqIdCollection :: <a href="#t:request_id_collection/0">request_id_collection</a>(),
+                     WaitTime :: <a href="#t:response_timeout/0">response_timeout</a>(),
+                     Delete :: <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>(),
+                     Response ::
+                         {reply, Reply :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()} | {error, {Reason :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(), <a href="#t:emgr_ref/0">emgr_ref</a>()}},
+                     Result ::
+                         {Response,
+                          Label :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>(),
+                          NewReqIdCollection :: <a href="#t:request_id_collection/0">request_id_collection</a>()} |
+                         no_request | timeout.</pre>
+
+      </div>
+
+<p>Wait for a response corresponding to a request identifier saved in
+<code class="inline">ReqIdCollection</code>. All request identifiers of <code class="inline">ReqIdCollection</code> must correspond
+to requests that have been made using <a href="#send_request/3"><code class="inline">send_request/3</code></a> or <a href="#send_request/5"><code class="inline">send_request/5</code></a>, and
+all requests must have been made by the process calling this function.</p><p>The <code class="inline">Label</code> in the response equals the <code class="inline">Label</code> associated with the request
+identifier that the response corresponds to. The <code class="inline">Label</code> of a request identifier
+is associated when <a href="#reqids_add/3">saving the request id</a> in a request
+identifier collection, or when sending the request using <a href="#send_request/5"><code class="inline">send_request/5</code></a>.</p><p>Compared to <a href="#wait_response/2"><code class="inline">wait_response/2</code></a>, the returned result associated with a specific
+request identifier or an exception associated with a specific request identifier
+will be wrapped in a 3-tuple. The first element of this tuple equals the value
+that would have been produced by <a href="#wait_response/2"><code class="inline">wait_response/2</code></a>, the
+second element equals the <code class="inline">Label</code> associated with the specific request
+identifier, and the third element <code class="inline">NewReqIdCollection</code> is a possibly modified
+request identifier collection.</p><p>If <code class="inline">ReqIdCollection</code> is empty, <code class="inline">no_request</code> will be returned. If no response is
+received before the <code class="inline">WaitTime</code> timeout has triggered, the atom <code class="inline">timeout</code> is
+returned. It is valid to continue waiting for a response as many times as needed
+up until a response has been received and completed by <code class="inline">check_response()</code>,
+<code class="inline">receive_response()</code>, or <code class="inline">wait_response()</code>.</p><p>The difference between <a href="#receive_response/3"><code class="inline">receive_response/3</code></a> and
+<a href="#wait_response/3"><code class="inline">wait_response/3</code></a> is that
+<a href="#receive_response/3"><code class="inline">receive_response/3</code></a> abandons requests at timeout so
+that potential future responses are ignored, while
+<a href="#wait_response/3"><code class="inline">wait_response/3</code></a> does not.</p><p>If <code class="inline">Delete</code> equals <code class="inline">true</code>, the association with <code class="inline">Label</code> will have been deleted
+from <code class="inline">ReqIdCollection</code> in the resulting <code class="inline">NewReqIdCollection</code>. If <code class="inline">Delete</code> equals
+<code class="inline">false</code>, <code class="inline">NewReqIdCollection</code> will equal <code class="inline">ReqIdCollection</code>. Note that deleting
+an association is not for free and that a collection containing already handled
+requests can still be used by subsequent calls to
+<a href="#wait_response/3"><code class="inline">wait_response/3</code></a>, <a href="#check_response/3"><code class="inline">check_response/3</code></a>, and
+<a href="#receive_response/3"><code class="inline">receive_response/3</code></a>. However, without deleting handled associations, the above
+calls will not be able to detect when there are no more outstanding requests to
+handle, so you will have to keep track of this some other way than relying on a
+<code class="inline">no_request</code> return. Note that if you pass a collection only containing
+associations of already handled or abandoned requests to
+<a href="#wait_response/3"><code class="inline">wait_response/3</code></a>, it will always block until a timeout
+determined by <code class="inline">WaitTime</code> is triggered and then return <code class="inline">no_reply</code>.</p>
+  </section>
+</section>
+<section class="detail" id="which_handlers/1">
+
+  <div class="detail-header">
+    <a href="#which_handlers/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">which_handlers(EventMgrRef)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/gen_event.erl#L1371" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> which_handlers(EventMgrRef :: <a href="#t:emgr_ref/0">emgr_ref</a>()) -> [<a href="#t:handler/0">handler</a>()].</pre>
+
+      </div>
+
+<p>Returns a list of all event handlers installed in event manager <code class="inline">EventMgrRef</code>.</p><p>For a description of <code class="inline">Handler</code>, see <a href="#add_handler/3"><code class="inline">add_handler/3</code></a>.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+              <a href="stdlib.epub" title="ePub version">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

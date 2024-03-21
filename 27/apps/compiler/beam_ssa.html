@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="compiler v8.5">
+
+
+    <title>Invariants on the Structure and Format of BEAM SSA — compiler v8.5</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-920775EC.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="compiler" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+compiler
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v8.5
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of compiler</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/lib/compiler/internal_doc/beam_ssa.md#L1" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+
+  <span>Invariants on the Structure and Format of BEAM SSA</span>
+</h1>
+
+<h2 id="exception-handling" class="section-heading">
+  <a href="#exception-handling" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Exception Handling</span>
+</h2>
+<p>The translation of a <code class="inline">try</code>-<code class="inline">catch</code> expression into BEAM SSA has the
+following structure:</p><pre><code class="makeup erlang" translate="no"><span class="p">@</span><span class="ss">tag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">new_try_tag</span><span class="w"> </span><span class="err">`</span><span class="k">try</span><span class="err">`</span><span class="w">
+</span><span class="ss">br</span><span class="w"> </span><span class="p">@</span><span class="ss">tag</span><span class="p">,</span><span class="w"> </span><span class="err">^</span><span class="ss">protected_block0</span><span class="p">,</span><span class="w"> </span><span class="err">^</span><span class="ss">landing_pad_block</span><span class="w">
+
+</span><span class="nc">protected_block0</span><span class="p">:</span><span class="w">
+  </span><span class="p">@</span><span class="ss">success0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="w"> </span><span class="c1">% Something that could raise an exception</span><span class="w">
+  </span><span class="ss">br</span><span class="w"> </span><span class="p">@</span><span class="ss">success0</span><span class="p">,</span><span class="w"> </span><span class="err">^</span><span class="ss">protected_block1</span><span class="p">,</span><span class="w"> </span><span class="err">^</span><span class="ss">landing_pad_block</span><span class="w">
+
+</span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="w">
+
+</span><span class="nc">protected_blockN</span><span class="p">:</span><span class="w">
+  </span><span class="c1">% The end of the protected code</span><span class="w">
+  </span><span class="p">@</span><span class="ss">ignored0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">kill_try_tag</span><span class="w"> </span><span class="p">@</span><span class="ss">tag</span><span class="w">
+  </span><span class="ss">br</span><span class="w"> </span><span class="err">^</span><span class="ss">after_try_catch</span><span class="w">
+
+</span><span class="nc">landing_pad_block</span><span class="p">:</span><span class="w">
+  </span><span class="p">@</span><span class="ss">aggregate</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">landingpad</span><span class="w"> </span><span class="k">try</span><span class="p">,</span><span class="w"> </span><span class="p">@</span><span class="ss">tag</span><span class="w">
+  </span><span class="p">@</span><span class="ss">class</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="ss">extract</span><span class="w"> </span><span class="p">@</span><span class="ss">aggregate</span><span class="p">,</span><span class="w"> </span><span class="err">`</span><span class="mi">0</span><span class="err">`</span><span class="w"> </span><span class="c1">% The error class</span><span class="w">
+  </span><span class="p">@</span><span class="ss">reason</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">extract</span><span class="w"> </span><span class="p">@</span><span class="ss">aggregate</span><span class="p">,</span><span class="w"> </span><span class="err">`</span><span class="mi">1</span><span class="err">`</span><span class="w"> </span><span class="c1">% The reason</span><span class="w">
+  </span><span class="p">@</span><span class="ss">stk</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="ss">extract</span><span class="w"> </span><span class="p">@</span><span class="ss">aggregate</span><span class="p">,</span><span class="w"> </span><span class="err">`</span><span class="mi">2</span><span class="err">`</span><span class="w"> </span><span class="c1">% The stack trace</span><span class="w">
+  </span><span class="p">@</span><span class="ss">ignored1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">kill_try_tag</span><span class="w"> </span><span class="p">@</span><span class="ss">tag</span><span class="w">
+  </span><span class="c1">%% Pattern matching on @class, @reason, and @stk is done here</span><span class="w">
+  </span><span class="c1">%% to send control to the appropriate catch clause</span><span class="w">
+  </span><span class="ss">br</span><span class="w"> </span><span class="err">^</span><span class="ss">after_try_catch</span><span class="w">
+
+</span><span class="nc">after_try_catch</span><span class="p">:</span><span class="w">
+  </span><span class="c1">% Normal execution continues</span></code></pre><p>The following invariants must hold for the SSA:</p><ul><li>All code that can cause an exception in one of the protected blocks
+must have explicit control flow edges to the landing pad block. If
+there are no edges to the landing pad block except from the block
+containing the <code class="inline">new_try_tag</code>, the compiler will remove the
+redundant exception handler.</li><li>The extraction of the class, reason and stack trace from the result
+of the <code class="inline">landingpad</code> instruction must be done in that
+order. Omitting the extraction of elements which are unused is
+allowed.</li><li>Both the landing pad block and the final protected block must end
+with a <code class="inline">kill_try_tag</code> instruction. Trying to share the
+<code class="inline">kill_try_tag</code> epilogue between the last protected block and the
+landing pad is unlikely to work.</li></ul><p>The translation of an old-style <code class="inline">catch</code> expression into BEAM SSA has
+the following structure:</p><pre><code class="makeup erlang" translate="no"><span class="p">@</span><span class="ss">tag</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">new_try_tag</span><span class="w"> </span><span class="err">`</span><span class="k">try</span><span class="err">`</span><span class="w">
+</span><span class="ss">br</span><span class="w"> </span><span class="p">@</span><span class="ss">tag</span><span class="p">,</span><span class="w"> </span><span class="err">^</span><span class="ss">protected_block0</span><span class="p">,</span><span class="w"> </span><span class="err">^</span><span class="ss">landing_pad_block</span><span class="w">
+
+</span><span class="nc">protected_block0</span><span class="p">:</span><span class="w">
+  </span><span class="p">@</span><span class="ss">success0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="w"> </span><span class="c1">% Something that could raise an exception</span><span class="w">
+  </span><span class="ss">br</span><span class="w"> </span><span class="p">@</span><span class="ss">success0</span><span class="p">,</span><span class="w"> </span><span class="err">^</span><span class="ss">protected_block1</span><span class="p">,</span><span class="w"> </span><span class="err">^</span><span class="ss">landing_pad_block</span><span class="w">
+
+</span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="w">
+
+</span><span class="nc">protected_blockN</span><span class="p">:</span><span class="w">
+  </span><span class="c1">% The end of the protected code</span><span class="w">
+  </span><span class="p">@</span><span class="ss">successful_result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="w"> </span><span class="c1">% The result of a successful computation</span><span class="w">
+  </span><span class="ss">br</span><span class="w"> </span><span class="err">^</span><span class="ss">common_end_of_catch</span><span class="w">
+
+</span><span class="nc">landing_pad_block</span><span class="p">:</span><span class="w">
+   </span><span class="p">@</span><span class="ss">aggregate</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">landingpad</span><span class="w"> </span><span class="k">catch</span><span class="p">,</span><span class="w"> </span><span class="p">@</span><span class="ss">tag</span><span class="w">
+   </span><span class="p">@</span><span class="ss">catched_val</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">extract</span><span class="w"> </span><span class="p">@</span><span class="ss">ssa_agg</span><span class="p">,</span><span class="w"> </span><span class="err">`</span><span class="mi">0</span><span class="err">`</span><span class="w">
+   </span><span class="ss">br</span><span class="w"> </span><span class="err">^</span><span class="ss">common_end_of_catch</span><span class="w">
+
+</span><span class="nc">common_end_of_catch</span><span class="p">:</span><span class="w">
+  </span><span class="p">@</span><span class="ss">tmp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">phi</span><span class="w"> </span><span class="p" data-group-id="0234620505-1">{</span><span class="w"> </span><span class="p">@</span><span class="ss">catched_val</span><span class="p">,</span><span class="w"> </span><span class="err">^</span><span class="ss">landing_pad_block</span><span class="w"> </span><span class="p" data-group-id="0234620505-1">}</span><span class="p">,</span><span class="w">
+             </span><span class="p" data-group-id="0234620505-2">{</span><span class="w"> </span><span class="p">@</span><span class="ss">successful_result</span><span class="p">,</span><span class="w"> </span><span class="err">^</span><span class="ss">protected_blockN</span><span class="w"> </span><span class="p" data-group-id="0234620505-2">}</span><span class="w">
+  </span><span class="p">@</span><span class="ss">result_of_catch_expr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">catch_end</span><span class="w"> </span><span class="p">@</span><span class="ss">tag</span><span class="p">,</span><span class="w"> </span><span class="p">@</span><span class="ss">tmp</span></code></pre><p>Just as for a <code class="inline">try</code>-<code class="inline">catch</code> expression all code that can cause an
+exception in one of the protected blocks must have explicit control
+flow edges to the landing pad block.</p><h2 id="exception-re-issuing" class="section-heading">
+  <a href="#exception-re-issuing" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Exception Re-issuing</span>
+</h2>
+<p>A typical user-written <code class="inline">try</code>-<code class="inline">catch</code> expression will catch a subset of
+all possible exception classes and reasons and leave unhandled
+exceptions to a handler further up the call stack. Re-issuing an
+exception is done with the <code class="inline">resume</code> instruction. The <code class="inline">resume</code> must
+come after the <code class="inline">kill_try_tag</code> instruction in the program flow. For
+example, if the <a href="#exception-handling">example in the Exception Handling Section</a>
+was to only handle user <code class="inline">throws</code>, the relevant blocks would look like this:</p><pre><code class="makeup erlang" translate="no"><span class="nc">landing_pad_block</span><span class="p">:</span><span class="w">
+  </span><span class="p">@</span><span class="ss">aggregate</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">landingpad</span><span class="w"> </span><span class="err">`</span><span class="k">try</span><span class="err">`</span><span class="p">,</span><span class="w"> </span><span class="p">@</span><span class="ss">tag</span><span class="w">
+  </span><span class="p">@</span><span class="ss">class</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="ss">extract</span><span class="w"> </span><span class="p">@</span><span class="ss">aggregate</span><span class="p">,</span><span class="w"> </span><span class="err">`</span><span class="mi">0</span><span class="err">`</span><span class="w"> </span><span class="c1">% The error class</span><span class="w">
+  </span><span class="p">@</span><span class="ss">reason</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">extract</span><span class="w"> </span><span class="p">@</span><span class="ss">aggregate</span><span class="p">,</span><span class="w"> </span><span class="err">`</span><span class="mi">1</span><span class="err">`</span><span class="w"> </span><span class="c1">% The reason</span><span class="w">
+  </span><span class="p">@</span><span class="ss">stk</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="ss">extract</span><span class="w"> </span><span class="p">@</span><span class="ss">aggregate</span><span class="p">,</span><span class="w"> </span><span class="err">`</span><span class="mi">2</span><span class="err">`</span><span class="w"> </span><span class="c1">% The stack trace</span><span class="w">
+  </span><span class="p">@</span><span class="ss">ignored1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">kill_try_tag</span><span class="w"> </span><span class="p">@</span><span class="ss">tag</span><span class="w">
+  </span><span class="p">@</span><span class="ss">is_throw</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">bif</span><span class="p">:</span><span class="ss">&#39;=:=&#39;</span><span class="w"> </span><span class="p">@</span><span class="ss">class</span><span class="p">,</span><span class="w"> </span><span class="err">`</span><span class="ss">throw</span><span class="err">`</span><span class="w">
+  </span><span class="ss">br</span><span class="w"> </span><span class="p">@</span><span class="ss">is_throw</span><span class="w"> </span><span class="err">^</span><span class="ss">first_block_of_throw_handler</span><span class="p">,</span><span class="w"> </span><span class="err">^</span><span class="ss">reissue</span><span class="w">
+
+</span><span class="nc">first_block_of_throw_handler</span><span class="p">:</span><span class="w">
+  </span><span class="c1">%% Handle the user-defined throw</span><span class="w">
+
+</span><span class="nc">reissue</span><span class="p">:</span><span class="w">
+  </span><span class="p">@</span><span class="ss">tmp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">resume</span><span class="w"> </span><span class="p">@</span><span class="ss">stk</span><span class="p">,</span><span class="w"> </span><span class="p">@</span><span class="ss">reason</span><span class="w">
+  </span><span class="ss">ret</span><span class="w"> </span><span class="p">@</span><span class="ss">tmp</span></code></pre><h2 id="function-calls" class="section-heading">
+  <a href="#function-calls" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Function Calls</span>
+</h2>
+<p>All function calls not in a tail call position must be followed by a
+succeeded:body-instruction unless one of the following exceptions
+apply:</p><ul><li><p>The function call can statically be proven to always fail.</p></li><li><p>The function call is to the <code class="inline">erlang</code>-module and can statically be
+proven to always succeed or fail.</p></li></ul><h2 id="variable-naming" class="section-heading">
+  <a href="#variable-naming" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Variable Naming</span>
+</h2>
+<p>A variable name in BEAM SSA is either an atom or a non-negative
+integer:</p><pre><code class="makeup erlang" translate="no"><span class="nf">atom</span><span class="p" data-group-id="5705781008-1">(</span><span class="p" data-group-id="5705781008-1">)</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="nf">non_neg_integer</span><span class="p" data-group-id="5705781008-2">(</span><span class="p" data-group-id="5705781008-2">)</span></code></pre><p>In order to generate fresh unused variable names, all compiler
+transforms maintain a counter, the <code class="inline">cnt</code>-field in the <code class="inline">b_function</code> and
+<code class="inline">opt_st</code> records, which is incremented each time a new variable or
+label is created. In the following description the value of the
+<code class="inline">cnt</code>-field is called <code class="inline">Cnt</code>. The <code class="inline">Cnt</code> value is guaranteed to never
+clash with a previously defined variable name. Therefore, value of
+<code class="inline">Cnt</code> can directly be used as a variable name in the SSA passes.</p><p>Note that the rules were more complicated before Erlang/OTP 27, because
+the <code class="inline">Cnt</code> value could clash with other variables.</p>
+<div class="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="notes.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Compiler Release Notes
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="ssa_checks.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+BEAM SSA Checks
+        </span>
+      </a>
+
+  </div>
+</div>
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+              <a href="compiler.epub" title="ePub version">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

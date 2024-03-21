@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="erts v14.3">
+
+
+    <title>External Term Format — erts v14.3</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-218663D5.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="erts" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+erts
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v14.3
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of erts</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/erts/doc/guides/erl_ext_dist.md#L1" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+
+  <span>External Term Format</span>
+</h1>
+
+<h2 id="introduction" class="section-heading">
+  <a href="#introduction" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Introduction</span>
+</h2>
+<p>The external term format is mainly used in the distribution mechanism of Erlang.</p><p>As Erlang has a fixed number of types, there is no need for a programmer to
+define a specification for the external format used within some application. All
+Erlang terms have an external representation and the interpretation of the
+different terms is application-specific.</p><p>In Erlang the BIF <a href="erlang.html#term_to_binary/1"><code class="inline">erlang:term_to_binary/1,2</code></a> is
+used to convert a term into the external format. To convert binary data encoding
+to a term, the BIF <a href="erlang.html#binary_to_term/1"><code class="inline">erlang:binary_to_term/1</code></a> is used.</p><p>The distribution does this implicitly when sending messages across node
+boundaries.</p><p><a href="" id="overall_format"></a></p><p>The overall format of the term format is as follows:</p><table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">1</th><th style="text-align: left;">N</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">131</code></td><td style="text-align: left;"><code class="inline">Tag</code></td><td style="text-align: left;"><code class="inline">Data</code></td></tr></tbody></table><blockquote><h4 class="info">Note</h4><p>When messages are
+<a href="erl_dist_protocol.html#connected_nodes">passed between connected nodes</a> and a
+<a href="erl_ext_dist.html#distribution-header">distribution header</a> is used, the first
+byte containing the version number (131) is omitted from the terms that follow
+the distribution header. This is because the version number is implied by the
+version number in the distribution header.</p></blockquote><p>The compressed term format is as follows:</p><table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">1</th><th style="text-align: left;">4</th><th style="text-align: left;">N</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">131</code></td><td style="text-align: left;"><code class="inline">80</code></td><td style="text-align: left;"><code class="inline">UncompressedSize</code></td><td style="text-align: left;"><code class="inline">Zlib-compressedData</code></td></tr></tbody></table><p>Uncompressed size (unsigned 32-bit integer in big-endian byte order) is the size
+of the data before it was compressed. The compressed data has the following
+format when it has been expanded:</p><table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">Uncompressed Size</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">Tag</code></td><td style="text-align: left;"><code class="inline">Data</code></td></tr></tbody></table><p><a href="" id="utf8_atoms"></a></p><h2 id="encoding-atoms" class="section-heading">
+  <a href="#encoding-atoms" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Encoding atoms</span>
+</h2>
+<p>As from ERTS 9.0 (OTP 20), atoms may contain any Unicode characters.</p><p>Atoms sent over node distribution are always encoded in UTF-8 using either
+<a href="erl_ext_dist.html#atom_utf8_ext"><code class="inline">ATOM_UTF8_EXT</code></a>,
+<a href="erl_ext_dist.html#small_atom_utf8_ext"><code class="inline">SMALL_ATOM_UTF8_EXT</code></a> or
+<a href="erl_ext_dist.html#atom_cache_ref"><code class="inline">ATOM_CACHE_REF</code></a>.</p><p>Atoms encoded with <a href="erlang.html#term_to_binary/1"><code class="inline">erlang:term_to_binary/1,2</code></a> or
+<a href="erlang.html#term_to_iovec/1"><code class="inline">erlang:term_to_iovec/1,2</code></a> are by default still
+using the old deprecated Latin-1 format <a href="erl_ext_dist.html#atom_ext"><code class="inline">ATOM_EXT</code></a>
+for atoms that only contain Latin-1 characters (Unicode code points 0-255).
+Atoms with higher code points will be encoded in UTF-8 using either
+<a href="erl_ext_dist.html#atom_utf8_ext"><code class="inline">ATOM_UTF8_EXT</code></a> or
+<a href="erl_ext_dist.html#small_atom_utf8_ext"><code class="inline">SMALL_ATOM_UTF8_EXT</code></a>.</p><p>The maximum number of allowed characters in an atom is 255. In the UTF-8 case,
+each character can need 4 bytes to be encoded.</p><h2 id="distribution-header" class="section-heading">
+  <a href="#distribution-header" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Distribution Header</span>
+</h2>
+<p>The distribution header is sent by the erlang distribution to carry metadata
+about the coming <a href="erl_dist_protocol.html#control_message">control message</a> and
+potential payload. It is primarily used to handle the atom cache in the Erlang
+distribution. Since OTP-22 it is also used to fragment large distribution
+messages into multiple smaller fragments. For more information about how the
+distribution uses the distribution header, see the documentation of the
+<a href="erl_dist_protocol.html#connected_nodes">protocol between connected nodes</a> in the
+<a href="erl_dist_protocol.html">distribution protocol</a> documentation.</p><p>Any <a href="erl_ext_dist.html#atom_cache_ref">ATOM_CACHE_REF</a> entries with corresponding
+<code class="inline">AtomCacheReferenceIndex</code> in terms encoded on the external format following a
+distribution header refer to the atom cache references made in the distribution
+header. The range is 0 &lt;= <code class="inline">AtomCacheReferenceIndex</code> &lt; 255, that is, at most 255
+different atom cache references from the following terms can be made.</p><h3 id="normal-distribution-header" class="section-heading">
+  <a href="#normal-distribution-header" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Normal Distribution Header</span>
+</h3>
+<p>The non-fragmented distribution header format is as follows:</p><table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">1</th><th style="text-align: left;">1</th><th style="text-align: left;">NumberOfAtomCacheRefs/2+1 | 0</th><th style="text-align: left;">N | 0</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">131</code></td><td style="text-align: left;"><code class="inline">68</code></td><td style="text-align: left;"><code class="inline">NumberOfAtomCacheRefs</code></td><td style="text-align: left;"><code class="inline">Flags</code></td><td style="text-align: left;"><code class="inline">AtomCacheRefs</code></td></tr></tbody></table><p><code class="inline">Flags</code> consist of <code class="inline">NumberOfAtomCacheRefs/2+1</code> bytes, unless
+<code class="inline">NumberOfAtomCacheRefs</code> is <code class="inline">0</code>. If <code class="inline">NumberOfAtomCacheRefs</code> is <code class="inline">0</code>, <code class="inline">Flags</code> and
+<code class="inline">AtomCacheRefs</code> are omitted. Each atom cache reference has a half byte flag
+field. Flags corresponding to a specific <code class="inline">AtomCacheReferenceIndex</code> are located
+in flag byte number <code class="inline">AtomCacheReferenceIndex/2</code>. Flag byte 0 is the first byte
+after the <code class="inline">NumberOfAtomCacheRefs</code> byte. Flags for an even
+<code class="inline">AtomCacheReferenceIndex</code> are located in the least significant half byte and
+flags for an odd <code class="inline">AtomCacheReferenceIndex</code> are located in the most significant
+half byte.</p><p>The flag field of an atom cache reference has the following format:</p><table><thead><tr><th style="text-align: left;">1 bit</th><th style="text-align: left;">3 bits</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">NewCacheEntryFlag</code></td><td style="text-align: left;"><code class="inline">SegmentIndex</code></td></tr></tbody></table><p>The most significant bit is the <code class="inline">NewCacheEntryFlag</code>. If set, the corresponding
+cache reference is new. The three least significant bits are the <code class="inline">SegmentIndex</code>
+of the corresponding atom cache entry. An atom cache consists of 8 segments,
+each of size 256, that is, an atom cache can contain 2048 entries.</p><p>Another half byte flag field is located along with flag fields for atom cache
+references. When <code class="inline">NumberOfAtomCacheRefs</code> is even, this half byte is the least
+significant half byte of the byte that follows the atom cache references. When
+<code class="inline">NumberOfAtomCacheRefs</code> is odd, this half byte is the most significant half byte
+of the last byte of the atom cache references (on the wire, it will appear
+before the last cache reference). It has the following format:</p><table><thead><tr><th style="text-align: left;">3 bits</th><th style="text-align: left;">1 bit</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">CurrentlyUnused</code></td><td style="text-align: left;"><code class="inline">LongAtoms</code></td></tr></tbody></table><p>The least significant bit in that half byte is flag <code class="inline">LongAtoms</code>. If it is set, 2
+bytes are used for atom lengths instead of 1 byte in the distribution header.</p><p>After the <code class="inline">Flags</code> field follow the <code class="inline">AtomCacheRefs</code>. The first <code class="inline">AtomCacheRef</code> is
+the one corresponding to <code class="inline">AtomCacheReferenceIndex</code> 0. Higher indices follow in
+sequence up to index <code class="inline">NumberOfAtomCacheRefs - 1</code>.</p><p>If the <code class="inline">NewCacheEntryFlag</code> for the next <code class="inline">AtomCacheRef</code> has been set, a
+<code class="inline">NewAtomCacheRef</code> on the following format follows:</p><table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">1 | 2</th><th style="text-align: left;">Length</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">InternalSegmentIndex</code></td><td style="text-align: left;"><code class="inline">Length</code></td><td style="text-align: left;"><code class="inline">AtomText</code></td></tr></tbody></table><p><code class="inline">InternalSegmentIndex</code> together with the <code class="inline">SegmentIndex</code> completely identify the
+location of an atom cache entry in the atom cache. <code class="inline">Length</code> is the number of
+bytes that <code class="inline">AtomText</code> consists of. Length is a 2 byte big-endian integer if flag
+<code class="inline">LongAtoms</code> has been set, otherwise a 1 byte integer. When distribution flag
+<a href="erl_dist_protocol.html#DFLAG_UTF8_ATOMS"><code class="inline">DFLAG_UTF8_ATOMS</code></a> has been exchanged
+between both nodes in the
+<a href="erl_dist_protocol.html#distribution_handshake">distribution handshake</a>,
+characters in <code class="inline">AtomText</code> are encoded in UTF-8, otherwise in Latin-1. The
+following <code class="inline">CachedAtomRef</code>s with the same <code class="inline">SegmentIndex</code> and
+<code class="inline">InternalSegmentIndex</code> as this <code class="inline">NewAtomCacheRef</code> refer to this atom until a new
+<code class="inline">NewAtomCacheRef</code> with the same <code class="inline">SegmentIndex</code> and <code class="inline">InternalSegmentIndex</code>
+appear.</p><p>For more information on encoding of atoms, see the
+<a href="erl_ext_dist.html#utf8_atoms">section on UTF-8 encoded atoms</a> above.</p><p>If the <code class="inline">NewCacheEntryFlag</code> for the next <code class="inline">AtomCacheRef</code> has not been set, a
+<code class="inline">CachedAtomRef</code> on the following format follows:</p><table><thead><tr><th style="text-align: left;">1</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">InternalSegmentIndex</code></td></tr></tbody></table><p><code class="inline">InternalSegmentIndex</code> together with the <code class="inline">SegmentIndex</code> identify the location of
+the atom cache entry in the atom cache. The atom corresponding to this
+<code class="inline">CachedAtomRef</code> is the latest <code class="inline">NewAtomCacheRef</code> preceding this <code class="inline">CachedAtomRef</code>
+in another previously passed distribution header.</p><p><a href="" id="fragments"></a></p><h3 id="distribution-header-for-fragmented-messages" class="section-heading">
+  <a href="#distribution-header-for-fragmented-messages" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Distribution Header for fragmented messages</span>
+</h3>
+<p>Messages sent between Erlang nodes can sometimes be quite large. Since OTP-22 it
+is possible to split large messages into smaller fragments in order to allow
+smaller messages to be interleaved between larges messages. It is only the
+<code class="inline">message</code> part of each
+<a href="erl_dist_protocol.html#connected_nodes">distributed message</a> that may be split
+using fragmentation. Therefore it is recommended to use the
+<a href="erl_dist_protocol.html#new-ctrlmessages-for-erlang-otp-22">PAYLOAD control messages</a>
+introduced in OTP-22.</p><p>Fragmented distribution messages are only used if the receiving node signals
+that it supports them via the
+<a href="erl_dist_protocol.html#DFLAG_FRAGMENTS">DFLAG_FRAGMENTS</a> distribution flag.</p><p>A process must complete the sending of a fragmented message before it can start
+sending any other message on the same distribution channel.</p><p>The start of a sequence of fragmented messages looks like this:</p><table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">1</th><th style="text-align: left;">8</th><th style="text-align: left;">8</th><th style="text-align: left;">1</th><th style="text-align: left;">NumberOfAtomCacheRefs/2+1 | 0</th><th style="text-align: left;">N | 0</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">131</code></td><td style="text-align: left;"><code class="inline">69</code></td><td style="text-align: left;"><code class="inline">SequenceId</code></td><td style="text-align: left;"><code class="inline">FragmentId</code></td><td style="text-align: left;"><code class="inline">NumberOfAtomCacheRefs</code></td><td style="text-align: left;"><code class="inline">Flags</code></td><td style="text-align: left;"><code class="inline">AtomCacheRefs</code></td></tr></tbody></table><p>The continuation of a sequence of fragmented messages looks like this:</p><table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">1</th><th style="text-align: left;">8</th><th style="text-align: left;">8</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">131</code></td><td style="text-align: left;"><code class="inline">70</code></td><td style="text-align: left;"><code class="inline">SequenceId</code></td><td style="text-align: left;"><code class="inline">FragmentId</code></td></tr></tbody></table><p>The starting distribution header is very similar to a non-fragmented
+distribution header. The atom cache works the same as for normal distribution
+header and is the same for the entire sequence. The additional fields added are
+the sequence id and fragment id.</p><ul><li><p><strong>Sequence ID</strong> - The sequence id is used to uniquely identify a fragmented
+message sent from one process to another on the same distributed connection.
+This is used to identify which sequence a fragment is a part of as the same
+process can be in the process of receiving multiple sequences at the same
+time.</p><p>As one process can only be sending one fragmented message at once, it can be
+convenient to use the local PID as the sequence id.</p></li><li><p><strong>Fragments ID</strong> - The Fragment ID is used to number the fragments in a
+sequence. The id starts at the total number of fragments and then decrements
+to 1 (which is the final fragment). So if a sequence consists of 3 fragments
+the fragment id in the starting header will be 3, and then fragments 2 and 1
+are sent.</p><p>The fragments must be delivered in the correct order, so if an unordered
+distribution carrier is used, they must be ordered before delivered to the
+Erlang run-time.</p></li></ul><h4>Example:</h4><p>As an example, let say that we want to send
+<code class="inline">{call, &lt;0.245.2&gt;, {set_get_state, &lt;&lt;0:1024&gt;&gt;}}</code> to registered process <code class="inline">reg</code>
+using a fragment size of 128. To send this message we need a distribution
+header, atom cache updates, the control message (which would be
+<code class="inline">{6, &lt;0.245.2&gt;, [], reg}</code> in this case) and finally the actual message. This
+would all be encoded into:</p><pre><code class="text">131,69,0,0,2,168,0,0,5,83,0,0,0,0,0,0,0,2,               %% Header with seq and frag id
+5,4,137,9,10,5,236,3,114,101,103,9,4,99,97,108,108,      %% Atom cache updates
+238,13,115,101,116,95,103,101,116,95,115,116,97,116,101,
+104,4,97,6,103,82,0,0,0,0,85,0,0,0,0,2,82,1,82,2,        %% Control message
+104,3,82,3,103,82,0,0,0,0,245,0,0,0,2,2,                 %% Actual message using cached atoms
+104,2,82,4,109,0,0,0,128,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+131,70,0,0,2,168,0,0,5,83,0,0,0,0,0,0,0,1,               %% Cont Header with seq and frag id
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,               %% Rest of payload
+0,0,0,0</code></pre><p>Let us break that apart into its components. First we have the distribution
+header tags together with the sequence id and a fragment id of 2.</p><pre><code class="text">131,69,                   %% Start fragment header
+0,0,2,168,0,0,5,83,       %% The sequence ID
+0,0,0,0,0,0,0,2,           %% The fragment ID</code></pre><p>Then we have the updates to the atom cache:</p><pre><code class="text">5,4,137,9,  %% 5 atoms and their flags
+10,5,       %% The already cached atom ids
+236,3,114,101,103,  %% The atom 'reg'
+9,4,99,97,108,108,  %% The atom 'call'
+238,13,115,101,116,95,103,101,116,95,115,116,97,116,101, %% The atom 'set_get_state'</code></pre><p>The first byte says that we have 5 atoms that are part of the cache. Then
+follows three bytes that are the atom cache ref flags. Each of the flags uses 4
+bits so they are a bit hard to read in decimal byte form. In binary half-byte
+form they look like this:</p><pre><code class="text">0000, 0100, 1000, 1001, 1001</code></pre><p>As the high bit of the first two atoms in the cache are not set we know that
+they are already in the cache, so they do not have to be sent again (this is the
+node name of the receiving and sending node). Then follows the atoms that have
+to be sent, together with their segment ids.</p><p>Then the listing of the atoms comes, starting with 10 and 5 which are the atom
+refs of the already cached atoms. Then the new atoms are sent.</p><p>When the atom cache is setup correctly the control message is sent.</p><pre><code class="text">104,4,97,6,103,82,0,0,0,0,85,0,0,0,0,2,82,1,82,2,</code></pre><p>Note that up until here it is not allowed to fragments the message. The entire
+atom cache and control message has to be part of the starting fragment. After
+the control message the payload of the message is sent using 128 bytes:</p><pre><code class="text">104,3,82,3,103,82,0,0,0,0,245,0,0,0,2,2,
+104,2,82,4,109,0,0,0,128,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0</code></pre><p>Since the payload is larger than 128-bytes it is split into two fragments. The
+second fragment does not have any atom cache update instructions so it is a lot
+simpler:</p><pre><code class="text">131,70,0,0,2,168,0,0,5,83,0,0,0,0,0,0,0,1, %% Continuation dist header 70 with seq and frag id
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, %% remaining payload
+0,0,0,0</code></pre><blockquote><h4 class="info">Note</h4><p>The fragment size of 128 is only used as an example. Any fragments size may be
+used when sending fragmented messages.</p></blockquote><h2 id="atom_cache_ref" class="section-heading">
+  <a href="#atom_cache_ref" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">ATOM_CACHE_REF</span>
+</h2>
+<table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">1</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">82</code></td><td style="text-align: left;"><code class="inline">AtomCacheReferenceIndex</code></td></tr></tbody></table><p>Refers to the atom with <code class="inline">AtomCacheReferenceIndex</code> in the
+<a href="erl_ext_dist.html#distribution-header">distribution header</a>.</p><h2 id="small_integer_ext" class="section-heading">
+  <a href="#small_integer_ext" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">SMALL_INTEGER_EXT</span>
+</h2>
+<table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">1</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">97</code></td><td style="text-align: left;"><code class="inline">Int</code></td></tr></tbody></table><p>Unsigned 8-bit integer.</p><h2 id="integer_ext" class="section-heading">
+  <a href="#integer_ext" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">INTEGER_EXT</span>
+</h2>
+<table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">4</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">98</code></td><td style="text-align: left;"><code class="inline">Int</code></td></tr></tbody></table><p>Signed 32-bit integer in big-endian format.</p><h2 id="float_ext" class="section-heading">
+  <a href="#float_ext" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">FLOAT_EXT</span>
+</h2>
+<table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">31</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">99</code></td><td style="text-align: left;"><code class="inline">Float string</code></td></tr></tbody></table><p>A finite float (i.e. not inf, -inf or NaN) is stored in string format. The
+format used in sprintf to format the float is &quot;%.20e&quot; (there are more bytes
+allocated than necessary). To unpack the float, use sscanf with format &quot;%lf&quot;.</p><p>This term is used in minor version 0 of the external format; it has been
+superseded by <a href="erl_ext_dist.html#new_float_ext"><code class="inline">NEW_FLOAT_EXT</code></a>.</p><h2 id="port_ext" class="section-heading">
+  <a href="#port_ext" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">PORT_EXT</span>
+</h2>
+<table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">N</th><th style="text-align: left;">4</th><th style="text-align: left;">1</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">102</code></td><td style="text-align: left;"><code class="inline">Node</code></td><td style="text-align: left;"><code class="inline">ID</code></td><td style="text-align: left;"><code class="inline">Creation</code></td></tr></tbody></table><p>Same as <a href="erl_ext_dist.html#new_port_ext"><code class="inline">NEW_PORT_EXT</code></a> except the <code class="inline">Creation</code>
+field is only one byte and only two bits are significant, the rest are to be 0.</p><h2 id="new_port_ext" class="section-heading">
+  <a href="#new_port_ext" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">NEW_PORT_EXT</span>
+</h2>
+<table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">N</th><th style="text-align: left;">4</th><th style="text-align: left;">4</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">89</code></td><td style="text-align: left;"><code class="inline">Node</code></td><td style="text-align: left;"><code class="inline">ID</code></td><td style="text-align: left;"><code class="inline">Creation</code></td></tr></tbody></table><p>Same as <a href="erl_ext_dist.html#v4_port_ext"><code class="inline">V4_PORT_EXT</code></a> except the <code class="inline">ID</code> field is
+only four bytes. Only 28 bits are significant; the rest are to be 0.</p><p><code class="inline">NEW_PORT_EXT</code> was introduced in OTP 19, but only to be decoded and echoed back.
+Not encoded for local ports.</p><p>In OTP 23 distribution flag
+<a href="erl_dist_protocol.html#DFLAG_BIG_CREATION"><code class="inline">DFLAG_BIG_CREATION</code></a> became
+mandatory. All ports are now encoded using <code class="inline">NEW_PORT_EXT</code>, even external ports
+received as <a href="erl_ext_dist.html#port_ext"><code class="inline">PORT_EXT</code></a> from older nodes.</p><h2 id="v4_port_ext" class="section-heading">
+  <a href="#v4_port_ext" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">V4_PORT_EXT</span>
+</h2>
+<table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">N</th><th style="text-align: left;">8</th><th style="text-align: left;">4</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">120</code></td><td style="text-align: left;"><code class="inline">Node</code></td><td style="text-align: left;"><code class="inline">ID</code></td><td style="text-align: left;"><code class="inline">Creation</code></td></tr></tbody></table><p>Encodes a port identifier (obtained from <a href="erlang.html#open_port/2"><code class="inline">erlang:open_port/2</code></a>). <code class="inline">Node</code> is the
+originating node, <a href="erl_ext_dist.html#utf8_atoms">encoded as an atom</a>. <code class="inline">ID</code> is a
+64-bit big endian unsigned integer. The <code class="inline">Creation</code> works just like in
+<a href="erl_ext_dist.html#new_pid_ext"><code class="inline">NEW_PID_EXT</code></a>. Port operations are not allowed
+across node boundaries.</p><p>In OTP 26 distribution flag <a href="erl_dist_protocol.html#DFLAG_V4_NC"><code class="inline">DFLAG_V4_NC</code></a> as
+well as <code class="inline">V4_PORT_EXT</code> became mandatory accepting full 64-bit ports to be decoded
+and echoed back.</p><h2 id="pid_ext" class="section-heading">
+  <a href="#pid_ext" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">PID_EXT</span>
+</h2>
+<table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">N</th><th style="text-align: left;">4</th><th style="text-align: left;">4</th><th style="text-align: left;">1</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">103</code></td><td style="text-align: left;"><code class="inline">Node</code></td><td style="text-align: left;"><code class="inline">ID</code></td><td style="text-align: left;"><code class="inline">Serial</code></td><td style="text-align: left;"><code class="inline">Creation</code></td></tr></tbody></table><p>Same as <a href="erl_ext_dist.html#new_pid_ext"><code class="inline">NEW_PID_EXT</code></a> except the <code class="inline">Creation</code> field
+is only one byte and only two bits are significant, the rest are to be 0.</p><h2 id="new_pid_ext" class="section-heading">
+  <a href="#new_pid_ext" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">NEW_PID_EXT</span>
+</h2>
+<table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">N</th><th style="text-align: left;">4</th><th style="text-align: left;">4</th><th style="text-align: left;">4</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">88</code></td><td style="text-align: left;"><code class="inline">Node</code></td><td style="text-align: left;"><code class="inline">ID</code></td><td style="text-align: left;"><code class="inline">Serial</code></td><td style="text-align: left;"><code class="inline">Creation</code></td></tr></tbody></table><p>Encodes an Erlang process identifier object.</p><ul><li><p><strong><code class="inline">Node</code></strong> - The name of the originating node,
+<a href="erl_ext_dist.html#utf8_atoms">encoded as an atom</a>.</p></li><li><p><strong><code class="inline">ID</code></strong> - A 32-bit big endian unsigned integer.</p></li><li><p><strong><code class="inline">Serial</code></strong> - A 32-bit big endian unsigned integer.</p></li><li><p><strong><code class="inline">Creation</code></strong> - A 32-bit big endian unsigned integer. All identifiers
+originating from the same node incarnation must have identical <code class="inline">Creation</code>
+values. This makes it possible to separate identifiers from old (crashed)
+nodes from a new one. The value zero is reserved and must be avoided for
+normal operations.</p></li></ul><p><code class="inline">NEW_PID_EXT</code> was introduced in OTP 19, but only to be decoded and echoed back.
+Not encoded for local processes.</p><p>In OTP 23 distribution flag
+<a href="erl_dist_protocol.html#DFLAG_BIG_CREATION"><code class="inline">DFLAG_BIG_CREATION</code></a> became
+mandatory. All pids are now encoded using <code class="inline">NEW_PID_EXT</code>, even external pids
+received as <a href="erl_ext_dist.html#pid_ext"><code class="inline">PID_EXT</code></a> from older nodes.</p><p>In OTP 26 distribution flag <a href="erl_dist_protocol.html#DFLAG_V4_NC"><code class="inline">DFLAG_V4_NC</code></a>
+became mandatory accepting full 64-bit pids to be decoded and echoed back.</p><h2 id="small_tuple_ext" class="section-heading">
+  <a href="#small_tuple_ext" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">SMALL_TUPLE_EXT</span>
+</h2>
+<table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">1</th><th style="text-align: left;">N</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">104</code></td><td style="text-align: left;"><code class="inline">Arity</code></td><td style="text-align: left;"><code class="inline">Elements</code></td></tr></tbody></table><p>Encodes a tuple. The <code class="inline">Arity</code> field is an unsigned byte that determines how many
+elements that follows in section <code class="inline">Elements</code>.</p><h2 id="large_tuple_ext" class="section-heading">
+  <a href="#large_tuple_ext" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">LARGE_TUPLE_EXT</span>
+</h2>
+<table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">4</th><th style="text-align: left;">N</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">105</code></td><td style="text-align: left;"><code class="inline">Arity</code></td><td style="text-align: left;"><code class="inline">Elements</code></td></tr></tbody></table><p>Same as <a href="erl_ext_dist.html#small_tuple_ext"><code class="inline">SMALL_TUPLE_EXT</code></a> except that <code class="inline">Arity</code>
+is an unsigned 4 byte integer in big-endian format.</p><h2 id="map_ext" class="section-heading">
+  <a href="#map_ext" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">MAP_EXT</span>
+</h2>
+<table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">4</th><th style="text-align: left;">N</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">116</code></td><td style="text-align: left;"><code class="inline">Arity</code></td><td style="text-align: left;"><code class="inline">Pairs</code></td></tr></tbody></table><p>Encodes a map. The <code class="inline">Arity</code> field is an unsigned 4 byte integer in big-endian
+format that determines the number of key-value pairs in the map. Key and value
+pairs (<code class="inline">Ki =&gt; Vi</code>) are encoded in section <code class="inline">Pairs</code> in the following order:
+<code class="inline">K1, V1, K2, V2,..., Kn, Vn</code>. Duplicate keys are <em>not allowed</em> within the same
+map.</p><p><em>As from </em>Erlang/OTP 17.0</p><h2 id="nil_ext" class="section-heading">
+  <a href="#nil_ext" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">NIL_EXT</span>
+</h2>
+<table><thead><tr><th style="text-align: left;">1</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">106</code></td></tr></tbody></table><p>The representation for an empty list, that is, the Erlang syntax <code class="inline">[]</code>.</p><h2 id="string_ext" class="section-heading">
+  <a href="#string_ext" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">STRING_EXT</span>
+</h2>
+<table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">2</th><th style="text-align: left;">Len</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">107</code></td><td style="text-align: left;"><code class="inline">Length</code></td><td style="text-align: left;"><code class="inline">Characters</code></td></tr></tbody></table><p>String does <em>not</em> have a corresponding Erlang representation, but is an
+optimization for sending lists of bytes (integer in the range 0-255) more
+efficiently over the distribution. As field <code class="inline">Length</code> is an unsigned 2 byte
+integer (big-endian), implementations must ensure that lists longer than 65535
+elements are encoded as <a href="erl_ext_dist.html#list_ext"><code class="inline">LIST_EXT</code></a>.</p><h2 id="list_ext" class="section-heading">
+  <a href="#list_ext" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">LIST_EXT</span>
+</h2>
+<table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">4</th><th style="text-align: left;"></th><th style="text-align: left;"></th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">108</code></td><td style="text-align: left;"><code class="inline">Length</code></td><td style="text-align: left;"><code class="inline">Elements</code></td><td style="text-align: left;"><code class="inline">Tail</code></td></tr></tbody></table><p><code class="inline">Length</code> is the number of elements that follows in section <code class="inline">Elements</code>. <code class="inline">Tail</code> is
+the final tail of the list; it is <a href="erl_ext_dist.html#nil_ext"><code class="inline">NIL_EXT</code></a> for a
+proper list, but can be any type if the list is improper (for example, <code class="inline">[a|b]</code>).</p><h2 id="binary_ext" class="section-heading">
+  <a href="#binary_ext" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">BINARY_EXT</span>
+</h2>
+<table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">4</th><th style="text-align: left;">Len</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">109</code></td><td style="text-align: left;"><code class="inline">Len</code></td><td style="text-align: left;"><code class="inline">Data</code></td></tr></tbody></table><p>Binaries are generated with bit syntax expression or with
+<a href="erlang.html#list_to_binary/1"><code class="inline">erlang:list_to_binary/1</code></a>, <a href="erlang.html#term_to_binary/1"><code class="inline">erlang:term_to_binary/1</code></a>, or as input from binary
+ports. The <code class="inline">Len</code> length field is an unsigned 4 byte integer (big-endian).</p><h2 id="small_big_ext" class="section-heading">
+  <a href="#small_big_ext" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">SMALL_BIG_EXT</span>
+</h2>
+<table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">1</th><th style="text-align: left;">1</th><th style="text-align: left;">n</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">110</code></td><td style="text-align: left;"><code class="inline">n</code></td><td style="text-align: left;"><code class="inline">Sign</code></td><td style="text-align: left;"><code class="inline">d(0)</code> ... <code class="inline">d(n-1)</code></td></tr></tbody></table><p>Bignums are stored in unary form with a <code class="inline">Sign</code> byte, that is, 0 if the bignum is
+positive and 1 if it is negative. The digits are stored with the least
+significant byte stored first. To calculate the integer, the following formula
+can be used:</p><pre><code class="makeup erlang" translate="no"><span class="n">B</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">256</span><span class="w">
+</span><span class="p" data-group-id="0936627840-1">(</span><span class="ss">d0</span><span class="o">*</span><span class="n">B</span><span class="err">^</span><span class="mi">0</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="ss">d1</span><span class="o">*</span><span class="n">B</span><span class="err">^</span><span class="mi">1</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="ss">d2</span><span class="o">*</span><span class="n">B</span><span class="err">^</span><span class="mi">2</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="w"> </span><span class="nf">d</span><span class="p" data-group-id="0936627840-2">(</span><span class="n">N</span><span class="o">-</span><span class="mi">1</span><span class="p" data-group-id="0936627840-2">)</span><span class="o">*</span><span class="n">B</span><span class="err">^</span><span class="p" data-group-id="0936627840-3">(</span><span class="ss">n</span><span class="o">-</span><span class="mi">1</span><span class="p" data-group-id="0936627840-3">)</span><span class="p" data-group-id="0936627840-1">)</span></code></pre><h2 id="large_big_ext" class="section-heading">
+  <a href="#large_big_ext" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">LARGE_BIG_EXT</span>
+</h2>
+<table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">4</th><th style="text-align: left;">1</th><th style="text-align: left;">n</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">111</code></td><td style="text-align: left;"><code class="inline">n</code></td><td style="text-align: left;"><code class="inline">Sign</code></td><td style="text-align: left;"><code class="inline">d(0)</code> ... <code class="inline">d(n-1)</code></td></tr></tbody></table><p>Same as <a href="erl_ext_dist.html#small_big_ext"><code class="inline">SMALL_BIG_EXT</code></a> except that the length
+field is an unsigned 4 byte integer.</p><h2 id="reference_ext-deprecated" class="section-heading">
+  <a href="#reference_ext-deprecated" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">REFERENCE_EXT (deprecated)</span>
+</h2>
+<table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">N</th><th style="text-align: left;">4</th><th style="text-align: left;">1</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">101</code></td><td style="text-align: left;"><code class="inline">Node</code></td><td style="text-align: left;"><code class="inline">ID</code></td><td style="text-align: left;"><code class="inline">Creation</code></td></tr></tbody></table><p>The same as <a href="erl_ext_dist.html#new_reference_ext"><code class="inline">NEW_REFERENCE_EXT</code></a> except <code class="inline">ID</code>
+is only one word (<code class="inline">Len</code> = 1).</p><h2 id="new_reference_ext" class="section-heading">
+  <a href="#new_reference_ext" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">NEW_REFERENCE_EXT</span>
+</h2>
+<table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">2</th><th style="text-align: left;">N</th><th style="text-align: left;">1</th><th style="text-align: left;">N'</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">114</code></td><td style="text-align: left;"><code class="inline">Len</code></td><td style="text-align: left;"><code class="inline">Node</code></td><td style="text-align: left;"><code class="inline">Creation</code></td><td style="text-align: left;"><code class="inline">ID ...</code></td></tr></tbody></table><p>The same as <a href="erl_ext_dist.html#newer_reference_ext"><code class="inline">NEWER_REFERENCE_EXT</code></a>
+<em>except</em>:</p><ul><li><p><strong><code class="inline">ID</code></strong> - In the first word (4 bytes) of <code class="inline">ID</code>, only 18 bits are significant,
+the rest must be 0.</p></li><li><p><strong><code class="inline">Creation</code></strong> - Only one byte long and only two bits are significant, the
+rest must be 0.</p></li></ul><h2 id="newer_reference_ext" class="section-heading">
+  <a href="#newer_reference_ext" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">NEWER_REFERENCE_EXT</span>
+</h2>
+<table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">2</th><th style="text-align: left;">N</th><th style="text-align: left;">4</th><th style="text-align: left;">N'</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">90</code></td><td style="text-align: left;"><code class="inline">Len</code></td><td style="text-align: left;"><code class="inline">Node</code></td><td style="text-align: left;"><code class="inline">Creation</code></td><td style="text-align: left;"><code class="inline">ID ...</code></td></tr></tbody></table><p>Encodes a reference term generated with <a href="erlang.html#make_ref/0"><code class="inline">erlang:make_ref/0</code></a>.</p><ul><li><p><strong><code class="inline">Node</code></strong> - The name of the originating node,
+<a href="erl_ext_dist.html#utf8_atoms">encoded as an atom</a>.</p></li><li><p><strong><code class="inline">Len</code></strong> - A 16-bit big endian unsigned integer not larger than 5.</p></li><li><p><strong><code class="inline">ID</code></strong> - A sequence of <code class="inline">Len</code> big-endian unsigned integers (4 bytes each, so
+<code class="inline">N'</code> = 4 * <code class="inline">Len</code>), but is to be regarded as uninterpreted data.</p></li><li><p><strong><code class="inline">Creation</code></strong> - Works just like in
+<a href="erl_ext_dist.html#new_pid_ext"><code class="inline">NEW_PID_EXT</code></a>.</p></li></ul><p><code class="inline">NEWER_REFERENCE_EXT</code> was introduced in OTP 19, but only to be decoded and
+echoed back. Not encoded for local references.</p><p>In OTP 23 distribution flag
+<a href="erl_dist_protocol.html#DFLAG_BIG_CREATION"><code class="inline">DFLAG_BIG_CREATION</code></a> became
+mandatory. All references are now encoded using <code class="inline">NEWER_REFERENCE_EXT</code>, even
+external references received as
+<a href="erl_ext_dist.html#new_reference_ext"><code class="inline">NEW_REFERENCE_EXT</code></a> from older nodes.</p><p>In OTP 26 distribution flag <a href="erl_dist_protocol.html#DFLAG_V4_NC"><code class="inline">DFLAG_V4_NC</code></a>
+became mandatory. References now can contain up to 5 <code class="inline">ID</code> words.</p><h2 id="fun_ext-removed" class="section-heading">
+  <a href="#fun_ext-removed" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">FUN_EXT (removed)</span>
+</h2>
+<table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">4</th><th style="text-align: left;">N1</th><th style="text-align: left;">N2</th><th style="text-align: left;">N3</th><th style="text-align: left;">N4</th><th style="text-align: left;">N5</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">117</code></td><td style="text-align: left;"><code class="inline">NumFree</code></td><td style="text-align: left;"><code class="inline">Pid</code></td><td style="text-align: left;"><code class="inline">Module</code></td><td style="text-align: left;"><code class="inline">Index</code></td><td style="text-align: left;"><code class="inline">Uniq</code></td><td style="text-align: left;"><code class="inline">Free vars ...</code></td></tr></tbody></table><p>Not emitted since OTP R8, and not decoded since OTP 23.</p><h2 id="new_fun_ext" class="section-heading">
+  <a href="#new_fun_ext" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">NEW_FUN_EXT</span>
+</h2>
+<table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">4</th><th style="text-align: left;">1</th><th style="text-align: left;">16</th><th style="text-align: left;">4</th><th style="text-align: left;">4</th><th style="text-align: left;">N1</th><th style="text-align: left;">N2</th><th style="text-align: left;">N3</th><th style="text-align: left;">N4</th><th style="text-align: left;">N5</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">112</code></td><td style="text-align: left;"><code class="inline">Size</code></td><td style="text-align: left;"><code class="inline">Arity</code></td><td style="text-align: left;"><code class="inline">Uniq</code></td><td style="text-align: left;"><code class="inline">Index</code></td><td style="text-align: left;"><code class="inline">NumFree</code></td><td style="text-align: left;"><code class="inline">Module</code></td><td style="text-align: left;"><code class="inline">OldIndex</code></td><td style="text-align: left;"><code class="inline">OldUniq</code></td><td style="text-align: left;"><code class="inline">Pid</code></td><td style="text-align: left;"><code class="inline">Free Vars</code></td></tr></tbody></table><p>This is the encoding of internal funs: <code class="inline">fun F/A</code> and <code class="inline">fun(Arg1,..) -&gt; ... end</code>.</p><ul><li><p><strong><code class="inline">Size</code></strong> - The total number of bytes, including field <code class="inline">Size</code>.</p></li><li><p><strong><code class="inline">Arity</code></strong> - The arity of the function implementing the fun.</p></li><li><p><strong><code class="inline">Uniq</code></strong> - The 16 bytes MD5 of the significant parts of the Beam file.</p></li><li><p><strong><code class="inline">Index</code></strong> - An index number. Each fun within a module has an unique index.
+<code class="inline">Index</code> is stored in big-endian byte order.</p></li><li><p><strong><code class="inline">NumFree</code></strong> - The number of free variables.</p></li><li><p><strong><code class="inline">Module</code></strong> - The module that the fun is implemented in,
+<a href="erl_ext_dist.html#utf8_atoms">encoded as an atom</a>.</p></li><li><p><strong><code class="inline">OldIndex</code></strong> - An integer encoded using
+<a href="erl_ext_dist.html#small_integer_ext"><code class="inline">SMALL_INTEGER_EXT</code></a> or
+<a href="erl_ext_dist.html#integer_ext"><code class="inline">INTEGER_EXT</code></a>. Is typically a small index into
+the module's fun table.</p></li><li><p><strong><code class="inline">OldUniq</code></strong> - An integer encoded using
+<a href="erl_ext_dist.html#small_integer_ext"><code class="inline">SMALL_INTEGER_EXT</code></a> or
+<a href="erl_ext_dist.html#integer_ext"><code class="inline">INTEGER_EXT</code></a>. <code class="inline">Uniq</code> is the hash value of the
+parse tree for the fun.</p></li><li><p><strong><code class="inline">Pid</code></strong> - A process identifier as in <a href="erl_ext_dist.html#pid_ext"><code class="inline">PID_EXT</code></a>.
+Represents the process in which the fun was created.</p></li><li><p><strong><code class="inline">Free vars</code></strong> - <code class="inline">NumFree</code> number of terms, each one encoded according to its
+type.</p></li></ul><h2 id="export_ext" class="section-heading">
+  <a href="#export_ext" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">EXPORT_EXT</span>
+</h2>
+<table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">N1</th><th style="text-align: left;">N2</th><th style="text-align: left;">N3</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">113</code></td><td style="text-align: left;"><code class="inline">Module</code></td><td style="text-align: left;"><code class="inline">Function</code></td><td style="text-align: left;"><code class="inline">Arity</code></td></tr></tbody></table><p>This term is the encoding for external funs: <code class="inline">fun M:F/A</code>.</p><p><code class="inline">Module</code> and <code class="inline">Function</code> are <a href="erl_ext_dist.html#utf8_atoms">encoded as atoms</a>.</p><p><code class="inline">Arity</code> is an integer encoded using
+<a href="erl_ext_dist.html#small_integer_ext"><code class="inline">SMALL_INTEGER_EXT</code></a>.</p><h2 id="bit_binary_ext" class="section-heading">
+  <a href="#bit_binary_ext" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">BIT_BINARY_EXT</span>
+</h2>
+<table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">4</th><th style="text-align: left;">1</th><th style="text-align: left;">Len</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">77</code></td><td style="text-align: left;"><code class="inline">Len</code></td><td style="text-align: left;"><code class="inline">Bits</code></td><td style="text-align: left;"><code class="inline">Data</code></td></tr></tbody></table><p>This term represents a bitstring whose length in bits does not have to be a
+multiple of 8. The <code class="inline">Len</code> field is an unsigned 4 byte integer (big-endian). The
+<code class="inline">Bits</code> field is the number of bits (1-8) that are used in the last byte in the
+data field, counting from the most significant bit to the least significant.</p><h2 id="new_float_ext" class="section-heading">
+  <a href="#new_float_ext" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">NEW_FLOAT_EXT</span>
+</h2>
+<table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">8</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">70</code></td><td style="text-align: left;"><code class="inline">IEEE float</code></td></tr></tbody></table><p>A finite float (i.e. not inf, -inf or NaN) is stored as 8 bytes in big-endian
+IEEE format.</p><p>This term is used in minor version 1 of the external format.</p><h2 id="atom_utf8_ext" class="section-heading">
+  <a href="#atom_utf8_ext" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">ATOM_UTF8_EXT</span>
+</h2>
+<table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">2</th><th style="text-align: left;">Len</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">118</code></td><td style="text-align: left;"><code class="inline">Len</code></td><td style="text-align: left;"><code class="inline">AtomName</code></td></tr></tbody></table><p>An atom is stored with a 2 byte unsigned length in big-endian order, followed by
+<code class="inline">Len</code> bytes containing the <code class="inline">AtomName</code> encoded in UTF-8.</p><p>For more information, see the
+<a href="erl_ext_dist.html#utf8_atoms">section on encoding atoms</a> in the beginning of this
+page.</p><h2 id="small_atom_utf8_ext" class="section-heading">
+  <a href="#small_atom_utf8_ext" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">SMALL_ATOM_UTF8_EXT</span>
+</h2>
+<table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">1</th><th style="text-align: left;">Len</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">119</code></td><td style="text-align: left;"><code class="inline">Len</code></td><td style="text-align: left;"><code class="inline">AtomName</code></td></tr></tbody></table><p>An atom is stored with a 1 byte unsigned length, followed by <code class="inline">Len</code> bytes
+containing the <code class="inline">AtomName</code> encoded in UTF-8. Longer atoms encoded in UTF-8 can be
+represented using <a href="erl_ext_dist.html#atom_utf8_ext"><code class="inline">ATOM_UTF8_EXT</code></a>.</p><p>For more information, see the
+<a href="erl_ext_dist.html#utf8_atoms">section on encoding atoms</a> in the beginning of this
+page.</p><p><a href="" id="atom_ext"></a></p><h2 id="atom_ext-deprecated" class="section-heading">
+  <a href="#atom_ext-deprecated" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">ATOM_EXT (deprecated)</span>
+</h2>
+<table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">2</th><th style="text-align: left;">Len</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">100</code></td><td style="text-align: left;"><code class="inline">Len</code></td><td style="text-align: left;"><code class="inline">AtomName</code></td></tr></tbody></table><p>An atom is stored with a 2 byte unsigned length in big-endian order, followed by
+<code class="inline">Len</code> numbers of 8-bit Latin-1 characters that forms the <code class="inline">AtomName</code>. The maximum
+allowed value for <code class="inline">Len</code> is 255.</p><p><a href="" id="small_atom_ext"></a></p><h2 id="small_atom_ext-deprecated" class="section-heading">
+  <a href="#small_atom_ext-deprecated" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">SMALL_ATOM_EXT (deprecated)</span>
+</h2>
+<table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">1</th><th style="text-align: left;">Len</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">115</code></td><td style="text-align: left;"><code class="inline">Len</code></td><td style="text-align: left;"><code class="inline">AtomName</code></td></tr></tbody></table><p>An atom is stored with a 1 byte unsigned length, followed by <code class="inline">Len</code> numbers of
+8-bit Latin-1 characters that forms the <code class="inline">AtomName</code>.</p><blockquote><h4 class="info">Note</h4><p><code class="inline">SMALL_ATOM_EXT</code> was introduced in ERTS 5.7.2 and require an exchange of
+distribution flag
+<a href="erl_dist_protocol.html#DFLAG_SMALL_ATOM_TAGS"><code class="inline">DFLAG_SMALL_ATOM_TAGS</code></a> in the
+<a href="erl_dist_protocol.html#distribution_handshake">distribution handshake</a>.</p></blockquote><h2 id="local_ext" class="section-heading">
+  <a href="#local_ext" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">LOCAL_EXT</span>
+</h2>
+<table><thead><tr><th style="text-align: left;">1</th><th style="text-align: left;">...</th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">121</code></td><td style="text-align: left;">...</td></tr></tbody></table><p>Marks that this is encoded on an alternative local external term format intended
+to only be decoded by a specific local decoder. The bytes following from here on
+may contain any unspecified type of encoding of terms. It is the responsibility
+of the user to only attempt to decode terms on the local external term format
+which has been produced by a matching encoder.</p><p>This tag is used by the Erlang runtime system upon encoding the local external
+term format when the <a href="erlang.html#term_to_binary_local"><code class="inline">local</code></a> option is passed
+to <a href="erlang.html#term_to_binary/2"><code class="inline">term_to_binary/2</code></a>, but can be used by other
+encoders as well providing similar functionality. The Erlang runtime system adds
+a hash immediately following the <code class="inline">LOCAL_EXT</code> tag which is verified on decoding
+in order to verify that encoder and decoder match which might be a good
+practice. This will very likely catch mistakes made by users, but is not
+guaranteed to, and is not intended to, prevent decoding of an intentionally
+forged encoding on the local external term format.</p><p><code class="inline">LOCAL_EXT</code> was introduced in OTP 26.0.</p>
+<div class="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="inet_cfg.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Inet Configuration
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="erl_dist_protocol.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+Distribution Protocol
+        </span>
+      </a>
+
+  </div>
+</div>
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

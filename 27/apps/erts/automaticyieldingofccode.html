@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="erts v14.3">
+
+
+    <title>Automatic Yielding of C Code — erts v14.3</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-218663D5.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="erts" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+erts
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v14.3
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of erts</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/erts/emulator/internal_doc/AutomaticYieldingOfCCode.md#L1" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+
+  <span>Automatic Yielding of C Code</span>
+</h1>
+
+<h2 id="introduction" class="section-heading">
+  <a href="#introduction" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Introduction</span>
+</h2>
+<p>Erlang <a href="http://erlang.org/doc/tutorial/nif.html">NIFs</a> and
+<a href="http://erlang.org/pipermail/erlang-questions/2009-October/046899.html">BIFs</a>
+should not run for a too long time without yielding (often referred to
+as trapping in the source code of ERTS). The Erlang/OTP system gets
+unresponsive, and some task may get prioritized unfairly if NIFs and
+BIFs occupy scheduler threads for a too long time. Therefore, the most
+commonly used NIFs and BIFs that may run for a long time can yield.</p><h2 id="problems" class="section-heading">
+  <a href="#problems" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Problems</span>
+</h2>
+<p>Erlang NIFs and BIFs are typically implemented in the C programming
+language. The C programming language does not have built-in support
+for automatic yielding in the middle of a routine (referred to as
+<a href="https://en.wikipedia.org/wiki/Coroutine">coroutine support</a> in other
+programming languages). Therefore, most NIFs and BIFs implement
+yielding manually. Manual implementation of yielding has the advantage
+of giving the programmer control over what should be saved and when
+yielding should happen. Unfortunately, manual implementation of
+yielding also leads to code with a lot of boilerplate that is more
+difficult to read than corresponding code that does not
+yield. Furthermore, manual implementation of yielding can be
+time-consuming and error-prone, especially if the NIF or BIF is
+complicated.</p><h2 id="solution" class="section-heading">
+  <a href="#solution" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Solution</span>
+</h2>
+<p>A source-to-source transformer, called Yielding C Fun (YCF), has been
+created to make it easier to implement yielding NIFs and BIFs. YCF is
+a tool that takes a set of function names and a C source code file and
+transforms the functions with the given names in the source code file
+into yieldable versions that can be used as coroutines. YCF has been
+created with yielding NIFs and BIFs in mind and has several features
+that can be handy when implementing yielding NIFs and BIFs. The reader
+is recommended to look at YCF's documentation for a detailed
+description of YCF.</p><h2 id="yielding-c-fun-s-source-code-and-documentation" class="section-heading">
+  <a href="#yielding-c-fun-s-source-code-and-documentation" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Yielding C Fun's Source Code and Documentation</span>
+</h2>
+<p>The source code of YCF is included in the folder
+<code class="inline">&quot;$ERL_TOP&quot;/erts/lib_src/yielding_c_fun/</code> inside the source tree of
+the Erlang/OTP system. The documentation of YCF can be found in
+<code class="inline">&quot;$ERL_TOP&quot;/erts/lib_src/yielding_c_fun/README.md</code>. A rendered version
+of YCF documentation can be found
+<a href="https://github.com/erlang/otp/blob/master/erts/lib_src/yielding_c_fun/README.md">here</a>.</p><h2 id="yielding-c-fun-in-the-erlang-run-time-system" class="section-heading">
+  <a href="#yielding-c-fun-in-the-erlang-run-time-system" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Yielding C Fun in the Erlang Run-time System</span>
+</h2>
+<p>At the time of writing, YCF is used for the following in ERTS:</p><ul><li><a href="../../apps/stdlib/ets.html#insert/2"><code class="inline">ets:insert/2</code></a> and<a href="../../apps/stdlib/ets.html#insert_new/2"><code class="inline">ets:insert_new/2</code></a> (when these two functions get a list as their second parameter)</li><li><a href="../../apps/stdlib/maps.html#from_keys/2"><code class="inline">maps:from_keys/2</code></a>, <a href="../../apps/stdlib/maps.html#from_list/1"><code class="inline">maps:from_list/1</code></a>, <a href="../../apps/stdlib/maps.html#keys/1"><code class="inline">maps:keys/1</code></a> and <a href="../../apps/stdlib/maps.html#values/1"><code class="inline">maps:values/1</code></a></li><li>The functions <code class="inline">erts_qsort_ycf_gen_yielding</code>,
+<code class="inline">erts_qsort_ycf_gen_continue</code> and <code class="inline">erts_qsort_ycf_gen_destroy</code>
+implements a general purpose yieldable sorting routine that is used
+in the implementation of <a href="erlang.html#term_to_binary/2"><code class="inline">erlang:term_to_binary/2</code></a></li></ul><h2 id="best-practices-for-ycf-in-the-erts" class="section-heading">
+  <a href="#best-practices-for-ycf-in-the-erts" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Best Practices for YCF in the ERTS</span>
+</h2>
+<p>First of all, before starting to use YCF it is recommended to read
+through its documentation in
+<a href="https://github.com/erlang/otp/blob/master/erts/lib_src/yielding_c_fun/README.md">erts/lib_src/yielding_c_fun/README.md</a>
+to understand what limitations and functionalities YCF has.</p><h3 id="mark-ycf-transformed-functions" class="section-heading">
+  <a href="#mark-ycf-transformed-functions" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Mark YCF Transformed Functions</span>
+</h3>
+<p>It is important that it is easy to see what functions are transformed
+by YCF so that a programmer that edits these function are aware that
+they have to follow certain restrictions. The convention for making
+this clear is to have a comment above the function that explains that
+the function is transformed by YCF (see <code class="inline">maps_values_1_helper</code> in
+<code class="inline">erl_map.c</code> for an example). If only the transformed version of the
+function is used, the convention is to &quot;comment out&quot; the source for the
+function by surrounding it with the following <code class="inline">#ifdef</code> (this way, one
+will not get warnings about unused functions):</p><pre><code class="makeup erlang" translate="no"><span class="p">#</span><span class="ss">ifdef</span><span class="w"> </span><span class="n">INCLUDE_YCF_TRANSFORMED_ONLY_FUNCTIONS</span><span class="w">
+</span><span class="ss">void</span><span class="w"> </span><span class="nf">my_fun</span><span class="p" data-group-id="7266442649-1">(</span><span class="p" data-group-id="7266442649-1">)</span><span class="w"> </span><span class="p" data-group-id="7266442649-2">{</span><span class="w">
+    </span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="7266442649-2">}</span><span class="w">
+</span><span class="p">#</span><span class="ss">endif</span><span class="w"> </span><span class="o">/</span><span class="o">*</span><span class="w"> </span><span class="n">INCLUDE_YCF_TRANSFORMED_ONLY_FUNCTIONS</span><span class="w"> </span><span class="o">*</span><span class="o">/</span></code></pre><p>While editing the function one can define
+<code class="inline">INCLUDE_YCF_TRANSFORMED_ONLY_FUNCTIONS</code> so that one can see errors
+and warnings in the non-transformed source.</p><h3 id="where-to-place-ycf-transformed-functions" class="section-heading">
+  <a href="#where-to-place-ycf-transformed-functions" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Where to Place YCF Transformed Functions</span>
+</h3>
+<p>The convention is to place the non-transformed source for the functions
+that are transformed by YCF in the source file where they naturally
+belong. For example, the functions for the map BIFs are placed in
+<code class="inline">erl_map.c</code> together with the other map-related functions. When
+building, YCF is invoked to generate the transformed versions of the
+functions into a header file that is included in the source file that
+contains the non-transformed version of the function (search for
+YCF in <code class="inline">$ERL_TOP/erts/emulator/Makefile.in</code> to see examples of how YCF
+can be invoked).</p><p>If a function <code class="inline">F1</code> that is transformed by one YCF invocation depends
+on a function <code class="inline">F2</code> that is transformed by another YCF invocation, one
+needs to tell YCF that <code class="inline">F2</code> is an YCF transformed function so that
+<code class="inline">F1</code> can call the transformed version (see the documentation of
+<code class="inline">-fexternal</code> in <a href="https://github.com/erlang/otp/blob/master/erts/lib_src/yielding_c_fun/README.md">YCF's documentation</a>
+for more information about how to do that).</p><h3 id="reduce-boilerplate-code-with-erts_ycf_trap_driver" class="section-heading">
+  <a href="#reduce-boilerplate-code-with-erts_ycf_trap_driver" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Reduce Boilerplate Code with <code class="inline">erts_ycf_trap_driver</code></span>
+</h3>
+<p>The <code class="inline">erts_ycf_trap_driver</code> is a C function that implements common code
+that is needed by all BIFs that do their yielding with YCF. It is
+recommended to use this function when possible. A good way to learn
+how to use <code class="inline">erts_ycf_trap_driver</code> is to look at the implementations of
+the BIFs <a href="../../apps/stdlib/maps.html#from_keys/2"><code class="inline">maps:from_keys/2</code></a>, <a href="../../apps/stdlib/maps.html#from_list/1"><code class="inline">maps:from_list/1</code></a>, <a href="../../apps/stdlib/maps.html#keys/1"><code class="inline">maps:keys/1</code></a> and
+<a href="../../apps/stdlib/maps.html#values/1"><code class="inline">maps:values/1</code></a>.</p><p>Some BIFs may not be able to use <code class="inline">erts_ycf_trap_driver</code> as they need
+to do some custom work after yielding. Examples of that are the BIFs
+<a href="../../apps/stdlib/ets.html#insert/2"><code class="inline">ets:insert/2</code></a> and<a href="../../apps/stdlib/ets.html#insert_new/2"><code class="inline">ets:insert_new/2</code></a> that publish the yield state in
+the ETS table structure so that other threads can help in completing
+the operation.</p><h3 id="testing-and-finding-problems-in-ycf-generated-code" class="section-heading">
+  <a href="#testing-and-finding-problems-in-ycf-generated-code" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Testing and Finding Problems in YCF Generated Code</span>
+</h3>
+<p>A good way to test both code with manual yielding and YCF generated
+yielding is to write test cases that cover the places where the code
+can yield (yielding points) and setting the yield limit so that it
+yields every time the yielding points are reached. With YCF this can
+be accomplished by passing a pointer to the value 1 as the
+<code class="inline">ycf_nr_of_reductions</code> parameter (i.e., the first parameter of the
+<code class="inline">*_ycf_gen_yielding</code> and <code class="inline">*_ycf_gen_continue</code> functions).</p><p>The YCF flag <code class="inline">-debug</code> makes YCF generate code that checks for pointers
+to the C stack when yielding. When such a pointer is found the
+location of the found pointer will be printed out and the program will
+crash. This can save a lot (!) of time when porting already existing C
+code to yield with YCF. To make the <code class="inline">-debug</code> option work as intended,
+one has to tell YCF where the stack starts before calling the YCF
+generated function. The functions <code class="inline">ycf_debug_set_stack_start</code> and
+<code class="inline">ycf_debug_reset_stack_start</code> has been created to make this easier
+(see the implementation of <code class="inline">erts_ycf_trap_driver</code> for how to use these
+functions). It is recommended to set up building of ERTS so that debug
+builds of ERTS runs with YCF code generated with the <code class="inline">-debug</code> flag
+while production code runs with YCF code that has been generated
+without the <code class="inline">-debug</code> flag.</p><p>It is a good practice to look through the code generated by YCF to try
+to find things that are not correctly transformed. Before doing that
+one should format the generated code with an automatic source code
+formatter (the generated code is quite unreadable otherwise). If YCF
+does not transform something correctly, it is almost certainly possible
+to fix that by rewriting the code (see the YCF documentation for what
+is supported and what is not supported). For example, if you have a
+inline struct variable declaration (for example,
+<code class="inline">struct {int field1; int field2;} mystructvar;</code>), YCF will not recognize this
+as a variable declaration but you can fix this by creating a <code class="inline">typedef</code>
+for the struct.</p><p>YCF's hooks can be useful when debugging code that has been transformed
+by YCF. For examples, the hooks can be used to print the value of a
+variable when yielding and when resuming after yielding.</p><p>Unfortunately, YCF does not handle C code with syntactical errors very
+well and can crash or produce bad output without giving any useful
+error message when given syntactically incorrect C code (for example,
+a missing parenthesis). Therefore, it is recommended to always check
+the code with a normal C compiler before transforming it with YCF.</p><h3 id="common-pitfalls" class="section-heading">
+  <a href="#common-pitfalls" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Common Pitfalls</span>
+</h3>
+<ul><li><p><strong>Pointers to the stack</strong> The stack might be located somewhere else
+when a yielded function continues to execute so pointers to
+variables that are located on the stack can be a problem. As
+mentioned in the previous section, the <code class="inline">-debug</code> option is a good way
+to detect such pointers. YCF has functionality to make it easier to
+port code that has pointers to the stack (see the documentation of
+<code class="inline">YCF_STACK_ALLOC</code> in the YCF documentation for more
+information). Another way to fix pointers to the stack, that
+sometimes can be convenient, is to use YCF's hooks to set up
+pointers to the stack correctly when a yielded function resumes.</p></li><li><p><strong>Macros</strong> YCF does not expand macros so variable declarations,
+return statements, and gotos etc that are &quot;hidden&quot; by macros can be
+a problem. It is therefore smart to check all macros in code that is
+transformed by YCF so that they do not contain anything that YCF
+needs to transform.</p></li><li><p><strong>Memory Allocation in Yielding Code</strong> If a process is killed while
+executing a BIF that is yielded, one has to make sure that memory
+and other resources that is allocated by the yielded code is
+freed. This can be done, e.g., by calling the generated
+<code class="inline">*_ycf_gen_destroy</code> function from the <code class="inline">dtor</code> of a magic binary that
+holds a reference to trap state. YCF's <code class="inline">ON_DESTROY_STATE</code> and
+<code class="inline">ON_DESTROY_STATE_OR_RETURN</code> hooks can be used to free any resources
+that has been manually allocated inside a yielding function when the
+function's <code class="inline">*_ycf_gen_destroy</code> function is executed. The
+<code class="inline">erts_ycf_trap_driver</code> takes care of calling the <code class="inline">*_ycf_gen_destroy</code>
+function so you do not need to worry about that if you are using
+<code class="inline">erts_ycf_trap_driver</code>.</p></li></ul>
+<div class="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="erts_alloc.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+erts_alloc
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="beamasm.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+BeamAsm, the Erlang JIT
+        </span>
+      </a>
+
+  </div>
+</div>
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>

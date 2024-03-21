@@ -1,0 +1,1017 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html xmlns:erl="http://erlang.org" xmlns:fn="http://www.w3.org/2005/02/xpath-functions">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" href="../../otp_doc.css" type="text/css">
+<title>Erlang -- Specialized Decodes</title>
+</head>
+<body>
+<div id="container">
+<script id="js" type="text/javascript" language="JavaScript" src="../../js/flipmenu/flipmenu.js"></script><script id="js2" type="text/javascript" src="../../js/erlresolvelinks.js"></script><script language="JavaScript" type="text/javascript">
+            <!--
+              function getWinHeight() {
+                var myHeight = 0;
+                if( typeof( window.innerHeight ) == 'number' ) {
+                  //Non-IE
+                  myHeight = window.innerHeight;
+                } else if( document.documentElement && ( document.documentElement.clientWidth ||
+                                                         document.documentElement.clientHeight ) ) {
+                  //IE 6+ in 'standards compliant mode'
+                  myHeight = document.documentElement.clientHeight;
+                } else if( document.body && ( document.body.clientWidth || document.body.clientHeight ) ) {
+                  //IE 4 compatible
+                  myHeight = document.body.clientHeight;
+                }
+                return myHeight;
+              }
+
+              function setscrollpos() {
+                var objf=document.getElementById('loadscrollpos');
+                 document.getElementById("leftnav").scrollTop = objf.offsetTop - getWinHeight()/2;
+              }
+
+              function addEvent(obj, evType, fn){
+                if (obj.addEventListener){
+                obj.addEventListener(evType, fn, true);
+                return true;
+              } else if (obj.attachEvent){
+                var r = obj.attachEvent("on"+evType, fn);
+                return r;
+              } else {
+                return false;
+              }
+             }
+
+             addEvent(window, 'load', setscrollpos);
+
+             //--></script><div id="leftnav"><div class="innertube">
+<div class="erlang-logo-wrapper"><a href="../../index.html"><img alt="Erlang Logo" src="../../../../doc/erlang-logo.png" class="erlang-logo"></a></div>
+<p class="section-title">ASN.1</p>
+<p class="section-subtitle">User's Guide</p>
+<p class="section-version">Version 5.0.5</p>
+<ul class="panel-sections">
+<li><a href="users_guide.html">User's Guide</a></li>
+<li><a href="index.html">Reference Manual</a></li>
+<li><a href="release_notes.html">Release Notes</a></li>
+<li><a href="asn1.pdf">PDF</a></li>
+<li><a href="../../index.html">Top</a></li>
+</ul>
+<ul class="expand-collapse-items">
+<li><a href="javascript:openAllFlips()">Expand All</a></li>
+<li><a href="javascript:closeAllFlips()">Contract All</a></li>
+</ul>
+<h3>Chapters</h3>
+<ul class="flipMenu" imagePath="../../js/flipmenu">
+<li id="no" title="Introduction" expanded="false">Introduction<ul>
+<li><a href="asn1_introduction.html">
+              Top of chapter
+            </a></li>
+<li title="Scope"><a href="asn1_introduction.html#id62391">Scope</a></li>
+<li title="Prerequisites"><a href="asn1_introduction.html#id61173">Prerequisites</a></li>
+</ul>
+</li>
+<li id="no" title="ASN.1" expanded="false">ASN.1<ul>
+<li><a href="asn1_overview.html">
+              Top of chapter
+            </a></li>
+<li title="Introduction"><a href="asn1_overview.html#id60464">Introduction</a></li>
+</ul>
+</li>
+<li id="no" title="Getting Started" expanded="false">Getting Started<ul>
+<li><a href="asn1_getting_started.html">
+              Top of chapter
+            </a></li>
+<li title="Example"><a href="asn1_getting_started.html#id62956">Example</a></li>
+<li title="ASN.1 Application User Interface"><a href="asn1_getting_started.html#id62272">ASN.1 Application User Interface</a></li>
+<li title="Multi-File Compilation"><a href="asn1_getting_started.html#id60637">Multi-File Compilation</a></li>
+<li title="Remark about Tags"><a href="asn1_getting_started.html#id62792">Remark about Tags</a></li>
+<li title="ASN.1 Types"><a href="asn1_getting_started.html#id63142">ASN.1 Types</a></li>
+<li title="Naming of Records in .hrl Files"><a href="asn1_getting_started.html#id64230">Naming of Records in .hrl Files</a></li>
+<li title="ASN.1 Values"><a href="asn1_getting_started.html#id64456">ASN.1 Values</a></li>
+<li title="Macros"><a href="asn1_getting_started.html#id64543">Macros</a></li>
+<li title="ASN.1 Information Objects (X.681)"><a href="asn1_getting_started.html#id69797">ASN.1 Information Objects (X.681)</a></li>
+<li title="Parameterization (X.683)"><a href="asn1_getting_started.html#id70003">Parameterization (X.683)</a></li>
+</ul>
+</li>
+<li id="loadscrollpos" title="Specialized Decodes" expanded="true">Specialized Decodes<ul>
+<li><a href="asn1_spec.html">
+              Top of chapter
+            </a></li>
+<li title="Exclusive Decode"><a href="asn1_spec.html#id70179">Exclusive Decode</a></li>
+<li title="Selective Decode"><a href="asn1_spec.html#id70660">Selective Decode</a></li>
+<li title="Performance"><a href="asn1_spec.html#id71144">Performance</a></li>
+</ul>
+</li>
+</ul>
+</div></div>
+<div id="content">
+<div class="innertube">
+<h1>4 Specialized Decodes</h1>
+  
+  <a name="SpecializedDecodes"></a>
+  <p>When performance is of highest priority and you are interested in
+    a limited part of the ASN.1 encoded message before deciding what
+    to do with the rest of it, an option is to decode only this small
+    part. The situation can be a server that has to decide the
+    addressee of a message. The addressee can be interested in
+    the entire message, but the server can be a bottleneck that you want
+    to spare any unnecessary load.</p>
+  <p> Instead of making two <strong>complete decodes</strong> (the normal case of
+    decode), one in the server and one in the addressee, it is only
+    necessary to make one <strong>specialized decode</strong>(in the server)
+    and another complete decode(in the addressee). This section
+    describes the following two specialized decodes, which support
+    to solve this and similar problems:</p>
+    <ul>
+      <li><strong>Exclusive decode</strong></li>
+      <li><strong>Selected decode</strong></li>
+    </ul>
+  <p>This functionality is only provided when using <span class="code">BER</span>
+  (option <span class="code">ber</span>).</p>
+
+  <h3><a name="id70179">4.1 
+        Exclusive Decode</a></h3>
+    
+    <p>The basic idea with exclusive
+      decode is to specify which parts of the message you want to
+      exclude from being decoded. These parts remain encoded and are
+      returned in the value structure as binaries. They can be decoded
+      in turn by passing them to a certain <span class="code">decode_part/2</span>
+      function. The performance gain is high for large messages.
+      You can do an exclusive decode and later one or more
+      decodes of the parts, or a second complete decode instead of two or
+      more complete decodes.
+      </p>
+
+    <h4>Procedure</h4>
+      
+      <p>To perform an exclusive decode:
+        </p>
+      <ul>
+        <li>
+<strong>Step 1:</strong> Decide the name of the function for the
+	 exclusive decode.</li>
+        <li>
+<p><strong>Step 2:</strong> Include the following instructions in
+	 a configuration file:</p>
+	 <ul>
+	   <li>The name of the exclusive decode function</li>
+	   <li>The name of the ASN.1 specification</li>
+	   <li>A notation that tells which parts of the message
+	   structure to be excluded from decode</li>
+	   </ul>
+</li>
+        <li>
+<strong>Step 3</strong> Compile with the additional option
+         <span class="code">asn1config</span>. The compiler searches for a configuration
+         file with the same name as the ASN.1 specification but with
+         extension <span class="code">.asn1config</span>. This configuration file is not
+	 the same as used for compilation of a set of files. See Section
+	 <span class="bold_code bc-17"><a href="#UndecodedPart">Writing an Exclusive Decode Instruction.</a></span>
+</li>
+      </ul>
+    
+
+    <h4>User Interface</h4>
+      
+      <p>The runtime user interface for exclusive decode consists of
+        the following two functions:</p>
+	<ul>
+	  <li>A function for an exclusive decode, whose name the user
+	  decides in the configuration file</li>
+	  <li>The compiler generates a <span class="code">decode_part/2</span>
+          function when exclusive decode is chosen. This function decodes
+          the parts that were left undecoded during the exclusive
+          decode.</li>
+	</ul>
+      <p>Both functions are described in the following.</p>
+      <p>If the exclusive decode function has, for example, the name
+        <span class="code">decode_exclusive</span> and an ASN.1 encoded message
+        <span class="code">Bin</span> is to be exclusive decoded, the call is as follows:</p>
+      <div class="example"><pre>
+{ok,Excl_Message} = 'MyModule':decode_exclusive(Bin)      </pre></div>
+      <a name="UndecodedPart"></a>
+      <p>The result <span class="code">Excl_Message</span> has the same structure as a
+        complete decode would have, except for the parts of the top type
+        that were not decoded. The undecoded parts are on their places
+        in the structure on format <span class="code">{Type_Key,Undecoded_Value}</span>.
+        </p>
+      <p>Each undecoded part that is to be decoded must be fed into
+        function <span class="code">decode_part/2</span> as follows:</p>
+      <div class="example"><pre>
+{ok,Part_Message} = 'MyModule':decode_part(Type_Key,Undecoded_Value)</pre></div>
+    
+
+    <h4>
+<a name="Exclusive%20Instruction"></a>Writing an Exclusive Decode Instruction</h4>
+      
+      
+      <p>This instruction is written in the configuration file
+        in the following format:</p>
+      <div class="example"><pre>
+Exclusive_Decode_Instruction = {exclusive_decode,{Module_Name,Decode_Instructions}}.
+
+Module_Name = atom()
+
+Decode_Instructions = [Decode_Instruction]+
+
+Decode_Instruction = {Exclusive_Decode_Function_Name,Type_List}
+
+Exclusive_Decode_Function_Name = atom()
+
+Type_List = [Top_Type,Element_List]
+
+Element_List = [Element]+
+
+Element = {Name,parts} |
+          {Name,undecoded} |
+          {Name,Element_List}
+
+Top_Type = atom()
+
+Name = atom()</pre></div>
+      <p>The instruction must be a valid Erlang term ended by a dot.
+        </p>
+      <p>In <span class="code">Type_List</span> the "path" from the top type to each
+        undecoded subcomponents is described. The top type of the path is
+        an atom, the name of it. The action on each component/type that
+        follows is described by one of
+        <span class="code">{Name,parts}, {Name,undecoded}, {Name,Element_List}</span>.</p>
+      <p>The use and effect of the actions are as follows:
+        </p>
+      <ul>
+        <li>
+<span class="code">{Name,undecoded}</span> - Tells that the element is left
+         undecoded during the exclusive decode. The type of <span class="code">Name</span>
+         can be any ASN.1 type. The value of element <span class="code">Name</span> is
+         returned as a tuple (as mentioned in the previous section) in
+         the value structure of the top type.</li>
+        <li>
+<span class="code">{Name,parts}</span> - The type of <span class="code">Name</span> can be one of
+         <span class="code">SEQUENCE OF</span> or <span class="code">SET OF</span>. The action implies that
+         the different components of <span class="code">Name</span> are left undecoded. The
+         value of <span class="code">Name</span> is returned as a tuple (as mentioned in
+         the previous section) where the second element is a list of
+         binaries. This is because the representation of a <span class="code">SEQUENCE OF</span>
+         or a <span class="code">SET OF</span> in Erlang is a list of its internal type. Any
+         of the elements in this list or the entire list can be decoded by
+         function <span class="code">decode_part</span>.</li>
+        <li>
+<span class="code">{Name,Element_List}</span> - This action is used when one or
+         more of the subtypes of <span class="code">Name</span> is exclusive decoded.</li>
+      </ul>
+      <p><span class="code">Name</span> in these actions can be a component name of a
+        <span class="code">SEQUENCE OF</span> or a <span class="code">SET OF</span>, or a name of an alternative
+         in a <span class="code">CHOICE</span>.
+        </p>
+    
+
+    <h4>Example</h4>
+      
+      <p>In this examples, the definitions from the following ASN.1
+        specification are used:</p>
+      <a name="Asn1spec"></a>
+<div class="example"><pre>GUI DEFINITIONS AUTOMATIC TAGS ::=
+
+BEGIN
+
+Action ::= SEQUENCE 
+ { 
+   number  INTEGER DEFAULT 15,
+   handle  [0] Handle DEFAULT {number  12, on  TRUE}
+ }
+
+Key ::= [11] EXPLICIT Button
+Handle ::= [12] Key
+Button ::= SEQUENCE 
+ {
+   number  INTEGER,
+   on  BOOLEAN
+ }
+
+Window ::= CHOICE 
+ {
+   vsn INTEGER,
+   status E
+ }
+
+Status ::= SEQUENCE 
+ {
+   state INTEGER,
+   buttonList SEQUENCE OF Button,
+   enabled BOOLEAN OPTIONAL,
+   actions CHOICE {
+     possibleActions SEQUENCE OF Action,
+     noOfActions INTEGER
+   }
+ }
+
+
+END</pre></div>      <p>If <span class="code">Button</span> is a top type and it is needed to exclude
+        component <span class="code">number</span> from decode, <span class="code">Type_List</span> in the
+        instruction in the configuration file is
+        <span class="code">['Button',[{number,undecoded}]]</span>. If you call the decode
+        function <span class="code">decode_Button_exclusive</span>, <span class="code">Decode_Instruction</span> is
+        <span class="code">{decode_Button_exclusive,['Button',[{number,undecoded}]]}</span>.
+        </p>
+      <p>Another top type is <span class="code">Window</span> whose subcomponent
+        actions in type <span class="code">Status</span> and the parts of component
+        <span class="code">buttonList</span> are to be left undecoded. For this type, the
+        function is named <span class="code">decode__Window_exclusive</span>. The complete
+        <span class="code">Exclusive_Decode_Instruction</span> configuration is as follows:</p>
+<div class="example"><pre>{exclusive_decode,{'GUI',
+	[{decode_Window_exclusive,['Window',[{status,[{buttonList,parts},{actions,undecoded}]}]]},
+	 {decode_Button_exclusive,['Button',[{number,undecoded}]]}]}}.</pre></div>      <p>The following figure shows the bytes of a <span class="code">Window:status</span>
+        message. The components <span class="code">buttonList</span> and <span class="code">actions</span> are
+	excluded from decode. Only <span class="code">state</span> and <span class="code">enabled</span> are decoded
+	when <span class="code">decode__Window_exclusive</span> is called.</p>
+      <p></p>
+      <div class="doc-image-wrapper">
+<img alt="IMAGE MISSING" src="exclusive_Win_But.gif" class="doc-image">
+        <p class="doc-image-caption">Figure
+        4.1:
+         
+        Bytes of a Window:status Message</p>
+      </div>
+      <p></p>
+      <p>Compiling <span class="code">GUI.asn</span> including the configuration file is done
+        as follows:</p>
+      <div class="example"><pre>
+unix&gt; erlc -bber +asn1config GUI.asn
+
+erlang&gt; asn1ct:compile('GUI', [ber,asn1config]).</pre></div>
+      <p>The module can be used as follows:</p>
+      <div class="example"><pre>
+1&gt; Button_Msg = {'Button',123,true}.
+{'Button',123,true}
+2&gt; {ok,Button_Bytes} = 'GUI':encode('Button',Button_Msg).
+{ok,[&lt;&lt;48&gt;&gt;,
+     [6],
+     [&lt;&lt;128&gt;&gt;,
+      [1],
+      123],
+     [&lt;&lt;129&gt;&gt;,
+      [1],
+      255]]}
+3&gt; {ok,Exclusive_Msg_Button} = 'GUI':decode_Button_exclusive(list_to_binary(Button_Bytes)).
+{ok,{'Button',{'Button_number',&lt;&lt;28,1,123&gt;&gt;},
+         true}}
+4&gt; 'GUI':decode_part('Button_number',&lt;&lt;128,1,123&gt;&gt;).
+{ok,123}
+5&gt; Window_Msg = 
+{'Window',{status,{'Status',35,
+              [{'Button',3,true},
+               {'Button',4,false},
+               {'Button',5,true},
+               {'Button',6,true},
+               {'Button',7,false},
+               {'Button',8,true},
+               {'Button',9,true},
+               {'Button',10,false},
+               {'Button',11,true},
+               {'Button',12,true},
+               {'Button',13,false},
+               {'Button',14,true}],
+              false,
+              {possibleActions,[{'Action',16,{'Button',17,true}}]}}}}. 
+{'Window',{status,{'Status',35,
+              [{'Button',3,true},
+               {'Button',4,false},
+               {'Button',5,true},
+               {'Button',6,true},
+               {'Button',7,false},
+               {'Button',8,true},
+               {'Button',9,true},
+               {'Button',10,false},
+               {'Button',11,true},
+               {'Button',12,true},
+               {'Button',13,false},
+               {'Button',14,true}],
+              false,
+              {possibleActions,[{'Action',16,{'Button',17,true}}]}}}}
+6&gt; {ok,Window_Bytes}='GUI':encode('Window',Window_Msg).
+{ok,[&lt;&lt;161&gt;&gt;,
+     [127],
+     [&lt;&lt;128&gt;&gt;, ...
+
+
+8&gt; {ok,{status,{'Status',Int,{Type_Key_SeqOf,Val_SEQOF},
+BoolOpt,{Type_Key_Choice,Val_Choice}}}}=
+'GUI':decode_Window_status_exclusive(list_to_binary(Window_Bytes)).
+{ok,{status,{'Status',35,
+        {'Status_buttonList',[&lt;&lt;48,6,128,1,3,129,1,255&gt;&gt;,
+                              &lt;&lt;48,6,128,1,4,129,1,0&gt;&gt;,
+                              &lt;&lt;48,6,128,1,5,129,1,255&gt;&gt;,
+                              &lt;&lt;48,6,128,1,6,129,1,255&gt;&gt;,
+                              &lt;&lt;48,6,128,1,7,129,1,0&gt;&gt;,
+                              &lt;&lt;48,6,128,1,8,129,1,255&gt;&gt;,
+                              &lt;&lt;48,6,128,1,9,129,1,255&gt;&gt;,
+                              &lt;&lt;48,6,128,1,10,129,1,0&gt;&gt;,
+                              &lt;&lt;48,6,128,1,11,129,1,255&gt;&gt;,
+                              &lt;&lt;48,6,128,1,12,129,1,255&gt;&gt;,
+                              &lt;&lt;48,6,128,1,13,129,1,0&gt;&gt;,
+                              &lt;&lt;48,6,128,1,14,129,1,255&gt;&gt;]},
+        false,
+        {'Status_actions',
+&lt;&lt;163,21,160,19,48,17,2,1,16,160,12,172,10,171,8,48,6,128,1,...&gt;&gt;}}}}
+10&gt; 'GUI':decode_part(Type_Key_SeqOf,Val_SEQOF).
+{ok,[{'Button',3,true},
+     {'Button',4,false},
+     {'Button',5,true},
+     {'Button',6,true},
+     {'Button',7,false},
+     {'Button',8,true},
+     {'Button',9,true},
+     {'Button',10,false},
+     {'Button',11,true},
+     {'Button',12,true},
+     {'Button',13,false},
+     {'Button',14,true}]}
+11&gt; 'GUI':decode_part(Type_Key_SeqOf,hd(Val_SEQOF)).
+{ok,{'Button',3,true}}
+12&gt; 'GUI':decode_part(Type_Key_Choice,Val_Choice).  
+{ok,{possibleActions,[{'Action',16,{'Button',17,true}}]}}</pre></div>
+    
+  
+
+  <h3><a name="id70660">4.2 
+        Selective Decode</a></h3>
+    
+    <p>This specialized decode decodes a subtype of a
+      constructed value and is the fastest method to extract a
+      subvalue. This decode is typically used when you want to
+      inspect, for example, a version number, to be able to decide what
+      to do with the entire value. The result is returned as
+      <span class="code">{ok,Value}</span> or <span class="code">{error,Reason}</span>.
+      </p>
+
+    <h4>Procedure</h4>
+      
+      <p>To perform a selective decode:
+        </p>
+      <ul>
+        <li>
+<p><strong>Step 1:</strong> Include the following instructions in
+	 the configuration file:</p>
+         <ul>
+           <li>The name of the user function</li>
+           <li>The name of the ASN.1 specification</li>
+           <li>A notation that tells which part of the type to be
+           decoded</li>
+	 </ul>
+</li>
+        <li>
+<strong>Step 2:</strong> Compile with the additional option
+         <span class="code">asn1config</span>. The compiler searches for a configuration file
+         with the same name as the ASN.1 specification, but with extension
+         <span class="code">.asn1config</span>. In the same file you can also provide
+	 configuration specifications for exclusive decode.
+         The generated Erlang module has the
+         usual functionality for encode/decode preserved and the
+         specialized decode functionality added. </li>
+      </ul>
+    
+
+    <h4>User Interface</h4>
+      
+      <p>The only new user interface function is the one provided by the
+        user in the configuration file. The function is started by
+        the <span class="code">ModuleName:FunctionName</span> notation.
+        </p>
+      <p>For example, if the configuration file includes the specification
+        <span class="code">{selective_decode,{'ModuleName',[{selected_decode_Window,TypeList}]}}</span>
+        do the selective decode by
+        <span class="code">{ok,Result}='ModuleName':selected_decode_Window(EncodedBinary).</span></p>
+    
+
+    <h4>
+<a name="Selective%20Instruction"></a>Writing a Selective Decode Instruction</h4>
+      
+      
+      <p>One or more selective decode functions can be described in a
+        configuration file. Use the following notation:</p>
+      <div class="example"><pre>
+Selective_Decode_Instruction = {selective_decode,{Module_Name,Decode_Instructions}}.
+
+Module_Name = atom()
+
+Decode_Instructions = [Decode_Instruction]+
+
+Decode_Instruction = {Selective_Decode_Function_Name,Type_List}
+
+Selective_Decode_Function_Name = atom()
+
+Type_List = [Top_Type|Element_List]
+
+Element_List = Name|List_Selector
+
+Name = atom()
+
+List_Selector = [integer()]</pre></div>
+      <p>The instruction must be a valid Erlang term ended by a dot.
+        </p>
+      <ul>
+        <li>
+<span class="code">Module_Name</span> is the same as the name of the ASN.1
+        specification, but without the extension.</li>
+      <li>
+<span class="code">Decode_Instruction</span> is a tuple with your chosen
+        function name and the components from the top type that leads
+        to the single type you want to decode. Ensure to choose a name
+        of your function that is not the same as any of the generated
+        functions.</li>
+      <li> The first element of <span class="code">Type_List</span> is the top type of the
+        encoded message. In <span class="code">Element_List</span>, it is followed by
+        each of the component names that leads to selected type.</li>
+      <li>Each name in <span class="code">Element_List</span> must be a constructed type
+        except the last name, which can be any type.</li>
+      <li>
+<span class="code">List_Selector</span> makes it possible to choose one of the
+        encoded components in a a <span class="code">SEQUENCE OF</span> or a <span class="code">SET OF</span>.
+        It is also possible to go further in that component and pick a
+        subtype of that to decode. So, in the <span class="code">Type_List</span>:
+        <span class="code">['Window',status,buttonList,[1],number]</span>, component
+        <span class="code">buttonList</span> must be of type <span class="code">SEQUENCE OF</span> or
+        <span class="code">SET OF</span>.</li>
+      </ul>
+      <p>In the example, component <span class="code">number</span> of the first of the encoded
+        elements in the <span class="code">SEQUENCE OF</span> <span class="code">buttonList</span> is selected.
+        This applies on the ASN.1 specification in Section
+        <span class="bold_code bc-17"><a href="#Asn1spec">Writing an Exclusive Decode Instruction</a></span>.
+        </p>
+    
+
+    <h4>Another Example</h4>
+      
+      <p>In this example, the same ASN.1 specification as in Section
+        <span class="bold_code bc-17"><a href="#Asn1spec">Writing an Exclusive Decode Instruction</a></span>
+         is used. The following is a valid selective decode instruction:</p>
+      <div class="example"><pre>
+{selective_decode,
+    {'GUI',
+        [{selected_decode_Window1,
+            ['Window',status,buttonList, 
+             [1],
+             number]},
+ {selected_decode_Action,
+     ['Action',handle,number]},
+ {selected_decode_Window2,
+     ['Window',
+      status,
+      actions,
+      possibleActions,
+      [1],
+      handle,number]}]}}.</pre></div>
+      <p>The first instruction,
+        <span class="code">{selected_decode_Window1,['Window',status,buttonList,[1],number]}</span>
+        is described in the previous section.</p>
+      <p> The second instruction,
+        <span class="code">{selected_decode_Action,['Action',handle,number]}</span>, takes
+        component <span class="code">number</span> in the <span class="code">handle</span> component of type
+        <span class="code">Action</span>. If the value is
+        <span class="code">ValAction = {'Action',17,{'Button',4711,false}}</span>, the internal
+        value 4711 is to be picked by <span class="code">selected_decode_Action</span>. In an
+        Erlang terminal it looks as follows:</p>
+      <div class="example"><pre>
+ValAction = {'Action',17,{'Button',4711,false}}.
+{'Action',17,{'Button',4711,false}}
+7&gt; {ok,Bytes}='GUI':encode('Action',ValAction).
+...
+8&gt; BinBytes = list_to_binary(Bytes).
+&lt;&lt;48,18,2,1,17,160,13,172,11,171,9,48,7,128,2,18,103,129,1,0&gt;&gt;
+9&gt; 'GUI':selected_decode_Action(BinBytes).
+{ok,4711}
+10&gt;</pre></div>
+      <p>The third instruction,
+        <span class="code">['Window',status,actions,possibleActions,[1],handle,number]</span>,
+        works as follows:</p>
+      <ul>
+        <li>
+<strong>Step 1:</strong> Starts with type <span class="code">Window</span>.</li>
+        <li>
+<strong>Step 2:</strong> Takes component <span class="code">status</span> of <span class="code">Window</span>
+         that is of type <span class="code">Status</span>.</li>
+        <li>
+<strong>Step 3:</strong> Takes <strong>actions</strong> of type
+        <span class="code">Status</span>.</li>
+        <li>
+<strong>Step 4:</strong> Takes <span class="code">possibleActions</span> of the internally
+         defined <span class="code">CHOICE</span> type.</li>
+        <li>
+<strong>Step 5:</strong> Goes into the first component of
+         <span class="code">SEQUENCE OF</span> by <span class="code">[1]</span>. That component is of type
+         <span class="code">Action</span>.</li>
+        <li>
+<strong>Step 6:</strong> Takes component <span class="code">handle</span>.</li>
+        <li>
+<strong>Step 7:</strong> Takes component <span class="code">number</span> of type
+        <span class="code">Button</span>.</li>
+      </ul>
+      <p>The following figure shows which components are in <span class="code">TypeList</span>
+        <span class="code">['Window',status,actions,possibleActions,[1],handle,number]</span>:</p>
+      <p></p>
+      <div class="doc-image-wrapper">
+<img alt="IMAGE MISSING" src="selective_TypeList.gif" class="doc-image">
+        <p class="doc-image-caption">Figure
+        4.2:
+         
+        Elements Specified in Configuration File for Selective Decode of a Subvalue in a Window Message</p>
+      </div>
+      <p>In the following figure, only the marked element is decoded by
+        <span class="code">selected_decode_Window2</span>:</p>
+      <p></p>
+      <div class="doc-image-wrapper">
+<img alt="IMAGE MISSING" src="selective_Window2.gif" class="doc-image">
+        <p class="doc-image-caption">Figure
+        4.3:
+         
+        Bytes of a Window:status Message</p>
+      </div>
+      <p>With the following example, you can examine that both
+        <span class="code">selected_decode_Window2</span> and
+        <span class="code">selected_decode_Window1</span> decodes the intended subvalue
+        of value <span class="code">Val</span>:</p>
+      <div class="example"><pre>
+1&gt; Val = {'Window',{status,{'Status',12,
+                    [{'Button',13,true},
+                     {'Button',14,false},
+                     {'Button',15,true},
+                     {'Button',16,false}],
+                    true,
+                    {possibleActions,[{'Action',17,{'Button',18,false}},
+                                      {'Action',19,{'Button',20,true}},
+                                      {'Action',21,{'Button',22,false}}]}}}}
+2&gt; {ok,Bytes}='GUI':encode('Window',Val).
+...
+3&gt; Bin = list_to_binary(Bytes).
+&lt;&lt;161,101,128,1,12,161,32,48,6,128,1,13,129,1,255,48,6,128,1,14,129,1,0,48,6,128,1,15,129,...&gt;&gt;
+4&gt; 'GUI':selected_decode_Window1(Bin).
+{ok,13}
+5&gt; 'GUI':selected_decode_Window2(Bin).
+{ok,18}</pre></div>
+      <p>Notice that the value fed into the selective decode
+        functions must be a binary.
+        </p>
+    
+  
+
+  <h3><a name="id71144">4.3 
+        Performance</a></h3>
+    
+    <p>To give an indication on the possible performance gain using
+      the specialized decodes, some measures have been performed. The
+      relative figures in the outcome between selective, exclusive, and
+      complete decode (the normal case) depend on the structure of
+      the type, the size of the message, and on what level the
+      selective and exclusive decodes are specified.
+      </p>
+
+    <h4>ASN.1 Specifications, Messages, and Configuration</h4>
+      
+      <p>The specifications <span class="bold_code bc-17"><a href="#Asn1spec">GUI</a></span> and
+        <span class="bold_code bc-20"><a href="http://www.itu.int/ITU-T/asn1/database/itu-t/h/h248/2002/MEDIA-GATEWAY-CONTROL.html">MEDIA-GATEWAY-CONTROL</a></span>
+        were used in the test.
+        </p>
+      <p>For the <span class="code">GUI</span> specification the configuration was as follows:</p>
+      <div class="example"><pre>
+{selective_decode,
+  {'GUI',
+    [{selected_decode_Window1,
+         ['Window',
+          status,buttonList,
+          [1],
+          number]},
+     {selected_decode_Window2,
+         ['Window',
+          status,
+          actions,
+          possibleActions,
+          [1],
+          handle,number]}]}}.
+     {exclusive_decode,
+         {'GUI',
+            [{decode_Window_status_exclusive,
+                ['Window',
+                 [{status,
+                     [{buttonList,parts},
+                      {actions,undecoded}]}]]}]}}.</pre></div>
+      <p>The <span class="code">MEDIA-GATEWAY-CONTROL</span> configuration was as follows:</p>
+      <div class="example"><pre>
+{exclusive_decode,
+  {'MEDIA-GATEWAY-CONTROL',
+    [{decode_MegacoMessage_exclusive,
+        ['MegacoMessage',
+         [{authHeader,undecoded},
+          {mess,
+             [{mId,undecoded},
+              {messageBody,undecoded}]}]]}]}}.
+{selective_decode,
+  {'MEDIA-GATEWAY-CONTROL',
+    [{decode_MegacoMessage_selective,
+         ['MegacoMessage',mess,version]}]}}.</pre></div>
+      <p>The corresponding values were as follows:</p>
+      <div class="example"><pre>
+{'Window',{status,{'Status',12,
+              [{'Button',13,true},
+               {'Button',14,false},
+               {'Button',15,true},
+               {'Button',16,false},
+               {'Button',13,true},
+               {'Button',14,false},
+               {'Button',15,true},
+               {'Button',16,false},
+               {'Button',13,true},
+               {'Button',14,false},
+               {'Button',15,true},
+               {'Button',16,false}],
+              true,
+              {possibleActions,
+                 [{'Action',17,{'Button',18,false}},
+                  {'Action',19,{'Button',20,true}},
+                  {'Action',21,{'Button',22,false}},
+                  {'Action',17,{'Button',18,false}},
+                  {'Action',19,{'Button',20,true}},
+                  {'Action',21,{'Button',22,false}},
+                  {'Action',17,{'Button',18,false}},
+                  {'Action',19,{'Button',20,true}},
+                  {'Action',21,{'Button',22,false}},
+                  {'Action',17,{'Button',18,false}},
+                  {'Action',19,{'Button',20,true}},
+                  {'Action',21,{'Button',22,false}},
+                  {'Action',17,{'Button',18,false}},
+                  {'Action',19,{'Button',20,true}},
+                  {'Action',21,{'Button',22,false}},
+                  {'Action',17,{'Button',18,false}},
+                  {'Action',19,{'Button',20,true}},
+                  {'Action',21,{'Button',22,false}}]}}}}
+
+
+{'MegacoMessage',asn1_NOVALUE,
+  {'Message',1,
+    {ip4Address,
+      {'IP4Address',[125,125,125,111],55555}},
+  {transactions,
+    [{transactionReply,
+      {'TransactionReply',50007,asn1_NOVALUE,
+       {actionReplies,
+        [{'ActionReply',0,asn1_NOVALUE,asn1_NOVALUE,
+          [{auditValueReply,{auditResult,{'AuditResult',
+            {'TerminationID',[],[255,255,255]},
+             [{mediaDescriptor,
+               {'MediaDescriptor',asn1_NOVALUE,
+                {multiStream,
+                 [{'StreamDescriptor',1,
+                   {'StreamParms',
+                    {'LocalControlDescriptor',
+                     sendRecv,
+                     asn1_NOVALUE,
+                     asn1_NOVALUE,
+                     [{'PropertyParm',
+                       [0,11,0,7],
+                       [[52,48]],
+                       asn1_NOVALUE}]},
+                    {'LocalRemoteDescriptor',
+                     [[{'PropertyParm',
+                        [0,0,176,1],
+                        [[48]],
+                        asn1_NOVALUE},
+                       {'PropertyParm',
+                         [0,0,176,8],
+                         [[73,78,32,73,80,52,32,49,50,53,46,49,
+                           50,53,46,49,50,53,46,49,49,49]],
+                         asn1_NOVALUE},
+                       {'PropertyParm',
+                         [0,0,176,15],
+                         [[97,117,100,105,111,32,49,49,49,49,32,
+                           82,84,80,47,65,86,80,32,32,52]],
+                         asn1_NOVALUE},
+                       {'PropertyParm',
+                         [0,0,176,12],
+                         [[112,116,105,109,101,58,51,48]],
+                         asn1_NOVALUE}]]},
+                    {'LocalRemoteDescriptor',
+                     [[{'PropertyParm',
+                         [0,0,176,1],
+                         [[48]],
+                         asn1_NOVALUE},
+                       {'PropertyParm',
+                         [0,0,176,8],
+                         [[73,78,32,73,80,52,32,49,50,52,46,49,50,
+                           52,46,49,50,52,46,50,50,50]],
+                         asn1_NOVALUE},
+                       {'PropertyParm',
+                         [0,0,176,15],
+                         [[97,117,100,105,111,32,50,50,50,50,32,82,
+                           84,80,47,65,86,80,32,32,52]],
+                         asn1_NOVALUE},
+                       {'PropertyParm',
+                         [0,0,176,12],
+                         [[112,116,105,109,101,58,51,48]],
+                         asn1_NOVALUE}]]}}}]}}},
+              {packagesDescriptor,
+               [{'PackagesItem',[0,11],1},
+                {'PackagesItem',[0,11],1}]},
+              {statisticsDescriptor,
+               [{'StatisticsParameter',[0,12,0,4],[[49,50,48,48]]},
+                {'StatisticsParameter',[0,11,0,2],[[54,50,51,48,48]]},
+                {'StatisticsParameter',[0,12,0,5],[[55,48,48]]},
+                {'StatisticsParameter',[0,11,0,3],[[52,53,49,48,48]]},
+                {'StatisticsParameter',[0,12,0,6],[[48,46,50]]},
+                {'StatisticsParameter',[0,12,0,7],[[50,48]]},
+                {'StatisticsParameter',[0,12,0,8],[[52,48]]}]}]}}}]}]}}}]}}}</pre></div>
+      <p>The size of the encoded values was 458 bytes for <span class="code">GUI</span> and 464
+        bytes for <span class="code">MEDIA-GATEWAY-CONTROL</span>.
+        </p>
+    
+
+    <h4>Results</h4>
+      
+      <p>The ASN.1 specifications in the test were compiled with options
+        <span class="code">ber_bin, optimize, driver</span> and <span class="code">asn1config</span>. Omitting
+        option <span class="code">driver</span> gives
+        higher values for <span class="code">decode</span> and <span class="code">decode_part</span>. These tests have
+	not been rerun using NIFs, but are expected to perform about 5% better
+	than the linked-in driver.
+        </p>
+      <p>The test program runs 10000 decodes on the value, resulting
+        in an output with the elapsed time in microseconds for the
+        total number of decodes.
+        </p>
+      <div class="doc-table-wrapper">
+<table class="doc-table">
+<tr>
+          <td align="left" valign="middle"><strong>Function</strong></td>
+          <td align="left" valign="middle">
+<strong>Time</strong> (microseconds)</td>
+          <td align="left" valign="middle"><strong>Decode Type</strong></td>
+          <td align="left" valign="middle"><strong>ASN.1 Specification</strong></td>
+          <td align="left" valign="middle"><strong>% of Time versus Complete Decode</strong></td>
+        </tr>
+<tr>
+          <td align="left" valign="middle"><span class="code">decode_MegacoMessage_selective/1</span></td>
+          <td align="left" valign="middle"><span class="code">374045</span></td>
+          <td align="left" valign="middle"><span class="code">Selective</span></td>
+          <td align="left" valign="middle"><span class="code">MEDIA-GATEWAY-CONTROL</span></td>
+          <td align="left" valign="middle"><strong>8.3</strong></td>
+        </tr>
+<tr>
+          <td align="left" valign="middle"><span class="code">decode_MegacoMessage_exclusive/1</span></td>
+          <td align="left" valign="middle"><span class="code">621107</span></td>
+          <td align="left" valign="middle"><span class="code">Exclusive</span></td>
+          <td align="left" valign="middle"><span class="code">MEDIA-GATEWAY-CONTROL</span></td>
+          <td align="left" valign="middle"><strong>13.8</strong></td>
+        </tr>
+<tr>
+          <td align="left" valign="middle"><span class="code">decode/2</span></td>
+          <td align="left" valign="middle"><span class="code">4507457</span></td>
+          <td align="left" valign="middle"><span class="code">Complete</span></td>
+          <td align="left" valign="middle"><span class="code">MEDIA-GATEWAY-CONTROL</span></td>
+          <td align="left" valign="middle"><strong>100</strong></td>
+        </tr>
+<tr>
+          <td align="left" valign="middle"><span class="code">selected_decode_Window1/1</span></td>
+          <td align="left" valign="middle"><span class="code">449585</span></td>
+          <td align="left" valign="middle"><span class="code">Selective</span></td>
+          <td align="left" valign="middle"><span class="code">GUI</span></td>
+          <td align="left" valign="middle"><strong>7.6</strong></td>
+        </tr>
+<tr>
+          <td align="left" valign="middle"><span class="code">selected_decode_Window2/1</span></td>
+          <td align="left" valign="middle"><span class="code">890666</span></td>
+          <td align="left" valign="middle"><span class="code">Selective</span></td>
+          <td align="left" valign="middle"><span class="code">GUI</span></td>
+          <td align="left" valign="middle"><strong>15.1</strong></td>
+        </tr>
+<tr>
+          <td align="left" valign="middle"><span class="code">decode_Window_status_exclusive/1</span></td>
+          <td align="left" valign="middle"><span class="code">1251878</span></td>
+          <td align="left" valign="middle"><span class="code">Exclusive</span></td>
+          <td align="left" valign="middle"><span class="code">GUI</span></td>
+          <td align="left" valign="middle"><strong>21.3</strong></td>
+        </tr>
+<tr>
+          <td align="left" valign="middle"><span class="code">decode/2</span></td>
+          <td align="left" valign="middle"><span class="code">5889197</span></td>
+          <td align="left" valign="middle"><span class="code">Complete</span></td>
+          <td align="left" valign="middle"><span class="code">GUI</span></td>
+          <td align="left" valign="middle"><strong>100</strong></td>
+        </tr>
+</table>
+<p class="doc-table-caption">Table
+        4.1:
+         
+        Results of Complete, Exclusive, and Selective Decode</p>
+</div>
+      <p>It is also of interest to know the relation is between
+        a complete decode, an exclusive decode followed by
+        <span class="code">decode_part</span> of the excluded parts, and a selective decode
+        followed by a complete decode. Some situations can be compared to
+        this simulation, for example, inspect a subvalue and later inspect
+        the entire value. The following table shows figures from this
+        test. The number of loops and the time unit are the same as in the
+        previous test.
+        </p>
+      <div class="doc-table-wrapper">
+<table class="doc-table">
+<tr>
+          <td align="left" valign="middle"><strong>Actions</strong></td>
+          <td align="left" valign="middle">
+<strong>Function</strong>    </td>
+          <td align="left" valign="middle">
+<strong>Time</strong> (microseconds)</td>
+          <td align="left" valign="middle"><strong>ASN.1 Specification</strong></td>
+          <td align="left" valign="middle"><strong>% of Time vs. Complete Decode</strong></td>
+        </tr>
+<tr>
+          <td align="left" valign="middle"><span class="code">Complete</span></td>
+          <td align="left" valign="middle"><span class="code">decode/2</span></td>
+          <td align="left" valign="middle"><span class="code">4507457</span></td>
+          <td align="left" valign="middle"><span class="code">MEDIA-GATEWAY-CONTROL</span></td>
+          <td align="left" valign="middle"><strong>100</strong></td>
+        </tr>
+<tr>
+          <td align="left" valign="middle"><span class="code">Selective and Complete</span></td>
+          <td align="left" valign="middle"><span class="code">decode_­MegacoMessage_­selective/1</span></td>
+          <td align="left" valign="middle"><span class="code">4881502</span></td>
+          <td align="left" valign="middle"><span class="code">MEDIA-GATEWAY-CONTROL</span></td>
+          <td align="left" valign="middle"><strong>108.3</strong></td>
+        </tr>
+<tr>
+          <td align="left" valign="middle"><span class="code">Exclusive and decode_part</span></td>
+          <td align="left" valign="middle"><span class="code">decode_­MegacoMessage_­exclusive/1</span></td>
+          <td align="left" valign="middle"><span class="code">5481034</span></td>
+          <td align="left" valign="middle"><span class="code">MEDIA-GATEWAY-CONTROL</span></td>
+          <td align="left" valign="middle"><strong>112.3</strong></td>
+        </tr>
+<tr>
+          <td align="left" valign="middle"><span class="code">Complete</span></td>
+          <td align="left" valign="middle"><span class="code">decode/2</span></td>
+          <td align="left" valign="middle"><span class="code">5889197</span></td>
+          <td align="left" valign="middle"><span class="code">GUI</span></td>
+          <td align="left" valign="middle"><strong>100</strong></td>
+        </tr>
+<tr>
+          <td align="left" valign="middle"><span class="code">Selective and Complete</span></td>
+          <td align="left" valign="middle"><span class="code">selected_­decode_­Window1/1</span></td>
+          <td align="left" valign="middle"><span class="code">6337636</span></td>
+          <td align="left" valign="middle"><span class="code">GUI</span></td>
+          <td align="left" valign="middle"><strong>107.6</strong></td>
+        </tr>
+<tr>
+          <td align="left" valign="middle"><span class="code">Selective and Complete</span></td>
+          <td align="left" valign="middle"><span class="code">selected_­decode_­Window2/1</span></td>
+          <td align="left" valign="middle"><span class="code">6795319</span></td>
+          <td align="left" valign="middle"><span class="code">GUI</span></td>
+          <td align="left" valign="middle"><strong>115.4</strong></td>
+        </tr>
+<tr>
+          <td align="left" valign="middle"><span class="code">Exclusive and decode_part</span></td>
+          <td align="left" valign="middle"><span class="code">decode_­Window_­status_­exclusive/1</span></td>
+          <td align="left" valign="middle"><span class="code">6249200</span></td>
+          <td align="left" valign="middle"><span class="code">GUI</span></td>
+          <td align="left" valign="middle"><strong>106.1</strong></td>
+        </tr>
+</table>
+<p class="doc-table-caption">Table
+        4.2:
+         
+        Results of Complete, Exclusive + decode_part, and Selective + complete decodes</p>
+</div>
+      <p>Other ASN.1 types and values can differ much from these
+        figures. It is therefore important that you, in every case where
+        you intend to use either of these decodes, perform some tests
+        that show if you will benefit your purpose.
+        </p>
+    
+
+    <h4>Final Remarks</h4>
+      
+      <ul>
+      <li>The gain of using selective and exclusive decode instead of a
+        complete decode is greater the bigger the value and the
+        less deep in the structure you have to decode.</li>
+      <li>Use selective decode instead of exclusive decode if you are
+        interested in only a single subvalue.</li>
+      <li>Exclusive decode followed by
+        <span class="code">decode_part</span> decodes is attractive if the parts are sent
+        to different servers for decoding, or if you in some cases are not
+        interested in all parts.</li>
+      <li>The fastest selective decode is when the decoded type is a
+        primitive type and not so deep in the structure of the top
+        type. <span class="code">selected_decode_Window2</span> decodes a high constructed
+        value, which explains why this operation is relatively slow.</li>
+      <li>It can vary from case to case which combination of
+        selective/complete decode or exclusive/part decode is the fastest.</li>
+      </ul>
+    
+  
+</div>
+<div class="footer">
+<hr>
+<p>Copyright © 1997-2018 Ericsson AB. All Rights Reserved.</p>
+</div>
+</div>
+</div>
+<script type="text/javascript">window.__otpTopDocDir = '../../js/';</script><script type="text/javascript" src="../../js/highlight.js"></script>
+</body>
+</html>

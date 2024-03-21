@@ -1,0 +1,1522 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.31.1">
+    <meta name="project" content="kernel v9.3">
+
+
+    <title>inet_res — kernel v9.3</title>
+    <link rel="stylesheet" href="dist/html-erlang-YUARVD4J.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-43PMFBC7.js"></script>
+    <script src="dist/sidebar_items-D60EFF5E.js"></script>
+
+      <script src="docs_config.js"></script>
+
+    <script async src="dist/html-L4O5OK2K.js"></script>
+
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body data-type="modules" class="page-module">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="main">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<div class="background-layer"></div>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="kernel" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+kernel
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v9.3
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+  <div class="content-outer">
+    <div id="content" class="content-inner">
+      <div class="top-search">
+        <div class="search-settings">
+          <form class="search-bar" action="search.html">
+            <label class="search-label">
+              <span class="sr-only">Search documentation of kernel</span>
+              <input name="q" type="text" class="search-input" placeholder="Search Documentation (press /)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            </label>
+            <button type="submit" class="search-button" aria-label="Submit Search">
+              <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+            </button>
+            <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+              <i class="ri-close-line ri-lg" title="Cancel search"></i>
+            </button>
+          </form>
+          <div class="autocomplete">
+          </div>
+          <button class="icon-settings display-settings">
+            <i class="ri-settings-3-line"></i>
+            <span class="sr-only">Settings</span>
+          </button>
+        </div>
+
+      </div>
+
+<h1>
+
+    <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/inet_res.erl#L22" title="View Source" class="icon-action" rel="help">
+      <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+      <span class="sr-only">View Source</span>
+    </a>
+
+  <span translate="no">inet_res</span> 
+  <small class="app-vsn" translate="no">(kernel v9.3)</small>
+
+</h1>
+
+
+  <section id="moduledoc">
+<p>A rudimentary DNS client.</p><p>This module performs DNS name resolving to recursive name servers.</p><p>See also <a href="../../apps/erts/inet_cfg.html">ERTS User's Guide: Inet Configuration</a> for more
+information about how to configure an Erlang runtime system for IP
+communication, and how to enable this DNS client by defining <code class="inline">'dns'</code> as a lookup
+method. The DNS client then acts as a backend for the resolving functions in
+<a href="inet.html"><code class="inline">inet</code></a>.</p><p>This DNS client can resolve DNS records even if it is not used for normal name
+resolving in the node.</p><p>This is not a full-fledged resolver, only a DNS client that relies on asking
+trusted recursive name servers.</p><h2 id="module-name-resolving" class="section-heading">
+  <a href="#module-name-resolving" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Name Resolving</span>
+</h2>
+<p>UDP queries are used unless resolver option <code class="inline">usevc</code> is <code class="inline">true</code>, which forces TCP
+queries. If the query is too large for UDP, TCP is used instead. For regular DNS
+queries, 512 bytes is the size limit.</p><p>When EDNS is enabled (resolver option <code class="inline">edns</code> is set to the EDNS version (that
+is, <code class="inline">0</code> instead of <code class="inline">false</code>), resolver option <code class="inline">udp_payload_size</code> sets the limit.
+If a name server replies with the TC bit set (truncation), indicating that the
+answer is incomplete, the query is retried to that name server using TCP.
+Resolver option <code class="inline">udp_payload_size</code> also sets the advertised size for the maximum
+allowed reply size, if EDNS is enabled, otherwise the name server uses the limit
+512 bytes. If the reply is larger, it gets truncated, forcing a TCP requery.</p><p>For UDP queries, resolver options <code class="inline">timeout</code> and <code class="inline">retry</code> control retransmission.
+Each name server in the <code class="inline">nameservers</code> list is tried with a time-out of
+<code class="inline">timeout</code>/<code class="inline">retry</code>. Then all name servers are tried again, doubling the time-out,
+for a total of <code class="inline">retry</code> times.</p><p><a href="" id="servfail_retry_timeout"></a></p><p>But before all name servers are tried again, there is a (user configurable)
+timeout, <code class="inline">servfail_retry_timeout</code>. The point of this is to prevent the new query
+to be handled by a server's servfail cache (a client that is too eager will
+actually only get what is in the servfail cache). If there is too little time
+left of the resolver call's timeout to do a retry, the resolver call may return
+before the call's timeout has expired.</p><p>For queries not using the <code class="inline">search</code> list, if the query to all <code class="inline">nameservers</code>
+results in <code class="inline">{error,nxdomain}</code> or an empty answer, the same query is tried for
+<code class="inline">alt_nameservers</code>.</p><h2 id="module-resolver-types" class="section-heading">
+  <a href="#module-resolver-types" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Resolver Types</span>
+</h2>
+<p>The following data types concern the resolver:</p><h2 id="module-dns-types" class="section-heading">
+  <a href="#module-dns-types" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">DNS Types</span>
+</h2>
+<p><a href="" id="dns_types"></a> The following data types concern the DNS client:</p><h2 id="module-example" class="section-heading">
+  <a href="#module-example" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Example</span>
+</h2>
+<p>This access functions example shows how <a href="#lookup/3"><code class="inline">lookup/3</code></a> can be implemented using
+<a href="#resolve/3"><code class="inline">resolve/3</code></a> from outside the module:</p><pre><code class="makeup erlang" translate="no"><span class="nf">example_lookup</span><span class="p" data-group-id="7550229872-1">(</span><span class="n">Name</span><span class="p">,</span><span class="w"> </span><span class="n">Class</span><span class="p">,</span><span class="w"> </span><span class="n">Type</span><span class="p" data-group-id="7550229872-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="nc">inet_res</span><span class="p">:</span><span class="nf">resolve</span><span class="p" data-group-id="7550229872-2">(</span><span class="n">Name</span><span class="p">,</span><span class="w"> </span><span class="n">Class</span><span class="p">,</span><span class="w"> </span><span class="n">Type</span><span class="p" data-group-id="7550229872-2">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+        </span><span class="p" data-group-id="7550229872-3">{</span><span class="ss">ok</span><span class="p">,</span><span class="n">Msg</span><span class="p" data-group-id="7550229872-3">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="p" data-group-id="7550229872-4">[</span><span class="nc">inet_dns</span><span class="p">:</span><span class="nf">rr</span><span class="p" data-group-id="7550229872-5">(</span><span class="n">RR</span><span class="p">,</span><span class="w"> </span><span class="ss">data</span><span class="p" data-group-id="7550229872-5">)</span><span class="w">
+             </span><span class="p">||</span><span class="w"> </span><span class="n">RR</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="nc">inet_dns</span><span class="p">:</span><span class="nf">msg</span><span class="p" data-group-id="7550229872-6">(</span><span class="n">Msg</span><span class="p">,</span><span class="w"> </span><span class="ss">anlist</span><span class="p" data-group-id="7550229872-6">)</span><span class="p">,</span><span class="w">
+                 </span><span class="nc">inet_dns</span><span class="p">:</span><span class="nf">rr</span><span class="p" data-group-id="7550229872-7">(</span><span class="n">RR</span><span class="p">,</span><span class="w"> </span><span class="ss">type</span><span class="p" data-group-id="7550229872-7">)</span><span class="w"> </span><span class="o">=:=</span><span class="w"> </span><span class="n">Type</span><span class="p">,</span><span class="w">
+                 </span><span class="nc">inet_dns</span><span class="p">:</span><span class="nf">rr</span><span class="p" data-group-id="7550229872-8">(</span><span class="n">RR</span><span class="p">,</span><span class="w"> </span><span class="ss">class</span><span class="p" data-group-id="7550229872-8">)</span><span class="w"> </span><span class="o">=:=</span><span class="w"> </span><span class="n">Class</span><span class="p" data-group-id="7550229872-4">]</span><span class="p">;</span><span class="w">
+        </span><span class="p" data-group-id="7550229872-9">{</span><span class="ss">error</span><span class="p">,</span><span class="p">_</span><span class="p" data-group-id="7550229872-9">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="p" data-group-id="7550229872-10">[</span><span class="p" data-group-id="7550229872-10">]</span><span class="w">
+     </span><span class="k">end</span><span class="p">.</span></code></pre>
+  </section>
+
+
+  <section id="summary" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#summary">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Summary</span>
+    </h1>
+<div class="summary-types summary">
+  <h2>
+    <a href="#types">Types</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:dns_class/0" translate="no">dns_class()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:dns_data/0" translate="no">dns_data()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p><code class="inline">Regexp</code> is a string with characters encoded in the UTF-8 coding standard.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:dns_msg/0" translate="no">dns_msg()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>This is the start of a hierarchy of opaque data structures that can be examined
+with access functions in <code class="inline">inet_dns</code>, which return lists of <code class="inline">{Field,Value}</code>
+tuples. The arity 2 functions only return the value for a specified field.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:dns_name/0" translate="no">dns_name()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>A string with no adjacent dots.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:dns_rr_type/0" translate="no">dns_rr_type()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:hostent/0" translate="no">hostent()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:nameserver/0" translate="no">nameserver()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:res_error/0" translate="no">res_error()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:res_option/0" translate="no">res_option()</a>
+
+      </div>
+
+    </div>
+
+</div>
+<div class="summary-legacy-functions summary">
+  <h2>
+    <a href="#legacy-functions">Legacy Functions</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#nnslookup/4" translate="no">nnslookup(Name, Class, Type, Nameservers)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#nnslookup/5"><code class="inline">nnslookup/5</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#nnslookup/5" translate="no">nnslookup(Name, Class, Type, Nameservers, Timeout)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Resolves a DNS record of the specified type and class for the specified name.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#nslookup/3" translate="no">nslookup(Name, Class, Type)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#nslookup/4"><code class="inline">nslookup/4</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#nslookup/4" translate="no">nslookup/4</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Resolves a DNS record of the specified type and class for the specified name.</p></div>
+
+    </div>
+
+</div>
+<div class="summary-functions summary">
+  <h2>
+    <a href="#functions">Functions</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#getbyname/2" translate="no">getbyname(Name, Type)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#getbyname/3"><code class="inline">getbyname/3</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#getbyname/3" translate="no">getbyname(Name, Type, Timeout)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Resolves a DNS record of the specified <code class="inline">Type</code> for the specified host, of class
+<code class="inline">in</code>. Returns, on success, when resolving a <code class="inline">Type = a|aaaa</code> DNS record, a
+<code class="inline">#hostent{}</code> record with <code class="inline">#hostent.h_addrtype = inet|inet6</code>, respectively; see
+<a href="inet.html#t:hostent/0"><code class="inline">inet:hostent/0</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#gethostbyaddr/1" translate="no">gethostbyaddr(Address)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#gethostbyaddr/2"><code class="inline">gethostbyaddr/2</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#gethostbyaddr/2" translate="no">gethostbyaddr(Address, Timeout)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Backend functions used by <a href="inet.html#gethostbyaddr/1"><code class="inline">inet:gethostbyaddr/1</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#gethostbyname/1" translate="no">gethostbyname(Name)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#gethostbyname/3"><code class="inline">gethostbyname/3</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#gethostbyname/2" translate="no">gethostbyname(Name, Family)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#gethostbyname/3"><code class="inline">gethostbyname/3</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#gethostbyname/3" translate="no">gethostbyname(Name, Family, Timeout)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Backend functions used by <a href="inet.html#gethostbyname/1"><code class="inline">inet:gethostbyname/1,2</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#lookup/3" translate="no">lookup(Name, Class, Type)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#lookup/5"><code class="inline">lookup/5</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#lookup/4" translate="no">lookup(Name, Class, Type, Opts)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#lookup/5"><code class="inline">lookup/5</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#lookup/5" translate="no">lookup(Name, Class, Type, Opts, Timeout)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Resolves the DNS data for the record of the specified type and class for the
+specified name. On success, filters out the answer records with the correct
+<code class="inline">Class</code> and <code class="inline">Type</code>, and returns a list of their data fields. So, a lookup for
+type <code class="inline">any</code> gives an empty answer, as the answer records have specific types that
+are not <code class="inline">any</code>. An empty answer or a failed lookup returns an empty list.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#resolve/3" translate="no">resolve(Name, Class, Type)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#resolve/5"><code class="inline">resolve/5</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#resolve/4" translate="no">resolve(Name, Class, Type, Opts)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#resolve/5"><code class="inline">resolve/5</code></a></p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#resolve/5" translate="no">resolve(Name, Class, Type, Opts, Timeout)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Resolves a DNS record of the specified type and class for the specified name.
+The returned <a href="#t:dns_msg/0"><code class="inline">dns_msg/0</code></a> can be examined using access functions in <code class="inline">inet_db</code>,
+as described in section in <a href="inet_res.html#dns_types">DNS Types</a>.</p></div>
+
+    </div>
+
+</div>
+
+  </section>
+
+
+  <section id="types" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#types">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Types</span>
+    </h1>
+    <div class="types-list">
+<section class="detail" id="t:dns_class/0">
+
+  <div class="detail-header">
+    <a href="#t:dns_class/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">dns_class()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/inet_res.erl#L156" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> dns_class() :: in | chaos | hs | any.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:dns_data/0">
+
+  <div class="detail-header">
+    <a href="#t:dns_data/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">dns_data()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/inet_res.erl#L229" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> dns_data() ::
+    <a href="#t:dns_name/0">dns_name</a>() |
+    <a href="inet.html#t:ip4_address/0">inet:ip4_address</a>() |
+    <a href="inet.html#t:ip6_address/0">inet:ip6_address</a>() |
+    {MName :: <a href="#t:dns_name/0">dns_name</a>(),
+     RName :: <a href="#t:dns_name/0">dns_name</a>(),
+     Serial :: <a href="../../apps/erts/erlang.html#t:integer/0">integer</a>(),
+     Refresh :: <a href="../../apps/erts/erlang.html#t:integer/0">integer</a>(),
+     Retry :: <a href="../../apps/erts/erlang.html#t:integer/0">integer</a>(),
+     Expiry :: <a href="../../apps/erts/erlang.html#t:integer/0">integer</a>(),
+     Minimum :: <a href="../../apps/erts/erlang.html#t:integer/0">integer</a>()} |
+    {<a href="inet.html#t:ip4_address/0">inet:ip4_address</a>(), Proto :: <a href="../../apps/erts/erlang.html#t:integer/0">integer</a>(), BitMap :: <a href="../../apps/erts/erlang.html#t:binary/0">binary</a>()} |
+    {CpuString :: <a href="../../apps/erts/erlang.html#t:string/0">string</a>(), OsString :: <a href="../../apps/erts/erlang.html#t:string/0">string</a>()} |
+    {RM :: <a href="#t:dns_name/0">dns_name</a>(), EM :: <a href="#t:dns_name/0">dns_name</a>()} |
+    {Prio :: <a href="../../apps/erts/erlang.html#t:integer/0">integer</a>(), <a href="#t:dns_name/0">dns_name</a>()} |
+    {Prio :: <a href="../../apps/erts/erlang.html#t:integer/0">integer</a>(), Weight :: <a href="../../apps/erts/erlang.html#t:integer/0">integer</a>(), Port :: <a href="../../apps/erts/erlang.html#t:integer/0">integer</a>(), <a href="#t:dns_name/0">dns_name</a>()} |
+    {Order :: <a href="../../apps/erts/erlang.html#t:integer/0">integer</a>(),
+     Preference :: <a href="../../apps/erts/erlang.html#t:integer/0">integer</a>(),
+     Flags :: <a href="../../apps/erts/erlang.html#t:string/0">string</a>(),
+     Services :: <a href="../../apps/erts/erlang.html#t:string/0">string</a>(),
+     Regexp :: <a href="../../apps/erts/erlang.html#t:string/0">string</a>(),
+     <a href="#t:dns_name/0">dns_name</a>()} |
+    [<a href="../../apps/erts/erlang.html#t:string/0">string</a>()] |
+    <a href="../../apps/erts/erlang.html#t:binary/0">binary</a>().</pre>
+
+      </div>
+
+<p><code class="inline">Regexp</code> is a string with characters encoded in the UTF-8 coding standard.</p>
+  </section>
+</section>
+<section class="detail" id="t:dns_msg/0">
+
+  <div class="detail-header">
+    <a href="#t:dns_msg/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">dns_msg()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/inet_res.erl#L226" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> dns_msg() :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>().</pre>
+
+      </div>
+
+<p>This is the start of a hierarchy of opaque data structures that can be examined
+with access functions in <code class="inline">inet_dns</code>, which return lists of <code class="inline">{Field,Value}</code>
+tuples. The arity 2 functions only return the value for a specified field.</p><pre><code class="makeup erlang" translate="no"><span class="nf">dns_msg</span><span class="p" data-group-id="7290787427-1">(</span><span class="p" data-group-id="7290787427-1">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DnsMsg</span><span class="w">
+    </span><span class="nc">inet_dns</span><span class="p">:</span><span class="nf">msg</span><span class="p" data-group-id="7290787427-2">(</span><span class="n">DnsMsg</span><span class="p" data-group-id="7290787427-2">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+        </span><span class="p" data-group-id="7290787427-3">[</span><span class="w"> </span><span class="p" data-group-id="7290787427-4">{</span><span class="ss">header</span><span class="p">,</span><span class="w"> </span><span class="nf">dns_header</span><span class="p" data-group-id="7290787427-5">(</span><span class="p" data-group-id="7290787427-5">)</span><span class="p" data-group-id="7290787427-4">}</span><span class="w">
+        </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="7290787427-6">{</span><span class="ss">qdlist</span><span class="p">,</span><span class="w"> </span><span class="nf">dns_query</span><span class="p" data-group-id="7290787427-7">(</span><span class="p" data-group-id="7290787427-7">)</span><span class="p" data-group-id="7290787427-6">}</span><span class="w">
+        </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="7290787427-8">{</span><span class="ss">anlist</span><span class="p">,</span><span class="w"> </span><span class="nf">dns_rr</span><span class="p" data-group-id="7290787427-9">(</span><span class="p" data-group-id="7290787427-9">)</span><span class="p" data-group-id="7290787427-8">}</span><span class="w">
+        </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="7290787427-10">{</span><span class="ss">nslist</span><span class="p">,</span><span class="w"> </span><span class="nf">dns_rr</span><span class="p" data-group-id="7290787427-11">(</span><span class="p" data-group-id="7290787427-11">)</span><span class="p" data-group-id="7290787427-10">}</span><span class="w">
+        </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="7290787427-12">{</span><span class="ss">arlist</span><span class="p">,</span><span class="w"> </span><span class="nf">dns_rr</span><span class="p" data-group-id="7290787427-13">(</span><span class="p" data-group-id="7290787427-13">)</span><span class="p" data-group-id="7290787427-12">}</span><span class="w"> </span><span class="p" data-group-id="7290787427-3">]</span><span class="w">
+    </span><span class="nc">inet_dns</span><span class="p">:</span><span class="nf">msg</span><span class="p" data-group-id="7290787427-14">(</span><span class="n">DnsMsg</span><span class="p">,</span><span class="w"> </span><span class="ss">header</span><span class="p" data-group-id="7290787427-14">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nf">dns_header</span><span class="p" data-group-id="7290787427-15">(</span><span class="p" data-group-id="7290787427-15">)</span><span class="w"> </span><span class="c1">% for example</span><span class="w">
+    </span><span class="nc">inet_dns</span><span class="p">:</span><span class="nf">msg</span><span class="p" data-group-id="7290787427-16">(</span><span class="n">DnsMsg</span><span class="p">,</span><span class="w"> </span><span class="n">Field</span><span class="p" data-group-id="7290787427-16">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="n">Value</span><span class="w">
+
+</span><span class="nf">dns_header</span><span class="p" data-group-id="7290787427-17">(</span><span class="p" data-group-id="7290787427-17">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DnsHeader</span><span class="w">
+    </span><span class="nc">inet_dns</span><span class="p">:</span><span class="nf">header</span><span class="p" data-group-id="7290787427-18">(</span><span class="n">DnsHeader</span><span class="p" data-group-id="7290787427-18">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+        </span><span class="p" data-group-id="7290787427-19">[</span><span class="w"> </span><span class="p" data-group-id="7290787427-20">{</span><span class="ss">id</span><span class="p">,</span><span class="w"> </span><span class="nf">integer</span><span class="p" data-group-id="7290787427-21">(</span><span class="p" data-group-id="7290787427-21">)</span><span class="p" data-group-id="7290787427-20">}</span><span class="w">
+        </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="7290787427-22">{</span><span class="ss">qr</span><span class="p">,</span><span class="w"> </span><span class="nf">boolean</span><span class="p" data-group-id="7290787427-23">(</span><span class="p" data-group-id="7290787427-23">)</span><span class="p" data-group-id="7290787427-22">}</span><span class="w">
+        </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="7290787427-24">{</span><span class="ss">opcode</span><span class="p">,</span><span class="w"> </span><span class="k">query</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="ss">iquery</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="ss">status</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="nf">integer</span><span class="p" data-group-id="7290787427-25">(</span><span class="p" data-group-id="7290787427-25">)</span><span class="p" data-group-id="7290787427-24">}</span><span class="w">
+        </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="7290787427-26">{</span><span class="ss">aa</span><span class="p">,</span><span class="w"> </span><span class="nf">boolean</span><span class="p" data-group-id="7290787427-27">(</span><span class="p" data-group-id="7290787427-27">)</span><span class="p" data-group-id="7290787427-26">}</span><span class="w">
+        </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="7290787427-28">{</span><span class="ss">tc</span><span class="p">,</span><span class="w"> </span><span class="nf">boolean</span><span class="p" data-group-id="7290787427-29">(</span><span class="p" data-group-id="7290787427-29">)</span><span class="p" data-group-id="7290787427-28">}</span><span class="w">
+        </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="7290787427-30">{</span><span class="ss">rd</span><span class="p">,</span><span class="w"> </span><span class="nf">boolean</span><span class="p" data-group-id="7290787427-31">(</span><span class="p" data-group-id="7290787427-31">)</span><span class="p" data-group-id="7290787427-30">}</span><span class="w">
+        </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="7290787427-32">{</span><span class="ss">ra</span><span class="p">,</span><span class="w"> </span><span class="nf">boolean</span><span class="p" data-group-id="7290787427-33">(</span><span class="p" data-group-id="7290787427-33">)</span><span class="p" data-group-id="7290787427-32">}</span><span class="w">
+        </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="7290787427-34">{</span><span class="ss">pr</span><span class="p">,</span><span class="w"> </span><span class="nf">boolean</span><span class="p" data-group-id="7290787427-35">(</span><span class="p" data-group-id="7290787427-35">)</span><span class="p" data-group-id="7290787427-34">}</span><span class="w">
+        </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="7290787427-36">{</span><span class="ss">rcode</span><span class="p">,</span><span class="w"> </span><span class="nf">integer</span><span class="p" data-group-id="7290787427-37">(</span><span class="mi">0</span><span class="p">.</span><span class="p">.</span><span class="mi">16</span><span class="p" data-group-id="7290787427-37">)</span><span class="p" data-group-id="7290787427-36">}</span><span class="w"> </span><span class="p" data-group-id="7290787427-19">]</span><span class="w">
+    </span><span class="nc">inet_dns</span><span class="p">:</span><span class="nf">header</span><span class="p" data-group-id="7290787427-38">(</span><span class="n">DnsHeader</span><span class="p">,</span><span class="w"> </span><span class="n">Field</span><span class="p" data-group-id="7290787427-38">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="n">Value</span><span class="w">
+
+</span><span class="nf">query_type</span><span class="p" data-group-id="7290787427-39">(</span><span class="p" data-group-id="7290787427-39">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ss">axfr</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="ss">mailb</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="ss">maila</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="ss">any</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="nf">dns_rr_type</span><span class="p" data-group-id="7290787427-40">(</span><span class="p" data-group-id="7290787427-40">)</span><span class="w">
+
+</span><span class="nf">dns_query</span><span class="p" data-group-id="7290787427-41">(</span><span class="p" data-group-id="7290787427-41">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DnsQuery</span><span class="w">
+    </span><span class="nc">inet_dns</span><span class="p">:</span><span class="nf">dns_query</span><span class="p" data-group-id="7290787427-42">(</span><span class="n">DnsQuery</span><span class="p" data-group-id="7290787427-42">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+        </span><span class="p" data-group-id="7290787427-43">[</span><span class="w"> </span><span class="p" data-group-id="7290787427-44">{</span><span class="ss">domain</span><span class="p">,</span><span class="w"> </span><span class="nf">dns_name</span><span class="p" data-group-id="7290787427-45">(</span><span class="p" data-group-id="7290787427-45">)</span><span class="p" data-group-id="7290787427-44">}</span><span class="w">
+        </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="7290787427-46">{</span><span class="ss">type</span><span class="p">,</span><span class="w"> </span><span class="nf">query_type</span><span class="p" data-group-id="7290787427-47">(</span><span class="p" data-group-id="7290787427-47">)</span><span class="p" data-group-id="7290787427-46">}</span><span class="w">
+        </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="7290787427-48">{</span><span class="ss">class</span><span class="p">,</span><span class="w"> </span><span class="nf">dns_class</span><span class="p" data-group-id="7290787427-49">(</span><span class="p" data-group-id="7290787427-49">)</span><span class="p" data-group-id="7290787427-48">}</span><span class="w"> </span><span class="p" data-group-id="7290787427-43">]</span><span class="w">
+    </span><span class="nc">inet_dns</span><span class="p">:</span><span class="nf">dns_query</span><span class="p" data-group-id="7290787427-50">(</span><span class="n">DnsQuery</span><span class="p">,</span><span class="w"> </span><span class="n">Field</span><span class="p" data-group-id="7290787427-50">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="n">Value</span><span class="w">
+
+</span><span class="nf">dns_rr</span><span class="p" data-group-id="7290787427-51">(</span><span class="p" data-group-id="7290787427-51">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DnsRr</span><span class="w">
+    </span><span class="nc">inet_dns</span><span class="p">:</span><span class="nf">rr</span><span class="p" data-group-id="7290787427-52">(</span><span class="n">DnsRr</span><span class="p" data-group-id="7290787427-52">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="n">DnsRrFields</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="n">DnsRrOptFields</span><span class="w">
+    </span><span class="n">DnsRrFields</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="7290787427-53">[</span><span class="w"> </span><span class="p" data-group-id="7290787427-54">{</span><span class="ss">domain</span><span class="p">,</span><span class="w"> </span><span class="nf">dns_name</span><span class="p" data-group-id="7290787427-55">(</span><span class="p" data-group-id="7290787427-55">)</span><span class="p" data-group-id="7290787427-54">}</span><span class="w">
+                  </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="7290787427-56">{</span><span class="ss">type</span><span class="p">,</span><span class="w"> </span><span class="nf">dns_rr_type</span><span class="p" data-group-id="7290787427-57">(</span><span class="p" data-group-id="7290787427-57">)</span><span class="p" data-group-id="7290787427-56">}</span><span class="w">
+                  </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="7290787427-58">{</span><span class="ss">class</span><span class="p">,</span><span class="w"> </span><span class="nf">dns_class</span><span class="p" data-group-id="7290787427-59">(</span><span class="p" data-group-id="7290787427-59">)</span><span class="p" data-group-id="7290787427-58">}</span><span class="w">
+                  </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="7290787427-60">{</span><span class="ss">ttl</span><span class="p">,</span><span class="w"> </span><span class="nf">integer</span><span class="p" data-group-id="7290787427-61">(</span><span class="p" data-group-id="7290787427-61">)</span><span class="p" data-group-id="7290787427-60">}</span><span class="w">
+                  </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="7290787427-62">{</span><span class="ss">data</span><span class="p">,</span><span class="w"> </span><span class="nf">dns_data</span><span class="p" data-group-id="7290787427-63">(</span><span class="p" data-group-id="7290787427-63">)</span><span class="p" data-group-id="7290787427-62">}</span><span class="w"> </span><span class="p" data-group-id="7290787427-53">]</span><span class="w">
+    </span><span class="n">DnsRrOptFields</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="7290787427-64">[</span><span class="w"> </span><span class="p" data-group-id="7290787427-65">{</span><span class="ss">domain</span><span class="p">,</span><span class="w"> </span><span class="nf">dns_name</span><span class="p" data-group-id="7290787427-66">(</span><span class="p" data-group-id="7290787427-66">)</span><span class="p" data-group-id="7290787427-65">}</span><span class="w">
+                     </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="7290787427-67">{</span><span class="ss">type</span><span class="p">,</span><span class="w"> </span><span class="ss">opt</span><span class="p" data-group-id="7290787427-67">}</span><span class="w">
+                     </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="7290787427-68">{</span><span class="ss">udp_payload_size</span><span class="p">,</span><span class="w"> </span><span class="nf">integer</span><span class="p" data-group-id="7290787427-69">(</span><span class="p" data-group-id="7290787427-69">)</span><span class="p" data-group-id="7290787427-68">}</span><span class="w">
+                     </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="7290787427-70">{</span><span class="ss">ext_rcode</span><span class="p">,</span><span class="w"> </span><span class="nf">integer</span><span class="p" data-group-id="7290787427-71">(</span><span class="p" data-group-id="7290787427-71">)</span><span class="p" data-group-id="7290787427-70">}</span><span class="w">
+                     </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="7290787427-72">{</span><span class="ss">version</span><span class="p">,</span><span class="w"> </span><span class="nf">integer</span><span class="p" data-group-id="7290787427-73">(</span><span class="p" data-group-id="7290787427-73">)</span><span class="p" data-group-id="7290787427-72">}</span><span class="w">
+                     </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="7290787427-74">{</span><span class="ss">z</span><span class="p">,</span><span class="w"> </span><span class="nf">integer</span><span class="p" data-group-id="7290787427-75">(</span><span class="p" data-group-id="7290787427-75">)</span><span class="p" data-group-id="7290787427-74">}</span><span class="w">
+                     </span><span class="p">|</span><span class="w"> </span><span class="p" data-group-id="7290787427-76">{</span><span class="ss">data</span><span class="p">,</span><span class="w"> </span><span class="nf">dns_data</span><span class="p" data-group-id="7290787427-77">(</span><span class="p" data-group-id="7290787427-77">)</span><span class="p" data-group-id="7290787427-76">}</span><span class="w"> </span><span class="p" data-group-id="7290787427-64">]</span><span class="w">
+    </span><span class="nc">inet_dns</span><span class="p">:</span><span class="nf">rr</span><span class="p" data-group-id="7290787427-78">(</span><span class="n">DnsRr</span><span class="p">,</span><span class="w"> </span><span class="n">Field</span><span class="p" data-group-id="7290787427-78">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="n">Value</span></code></pre><p>There is an information function for the types above:</p><pre><code class="makeup erlang" translate="no"><span class="nc">inet_dns</span><span class="p">:</span><span class="nf">record_type</span><span class="p" data-group-id="5229984600-1">(</span><span class="nf">dns_msg</span><span class="p" data-group-id="5229984600-2">(</span><span class="p" data-group-id="5229984600-2">)</span><span class="p" data-group-id="5229984600-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="ss">msg</span><span class="p">;</span><span class="w">
+</span><span class="nc">inet_dns</span><span class="p">:</span><span class="nf">record_type</span><span class="p" data-group-id="5229984600-3">(</span><span class="nf">dns_header</span><span class="p" data-group-id="5229984600-4">(</span><span class="p" data-group-id="5229984600-4">)</span><span class="p" data-group-id="5229984600-3">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="ss">header</span><span class="p">;</span><span class="w">
+</span><span class="nc">inet_dns</span><span class="p">:</span><span class="nf">record_type</span><span class="p" data-group-id="5229984600-5">(</span><span class="nf">dns_query</span><span class="p" data-group-id="5229984600-6">(</span><span class="p" data-group-id="5229984600-6">)</span><span class="p" data-group-id="5229984600-5">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="ss">dns_query</span><span class="p">;</span><span class="w">
+</span><span class="nc">inet_dns</span><span class="p">:</span><span class="nf">record_type</span><span class="p" data-group-id="5229984600-7">(</span><span class="nf">dns_rr</span><span class="p" data-group-id="5229984600-8">(</span><span class="p" data-group-id="5229984600-8">)</span><span class="p" data-group-id="5229984600-7">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="ss">rr</span><span class="p">;</span><span class="w">
+</span><span class="nc">inet_dns</span><span class="p">:</span><span class="nf">record_type</span><span class="p" data-group-id="5229984600-9">(</span><span class="p">_</span><span class="p" data-group-id="5229984600-9">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="ss">undefined</span><span class="p">.</span></code></pre><p>So, <code class="inline">inet_dns:(inet_dns:record_type(X))(X)</code> converts any of these data
+structures into a <code class="inline">{Field,Value}</code> list.</p>
+  </section>
+</section>
+<section class="detail" id="t:dns_name/0">
+
+  <div class="detail-header">
+    <a href="#t:dns_name/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">dns_name()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/inet_res.erl#L150" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> dns_name() :: <a href="../../apps/erts/erlang.html#t:string/0">string</a>().</pre>
+
+      </div>
+
+<p>A string with no adjacent dots.</p>
+  </section>
+</section>
+<section class="detail" id="t:dns_rr_type/0">
+
+  <div class="detail-header">
+    <a href="#t:dns_rr_type/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">dns_rr_type()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/inet_res.erl#L152" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> dns_rr_type() ::
+    a | aaaa | caa | cname | gid | hinfo | ns | mb | md | mg | mf | minfo | mx | naptr | null |
+    ptr | soa | spf | srv | txt | uid | uinfo | unspec | uri | wks.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:hostent/0">
+
+  <div class="detail-header">
+    <a href="#t:hostent/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">hostent()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/inet_res.erl#L676" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> hostent() ::
+    {hostent,
+     H_name :: <a href="inet.html#t:hostname/0">inet:hostname</a>(),
+     H_aliases :: [<a href="inet.html#t:hostname/0">inet:hostname</a>()],
+     H_addrtype :: <a href="#t:dns_rr_type/0">dns_rr_type</a>(),
+     H_length :: <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(),
+     H_addr_list :: [<a href="#t:dns_data/0">dns_data</a>()]}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:nameserver/0">
+
+  <div class="detail-header">
+    <a href="#t:nameserver/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">nameserver()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/inet_res.erl#L144" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> nameserver() :: {<a href="inet.html#t:ip_address/0">inet:ip_address</a>(), Port :: 1..65535}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:res_error/0">
+
+  <div class="detail-header">
+    <a href="#t:res_error/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">res_error()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/inet_res.erl#L146" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> res_error() :: formerr | qfmterror | servfail | nxdomain | notimp | refused | badvers | timeout.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:res_option/0">
+
+  <div class="detail-header">
+    <a href="#t:res_option/0" class="detail-link" title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">res_option()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/inet_res.erl#L131" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> res_option() ::
+    {alt_nameservers, [<a href="#t:nameserver/0">nameserver</a>()]} |
+    {edns, 0 | false} |
+    {inet6, <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>()} |
+    {nameservers, [<a href="#t:nameserver/0">nameserver</a>()]} |
+    {recurse, <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>()} |
+    {retry, <a href="../../apps/erts/erlang.html#t:integer/0">integer</a>()} |
+    {timeout, <a href="../../apps/erts/erlang.html#t:integer/0">integer</a>()} |
+    {udp_payload_size, <a href="../../apps/erts/erlang.html#t:integer/0">integer</a>()} |
+    {dnssec_ok, <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>()} |
+    {usevc, <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>()} |
+    {nxdomain_reply, <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+
+    </div>
+  </section>
+
+  <section id="legacy-functions" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#legacy-functions">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Legacy Functions</span>
+    </h1>
+    <div class="legacy-functions-list">
+<section class="detail" id="nnslookup/4">
+
+  <div class="detail-header">
+    <a href="#nnslookup/4" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">nnslookup(Name, Class, Type, Nameservers)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/inet_res.erl#L440" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> nnslookup(Name, Class, Type, Nameservers) -> {ok, <a href="#t:dns_msg/0">dns_msg</a>()} | {error, Reason}
+             when
+                 Name :: <a href="#t:dns_name/0">dns_name</a>() | <a href="inet.html#t:ip_address/0">inet:ip_address</a>(),
+                 Class :: <a href="#t:dns_class/0">dns_class</a>(),
+                 Type :: <a href="#t:dns_rr_type/0">dns_rr_type</a>(),
+                 Nameservers :: [<a href="#t:nameserver/0">nameserver</a>()],
+                 Reason :: <a href="inet.html#t:posix/0">inet:posix</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#nnslookup/5"><code class="inline">nnslookup/5</code></a></p>
+  </section>
+</section>
+<section class="detail" id="nnslookup/5">
+
+  <div class="detail-header">
+    <a href="#nnslookup/5" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">nnslookup(Name, Class, Type, Nameservers, Timeout)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/inet_res.erl#L454" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> nnslookup(Name, Class, Type, Nameservers, Timeout) -> {ok, <a href="#t:dns_msg/0">dns_msg</a>()} | {error, Reason}
+             when
+                 Name :: <a href="#t:dns_name/0">dns_name</a>() | <a href="inet.html#t:ip_address/0">inet:ip_address</a>(),
+                 Class :: <a href="#t:dns_class/0">dns_class</a>(),
+                 Type :: <a href="#t:dns_rr_type/0">dns_rr_type</a>(),
+                 Timeout :: <a href="../../apps/erts/erlang.html#t:timeout/0">timeout</a>(),
+                 Nameservers :: [<a href="#t:nameserver/0">nameserver</a>()],
+                 Reason :: <a href="inet.html#t:posix/0">inet:posix</a>().</pre>
+
+      </div>
+
+<p>Resolves a DNS record of the specified type and class for the specified name.</p>
+  </section>
+</section>
+<section class="detail" id="nslookup/3">
+
+  <div class="detail-header">
+    <a href="#nslookup/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">nslookup(Name, Class, Type)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/inet_res.erl#L405" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> nslookup(Name, Class, Type) -> {ok, <a href="#t:dns_msg/0">dns_msg</a>()} | {error, Reason}
+            when
+                Name :: <a href="#t:dns_name/0">dns_name</a>() | <a href="inet.html#t:ip_address/0">inet:ip_address</a>(),
+                Class :: <a href="#t:dns_class/0">dns_class</a>(),
+                Type :: <a href="#t:dns_rr_type/0">dns_rr_type</a>(),
+                Reason :: <a href="inet.html#t:posix/0">inet:posix</a>() | <a href="#t:res_error/0">res_error</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#nslookup/4"><code class="inline">nslookup/4</code></a></p>
+  </section>
+</section>
+<section class="detail" id="nslookup/4">
+
+  <div class="detail-header">
+    <a href="#nslookup/4" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">nslookup/4</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/inet_res.erl#L425" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> nslookup(Name, Class, Type, Timeout) -> {ok, <a href="#t:dns_msg/0">dns_msg</a>()} | {error, Reason}
+            when
+                Name :: <a href="#t:dns_name/0">dns_name</a>() | <a href="inet.html#t:ip_address/0">inet:ip_address</a>(),
+                Class :: <a href="#t:dns_class/0">dns_class</a>(),
+                Type :: <a href="#t:dns_rr_type/0">dns_rr_type</a>(),
+                Timeout :: <a href="../../apps/erts/erlang.html#t:timeout/0">timeout</a>(),
+                Reason :: <a href="inet.html#t:posix/0">inet:posix</a>() | <a href="#t:res_error/0">res_error</a>();
+        (Name, Class, Type, Nameservers) -> {ok, <a href="#t:dns_msg/0">dns_msg</a>()} | {error, Reason}
+            when
+                Name :: <a href="#t:dns_name/0">dns_name</a>() | <a href="inet.html#t:ip_address/0">inet:ip_address</a>(),
+                Class :: <a href="#t:dns_class/0">dns_class</a>(),
+                Type :: <a href="#t:dns_rr_type/0">dns_rr_type</a>(),
+                Nameservers :: [<a href="#t:nameserver/0">nameserver</a>()],
+                Reason :: <a href="inet.html#t:posix/0">inet:posix</a>() | <a href="#t:res_error/0">res_error</a>().</pre>
+
+      </div>
+
+<p>Resolves a DNS record of the specified type and class for the specified name.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+  <section id="functions" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#functions">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Functions</span>
+    </h1>
+    <div class="functions-list">
+<section class="detail" id="getbyname/2">
+
+  <div class="detail-header">
+    <a href="#getbyname/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">getbyname(Name, Type)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/inet_res.erl#L691" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> getbyname(Name, Type) -> {ok, Hostent} | {error, Reason}
+             when
+                 Name :: <a href="#t:dns_name/0">dns_name</a>(),
+                 Type :: <a href="#t:dns_rr_type/0">dns_rr_type</a>(),
+                 Hostent :: <a href="inet.html#t:hostent/0">inet:hostent</a>() | <a href="#t:hostent/0">hostent</a>(),
+                 Reason :: <a href="inet.html#t:posix/0">inet:posix</a>() | <a href="#t:res_error/0">res_error</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#getbyname/3"><code class="inline">getbyname/3</code></a></p>
+  </section>
+</section>
+<section class="detail" id="getbyname/3">
+
+  <div class="detail-header">
+    <a href="#getbyname/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">getbyname(Name, Type, Timeout)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/inet_res.erl#L718" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> getbyname(Name, Type, Timeout) -> {ok, Hostent} | {error, Reason}
+             when
+                 Name :: <a href="#t:dns_name/0">dns_name</a>(),
+                 Type :: <a href="#t:dns_rr_type/0">dns_rr_type</a>(),
+                 Timeout :: <a href="../../apps/erts/erlang.html#t:timeout/0">timeout</a>(),
+                 Hostent :: <a href="inet.html#t:hostent/0">inet:hostent</a>() | <a href="#t:hostent/0">hostent</a>(),
+                 Reason :: <a href="inet.html#t:posix/0">inet:posix</a>() | <a href="#t:res_error/0">res_error</a>().</pre>
+
+      </div>
+
+<p>Resolves a DNS record of the specified <code class="inline">Type</code> for the specified host, of class
+<code class="inline">in</code>. Returns, on success, when resolving a <code class="inline">Type = a|aaaa</code> DNS record, a
+<code class="inline">#hostent{}</code> record with <code class="inline">#hostent.h_addrtype = inet|inet6</code>, respectively; see
+<a href="inet.html#t:hostent/0"><code class="inline">inet:hostent/0</code></a>.</p><p>When resolving other <code class="inline">Type = dns_rr_type()</code>:s (of class <code class="inline">in</code>), also returns a
+<code class="inline">#hostent{}</code> record but with <a href="#t:dns_rr_type/0"><code class="inline">dns_rr_type/0</code></a> in <code class="inline">#hostent.h_addrtype</code>, and the
+resolved <a href="#t:dns_data/0"><code class="inline">dns_data/0</code></a> in <code class="inline">#hostent.h_addr_list</code>; see <a href="#t:hostent/0"><code class="inline">hostent/0</code></a>.</p><p>This function uses resolver option <code class="inline">search</code> that is a list of domain names. If
+the name to resolve contains no dots, it is prepended to each domain name in the
+search list, and they are tried in order. If the name contains dots, it is first
+tried as an absolute name and if that fails, the search list is used. If the
+name has a trailing dot, it is supposed to be an absolute name and the search
+list is not used.</p>
+  </section>
+</section>
+<section class="detail" id="gethostbyaddr/1">
+
+  <div class="detail-header">
+    <a href="#gethostbyaddr/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">gethostbyaddr(Address)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/inet_res.erl#L547" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> gethostbyaddr(Address) -> {ok, Hostent} | {error, Reason}
+                 when
+                     Address :: <a href="inet.html#t:ip_address/0">inet:ip_address</a>(),
+                     Hostent :: <a href="inet.html#t:hostent/0">inet:hostent</a>(),
+                     Reason :: <a href="inet.html#t:posix/0">inet:posix</a>() | <a href="#t:res_error/0">res_error</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#gethostbyaddr/2"><code class="inline">gethostbyaddr/2</code></a></p>
+  </section>
+</section>
+<section class="detail" id="gethostbyaddr/2">
+
+  <div class="detail-header">
+    <a href="#gethostbyaddr/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">gethostbyaddr(Address, Timeout)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/inet_res.erl#L556" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> gethostbyaddr(Address, Timeout) -> {ok, Hostent} | {error, Reason}
+                 when
+                     Address :: <a href="inet.html#t:ip_address/0">inet:ip_address</a>(),
+                     Timeout :: <a href="../../apps/erts/erlang.html#t:timeout/0">timeout</a>(),
+                     Hostent :: <a href="inet.html#t:hostent/0">inet:hostent</a>(),
+                     Reason :: <a href="inet.html#t:posix/0">inet:posix</a>() | <a href="#t:res_error/0">res_error</a>().</pre>
+
+      </div>
+
+<p>Backend functions used by <a href="inet.html#gethostbyaddr/1"><code class="inline">inet:gethostbyaddr/1</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="gethostbyname/1">
+
+  <div class="detail-header">
+    <a href="#gethostbyname/1" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">gethostbyname(Name)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/inet_res.erl#L617" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> gethostbyname(Name) -> {ok, Hostent} | {error, Reason}
+                 when
+                     Name :: <a href="#t:dns_name/0">dns_name</a>(),
+                     Hostent :: <a href="inet.html#t:hostent/0">inet:hostent</a>(),
+                     Reason :: <a href="inet.html#t:posix/0">inet:posix</a>() | <a href="#t:res_error/0">res_error</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#gethostbyname/3"><code class="inline">gethostbyname/3</code></a></p>
+  </section>
+</section>
+<section class="detail" id="gethostbyname/2">
+
+  <div class="detail-header">
+    <a href="#gethostbyname/2" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">gethostbyname(Name, Family)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/inet_res.erl#L632" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> gethostbyname(Name, Family) -> {ok, Hostent} | {error, Reason}
+                 when
+                     Name :: <a href="#t:dns_name/0">dns_name</a>(),
+                     Hostent :: <a href="inet.html#t:hostent/0">inet:hostent</a>(),
+                     Family :: <a href="inet.html#t:address_family/0">inet:address_family</a>(),
+                     Reason :: <a href="inet.html#t:posix/0">inet:posix</a>() | <a href="#t:res_error/0">res_error</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#gethostbyname/3"><code class="inline">gethostbyname/3</code></a></p>
+  </section>
+</section>
+<section class="detail" id="gethostbyname/3">
+
+  <div class="detail-header">
+    <a href="#gethostbyname/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">gethostbyname(Name, Family, Timeout)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/inet_res.erl#L651" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> gethostbyname(Name, Family, Timeout) -> {ok, Hostent} | {error, Reason}
+                 when
+                     Name :: <a href="#t:dns_name/0">dns_name</a>(),
+                     Hostent :: <a href="inet.html#t:hostent/0">inet:hostent</a>(),
+                     Timeout :: <a href="../../apps/erts/erlang.html#t:timeout/0">timeout</a>(),
+                     Family :: <a href="inet.html#t:address_family/0">inet:address_family</a>(),
+                     Reason :: <a href="inet.html#t:posix/0">inet:posix</a>() | <a href="#t:res_error/0">res_error</a>().</pre>
+
+      </div>
+
+<p>Backend functions used by <a href="inet.html#gethostbyname/1"><code class="inline">inet:gethostbyname/1,2</code></a>.</p><p>This function uses resolver option <code class="inline">search</code> just like
+<a href="#getbyname/2"><code class="inline">getbyname/2,3</code></a>.</p><p>If resolver option <code class="inline">inet6</code> is <code class="inline">true</code>, an IPv6 address is looked up.</p>
+  </section>
+</section>
+<section class="detail" id="lookup/3">
+
+  <div class="detail-header">
+    <a href="#lookup/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">lookup(Name, Class, Type)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/inet_res.erl#L348" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> lookup(Name, Class, Type) -> [<a href="#t:dns_data/0">dns_data</a>()]
+          when Name :: <a href="#t:dns_name/0">dns_name</a>() | <a href="inet.html#t:ip_address/0">inet:ip_address</a>(), Class :: <a href="#t:dns_class/0">dns_class</a>(), Type :: <a href="#t:dns_rr_type/0">dns_rr_type</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#lookup/5"><code class="inline">lookup/5</code></a></p>
+  </section>
+</section>
+<section class="detail" id="lookup/4">
+
+  <div class="detail-header">
+    <a href="#lookup/4" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">lookup(Name, Class, Type, Opts)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/inet_res.erl#L358" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> lookup(Name, Class, Type, Opts) -> [<a href="#t:dns_data/0">dns_data</a>()]
+          when
+              Name :: <a href="#t:dns_name/0">dns_name</a>() | <a href="inet.html#t:ip_address/0">inet:ip_address</a>(),
+              Class :: <a href="#t:dns_class/0">dns_class</a>(),
+              Type :: <a href="#t:dns_rr_type/0">dns_rr_type</a>(),
+              Opts :: [<a href="#t:res_option/0">res_option</a>() | verbose].</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#lookup/5"><code class="inline">lookup/5</code></a></p>
+  </section>
+</section>
+<section class="detail" id="lookup/5">
+
+  <div class="detail-header">
+    <a href="#lookup/5" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">lookup(Name, Class, Type, Opts, Timeout)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/inet_res.erl#L378" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> lookup(Name, Class, Type, Opts, Timeout) -> [<a href="#t:dns_data/0">dns_data</a>()]
+          when
+              Name :: <a href="#t:dns_name/0">dns_name</a>() | <a href="inet.html#t:ip_address/0">inet:ip_address</a>(),
+              Class :: <a href="#t:dns_class/0">dns_class</a>(),
+              Type :: <a href="#t:dns_rr_type/0">dns_rr_type</a>(),
+              Opts :: [<a href="#t:res_option/0">res_option</a>() | verbose],
+              Timeout :: <a href="../../apps/erts/erlang.html#t:timeout/0">timeout</a>().</pre>
+
+      </div>
+
+<p>Resolves the DNS data for the record of the specified type and class for the
+specified name. On success, filters out the answer records with the correct
+<code class="inline">Class</code> and <code class="inline">Type</code>, and returns a list of their data fields. So, a lookup for
+type <code class="inline">any</code> gives an empty answer, as the answer records have specific types that
+are not <code class="inline">any</code>. An empty answer or a failed lookup returns an empty list.</p><p>Calls <a href="#resolve/3"><code class="inline">resolve/*</code></a> with the same arguments and filters the result,
+so <code class="inline">Opts</code> is described for those functions.</p>
+  </section>
+</section>
+<section class="detail" id="resolve/3">
+
+  <div class="detail-header">
+    <a href="#resolve/3" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">resolve(Name, Class, Type)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/inet_res.erl#L264" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> resolve(Name, Class, Type) -> {ok, <a href="#t:dns_msg/0">dns_msg</a>()} | Error
+           when
+               Name :: <a href="#t:dns_name/0">dns_name</a>() | <a href="inet.html#t:ip_address/0">inet:ip_address</a>(),
+               Class :: <a href="#t:dns_class/0">dns_class</a>(),
+               Type :: <a href="#t:dns_rr_type/0">dns_rr_type</a>(),
+               Error :: {error, Reason} | {error, {Reason, <a href="#t:dns_msg/0">dns_msg</a>()}},
+               Reason :: <a href="inet.html#t:posix/0">inet:posix</a>() | <a href="#t:res_error/0">res_error</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#resolve/5"><code class="inline">resolve/5</code></a></p>
+  </section>
+</section>
+<section class="detail" id="resolve/4">
+
+  <div class="detail-header">
+    <a href="#resolve/4" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">resolve(Name, Class, Type, Opts)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/inet_res.erl#L278" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> resolve(Name, Class, Type, Opts) -> {ok, <a href="#t:dns_msg/0">dns_msg</a>()} | Error
+           when
+               Name :: <a href="#t:dns_name/0">dns_name</a>() | <a href="inet.html#t:ip_address/0">inet:ip_address</a>(),
+               Class :: <a href="#t:dns_class/0">dns_class</a>(),
+               Type :: <a href="#t:dns_rr_type/0">dns_rr_type</a>(),
+               Opts :: [Opt],
+               Opt :: <a href="#t:res_option/0">res_option</a>() | verbose | <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(),
+               Error :: {error, Reason} | {error, {Reason, <a href="#t:dns_msg/0">dns_msg</a>()}},
+               Reason :: <a href="inet.html#t:posix/0">inet:posix</a>() | <a href="#t:res_error/0">res_error</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#resolve/5"><code class="inline">resolve/5</code></a></p>
+  </section>
+</section>
+<section class="detail" id="resolve/5">
+
+  <div class="detail-header">
+    <a href="#resolve/5" class="detail-link" title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">resolve(Name, Class, Type, Opts, Timeout)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/inet_res.erl#L325" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> resolve(Name, Class, Type, Opts, Timeout) -> {ok, <a href="#t:dns_msg/0">dns_msg</a>()} | Error
+           when
+               Name :: <a href="#t:dns_name/0">dns_name</a>() | <a href="inet.html#t:ip_address/0">inet:ip_address</a>(),
+               Class :: <a href="#t:dns_class/0">dns_class</a>(),
+               Type :: <a href="#t:dns_rr_type/0">dns_rr_type</a>(),
+               Opts :: [Opt],
+               Opt :: <a href="#t:res_option/0">res_option</a>() | verbose | <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(),
+               Timeout :: <a href="../../apps/erts/erlang.html#t:timeout/0">timeout</a>(),
+               Error :: {error, Reason} | {error, {Reason, <a href="#t:dns_msg/0">dns_msg</a>()}},
+               Reason :: <a href="inet.html#t:posix/0">inet:posix</a>() | <a href="#t:res_error/0">res_error</a>().</pre>
+
+      </div>
+
+<p>Resolves a DNS record of the specified type and class for the specified name.
+The returned <a href="#t:dns_msg/0"><code class="inline">dns_msg/0</code></a> can be examined using access functions in <code class="inline">inet_db</code>,
+as described in section in <a href="inet_res.html#dns_types">DNS Types</a>.</p><p>If <code class="inline">Name</code> is an <code class="inline">ip_address()</code>, the domain name to query for is generated as the
+standard reverse <code class="inline">&quot;.IN-ADDR.ARPA.&quot;</code> name for an IPv4 address, or the
+<code class="inline">&quot;.IP6.ARPA.&quot;</code> name for an IPv6 address. In this case, you most probably want to
+use <code class="inline">Class = in</code> and <code class="inline">Type = ptr</code>, but it is not done automatically.</p><p><code class="inline">Opts</code> overrides the corresponding resolver options. If option <code class="inline">nameservers</code> is
+specified, it is assumed that it is the complete list of name serves, so
+resolver option <code class="inline">alt_nameserves</code> is ignored. However, if option <code class="inline">alt_nameserves</code>
+is also specified to this function, it is used.</p><p>Option <code class="inline">verbose</code> (or rather <code class="inline">{verbose,true}</code>) causes diagnostics printout
+through <a href="../../apps/stdlib/io.html#format/3"><code class="inline">io:format/2</code></a> of queries, replies retransmissions, and
+so on, similar to from utilities, such as <code class="inline">dig</code> and <code class="inline">nslookup</code>.</p><p>Option <code class="inline">nxdomain_reply</code> (or rather <code class="inline">{nxdomain_reply,true}</code>) causes nxdomain
+errors from DNS servers to be returned as <code class="inline">{error, {nxdomain, dns_msg()}}</code>.
+<a href="#t:dns_msg/0"><code class="inline">dns_msg/0</code></a> contains the additional sections that where included by the
+answering server. This is mainly useful to inspect the SOA record to get the TTL
+for negative caching.</p><p>If <code class="inline">Opt</code> is any atom, it is interpreted as <code class="inline">{Opt,true}</code> unless the atom string
+starts with <code class="inline">&quot;no&quot;</code>, making the interpretation <code class="inline">{Opt,false}</code>. For example,
+<code class="inline">usevc</code> is an alias for <code class="inline">{usevc,true}</code> and <code class="inline">nousevc</code> is an alias for
+<code class="inline">{usevc,false}</code>.</p><p>Option <code class="inline">inet6</code> has no effect on this function. You probably want to use
+<code class="inline">Type = a | aaaa</code> instead.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+      <footer class="footer">
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+              Search HexDocs
+            </button>
+
+              <a href="kernel.epub" title="ePub version">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.31.1) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+      </footer>
+    </div>
+  </div>
+</main>
+</div>
+
+
+  </body>
+</html>
