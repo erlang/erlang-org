@@ -76,6 +76,7 @@ const docsearch = <DocSearch
   appId='LUYTU1J2MB'
   indexName='erlang' apiKey="86152ba1d4a9d7e179d537b8060a4c31"
   searchParameters={{
+    filters: 'docEngine:erl_docgen',
     attributesToRetrieve: [
       'hierarchy.lvl0',
       'hierarchy.lvl1',
