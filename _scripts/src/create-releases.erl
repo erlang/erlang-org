@@ -197,10 +197,10 @@ pmap(Fun, List) ->
         #{ host := Hostname } = uri_string:parse(Url),
         VerifyFun = {fun ssl_verify_hostname:verify_fun/3,
                       [{check_hostname, Hostname}]},
-        %% CACerts = certifi:cacerts(),
-        [{ssl,[{verify, verify_peer},
-               {cacertfile, "/etc/ssl/certs/ca-certificates.crt"},
-               {verify_fun, VerifyFun},
-               {customize_hostname_check,
-                [{match_fun, public_key:pkix_verify_hostname_match_fun(https)}]}
-              ]}].
+    CACerts = public_key:cacerts_get(),
+    [{ssl,[{verify, verify_peer},
+           {cacerts, CACerts},
+           {verify_fun, VerifyFun},
+           {customize_hostname_check,
+            [{match_fun, public_key:pkix_verify_hostname_match_fun(https)}]}
+          ]}].
