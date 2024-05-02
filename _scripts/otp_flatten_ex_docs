@@ -19,6 +19,7 @@ set -e
 set -o pipefail
 
 SOURCE_DIR="$1"
+MAJOR_VSN="$2"
 TARGET_DIR="$(dirname $1)/doc-1"
 INCLUDE_SEARCH="$1"
 
@@ -54,12 +55,24 @@ _fixup_doc_links() {
     sed $FIXUP -i -- "$@"
 }
 
+_fixup_search_link() {
+    sed 's@<title>@<meta name="exdoc:full-text-search-url" content="/doc/search.html?v='"${MAJOR_VSN}"'\&q=">\n<title>@g' -i -- "$@"
+}
+
+_disable_autocomplete() {
+    sed 's@<title>@<meta name="exdoc:autocomplete" content="off">\n<title>@g' -i -- "$@"
+}
+
 mkdir "${TARGET_DIR}"
 
 cp -r "${SOURCE_DIR}/doc/"* "${TARGET_DIR}/"
 _fixup_doc_links "${TARGET_DIR}/"*.html
+_fixup_search_link "${TARGET_DIR}/"*.html
+_disable_autocomplete "${TARGET_DIR}/"*.html
 cp -r "${SOURCE_DIR}/doc/system" "${TARGET_DIR}/system"
 _fixup_doc_links "${TARGET_DIR}/system/"*.html
+_fixup_search_link "${TARGET_DIR}/system/"*.html
+_disable_autocomplete "${TARGET_DIR}/system/"*.html
 
 mkdir "${TARGET_DIR}/apps"
 
@@ -71,6 +84,7 @@ for APP_VSN in ${APP_VSNS}; do
         cp -r "${SOURCE_DIR}/lib/${APP_VSN}/doc/html" "${TARGET_DIR}/apps/${APP}"
     fi
     _fixup_doc_links "${TARGET_DIR}/apps/${APP}/"*.html
+    _fixup_search_link "${TARGET_DIR}/apps/${APP}/"*.html
 done
 
 exit 0

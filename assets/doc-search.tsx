@@ -10,6 +10,8 @@ import ReactDOM from 'react-dom';
 
 import '@docsearch/css';
 
+declare var _docsearch_version: string;
+
 function getHTMLElement(
   value: string | HTMLElement,
   environment: DocSearchProps['environment'] = window
@@ -31,7 +33,7 @@ function Footer({ state }: {
 }): JSX.Element {
   return <>
     <footer>
-      <a href={"/doc/search?q=" + state.query}>
+      <a href={"/doc/search?v="+_docsearch_version+"q=" + state.query}>
         Show all {state.context.nbHits as number} results
       </a>
     </footer>
@@ -76,7 +78,7 @@ const docsearch = <DocSearch
   appId='LUYTU1J2MB'
   indexName='erlang' apiKey="86152ba1d4a9d7e179d537b8060a4c31"
   searchParameters={{
-    filters: 'docEngine:erl_docgen',
+    filters: 'version:'+_docsearch_version,
     attributesToRetrieve: [
       'hierarchy.lvl0',
       'hierarchy.lvl1',
