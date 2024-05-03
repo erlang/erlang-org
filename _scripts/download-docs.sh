@@ -95,7 +95,6 @@ for ARCHIVE in docs/*.tar.gz; do
         mv docs/doc-1 docs/doc
         URL=$(grep "^url: " _config.yml | sed 's@url: "\([^"]*\)".*@\1@')
         BASEURL=$(grep "^baseurl: " _config.yml | sed 's@baseurl: "\([^"]*\)".*@\1@')
-        _scripts/otp_doc_sitemap.sh doc/ "${URL}${BASEURL}/" > doc/sitemap_algolia.xml
         printf -- '---\nlayout: search\nversion: %s\n---\n' "${MAJOR_VSN}" > "docs/doc/search.html"
     fi
     _flatten_docs "${ERTS_VSN}" "${MAJOR_VSN}"
@@ -107,10 +106,4 @@ for ARCHIVE in docs/*.tar.gz; do
 done
 
 MAJOR_VSNs=$(echo "${MAJOR_VSNs}" | tr '\n' ' ')
-printf -- '---\nlayout: docs_list\nreleases:\n' > docs/list.html
-for v in ${MAJOR_VSNs}; do
-    if [ "$v" -gt 23 ]; then
-        printf -- '  - %s\n' "$v" >> docs/list.html
-    fi
-done
-printf -- '---\n' >> docs/list.html
+_scripts/otp_doc_sitemap.sh "docs" "${MAJOR_VSNs}" "${LATEST_MAJOR_VSN}" "${URL}${BASEURL}/" > docs/sitemap_algolia.xml
