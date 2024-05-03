@@ -29,7 +29,7 @@ _get_doc_hash() {
 }
 
 _flatten_docs() {
-    if [ "$3" -ge "27" ]; then
+    if [ -f "docs/doc-$1/doc/readme.html" ]; then
         (cd docs && ../_scripts/otp_flatten_ex_docs "doc-$1" "$2")
     else
         (cd docs && ../_scripts/otp_flatten_docs "doc-$1" "$2")
@@ -67,6 +67,7 @@ for rc_ver in 5 4 3 2 1; do
     ARCHIVE="docs/otp_doc_html_${LATEST_VSN}.tar.gz"
     echo "Checking for ${LATEST_VSN} on github"
     if curl --silent --location --fail --show-error "${HDR[@]}" "https://github.com/erlang/otp/releases/download/OTP-${LATEST_VSN}/otp_doc_html_${LATEST_VSN}.tar.gz" > "${ARCHIVE}"; then
+        MAJOR_VSNs="${POSSIBLE_RC_VER} ${MAJOR_VSNs}"
         break;
     fi
     rm "${ARCHIVE}"
@@ -89,18 +90,20 @@ for ARCHIVE in docs/*.tar.gz; do
     MAJOR_VSN=$(echo "${VSN}" | awk -F. '{ print $1 }')
     mv "docs/tmp" "docs/doc-${ERTS_VSN}"
     if [ "${MAJOR_VSN}" = "${LATEST_MAJOR_VSN}" ]; then
-        _flatten_docs "${ERTS_VSN}" true "${MAJOR_VSN}"
+        _flatten_docs "${ERTS_VSN}" "${MAJOR_VSN}"
         rm -rf "docs/doc" || true
         mv docs/doc-1 docs/doc
-        URL=$(grep "^url: " _config.yml | sed 's@url: "\([^"]*\)".*@\1@')
-        BASEURL=$(grep "^baseurl: " _config.yml | sed 's@baseurl: "\([^"]*\)".*@\1@')
-        _scripts/otp_doc_sitemap.sh doc/ "${URL}${BASEURL}/" > doc/sitemap_algolia.xml
-        ln -s ../../search.html docs/doc/search.html
+        printf -- '---\nlayout: search\nversion: %s\n---\n' "${MAJOR_VSN}" > "docs/doc/search.html"
     fi
-    _flatten_docs "${ERTS_VSN}" false "${MAJOR_VSN}"
+    _flatten_docs "${ERTS_VSN}" "${MAJOR_VSN}"
     touch "docs/doc-1/$(_get_doc_hash "${VSN}")"
     rm -rf "docs/${MAJOR_VSN}" || true
     mv docs/doc-1 "docs/${MAJOR_VSN}"
     rm -rf "docs/doc-${ERTS_VSN}"
     rm -f "${ARCHIVE}"
 done
+
+URL=$(grep "^url: " _config.yml | sed 's@url: "\([^"]*\)".*@\1@')
+BASEURL=$(grep "^baseurl: " _config.yml | sed 's@baseurl: "\([^"]*\)".*@\1@')
+MAJOR_VSNs=$(echo "${MAJOR_VSNs}" | tr '\n' ' ')
+_scripts/otp_doc_sitemap.sh "${MAJOR_VSNs}" "${LATEST_MAJOR_VSN}" "${URL}${BASEURL}" > docs/sitemap_algolia.xml

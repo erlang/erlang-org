@@ -21,11 +21,11 @@ if (@ARGV == 0) {
 
 my $src = shift;
 my $include_docsearch = 0;
-if (@ARGV == 1) {
-    if (shift eq "true") {
-        $include_docsearch = 1;
-    }
+my $docsearch_version = shift;
+if ($docsearch_version > 23) {
+    $include_docsearch = 1;
 }
+
 if (@ARGV != 0) {
     usage();
 }
@@ -263,6 +263,9 @@ sub copy_html {
 		close DEST;
 		return copy_doc($src, $dest);
 	    }
+            if ($include_docsearch) {
+                s@(\s*)<title>@"$1<meta name=\"major-vsn\" content=\"" . $docsearch_version . "\">\n$&"@e;
+            }
 	    s@src="[^\"]*erlang-logo.svg"@"src=\"" . path_to("erlang-logo.svg", $rel) . '"' @e;
 	    s@src="[^\"]*flipmenu[.]js"@"src=\"" . path_to("js/flipmenu/flipmenu.js", $rel) . '"' @e;
 	    s@image[Pp]ath="[^\"]*flipmenu"@"imagePath=\"" . path_to("js/flipmenu", $rel) . '"' @e;
@@ -421,15 +424,18 @@ sub get_analytics {
 }
 
 sub get_docsearch_js {
-    return <<'END'
+    return <<END
+<script type="text/javascript">
+_docsearch_version = "$docsearch_version";
+</script> 
 <script src="/assets/js/doc-search.bundle.js"></script>
 END
 }
 
 sub get_docsearch_html {
-    return <<'END'
+    return <<END
 <div id="docsearch"></div>
-<div style="padding-left: 1rem; padding-top: 0.1rem;"><a href="/doc/search">Paginated Search</a></div>
+<div style="padding-left: 1rem; padding-top: 0.1rem;"><a href="/doc/search?v=$docsearch_version">Paginated Search</a></div>
 END
 }
 
