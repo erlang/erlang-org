@@ -1,8 +1,8 @@
 #!/bin/bash
 
 VSNs="${1}"
-LATEST="${1}"
-BASEURL=${3}
+LATEST="${2}"
+BASEURL="${3}"
 DATE=$(date -Iseconds)
 
 cat <<EOF
@@ -14,7 +14,7 @@ EOF
 HTML_PAGES=$(find "doc/" -name "*.html")
 for page in ${HTML_PAGES}; do
             echo "   <url>
-      <loc>${BASEURL}${page}</loc>
+      <loc>${BASEURL}/${page}</loc>
       <lastmod>${DATE}</lastmod>
       <changefreq>weekly</changefreq>
    </url>"
@@ -25,7 +25,7 @@ for VSN in ${VSNs}; do
         HTML_PAGES=$(find "docs/${VSN}" -name "*.html")
         for page in ${HTML_PAGES}; do
             echo "   <url>
-      <loc>${BASEURL}${page}</loc>
+      <loc>${BASEURL}/${page}</loc>
       <lastmod>${DATE}</lastmod>
       <changefreq>weekly</changefreq>
    </url>"
