@@ -33,7 +33,7 @@ function Footer({ state }: {
 }): JSX.Element {
   return <>
     <footer>
-      <a href={"/doc/search?v="+_docsearch_version+"q=" + state.query}>
+      <a href={"/doc/search?v="+_docsearch_version+"&q=" + state.query}>
         Show all {state.context.nbHits as number} results
       </a>
     </footer>
