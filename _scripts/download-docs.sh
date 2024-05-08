@@ -10,7 +10,7 @@ set -e
 OTP_VERSIONS_TABLE=$1
 TIME_LIMIT=${3:-120m}
 TOKEN=${2:-"token ${GITHUB_TOKEN}"}
-HDR=(-H "Authorization: ${TOKEN}")
+HDR=(--silent --location --fail --show-error -H "Authorization: ${TOKEN}" -H "X-GitHub-Api-Version: 2022-11-28")
 
 # The files that are involved when generating docs
 SCRIPT_FILES="_scripts/otp_flatten_docs _scripts/otp_doc_sitemap.sh"
@@ -46,7 +46,7 @@ for VSN in ${MAJOR_VSNs}; do
 
     if [ ! -f "${ARCHIVE}" ] && [ ! -f "docs/${VSN}/$(_get_doc_hash "${LATEST_VSN}")" ]; then
         echo "Checking for ${LATEST_VSN} on github"
-        if ! curl --silent --location --fail --show-error "${HDR[@]}" "https://github.com/erlang/otp/releases/download/OTP-${LATEST_VSN}/otp_doc_html_${LATEST_VSN}.tar.gz" > "${ARCHIVE}"; then
+        if ! curl "${HDR[@]}" "https://github.com/erlang/otp/releases/download/OTP-${LATEST_VSN}/otp_doc_html_${LATEST_VSN}.tar.gz" > "${ARCHIVE}"; then
             rm -f "${ARCHIVE}"
             LATEST_VSN=$(_get_latest_vsn "^OTP-${VSN}\.[0-9] ")
             if [ ! -f "docs/${VSN}/$(_get_doc_hash "${LATEST_VSN}")" ]; then
@@ -63,9 +63,11 @@ done
 
 MASTER_MAJOR_VSN=$(( LATEST_MAJOR_VSN + 1 ))
 MASTER_VSN="${MASTER_MAJOR_VSN}.0"
+MASTER_SHA=$(curl "${HDR[@]}" https://api.github.com/repos/erlang/otp/commits/master | jq ".sha")
 ARCHIVE="docs/otp_doc_html_${MASTER_VSN}.tar.gz"
-if [ ! -f "${ARCHIVE}" ] && [ ! -f "docs/${MASTER_MAJOR_VSN}/$(_get_doc_hash "${MASTER_VSN}")" ]; then
-    if curl --silent --location --fail --show-error "${HDR[@]}" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/erlang/otp/actions/artifacts?name=otp_doc_html" | jq '[.artifacts[] | select(.workflow_run.head_branch == "master")][0] | .archive_download_url' | xargs curl -L "${HDR[@]}" -H "X-GitHub-Api-Version: 2022-11-28" > "${ARCHIVE}.zip"; then
+if [ ! -f "${ARCHIVE}" ] && [ ! -f "docs/${MASTER_MAJOR_VSN}/$(_get_doc_hash "${MASTER_SHA}")" ]; then
+    echo "Checking for ${MASTER_VSN} on github"
+    if curl "${HDR[@]}" "https://api.github.com/repos/erlang/otp/actions/artifacts?name=otp_doc_html" | jq '[.artifacts[] | select(.workflow_run.head_branch == "master")][0] | .archive_download_url' | xargs curl "${HDR[@]}" > "${ARCHIVE}.zip"; then
         MAJOR_VSNs="${MASTER_MAJOR_VSN} ${MAJOR_VSNs}"
         unzip "${ARCHIVE}.zip"
         mv otp_doc_html.tar.gz "${ARCHIVE}"
@@ -88,6 +90,7 @@ for ARCHIVE in docs/*.tar.gz; do
     # shellcheck disable=SC2001
     VSN=$(echo "${ARCHIVE}" | sed 's/.*otp_doc_html_\(.*\)\.tar.gz/\1/')
     MAJOR_VSN=$(echo "${VSN}" | awk -F. '{ print $1 }')
+    echo "Flattening ${MAJOR_VSN}"
     mv "docs/tmp" "docs/doc-${ERTS_VSN}"
     if [ "${MAJOR_VSN}" = "${LATEST_MAJOR_VSN}" ]; then
         _flatten_docs "${ERTS_VSN}" "${MAJOR_VSN}"
