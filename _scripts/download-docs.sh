@@ -61,17 +61,17 @@ for VSN in ${MAJOR_VSNs}; do
     fi
 done
 
-POSSIBLE_RC_VER=$(( LATEST_MAJOR_VSN + 1 ))
-for rc_ver in 5 4 3 2 1; do
-    LATEST_VSN="${POSSIBLE_RC_VER}.0-rc${rc_ver}"
-    ARCHIVE="docs/otp_doc_html_${LATEST_VSN}.tar.gz"
-    echo "Checking for ${LATEST_VSN} on github"
-    if curl --silent --location --fail --show-error "${HDR[@]}" "https://github.com/erlang/otp/releases/download/OTP-${LATEST_VSN}/otp_doc_html_${LATEST_VSN}.tar.gz" > "${ARCHIVE}"; then
-        MAJOR_VSNs="${POSSIBLE_RC_VER} ${MAJOR_VSNs}"
-        break;
+MASTER_MAJOR_VSN=$(( LATEST_MAJOR_VSN + 1 ))
+MASTER_VSN="${MASTER_MAJOR_VSN}.0"
+ARCHIVE="docs/otp_doc_html_${MASTER_VSN}.tar.gz"
+if [ ! -f "${ARCHIVE}" ] && [ ! -f "docs/${MASTER_MAJOR_VSN}/$(_get_doc_hash "${MASTER_VSN}")" ]; then
+    if curl --silent --location --fail --show-error "${HDR[@]}" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/erlang/otp/actions/artifacts?name=otp_doc_html" | jq '[.artifacts[] | select(.workflow_run.head_branch == "master")][0] | .archive_download_url' | xargs curl -L "${HDR[@]}" -H "X-GitHub-Api-Version: 2022-11-28" > "${ARCHIVE}.zip"; then
+        MAJOR_VSNs="${MASTER_MAJOR_VSN} ${MAJOR_VSNs}"
+        unzip "${ARCHIVE}.zip"
+        mv otp_doc_html.tar.gz "${ARCHIVE}"
+        rm -f "${ARCHIVE}.zip"
     fi
-    rm "${ARCHIVE}"
-done
+fi
 
 if [ ! "${RINCLUDE[0]}" = "" ]; then
     set -x
