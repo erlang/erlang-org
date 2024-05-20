@@ -10,13 +10,13 @@ The latest version of Erlang/OTP is [{{ release.latest.name }}]({% link _patches
 
 Take a look at the [Erlang/OTP {{ release.release }} release description]({% link _releases/{{ release.release }}.md %}) to see what changes Erlang/OTP {{ release.release }} brings over the previous major version.
 
-The Erlang/OTP version scheme is described in the [Erlang/OTP Systems Principles Guide]({% link doc/system_principles/versions.html %}#version-scheme).
+The Erlang/OTP version scheme is described in the [Erlang/OTP Systems Principles Guide]({% link doc/system/versions.html %}#version-scheme).
 
 <!--end_excerpt-->
 
 ### Compiling Erlang from source <a href="#source" name="source">#</a>
 
-You can build Erlang from source on your own, following the [building and installation instructions]({% link doc/installation_guide/INSTALL.html %}). In a nutshell to install a pre-built archive you need only do:
+You can build Erlang from source on your own, following the [building and installation instructions]({% link doc/system/install.html %}). In a nutshell to install a pre-built archive you need only do:
 
 ```bash
 ./configure && make && make install
