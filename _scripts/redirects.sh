@@ -49,12 +49,18 @@ for guide in ${SYSTEM_GUIDES}; do
                 *intro*.html) new_chapter="$guide.html";;
                 *-"des_princ.html") new_chapter="design_principles.html";;
                 eff*-"functions.html") new_chapter="eff_guide_functions.html";;
+                eff*-"advanced.html") new_chapter="memory.html";;
                 ref*-"functions.html") new_chapter="ref_man_functions.html";;
                 eff*-"processes.html") new_chapter="eff_guide_processes.html";;
                 ref*-"processes.html") new_chapter="ref_man_processes.html";;
                 *-"record_macros.html") new_chapter="records_macros.html";;
                 prog*-"records.html") new_chapter="prog_ex_records.html";;
                 ref*-"records.html") new_chapter="ref_man_records.html";;
+                *"install-binary.html") continue;;
+                *"retired-myths.html") continue;;
+                *"myths.html") continue;;
+                *"solaris.html") continue;;
+                *"embedded_nt.html") continue;;
                 *) new_chapter=$chapter;;
             esac
             if [ "$chapter" = "$new_chapter" ]; then
