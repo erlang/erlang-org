@@ -83,7 +83,6 @@ format-eeps: _scripts/_build/default/bin/erlang-org _clones/eep
 
 docs: otp_versions.table _scripts/download-docs.sh _scripts/otp_flatten_docs _scripts/otp_flatten_ex_docs _scripts/otp_doc_sitemap.sh
 	if [ ! -d $@ ]; then git clone --single-branch -b $@ https://github.com/erlang/erlang-org $@; fi
-	rm -rf docs/27
 	_scripts/download-docs.sh $<
 	@touch docs
 
