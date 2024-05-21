@@ -37,7 +37,7 @@ application could generate HTML web pages, PDFs, or Unix man pages.
 The reason for generating PDFs is that the documentation used to be
 printed as
 [actual paper books](https://erlangforums.com/t/old-printed-otp-documentation-cover/1989/2).
-The last time the books were printed were for the Erlang/OTP R7 released in 2000.
+The last time the books were printed were for Erlang/OTP R7 released in 2000.
 
 As an example, here is the XML code for
 [`lists:duplicate/2`](https://www.erlang.org/docs/26/man/lists#duplicate-2)
