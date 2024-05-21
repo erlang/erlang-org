@@ -255,8 +255,8 @@ called like so:
 
 ```
 1> io:format("~ts\n", [t:effect_warning()]).
-%% Test that the compiler warns for useless tuple building.
 f() ->
+    %% Test that the compiler warns for useless tuple building.
     {a,b,c},
     ok.
 ```
