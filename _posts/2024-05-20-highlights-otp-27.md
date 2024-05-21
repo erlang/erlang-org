@@ -515,7 +515,7 @@ The JSON contents of the file can be be decoded by calling
 [json:decode/1](https://www.erlang.org/doc/man/json#decode/1):
 
 ```erlang
-1> {ok,JSON} = file:read_file("quotes.text").
+1> {ok,JSON} = file:read_file("quotes.json").
 {ok,<<"[\n   {\"quote\": \"The gods are best served by those who need their help the least.\",\n    \"attribution\": \"Zeus\""...>>}
 2> json:decode(JSON).
 [#{<<"attribution">> => <<"Zeus">>,
