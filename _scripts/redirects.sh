@@ -26,8 +26,13 @@ _check() {
     }
 
 _redirect() {
-    if _check "$1" "$2"; then
-        echo "/doc/$1  /doc/$2" | sed 's:\.html::g' | tr '[:upper:]' '[:lower:]'
+    local FROM="$1"
+    local TO="$2"
+    if _check "$FROM" "$TO"; then
+        TO=$(echo "$TO" | sed 's:\.html::g')
+        echo "/doc/$FROM  /doc/$TO" | tr '[:upper:]' '[:lower:]'
+        FROM=$(echo "$FROM" | sed 's:\.html::g')
+        echo "/doc/$FROM  /doc/$TO" | tr '[:upper:]' '[:lower:]'
     else
         exit 1;
     fi
