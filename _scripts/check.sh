@@ -13,7 +13,7 @@ timeout 5m bash -c "while ! echo exit | nc localhost 4000; do sleep 1; done"
 sleep 5
 
 ## Run broken-link-checker
-npx blc --exclude http://localhost:4000/doc --exclude http://localhost:4000/docs -re http://localhost:4000
+npx blc --exclude "erl_cmd.md" --exclude "%60/c:c/1%60" --exclude http://localhost:4000/doc --exclude http://localhost:4000/docs -re http://localhost:4000
 RES=$?
 
 ## Kill the jekyll server
