@@ -29,9 +29,9 @@ _redirect() {
     local FROM="$1"
     local TO="$2"
     if _check "$FROM" "$TO"; then
-        TO=$(echo "$TO" | sed 's:\.html::g')
+        TO="${TO/%.html/}"
         echo "/doc/$FROM  /doc/$TO" | tr '[:upper:]' '[:lower:]'
-        FROM=$(echo "$FROM" | sed 's:\.html::g')
+        FROM="${FROM/%.html/}"
         echo "/doc/$FROM  /doc/$TO" | tr '[:upper:]' '[:lower:]'
     else
         exit 1;
