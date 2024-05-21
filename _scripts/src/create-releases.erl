@@ -33,7 +33,8 @@ parse_erlang_org_downloads() ->
                                <<"<a href=\"([^\"/]+)\"">>,
                                [global,{capture,all_but_first,binary}]),
     Matches = #{ readme => "^(?:otp_src_|OTP-)(.*)\\.(?:readme|README|readme.md|README.md)$",
-                 erlang_download_readme => "^(?:otp_src_|OTP-)(.*)\\.(?:readme|README|readme.md|README.md)$",
+                 erlang_download_readme => "^(?:otp_src_|OTP-)(.*)\\.(?:readme|README)$",
+                 erlang_download_readme_md => "^(?:otp_src_|OTP-)(.*)\\.(?:readme|README).md$",
                  html => "^otp_(?:doc_)?html_(.*)\\.tar\\.gz$",
                  man => "^otp_(?:doc_)?man_(.*)\\.tar\\.gz$",
                  win32 => "^otp_win32_(.*)\\.exe$",
@@ -157,7 +158,12 @@ create_patches(Dir, Releases) ->
     maps:map(
       fun(Release, #{ patches := Patches }) ->
               pmap(
-                fun(#{ erlang_download_readme := Url } = Patch) ->
+                fun(Patch) ->
+                        Url =
+                            case Patch of
+                                #{ erlang_download_readme_md := U } -> U;
+                                #{ erlang_download_readme := U } -> U
+                            end,
                         Name = lists:last(string:split(Url, "/", all)),
                         {ok, Readme } = file:read_file(filename:join(TmpDir, Name)),
                         create_patch(Dir, strip_ids(Patch#{ release => Release }), Readme)
