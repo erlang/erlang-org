@@ -102,3 +102,10 @@ for app in ${APPS}; do
 done
 
 _redirect "man/assert.hrl.html" "apps/stdlib/assert_hrl.html"
+_redirect "man/erl.html" "apps/erts/erl_cmd.html"
+_redirect "man/werl.html" "apps/erts/werl_cmd.html"
+_redirect "man/erlc.html" "apps/erts/erlc_cmd.html"
+_redirect "man/app.html" "apps/kernel/app.html"
+_redirect "man/appup.html" "apps/sasl/appup.html"
+_redirect "man/rel.html" "apps/sasl/rel.html"
+_redirect "man/relup.html" "apps/sasl/relup.html"
