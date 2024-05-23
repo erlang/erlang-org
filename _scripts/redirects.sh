@@ -100,3 +100,5 @@ for app in ${APPS}; do
         fi
     done
 done
+
+_redirect "man/assert.hrl" "apps/stdlib/assert_hrl"
