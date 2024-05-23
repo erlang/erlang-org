@@ -27,7 +27,7 @@ This years highlights are:
 * [EEP-53: Process aliases](#eep-53-process-aliases)
 * [EEP-48: Documentation chunks for edoc](#eep-48-documentation-chunks-for-edoc)
 * [socket support in gen_tcp](#socket-support-in-gen_tcp)
-* [EEP-56: Supervisor automatic shutdown](#EEP-56-supervisor-automatic-shutdown)
+* [EEP-56: Supervisor automatic shutdown](#eep-56-supervisor-automatic-shutdown)
 * [Edwards-curve Digital Signature Algorithm](#edwards-curve-digital-signature-algorithm)
 
 [about 10 years]: https://vimeo.com/44231138
