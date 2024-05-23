@@ -67,18 +67,28 @@ _disable_autocomplete() {
     sed 's@\s*<title>@<meta name="exdoc:autocomplete" content="off">\n&@g' -i -- "$@"
 }
 
+_add_canonical() {
+    for file in "$@"; do
+        canonical=${file/#"${TARGET_DIR}/"}
+        sed 's@\s*<title>@<link rel="canonical" href="https://erlang.org/doc/'"${canonical}"'" />\n&@g' -i -- "${file}"
+    done
+}
+
+_flatten_and_update_docs() {
+    _fixup_doc_links "$@"
+    _fixup_search_link "$@"
+    _fixup_major_version "$@"
+    _add_canonical "$@"
+}
+
 mkdir "${TARGET_DIR}"
 
 cp -r "${SOURCE_DIR}/doc/"* "${TARGET_DIR}/"
-_fixup_doc_links "${TARGET_DIR}/"*.html
-_fixup_search_link "${TARGET_DIR}/"*.html
+_flatten_and_update_docs "${TARGET_DIR}/"*.html
 _disable_autocomplete "${TARGET_DIR}/"*.html
-_fixup_major_version "${TARGET_DIR}/"*.html
 cp -r "${SOURCE_DIR}/doc/system" "${TARGET_DIR}/system"
-_fixup_doc_links "${TARGET_DIR}/system/"*.html
-_fixup_search_link "${TARGET_DIR}/system/"*.html
+_flatten_and_update_docs "${TARGET_DIR}/system/"*.html
 _disable_autocomplete "${TARGET_DIR}/system/"*.html
-_fixup_major_version "${TARGET_DIR}/system/"*.html
 
 mkdir "${TARGET_DIR}/apps"
 
@@ -89,9 +99,7 @@ for APP_VSN in ${APP_VSNS}; do
     else
         cp -r "${SOURCE_DIR}/lib/${APP_VSN}/doc/html" "${TARGET_DIR}/apps/${APP}"
     fi
-    _fixup_doc_links "${TARGET_DIR}/apps/${APP}/"*.html
-    _fixup_search_link "${TARGET_DIR}/apps/${APP}/"*.html
-    _fixup_major_version "${TARGET_DIR}/apps/${APP}/"*.html
+    _flatten_and_update_docs "${TARGET_DIR}/apps/${APP}/"*.html
 done
 
 exit 0
