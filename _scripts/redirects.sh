@@ -101,4 +101,4 @@ for app in ${APPS}; do
     done
 done
 
-_redirect "man/assert.hrl" "apps/stdlib/assert_hrl"
+_redirect "man/assert.hrl.html" "apps/stdlib/assert_hrl.html"
