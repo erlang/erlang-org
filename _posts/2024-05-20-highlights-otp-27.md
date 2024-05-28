@@ -360,18 +360,36 @@ After `B` follows the start delimiter, in this case `[`.  Since no escape charac
 are allowed, it is necessary to choose delimiters that don't occur in the string
 contents. After the contents follows the end delimiter, in this case `]`.
 
-The `B` sigil is the default sigil that is used if the letter following
-`~` is omitted. Thus we get the same binary and the same output if we omit the `B`:
+`~b` creates a binary in the same way as `~B`, except that backslashes
+will be interpreted as escape characters. This can be useful if one
+wants to insert control characters such as TAB (`\t`) into a binary:
 
 ```
-greek_quote() ->
-    S = ~["Know thyself" (Greek: Γνῶθι σαυτόν)],
-    io:format("~ts\n", [S]).
+1> ~b"abc\txyz".
+<<"abc\txyz">>
 ```
 
-Sigils can also be used to begin a triple-quoted string. Returning to
-the quotations example from the previous section, a binary literal can
-be created by inserting `~` before the leading `"""`:
+Here we used the `"` character as delimiters as it is not used within
+the string.
+
+If we omit the letter after `~`, we will get the same result:
+
+```
+2> ~"abc\txyz".
+<<"abc\txyz">>
+```
+
+The default sigil (no letter following `~`) creates a binary, just
+like `~b` and `~B`, but whether escape characters are interpreted
+depends on the form of the string. Triple-quoted strings do not by
+default interpret escape sequences such as `\n`, but plain inline
+strings do, so `~"abc\ndef"` works as you might expect, and you can
+always prefix an existing string like `"abc\ndef"` with a `~` to turn
+it into a binary without fear of changing its content.
+
+Returning to the quotations example from the previous section, let's
+see how a binary literal can be created by inserting `~` before the
+leading `"""`:
 
 ```
 quotes() ->
@@ -386,19 +404,9 @@ quotes() ->
     io:nl().
 ```
 
-Here follows a few quick examples to show the other sigils.
-
-`~b` creates a binary in the same way as `~B`, except that backslashes
-will be interpreted as an escape character. This can be useful if one
-want to insert control characters such as TAB (`\t`) into a string:
-
-```
-1> ~b"abc\txyz".
-<<"abc\txyz">>
-```
-
-Here we used the `"` character as delimiters as it is not used within
-the string.
+For a triple-quoted string, the default sigil and `~B` always produces
+the same binary. The `~b` sigil can be used when escape characters
+must be supported.
 
 `~s` creates a string in the usual way. The only useful way it differs
 from a plain quoted string is that the delimiters can be switched. That
@@ -406,8 +414,18 @@ way, one can avoid the hassle of escaping quote characters and still
 get to use control characters such as TAB:
 
 ```
-2> ~s{"abc\txyz"}.
+3> ~s{"abc\txyz"}.
 "\"abc\txyz\""
+```
+
+Used for a triple-quoted string it enables the use of escape characters:
+
+```
+4> ~s"""
+    \tabc
+    \tdef
+    """.
+"\tabc\n\tdef"
 ```
 
 `~S` creates a string, but does not support escaping of characters
@@ -416,6 +434,8 @@ within the string, similar to `~B`.
 For more information, see section [Sigil](https://www.erlang.org/doc/reference_manual/data_types#sigil)
 in the Reference Manual.
 
+(**UPDATE**: The description of the default sigil has been corrected. Thanks
+to Richard Carlsson for pointing out this error.)
 
 # No need to enable feature `maybe`
 
