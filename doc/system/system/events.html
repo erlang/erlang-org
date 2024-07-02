@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.32.2">
+    <meta name="project" content="Erlang System Documentation v27.0">
+
+
+    <title>gen_event Behaviour — Erlang System Documentation v27.0</title>
+    <link rel="stylesheet" href="dist/html-erlang-EBZIIHAS.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-K7URE6B4.js"></script>
+    <script src="dist/sidebar_items-976EDCF5.js"></script>
+    <script src="docs_config.js"></script>
+    <script async src="dist/html-BHYOTRCH.js"></script>
+
+
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="Erlang System Documentation" />
+        </a>
+
+      <div>
+        <a href="../index.html" class="sidebar-projectName" translate="no">
+Erlang System Documentation
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v27.0
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of Erlang System Documentation</span>
+            <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+          </label>
+          <button type="submit" class="search-button" aria-label="Submit Search">
+            <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+          </button>
+          <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+            <i class="ri-close-line ri-lg" title="Cancel search"></i>
+          </button>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.0/system/doc/design_principles/events.md#L1" title="View Source" class="icon-action" rel="help">
+        <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        <span class="sr-only">View Source</span>
+      </a>
+
+
+    <span>gen_event Behaviour</span>
+  </h1>
+
+<p><a href="" id="gen_event"></a></p><p>It is recommended to read this section alongside <a href="../../lib/stdlib-6.0/doc/html/gen_event.html"><code class="inline">gen_event</code></a> in STDLIB.</p><h2 id="event-handling-principles" class="section-heading">
+  <a href="#event-handling-principles" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Event Handling Principles</span>
+</h2>
+<p>In OTP, an <em>event manager</em> is a named object to which events can be sent. An
+<em>event</em> can be, for example, an error, an alarm, or some information that is to
+be logged.</p><p>In the event manager, zero, one, or many <em>event handlers</em> are installed. When
+the event manager is notified about an event, the event is processed by all the
+installed event handlers. For example, an event manager for handling errors can
+by default have a handler installed that writes error messages to the
+terminal. If the error messages during a certain period are to be saved to a
+file as well, the user adds another event handler that does this. When logging
+to the file is no longer necessary, this event handler is deleted.</p><p>An event manager is implemented as a process and each event handler is
+implemented as a callback module.</p><p>The event manager essentially maintains a list of <code class="inline">{Module, State}</code> pairs, where
+each <code class="inline">Module</code> is an event handler, and <code class="inline">State</code> is the internal state of that
+event handler.</p><h2 id="example" class="section-heading">
+  <a href="#example" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Example</span>
+</h2>
+<p>The callback module for the event handler writing error messages to the terminal
+can look as follows:</p><pre><code class="makeup erlang" translate="no"><span class="p">-</span><span class="na">module</span><span class="p" data-group-id="2139787084-1">(</span><span class="ss">terminal_logger</span><span class="p" data-group-id="2139787084-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p">-</span><span class="na">behaviour</span><span class="p" data-group-id="2139787084-2">(</span><span class="ss">gen_event</span><span class="p" data-group-id="2139787084-2">)</span><span class="p">.</span><span class="w">
+</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="2139787084-3">(</span><span class="p" data-group-id="2139787084-4">[</span><span class="ss">init</span><span class="p">/</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="ss">handle_event</span><span class="p">/</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="ss">terminate</span><span class="p">/</span><span class="mi">2</span><span class="p" data-group-id="2139787084-4">]</span><span class="p" data-group-id="2139787084-3">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">init</span><span class="p" data-group-id="2139787084-5">(</span><span class="p">_</span><span class="n">Args</span><span class="p" data-group-id="2139787084-5">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="2139787084-6">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2139787084-7">[</span><span class="p" data-group-id="2139787084-7">]</span><span class="p" data-group-id="2139787084-6">}</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">handle_event</span><span class="p" data-group-id="2139787084-8">(</span><span class="n">ErrorMsg</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="2139787084-8">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="2139787084-9">(</span><span class="s">&quot;***Error*** </span><span class="si">~p</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2139787084-10">[</span><span class="n">ErrorMsg</span><span class="p" data-group-id="2139787084-10">]</span><span class="p" data-group-id="2139787084-9">)</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="2139787084-11">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="2139787084-11">}</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">terminate</span><span class="p" data-group-id="2139787084-12">(</span><span class="p">_</span><span class="n">Args</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">State</span><span class="p" data-group-id="2139787084-12">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="ss">ok</span><span class="p">.</span></code></pre><p>The callback module for the event handler writing error messages to a file can
+look as follows:</p><pre><code class="makeup erlang" translate="no"><span class="p">-</span><span class="na">module</span><span class="p" data-group-id="3272888327-1">(</span><span class="ss">file_logger</span><span class="p" data-group-id="3272888327-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p">-</span><span class="na">behaviour</span><span class="p" data-group-id="3272888327-2">(</span><span class="ss">gen_event</span><span class="p" data-group-id="3272888327-2">)</span><span class="p">.</span><span class="w">
+</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="3272888327-3">(</span><span class="p" data-group-id="3272888327-4">[</span><span class="ss">init</span><span class="p">/</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="ss">handle_event</span><span class="p">/</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="ss">terminate</span><span class="p">/</span><span class="mi">2</span><span class="p" data-group-id="3272888327-4">]</span><span class="p" data-group-id="3272888327-3">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">init</span><span class="p" data-group-id="3272888327-5">(</span><span class="n">File</span><span class="p" data-group-id="3272888327-5">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="3272888327-6">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">Fd</span><span class="p" data-group-id="3272888327-6">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">file</span><span class="p">:</span><span class="nf">open</span><span class="p" data-group-id="3272888327-7">(</span><span class="n">File</span><span class="p">,</span><span class="w"> </span><span class="ss">read</span><span class="p" data-group-id="3272888327-7">)</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="3272888327-8">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">Fd</span><span class="p" data-group-id="3272888327-8">}</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">handle_event</span><span class="p" data-group-id="3272888327-9">(</span><span class="n">ErrorMsg</span><span class="p">,</span><span class="w"> </span><span class="n">Fd</span><span class="p" data-group-id="3272888327-9">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="3272888327-10">(</span><span class="n">Fd</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;***Error*** </span><span class="si">~p</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="3272888327-11">[</span><span class="n">ErrorMsg</span><span class="p" data-group-id="3272888327-11">]</span><span class="p" data-group-id="3272888327-10">)</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="3272888327-12">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">Fd</span><span class="p" data-group-id="3272888327-12">}</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">terminate</span><span class="p" data-group-id="3272888327-13">(</span><span class="p">_</span><span class="n">Args</span><span class="p">,</span><span class="w"> </span><span class="n">Fd</span><span class="p" data-group-id="3272888327-13">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">file</span><span class="p">:</span><span class="nf">close</span><span class="p" data-group-id="3272888327-14">(</span><span class="n">Fd</span><span class="p" data-group-id="3272888327-14">)</span><span class="p">.</span></code></pre><p>The code is explained in the next sections.</p><p><a href="" id="mgr"></a></p><h2 id="starting-an-event-manager" class="section-heading">
+  <a href="#starting-an-event-manager" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Starting an Event Manager</span>
+</h2>
+<p>To start an event manager for handling errors, as described in the previous
+example, call the following function:</p><pre><code class="text">gen_event:start_link({local, error_man})</code></pre><p><a href="../../lib/stdlib-6.0/doc/html/gen_event.html#start_link/1"><code class="inline">gen_event:start_link/1</code></a> spawns and links to a new event manager process.</p><p>The argument, <code class="inline">{local, error_man}</code>, specifies the name under which the
+event manager should be locally registered. The name can also be given
+as <code class="inline">{global, Name}</code> to register the event manager globally using
+<a href="../../lib/kernel-10.0/doc/html/global.html#register_name/2"><code class="inline">global:register_name/2</code></a>.</p><p>If the name is omitted, the event manager is not registered. Instead its pid
+must be used.</p><p><a href="../../lib/stdlib-6.0/doc/html/gen_event.html#start_link/1"><code class="inline">gen_event:start_link/1</code></a> must be used if the event manager is part of
+a supervision tree, meaning that it was started by a supervisor. There
+is another function, <a href="../../lib/stdlib-6.0/doc/html/gen_event.html#start/1"><code class="inline">gen_event:start/1</code></a>, to start a standalone event
+manager that is not part of a supervision tree.</p><h2 id="adding-an-event-handler" class="section-heading">
+  <a href="#adding-an-event-handler" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Adding an Event Handler</span>
+</h2>
+<p>The following example shows how to start an event manager and add an event
+handler to it by using the shell:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">1&gt; </span><span class="nc">gen_event</span><span class="p">:</span><span class="nf">start</span><span class="p" data-group-id="2744857446-1">(</span><span class="p" data-group-id="2744857446-2">{</span><span class="ss">local</span><span class="p">,</span><span class="w"> </span><span class="ss">error_man</span><span class="p" data-group-id="2744857446-2">}</span><span class="p" data-group-id="2744857446-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="2744857446-3">{</span><span class="ss">ok</span><span class="p">,</span><span class="o">&lt;</span><span class="mf">0.31</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="p" data-group-id="2744857446-3">}</span><span class="gp unselectable">
+2&gt; </span><span class="nc">gen_event</span><span class="p">:</span><span class="nf">add_handler</span><span class="p" data-group-id="2744857446-4">(</span><span class="ss">error_man</span><span class="p">,</span><span class="w"> </span><span class="ss">terminal_logger</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2744857446-5">[</span><span class="p" data-group-id="2744857446-5">]</span><span class="p" data-group-id="2744857446-4">)</span><span class="p">.</span><span class="w">
+</span><span class="ss">ok</span></code></pre><p>This function sends a message to the event manager registered as <code class="inline">error_man</code>,
+telling it to add the event handler <code class="inline">terminal_logger</code>. The event manager calls
+the callback function <code class="inline">terminal_logger:init([])</code>, where the argument <code class="inline">[]</code> is the
+third argument to <code class="inline">add_handler</code>. <code class="inline">init/1</code> is expected to return <code class="inline">{ok, State}</code>,
+where <code class="inline">State</code> is the internal state of the event handler.</p><pre><code class="makeup erlang" translate="no"><span class="nf">init</span><span class="p" data-group-id="1023036540-1">(</span><span class="p">_</span><span class="n">Args</span><span class="p" data-group-id="1023036540-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="1023036540-2">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1023036540-3">[</span><span class="p" data-group-id="1023036540-3">]</span><span class="p" data-group-id="1023036540-2">}</span><span class="p">.</span></code></pre><p>Here, <code class="inline">init/1</code> does not need any input data and ignores its argument. For
+<code class="inline">terminal_logger</code>, the internal state is not used. For <code class="inline">file_logger</code>, the
+internal state is used to save the open file descriptor.</p><pre><code class="makeup erlang" translate="no"><span class="nf">init</span><span class="p" data-group-id="2286285233-1">(</span><span class="n">File</span><span class="p" data-group-id="2286285233-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="2286285233-2">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">Fd</span><span class="p" data-group-id="2286285233-2">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">file</span><span class="p">:</span><span class="nf">open</span><span class="p" data-group-id="2286285233-3">(</span><span class="n">File</span><span class="p">,</span><span class="w"> </span><span class="ss">read</span><span class="p" data-group-id="2286285233-3">)</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="2286285233-4">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">Fd</span><span class="p" data-group-id="2286285233-4">}</span><span class="p">.</span></code></pre><h2 id="notifying-about-events" class="section-heading">
+  <a href="#notifying-about-events" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Notifying about Events</span>
+</h2>
+<pre><code class="text">3&gt; gen_event:notify(error_man, no_reply).
+***Error*** no_reply
+ok</code></pre><p><code class="inline">error_man</code> is the name of the event manager and <code class="inline">no_reply</code> is the event.</p><p>The event is made into a message and sent to the event manager. When the event
+is received, the event manager calls <code class="inline">handle_event(Event, State)</code> for each
+installed event handler, in the same order as they were added. The function is
+expected to return a tuple <code class="inline">{ok,State1}</code>, where <code class="inline">State1</code> is a new value for the
+state of the event handler.</p><p>In <code class="inline">terminal_logger</code>:</p><pre><code class="makeup erlang" translate="no"><span class="nf">handle_event</span><span class="p" data-group-id="0505834275-1">(</span><span class="n">ErrorMsg</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="0505834275-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="0505834275-2">(</span><span class="s">&quot;***Error*** </span><span class="si">~p</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0505834275-3">[</span><span class="n">ErrorMsg</span><span class="p" data-group-id="0505834275-3">]</span><span class="p" data-group-id="0505834275-2">)</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="0505834275-4">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="0505834275-4">}</span><span class="p">.</span></code></pre><p>In <code class="inline">file_logger</code>:</p><pre><code class="makeup erlang" translate="no"><span class="nf">handle_event</span><span class="p" data-group-id="4213381968-1">(</span><span class="n">ErrorMsg</span><span class="p">,</span><span class="w"> </span><span class="n">Fd</span><span class="p" data-group-id="4213381968-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="4213381968-2">(</span><span class="n">Fd</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;***Error*** </span><span class="si">~p</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="4213381968-3">[</span><span class="n">ErrorMsg</span><span class="p" data-group-id="4213381968-3">]</span><span class="p" data-group-id="4213381968-2">)</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="4213381968-4">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">Fd</span><span class="p" data-group-id="4213381968-4">}</span><span class="p">.</span></code></pre><h2 id="deleting-an-event-handler" class="section-heading">
+  <a href="#deleting-an-event-handler" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Deleting an Event Handler</span>
+</h2>
+<pre><code class="makeup erlang" translate="no"><span class="gp unselectable">4&gt; </span><span class="nc">gen_event</span><span class="p">:</span><span class="nf">delete_handler</span><span class="p" data-group-id="4788160246-1">(</span><span class="ss">error_man</span><span class="p">,</span><span class="w"> </span><span class="ss">terminal_logger</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="4788160246-2">[</span><span class="p" data-group-id="4788160246-2">]</span><span class="p" data-group-id="4788160246-1">)</span><span class="p">.</span><span class="w">
+</span><span class="ss">ok</span></code></pre><p>This function sends a message to the event manager registered as <code class="inline">error_man</code>,
+telling it to delete the event handler <code class="inline">terminal_logger</code>. The event manager
+calls the callback function <code class="inline">terminal_logger:terminate([], State)</code>, where the
+argument <code class="inline">[]</code> is the third argument to <code class="inline">delete_handler</code>. <code class="inline">terminate/2</code> is to be
+the opposite of <code class="inline">init/1</code> and do any necessary cleaning up. Its return value is
+ignored.</p><p>For <code class="inline">terminal_logger</code>, no cleaning up is necessary:</p><pre><code class="makeup erlang" translate="no"><span class="nf">terminate</span><span class="p" data-group-id="7056547468-1">(</span><span class="p">_</span><span class="n">Args</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">State</span><span class="p" data-group-id="7056547468-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="ss">ok</span><span class="p">.</span></code></pre><p>For <code class="inline">file_logger</code>, the file descriptor opened in <code class="inline">init</code> must be closed:</p><pre><code class="makeup erlang" translate="no"><span class="nf">terminate</span><span class="p" data-group-id="4247588438-1">(</span><span class="p">_</span><span class="n">Args</span><span class="p">,</span><span class="w"> </span><span class="n">Fd</span><span class="p" data-group-id="4247588438-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">file</span><span class="p">:</span><span class="nf">close</span><span class="p" data-group-id="4247588438-2">(</span><span class="n">Fd</span><span class="p" data-group-id="4247588438-2">)</span><span class="p">.</span></code></pre><h2 id="stopping" class="section-heading">
+  <a href="#stopping" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Stopping</span>
+</h2>
+<p>When an event manager is stopped, it gives each of the installed event handlers
+the chance to clean up by calling <code class="inline">terminate/2</code>, the same way as when deleting a
+handler.</p><h3 id="in-a-supervision-tree" class="section-heading">
+  <a href="#in-a-supervision-tree" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">In a Supervision Tree</span>
+</h3>
+<p>If the event manager is part of a supervision tree, no stop function is needed.
+The event manager is automatically terminated by its supervisor. Exactly how
+this is done is defined by a <a href="sup_princ.html#shutdown">shutdown strategy</a> set in
+the supervisor.</p><h3 id="standalone-event-managers" class="section-heading">
+  <a href="#standalone-event-managers" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Standalone Event Managers</span>
+</h3>
+<p>An event manager can also be stopped by calling:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">1&gt; </span><span class="nc">gen_event</span><span class="p">:</span><span class="nf">stop</span><span class="p" data-group-id="1459973702-1">(</span><span class="ss">error_man</span><span class="p" data-group-id="1459973702-1">)</span><span class="p">.</span><span class="w">
+</span><span class="ss">ok</span></code></pre><h2 id="handling-other-messages" class="section-heading">
+  <a href="#handling-other-messages" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Handling Other Messages</span>
+</h2>
+<p>If the <code class="inline">gen_event</code> process is to be able to receive other messages
+than events, the callback function <code class="inline">handle_info(Info, State)</code> must be
+implemented to handle them. Examples of other messages are exit
+messages if the event manager is linked to other processes than the
+supervisor (for example via <a href="../../lib/stdlib-6.0/doc/html/gen_event.html#add_sup_handler/3"><code class="inline">gen_event:add_sup_handler/3</code></a>) and is
+trapping exit signals.</p><pre><code class="makeup erlang" translate="no"><span class="nf">handle_info</span><span class="p" data-group-id="5728576982-1">(</span><span class="p" data-group-id="5728576982-2">{</span><span class="ss">&#39;EXIT&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">Pid</span><span class="p">,</span><span class="w"> </span><span class="n">Reason</span><span class="p" data-group-id="5728576982-2">}</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="5728576982-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="c1">%% Code to handle exits here.</span><span class="w">
+    </span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="w">
+    </span><span class="p" data-group-id="5728576982-3">{</span><span class="ss">noreply</span><span class="p">,</span><span class="w"> </span><span class="n">State1</span><span class="p" data-group-id="5728576982-3">}</span><span class="p">.</span></code></pre><p>The final function to implement is <code class="inline">code_change/3</code>:</p><pre><code class="makeup erlang" translate="no"><span class="nf">code_change</span><span class="p" data-group-id="3210030104-1">(</span><span class="n">OldVsn</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p">,</span><span class="w"> </span><span class="n">Extra</span><span class="p" data-group-id="3210030104-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="c1">%% Code to convert state (and more) during code change.</span><span class="w">
+    </span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="w">
+    </span><span class="p" data-group-id="3210030104-2">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">NewState</span><span class="p" data-group-id="3210030104-2">}</span><span class="p">.</span></code></pre>
+</div>
+
+<div class="bottom-actions" id="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="statem.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+gen_statem Behaviour
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="sup_princ.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+Supervisor Behaviour
+        </span>
+      </a>
+
+  </div>
+</div>
+    <footer class="footer">
+      <p>
+
+        <span class="line">
+          <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+            Search HexDocs
+          </button>
+
+            <a href="Erlang System Documentation.epub" title="ePub version">
+              Download ePub version
+            </a>
+
+        </span>
+      </p>
+
+      <p class="built-using">
+        Built using
+        <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.32.2) for the
+
+          <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+      </p>
+<p>Copyright © 1996-2023 <a href="https://www.ericsson.com">Ericsson AB</a></p>
+    </footer>
+  </div>
+</main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: document.body.className.includes("dark") ? "dark" : "default"
+    });
+    let id = 0;
+    for (const codeEl of document.querySelectorAll("pre code.mermaid")) {
+      const preEl = codeEl.parentElement;
+      const graphDefinition = codeEl.textContent;
+      const graphEl = document.createElement("div");
+      const graphId = "mermaid-graph-" + id++;
+      mermaid.render(graphId, graphDefinition).then(({svg, bindFunctions}) => {
+        graphEl.innerHTML = svg;
+        bindFunctions?.(graphEl);
+        preEl.insertAdjacentElement("afterend", graphEl);
+        preEl.remove();
+      });
+    }
+  });
+</script>
+
+  </body>
+</html>

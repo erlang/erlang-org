@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.32.2">
+    <meta name="project" content="Erlang System Documentation v27.0">
+
+
+    <title>Constructing and Matching Binaries — Erlang System Documentation v27.0</title>
+    <link rel="stylesheet" href="dist/html-erlang-EBZIIHAS.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-K7URE6B4.js"></script>
+    <script src="dist/sidebar_items-976EDCF5.js"></script>
+    <script src="docs_config.js"></script>
+    <script async src="dist/html-BHYOTRCH.js"></script>
+
+
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="Erlang System Documentation" />
+        </a>
+
+      <div>
+        <a href="../index.html" class="sidebar-projectName" translate="no">
+Erlang System Documentation
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v27.0
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of Erlang System Documentation</span>
+            <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+          </label>
+          <button type="submit" class="search-button" aria-label="Submit Search">
+            <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+          </button>
+          <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+            <i class="ri-close-line ri-lg" title="Cancel search"></i>
+          </button>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.0/system/doc/efficiency_guide/binaryhandling.md#L1" title="View Source" class="icon-action" rel="help">
+        <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        <span class="sr-only">View Source</span>
+      </a>
+
+
+    <span>Constructing and Matching Binaries</span>
+  </h1>
+
+<p>This section gives a few examples on how to handle binaries in an efficient way.
+The sections that follow take an in-depth look at how binaries are implemented
+and how to best take advantages of the optimizations done by the compiler and
+runtime system.</p><p>Binaries can be efficiently <em>built</em> in the following way:</p><p><strong>DO</strong></p><pre><code class="makeup erlang" translate="no"><span class="nf">my_list_to_binary</span><span class="p" data-group-id="5969745245-1">(</span><span class="n">List</span><span class="p" data-group-id="5969745245-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">my_list_to_binary</span><span class="p" data-group-id="5969745245-2">(</span><span class="n">List</span><span class="p">,</span><span class="w"> </span><span class="p">&lt;&lt;</span><span class="p">&gt;&gt;</span><span class="p" data-group-id="5969745245-2">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">my_list_to_binary</span><span class="p" data-group-id="5969745245-3">(</span><span class="p" data-group-id="5969745245-4">[</span><span class="n">H</span><span class="p">|</span><span class="n">T</span><span class="p" data-group-id="5969745245-4">]</span><span class="p">,</span><span class="w"> </span><span class="n">Acc</span><span class="p" data-group-id="5969745245-3">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">my_list_to_binary</span><span class="p" data-group-id="5969745245-5">(</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="p">&lt;&lt;</span><span class="n">Acc</span><span class="o">/</span><span class="ss">binary</span><span class="p">,</span><span class="n">H</span><span class="p">&gt;&gt;</span><span class="p" data-group-id="5969745245-5">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">my_list_to_binary</span><span class="p" data-group-id="5969745245-6">(</span><span class="p" data-group-id="5969745245-7">[</span><span class="p" data-group-id="5969745245-7">]</span><span class="p">,</span><span class="w"> </span><span class="n">Acc</span><span class="p" data-group-id="5969745245-6">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">Acc</span><span class="p">.</span></code></pre><p>Appending data to a binary as in the example is efficient because it is
+specially optimized by the runtime system to avoid copying the <code class="inline">Acc</code> binary
+every time.</p><p>Prepending data to a binary in a loop is not efficient:</p><p><strong>DO NOT</strong></p><pre><code class="makeup erlang" translate="no"><span class="nf">rev_list_to_binary</span><span class="p" data-group-id="9310035254-1">(</span><span class="n">List</span><span class="p" data-group-id="9310035254-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">rev_list_to_binary</span><span class="p" data-group-id="9310035254-2">(</span><span class="n">List</span><span class="p">,</span><span class="w"> </span><span class="p">&lt;&lt;</span><span class="p">&gt;&gt;</span><span class="p" data-group-id="9310035254-2">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">rev_list_to_binary</span><span class="p" data-group-id="9310035254-3">(</span><span class="p" data-group-id="9310035254-4">[</span><span class="n">H</span><span class="p">|</span><span class="n">T</span><span class="p" data-group-id="9310035254-4">]</span><span class="p">,</span><span class="w"> </span><span class="n">Acc</span><span class="p" data-group-id="9310035254-3">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">rev_list_to_binary</span><span class="p" data-group-id="9310035254-5">(</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="p">&lt;&lt;</span><span class="n">H</span><span class="p">,</span><span class="n">Acc</span><span class="o">/</span><span class="ss">binary</span><span class="p">&gt;&gt;</span><span class="p" data-group-id="9310035254-5">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">rev_list_to_binary</span><span class="p" data-group-id="9310035254-6">(</span><span class="p" data-group-id="9310035254-7">[</span><span class="p" data-group-id="9310035254-7">]</span><span class="p">,</span><span class="w"> </span><span class="n">Acc</span><span class="p" data-group-id="9310035254-6">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">Acc</span><span class="p">.</span></code></pre><p>This is not efficient for long lists because the <code class="inline">Acc</code> binary is copied every
+time. One way to make the function more efficient is like this:</p><p><strong>DO NOT</strong></p><pre><code class="makeup erlang" translate="no"><span class="nf">rev_list_to_binary</span><span class="p" data-group-id="0439349847-1">(</span><span class="n">List</span><span class="p" data-group-id="0439349847-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">rev_list_to_binary</span><span class="p" data-group-id="0439349847-2">(</span><span class="nc">lists</span><span class="p">:</span><span class="nf">reverse</span><span class="p" data-group-id="0439349847-3">(</span><span class="n">List</span><span class="p" data-group-id="0439349847-3">)</span><span class="p">,</span><span class="w"> </span><span class="p">&lt;&lt;</span><span class="p">&gt;&gt;</span><span class="p" data-group-id="0439349847-2">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">rev_list_to_binary</span><span class="p" data-group-id="0439349847-4">(</span><span class="p" data-group-id="0439349847-5">[</span><span class="n">H</span><span class="p">|</span><span class="n">T</span><span class="p" data-group-id="0439349847-5">]</span><span class="p">,</span><span class="w"> </span><span class="n">Acc</span><span class="p" data-group-id="0439349847-4">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">rev_list_to_binary</span><span class="p" data-group-id="0439349847-6">(</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="p">&lt;&lt;</span><span class="n">Acc</span><span class="o">/</span><span class="ss">binary</span><span class="p">,</span><span class="n">H</span><span class="p">&gt;&gt;</span><span class="p" data-group-id="0439349847-6">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">rev_list_to_binary</span><span class="p" data-group-id="0439349847-7">(</span><span class="p" data-group-id="0439349847-8">[</span><span class="p" data-group-id="0439349847-8">]</span><span class="p">,</span><span class="w"> </span><span class="n">Acc</span><span class="p" data-group-id="0439349847-7">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">Acc</span><span class="p">.</span></code></pre><p>Another way to avoid copying the binary each time is like this:</p><p><strong>DO</strong></p><pre><code class="makeup erlang" translate="no"><span class="nf">rev_list_to_binary</span><span class="p" data-group-id="6049088444-1">(</span><span class="p" data-group-id="6049088444-2">[</span><span class="n">H</span><span class="p">|</span><span class="n">T</span><span class="p" data-group-id="6049088444-2">]</span><span class="p" data-group-id="6049088444-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">RevTail</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">rev_list_to_binary</span><span class="p" data-group-id="6049088444-3">(</span><span class="n">T</span><span class="p" data-group-id="6049088444-3">)</span><span class="p">,</span><span class="w">
+    </span><span class="p">&lt;&lt;</span><span class="n">RevTail</span><span class="o">/</span><span class="ss">binary</span><span class="p">,</span><span class="n">H</span><span class="p">&gt;&gt;</span><span class="p">;</span><span class="w">
+</span><span class="nf">rev_list_to_binary</span><span class="p" data-group-id="6049088444-4">(</span><span class="p" data-group-id="6049088444-5">[</span><span class="p" data-group-id="6049088444-5">]</span><span class="p" data-group-id="6049088444-4">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p">&lt;&lt;</span><span class="p">&gt;&gt;</span><span class="p">.</span></code></pre><p>Note that in each of the <strong>DO</strong> examples, the binary to be appended to is always
+given as the first segment.</p><p>Binaries can be efficiently <em>matched</em> in the following way:</p><p><strong>DO</strong></p><pre><code class="makeup erlang" translate="no"><span class="nf">my_binary_to_list</span><span class="p" data-group-id="1753903133-1">(</span><span class="p">&lt;&lt;</span><span class="n">H</span><span class="p">,</span><span class="n">T</span><span class="o">/</span><span class="ss">binary</span><span class="p">&gt;&gt;</span><span class="p" data-group-id="1753903133-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="1753903133-2">[</span><span class="n">H</span><span class="p">|</span><span class="nf">my_binary_to_list</span><span class="p" data-group-id="1753903133-3">(</span><span class="n">T</span><span class="p" data-group-id="1753903133-3">)</span><span class="p" data-group-id="1753903133-2">]</span><span class="p">;</span><span class="w">
+</span><span class="nf">my_binary_to_list</span><span class="p" data-group-id="1753903133-4">(</span><span class="p">&lt;&lt;</span><span class="p">&gt;&gt;</span><span class="p" data-group-id="1753903133-4">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="p" data-group-id="1753903133-5">[</span><span class="p" data-group-id="1753903133-5">]</span><span class="p">.</span></code></pre><h2 id="how-binaries-are-implemented" class="section-heading">
+  <a href="#how-binaries-are-implemented" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">How Binaries are Implemented</span>
+</h2>
+<p>Internally, binaries and bitstrings are implemented in the same way. In this
+section, they are called <em>binaries</em> because that is what they are called in the
+emulator source code.</p><p>Four types of binary objects are available internally:</p><ul><li><p>Two are containers for binary data and are called:</p><ul><li><em>Refc binaries</em> (short for <em>reference-counted binaries</em>)</li><li><em>Heap binaries</em></li></ul></li><li><p>Two are merely references to a part of a binary and are called:</p><ul><li><em>sub binaries</em></li><li><em>match contexts</em></li></ul></li></ul><blockquote><h4 class="info">Change</h4><p>In Erlang/OTP 27, the handling of binaries and bitstrings were
+rewritten. To fully leverage those changes in the run-time system,
+the compiler needs to be updated, which is planned for a future
+release.</p><p>Since, practically speaking, not much have changed from an efficiency
+and optimization perspective, the following description has not yet
+been updated to describe the implementation in Erlang/OTP 27.</p></blockquote><p><a href="" id="refc_binary"></a></p><h3 id="refc-binaries" class="section-heading">
+  <a href="#refc-binaries" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Refc Binaries</span>
+</h3>
+<p>Refc binaries consist of two parts:</p><ul><li>An object stored on the process heap, called a <em>ProcBin</em></li><li>The binary object itself, stored outside all process heaps</li></ul><p>The binary object can be referenced by any number of ProcBins from any number of
+processes. The object contains a reference counter to keep track of the number
+of references, so that it can be removed when the last reference disappears.</p><p>All ProcBin objects in a process are part of a linked list, so that the garbage
+collector can keep track of them and decrement the reference counters in the
+binary when a ProcBin disappears.</p><p><a href="" id="heap_binary"></a></p><h3 id="heap-binaries" class="section-heading">
+  <a href="#heap-binaries" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Heap Binaries</span>
+</h3>
+<p>Heap binaries are small binaries, up to 64 bytes, and are stored directly on the
+process heap. They are copied when the process is garbage-collected and when
+they are sent as a message. They do not require any special handling by the
+garbage collector.</p><h3 id="sub-binaries" class="section-heading">
+  <a href="#sub-binaries" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Sub Binaries</span>
+</h3>
+<p>The reference objects <em>sub binaries</em> and <em>match contexts</em> can reference part of
+a refc binary or heap binary.</p><p><a href="" id="sub_binary"></a> A <em>sub binary</em> is created by
+<a href="../../erts-15.0/doc/html/erlang.html#split_binary/2"><code class="inline">split_binary/2</code></a> and when a binary is matched out in a
+binary pattern. A sub binary is a reference into a part of another binary (refc
+or heap binary, but never into another sub binary). Therefore, matching out a
+binary is relatively cheap because the actual binary data is never copied.</p><p><a href="" id="match_context"></a></p><h3 id="match-context" class="section-heading">
+  <a href="#match-context" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Match Context</span>
+</h3>
+<p>A <em>match context</em> is similar to a sub binary, but is optimized for binary
+matching. For example, it contains a direct pointer to the binary data. For each
+field that is matched out of a binary, the position in the match context is
+incremented.</p><p>The compiler tries to avoid generating code that creates a sub binary, only to
+shortly afterwards create a new match context and discard the sub binary.
+Instead of creating a sub binary, the match context is kept.</p><p>The compiler can only do this optimization if it knows that the match context
+will not be shared. If it would be shared, the functional properties (also
+called referential transparency) of Erlang would break.</p><h2 id="constructing-binaries" class="section-heading">
+  <a href="#constructing-binaries" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Constructing Binaries</span>
+</h2>
+<p>Appending to a binary or bitstring in the following way is specially optimized
+to avoid copying the binary:</p><pre><code class="makeup erlang" translate="no"><span class="p">&lt;&lt;</span><span class="n">Binary</span><span class="o">/</span><span class="ss">binary</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p">&gt;&gt;</span><span class="w">
+</span><span class="c1">%% - OR -</span><span class="w">
+</span><span class="p">&lt;&lt;</span><span class="n">Binary</span><span class="o">/</span><span class="ss">bitstring</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p">&gt;&gt;</span></code></pre><p>This optimization is applied by the runtime system in a way that makes it
+effective in most circumstances (for exceptions, see
+<a href="binaryhandling.html#forced_copying">Circumstances That Force Copying</a>). The
+optimization in its basic form does not need any help from the compiler.
+However, the compiler add hints to the runtime system when it is safe to apply
+the optimization in a more efficient way.</p><blockquote><h4 class="info">Change</h4><p>The compiler support for making the optimization more efficient was added in
+Erlang/OTP 26.</p></blockquote><p>To explain how the basic optimization works, let us examine the following code
+line by line:</p><pre><code class="makeup erlang" translate="no"><span class="n">Bin0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">&lt;&lt;</span><span class="mi">0</span><span class="p">&gt;&gt;</span><span class="p">,</span><span class="w">                    </span><span class="c1">%% 1</span><span class="w">
+</span><span class="n">Bin1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">&lt;&lt;</span><span class="n">Bin0</span><span class="o">/</span><span class="ss">binary</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">&gt;&gt;</span><span class="p">,</span><span class="w">    </span><span class="c1">%% 2</span><span class="w">
+</span><span class="n">Bin2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">&lt;&lt;</span><span class="n">Bin1</span><span class="o">/</span><span class="ss">binary</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">&gt;&gt;</span><span class="p">,</span><span class="w">    </span><span class="c1">%% 3</span><span class="w">
+</span><span class="n">Bin3</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">&lt;&lt;</span><span class="n">Bin2</span><span class="o">/</span><span class="ss">binary</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">9</span><span class="p">&gt;&gt;</span><span class="p">,</span><span class="w">    </span><span class="c1">%% 4</span><span class="w">
+</span><span class="n">Bin4</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">&lt;&lt;</span><span class="n">Bin1</span><span class="o">/</span><span class="ss">binary</span><span class="p">,</span><span class="mi">17</span><span class="p">&gt;&gt;</span><span class="p">,</span><span class="w">       </span><span class="c1">%% 5 !!!</span><span class="w">
+</span><span class="p" data-group-id="1794725569-1">{</span><span class="n">Bin4</span><span class="p">,</span><span class="n">Bin3</span><span class="p" data-group-id="1794725569-1">}</span><span class="w">                      </span><span class="c1">%% 6</span></code></pre><ul><li><p>Line 1 (marked with the <code class="inline">%% 1</code> comment), assigns a
+<a href="binaryhandling.html#heap_binary">heap binary</a> to the <code class="inline">Bin0</code> variable.</p></li><li><p>Line 2 is an append operation. As <code class="inline">Bin0</code> has not been involved in an append
+operation, a new <a href="binaryhandling.html#refc_binary">refc binary</a> is created and
+the contents of <code class="inline">Bin0</code> is copied into it. The <em>ProcBin</em> part of the refc
+binary has its size set to the size of the data stored in the binary, while
+the binary object has extra space allocated. The size of the binary object is
+either twice the size of <code class="inline">Bin1</code> or 256, whichever is larger. In this case it
+is 256.</p></li><li><p>Line 3 is more interesting. <code class="inline">Bin1</code> <em>has</em> been used in an append operation, and
+it has 252 bytes of unused storage at the end, so the 3 new bytes are stored
+there.</p></li><li><p>Line 4. The same applies here. There are 249 bytes left, so there is no
+problem storing another 3 bytes.</p></li><li><p>Line 5. Here something <em>interesting</em> happens. Notice that the result is not
+appended to the previous result in <code class="inline">Bin3</code>, but to <code class="inline">Bin1</code>. It is expected that
+<code class="inline">Bin4</code> will be assigned the value <code class="inline">&lt;&lt;0,1,2,3,17&gt;&gt;</code>. It is also expected that
+<code class="inline">Bin3</code> will retain its value (<code class="inline">&lt;&lt;0,1,2,3,4,5,6,7,8,9&gt;&gt;</code>). Clearly, the runtime
+system cannot write byte <code class="inline">17</code> into the binary, because that would change the
+value of <code class="inline">Bin3</code> to <code class="inline">&lt;&lt;0,1,2,3,4,17,6,7,8,9&gt;&gt;</code>.</p><p>To ensure that the value of <code class="inline">Bin3</code> is retained, the runtime system <em>copies</em>
+the contents of <code class="inline">Bin1</code> to a new refc binary before storing the <code class="inline">17</code> byte.</p><p>Here is not explained how the runtime system can know that it is not allowed
+to write into <code class="inline">Bin1</code>; it is left as an exercise to the curious reader to
+figure out how it is done by reading the emulator sources, primarily
+<code class="inline">erl_bits.c</code>.</p></li></ul><h3 id="compiler-support-for-constructing-binaries" class="section-heading">
+  <a href="#compiler-support-for-constructing-binaries" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Compiler Support For Constructing Binaries</span>
+</h3>
+<blockquote><h4 class="info">Change</h4><p>The compiler support for making the optimization more efficient was added in
+Erlang/OTP 26.</p></blockquote><p>In the example in the previous section, it was shown that the runtime system can
+handle an append operation to a heap binary by copying it to a refc binary (line
+2), and also handle an append operation to a previous version of the binary by
+copying it (line 5). The support for doing that does not come for free. For
+example, to make it possible to know when it is necessary to copy the binary,
+for every append operation, the runtime system must create a sub binary.</p><p>When the compiler can determine that none of those situations need to be handled
+and that the append operation cannot possibly fail, the compiler generates code
+that causes the runtime system to apply a more efficient variant of the
+optimization.</p><p><strong>Example:</strong></p><pre><code class="makeup erlang" translate="no"><span class="p">-</span><span class="na">module</span><span class="p" data-group-id="4825850357-1">(</span><span class="ss">repack</span><span class="p" data-group-id="4825850357-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="4825850357-2">(</span><span class="p" data-group-id="4825850357-3">[</span><span class="ss">repack</span><span class="p">/</span><span class="mi">1</span><span class="p" data-group-id="4825850357-3">]</span><span class="p" data-group-id="4825850357-2">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">repack</span><span class="p" data-group-id="4825850357-4">(</span><span class="n">Bin</span><span class="p" data-group-id="4825850357-4">)</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="nf">is_binary</span><span class="p" data-group-id="4825850357-5">(</span><span class="n">Bin</span><span class="p" data-group-id="4825850357-5">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">repack</span><span class="p" data-group-id="4825850357-6">(</span><span class="n">Bin</span><span class="p">,</span><span class="w"> </span><span class="p">&lt;&lt;</span><span class="p">&gt;&gt;</span><span class="p" data-group-id="4825850357-6">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">repack</span><span class="p" data-group-id="4825850357-7">(</span><span class="p">&lt;&lt;</span><span class="n">C</span><span class="p">:</span><span class="mi">8</span><span class="p">,</span><span class="n">T</span><span class="o">/</span><span class="ss">binary</span><span class="p">&gt;&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">Result</span><span class="p" data-group-id="4825850357-7">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">repack</span><span class="p" data-group-id="4825850357-8">(</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="p">&lt;&lt;</span><span class="n">Result</span><span class="o">/</span><span class="ss">binary</span><span class="p">,</span><span class="n">C</span><span class="p">:</span><span class="mi">16</span><span class="p">&gt;&gt;</span><span class="p" data-group-id="4825850357-8">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">repack</span><span class="p" data-group-id="4825850357-9">(</span><span class="p">&lt;&lt;</span><span class="p">&gt;&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">Result</span><span class="p" data-group-id="4825850357-9">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">Result</span><span class="p">.</span></code></pre><p>The <code class="inline">repack/2</code> function only keeps a single version of the binary, so there is
+never any need to copy the binary. The compiler rewrites the creation of the
+empty binary in <code class="inline">repack/1</code> to instead create a refc binary with 256 bytes
+already reserved; thus, the append operation in <code class="inline">repack/2</code> never needs to handle
+a binary not prepared for appending.</p><p><a href="" id="forced_copying"></a></p><h3 id="circumstances-that-force-copying" class="section-heading">
+  <a href="#circumstances-that-force-copying" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Circumstances That Force Copying</span>
+</h3>
+<p>The optimization of the binary append operation requires that there is a
+<em>single</em> ProcBin and a <em>single reference</em> to the ProcBin for the binary. The
+reason is that the binary object can be moved (reallocated) during an append
+operation, and when that happens, the pointer in the ProcBin must be updated. If
+there would be more than one ProcBin pointing to the binary object, it would not
+be possible to find and update all of them.</p><p>Therefore, certain operations on a binary mark it so that any future append
+operation will be forced to copy the binary. In most cases, the binary object
+will be shrunk at the same time to reclaim the extra space allocated for
+growing.</p><p>When appending to a binary as follows, only the binary returned from the latest
+append operation will support further cheap append operations:</p><pre><code class="makeup erlang" translate="no"><span class="n">Bin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">&lt;&lt;</span><span class="n">Bin0</span><span class="p">,</span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p">&gt;&gt;</span></code></pre><p>In the code fragment in the beginning of this section, appending to <code class="inline">Bin</code> will
+be cheap, while appending to <code class="inline">Bin0</code> will force the creation of a new binary and
+copying of the contents of <code class="inline">Bin0</code>.</p><p>If a binary is sent as a message to a process or port, the binary will be shrunk
+and any further append operation will copy the binary data into a new binary.
+For example, in the following code fragment <code class="inline">Bin1</code> will be copied in the third
+line:</p><pre><code class="makeup erlang" translate="no"><span class="n">Bin1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">&lt;&lt;</span><span class="n">Bin0</span><span class="p">,</span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p">&gt;&gt;</span><span class="p">,</span><span class="w">
+</span><span class="n">PortOrPid</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="n">Bin1</span><span class="p">,</span><span class="w">
+</span><span class="n">Bin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">&lt;&lt;</span><span class="n">Bin1</span><span class="p">,</span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p">&gt;&gt;</span><span class="w">  </span><span class="c1">%% Bin1 will be COPIED</span></code></pre><p>The same happens if you insert a binary into an Ets table, send it to a port
+using <a href="../../erts-15.0/doc/html/erlang.html#port_command/2"><code class="inline">erlang:port_command/2</code></a>, or pass it to
+<a href="../../erts-15.0/doc/html/erl_nif.html#enif_inspect_binary">enif_inspect_binary</a> in a NIF.</p><p>Matching a binary will also cause it to shrink and the next append operation
+will copy the binary data:</p><pre><code class="makeup erlang" translate="no"><span class="n">Bin1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">&lt;&lt;</span><span class="n">Bin0</span><span class="p">,</span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p">&gt;&gt;</span><span class="p">,</span><span class="w">
+</span><span class="p">&lt;&lt;</span><span class="n">X</span><span class="p">,</span><span class="n">Y</span><span class="p">,</span><span class="n">Z</span><span class="p">,</span><span class="n">T</span><span class="o">/</span><span class="ss">binary</span><span class="p">&gt;&gt;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Bin1</span><span class="p">,</span><span class="w">
+</span><span class="n">Bin</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">&lt;&lt;</span><span class="n">Bin1</span><span class="p">,</span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p">&gt;&gt;</span><span class="w">  </span><span class="c1">%% Bin1 will be COPIED</span></code></pre><p>The reason is that a <a href="binaryhandling.html#match_context">match context</a> contains a
+direct pointer to the binary data.</p><p>If a process simply keeps binaries (either in &quot;loop data&quot; or in the process
+dictionary), the garbage collector can eventually shrink the binaries. If only
+one such binary is kept, it will not be shrunk. If the process later appends to
+a binary that has been shrunk, the binary object will be reallocated to make
+place for the data to be appended.</p><h2 id="matching-binaries" class="section-heading">
+  <a href="#matching-binaries" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Matching Binaries</span>
+</h2>
+<p>Let us revisit the example in the beginning of the previous section:</p><p><strong>DO</strong></p><pre><code class="makeup erlang" translate="no"><span class="nf">my_binary_to_list</span><span class="p" data-group-id="7996194030-1">(</span><span class="p">&lt;&lt;</span><span class="n">H</span><span class="p">,</span><span class="n">T</span><span class="o">/</span><span class="ss">binary</span><span class="p">&gt;&gt;</span><span class="p" data-group-id="7996194030-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="7996194030-2">[</span><span class="n">H</span><span class="p">|</span><span class="nf">my_binary_to_list</span><span class="p" data-group-id="7996194030-3">(</span><span class="n">T</span><span class="p" data-group-id="7996194030-3">)</span><span class="p" data-group-id="7996194030-2">]</span><span class="p">;</span><span class="w">
+</span><span class="nf">my_binary_to_list</span><span class="p" data-group-id="7996194030-4">(</span><span class="p">&lt;&lt;</span><span class="p">&gt;&gt;</span><span class="p" data-group-id="7996194030-4">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="p" data-group-id="7996194030-5">[</span><span class="p" data-group-id="7996194030-5">]</span><span class="p">.</span></code></pre><p>The first time <code class="inline">my_binary_to_list/1</code> is called, a
+<a href="binaryhandling.html#match_context">match context</a> is created. The match context
+points to the first byte of the binary. 1 byte is matched out and the match
+context is updated to point to the second byte in the binary.</p><p>At this point it would make sense to create a
+<a href="binaryhandling.html#sub_binary">sub binary</a>, but in this particular example the
+compiler sees that there will soon be a call to a function (in this case, to
+<code class="inline">my_binary_to_list/1</code> itself) that immediately will create a new match context
+and discard the sub binary.</p><p>Therefore <code class="inline">my_binary_to_list/1</code> calls itself with the match context instead of
+with a sub binary. The instruction that initializes the matching operation
+basically does nothing when it sees that it was passed a match context instead
+of a binary.</p><p>When the end of the binary is reached and the second clause matches, the match
+context will simply be discarded (removed in the next garbage collection, as
+there is no longer any reference to it).</p><p>To summarize, <code class="inline">my_binary_to_list/1</code> only needs to create <em>one</em> match context and
+no sub binaries.</p><p>Notice that the match context in <code class="inline">my_binary_to_list/1</code> was discarded when the
+entire binary had been traversed. What happens if the iteration stops before it
+has reached the end of the binary? Will the optimization still work?</p><pre><code class="makeup erlang" translate="no"><span class="nf">after_zero</span><span class="p" data-group-id="2364301989-1">(</span><span class="p">&lt;&lt;</span><span class="mi">0</span><span class="p">,</span><span class="n">T</span><span class="o">/</span><span class="ss">binary</span><span class="p">&gt;&gt;</span><span class="p" data-group-id="2364301989-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">T</span><span class="p">;</span><span class="w">
+</span><span class="nf">after_zero</span><span class="p" data-group-id="2364301989-2">(</span><span class="p">&lt;&lt;</span><span class="p">_</span><span class="p">,</span><span class="n">T</span><span class="o">/</span><span class="ss">binary</span><span class="p">&gt;&gt;</span><span class="p" data-group-id="2364301989-2">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">after_zero</span><span class="p" data-group-id="2364301989-3">(</span><span class="n">T</span><span class="p" data-group-id="2364301989-3">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">after_zero</span><span class="p" data-group-id="2364301989-4">(</span><span class="p">&lt;&lt;</span><span class="p">&gt;&gt;</span><span class="p" data-group-id="2364301989-4">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p">&lt;&lt;</span><span class="p">&gt;&gt;</span><span class="p">.</span></code></pre><p>Yes, it will. The compiler will remove the building of the sub binary in the
+second clause:</p><pre><code class="makeup erlang" translate="no"><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="w">
+</span><span class="nf">after_zero</span><span class="p" data-group-id="2425535974-1">(</span><span class="p">&lt;&lt;</span><span class="p">_</span><span class="p">,</span><span class="n">T</span><span class="o">/</span><span class="ss">binary</span><span class="p">&gt;&gt;</span><span class="p" data-group-id="2425535974-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">after_zero</span><span class="p" data-group-id="2425535974-2">(</span><span class="n">T</span><span class="p" data-group-id="2425535974-2">)</span><span class="p">;</span><span class="w">
+</span><span class="p">.</span><span class="p">.</span><span class="p">.</span></code></pre><p>But it will generate code that builds a sub binary in the first clause:</p><pre><code class="makeup erlang" translate="no"><span class="nf">after_zero</span><span class="p" data-group-id="4076101440-1">(</span><span class="p">&lt;&lt;</span><span class="mi">0</span><span class="p">,</span><span class="n">T</span><span class="o">/</span><span class="ss">binary</span><span class="p">&gt;&gt;</span><span class="p" data-group-id="4076101440-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">T</span><span class="p">;</span><span class="w">
+</span><span class="p">.</span><span class="p">.</span><span class="p">.</span></code></pre><p>Therefore, <code class="inline">after_zero/1</code> builds one match context and one sub binary (assuming
+it is passed a binary that contains a zero byte).</p><p>Code like the following will also be optimized:</p><pre><code class="makeup erlang" translate="no"><span class="nf">all_but_zeroes_to_list</span><span class="p" data-group-id="2628837530-1">(</span><span class="n">Buffer</span><span class="p">,</span><span class="w"> </span><span class="n">Acc</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p" data-group-id="2628837530-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="2628837530-2">{</span><span class="nc">lists</span><span class="p">:</span><span class="nf">reverse</span><span class="p" data-group-id="2628837530-3">(</span><span class="n">Acc</span><span class="p" data-group-id="2628837530-3">)</span><span class="p">,</span><span class="n">Buffer</span><span class="p" data-group-id="2628837530-2">}</span><span class="p">;</span><span class="w">
+</span><span class="nf">all_but_zeroes_to_list</span><span class="p" data-group-id="2628837530-4">(</span><span class="p">&lt;&lt;</span><span class="mi">0</span><span class="p">,</span><span class="n">T</span><span class="o">/</span><span class="ss">binary</span><span class="p">&gt;&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">Acc</span><span class="p">,</span><span class="w"> </span><span class="n">Remaining</span><span class="p" data-group-id="2628837530-4">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">all_but_zeroes_to_list</span><span class="p" data-group-id="2628837530-5">(</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">Acc</span><span class="p">,</span><span class="w"> </span><span class="n">Remaining</span><span class="o">-</span><span class="mi">1</span><span class="p" data-group-id="2628837530-5">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">all_but_zeroes_to_list</span><span class="p" data-group-id="2628837530-6">(</span><span class="p">&lt;&lt;</span><span class="n">Byte</span><span class="p">,</span><span class="n">T</span><span class="o">/</span><span class="ss">binary</span><span class="p">&gt;&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">Acc</span><span class="p">,</span><span class="w"> </span><span class="n">Remaining</span><span class="p" data-group-id="2628837530-6">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">all_but_zeroes_to_list</span><span class="p" data-group-id="2628837530-7">(</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2628837530-8">[</span><span class="n">Byte</span><span class="p">|</span><span class="n">Acc</span><span class="p" data-group-id="2628837530-8">]</span><span class="p">,</span><span class="w"> </span><span class="n">Remaining</span><span class="o">-</span><span class="mi">1</span><span class="p" data-group-id="2628837530-7">)</span><span class="p">.</span></code></pre><p>The compiler removes building of sub binaries in the second and third clauses,
+and it adds an instruction to the first clause that converts <code class="inline">Buffer</code> from a
+match context to a sub binary (or do nothing if <code class="inline">Buffer</code> is a binary already).</p><p>But in more complicated code, how can one know whether the optimization is
+applied or not?</p><p><a href="" id="bin_opt_info"></a></p><h3 id="option-bin_opt_info" class="section-heading">
+  <a href="#option-bin_opt_info" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Option bin_opt_info</span>
+</h3>
+<p>Use the <code class="inline">bin_opt_info</code> option to have the compiler print a lot of information
+about binary optimizations. It can be given either to the compiler or <code class="inline">erlc</code>:</p><pre><code class="makeup erlang" translate="no"><span class="ss">erlc</span><span class="w"> </span><span class="o">+</span><span class="ss">bin_opt_info</span><span class="w"> </span><span class="n">Mod</span><span class="p">.</span><span class="ss">erl</span></code></pre><p>or passed through an environment variable:</p><pre><code class="makeup erlang" translate="no"><span class="ss">export</span><span class="w"> </span><span class="n">ERL_COMPILER_OPTIONS</span><span class="o">=</span><span class="ss">bin_opt_info</span></code></pre><p>Notice that the <code class="inline">bin_opt_info</code> is not meant to be a permanent option added to
+your <code class="inline">Makefile</code>s, because all messages that it generates cannot be eliminated.
+Therefore, passing the option through the environment is in most cases the most
+practical approach.</p><p>The warnings look as follows:</p><pre><code class="makeup erlang" translate="no"><span class="p">.</span><span class="o">/</span><span class="ss">efficiency_guide</span><span class="p">.</span><span class="nc">erl</span><span class="p">:</span><span class="mi">60</span><span class="p">:</span><span class="w"> </span><span class="n">Warning</span><span class="p">:</span><span class="w"> </span><span class="n">NOT</span><span class="w"> </span><span class="n">OPTIMIZED</span><span class="p">:</span><span class="w"> </span><span class="ss">binary</span><span class="w"> </span><span class="ss">is</span><span class="w"> </span><span class="ss">returned</span><span class="w"> </span><span class="ss">from</span><span class="w"> </span><span class="ss">the</span><span class="w"> </span><span class="ss">function</span><span class="w">
+</span><span class="p">.</span><span class="o">/</span><span class="ss">efficiency_guide</span><span class="p">.</span><span class="nc">erl</span><span class="p">:</span><span class="mi">62</span><span class="p">:</span><span class="w"> </span><span class="n">Warning</span><span class="p">:</span><span class="w"> </span><span class="n">OPTIMIZED</span><span class="p">:</span><span class="w"> </span><span class="ss">match</span><span class="w"> </span><span class="ss">context</span><span class="w"> </span><span class="ss">reused</span></code></pre><p>To make it clearer exactly what code the warnings refer to, the warnings in the
+following examples are inserted as comments after the clause they refer to, for
+example:</p><pre><code class="makeup erlang" translate="no"><span class="nf">after_zero</span><span class="p" data-group-id="0160027073-1">(</span><span class="p">&lt;&lt;</span><span class="mi">0</span><span class="p">,</span><span class="n">T</span><span class="o">/</span><span class="ss">binary</span><span class="p">&gt;&gt;</span><span class="p" data-group-id="0160027073-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+         </span><span class="c1">%% BINARY CREATED: binary is returned from the function</span><span class="w">
+    </span><span class="n">T</span><span class="p">;</span><span class="w">
+</span><span class="nf">after_zero</span><span class="p" data-group-id="0160027073-2">(</span><span class="p">&lt;&lt;</span><span class="p">_</span><span class="p">,</span><span class="n">T</span><span class="o">/</span><span class="ss">binary</span><span class="p">&gt;&gt;</span><span class="p" data-group-id="0160027073-2">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+         </span><span class="c1">%% OPTIMIZED: match context reused</span><span class="w">
+    </span><span class="nf">after_zero</span><span class="p" data-group-id="0160027073-3">(</span><span class="n">T</span><span class="p" data-group-id="0160027073-3">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">after_zero</span><span class="p" data-group-id="0160027073-4">(</span><span class="p">&lt;&lt;</span><span class="p">&gt;&gt;</span><span class="p" data-group-id="0160027073-4">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p">&lt;&lt;</span><span class="p">&gt;&gt;</span><span class="p">.</span></code></pre><p>The warning for the first clause says that the creation of a sub binary cannot
+be delayed, because it will be returned. The warning for the second clause says
+that a sub binary will not be created (yet).</p><h3 id="unused-variables" class="section-heading">
+  <a href="#unused-variables" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Unused Variables</span>
+</h3>
+<p>The compiler figures out if a variable is unused. The same code is generated for
+each of the following functions:</p><pre><code class="makeup erlang" translate="no"><span class="nf">count1</span><span class="p" data-group-id="8256155738-1">(</span><span class="p">&lt;&lt;</span><span class="p">_</span><span class="p">,</span><span class="n">T</span><span class="o">/</span><span class="ss">binary</span><span class="p">&gt;&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">Count</span><span class="p" data-group-id="8256155738-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nf">count1</span><span class="p" data-group-id="8256155738-2">(</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">Count</span><span class="o">+</span><span class="mi">1</span><span class="p" data-group-id="8256155738-2">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">count1</span><span class="p" data-group-id="8256155738-3">(</span><span class="p">&lt;&lt;</span><span class="p">&gt;&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">Count</span><span class="p" data-group-id="8256155738-3">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="n">Count</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">count2</span><span class="p" data-group-id="8256155738-4">(</span><span class="p">&lt;&lt;</span><span class="n">H</span><span class="p">,</span><span class="n">T</span><span class="o">/</span><span class="ss">binary</span><span class="p">&gt;&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">Count</span><span class="p" data-group-id="8256155738-4">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nf">count2</span><span class="p" data-group-id="8256155738-5">(</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">Count</span><span class="o">+</span><span class="mi">1</span><span class="p" data-group-id="8256155738-5">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">count2</span><span class="p" data-group-id="8256155738-6">(</span><span class="p">&lt;&lt;</span><span class="p">&gt;&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">Count</span><span class="p" data-group-id="8256155738-6">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="n">Count</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">count3</span><span class="p" data-group-id="8256155738-7">(</span><span class="p">&lt;&lt;</span><span class="p">_</span><span class="n">H</span><span class="p">,</span><span class="n">T</span><span class="o">/</span><span class="ss">binary</span><span class="p">&gt;&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">Count</span><span class="p" data-group-id="8256155738-7">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nf">count3</span><span class="p" data-group-id="8256155738-8">(</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">Count</span><span class="o">+</span><span class="mi">1</span><span class="p" data-group-id="8256155738-8">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">count3</span><span class="p" data-group-id="8256155738-9">(</span><span class="p">&lt;&lt;</span><span class="p">&gt;&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">Count</span><span class="p" data-group-id="8256155738-9">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="n">Count</span><span class="p">.</span></code></pre><p>In each iteration, the first 8 bits in the binary will be skipped, not matched
+out.</p>
+</div>
+
+<div class="bottom-actions" id="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="commoncaveats.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Common Caveats
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="maps.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+Maps
+        </span>
+      </a>
+
+  </div>
+</div>
+    <footer class="footer">
+      <p>
+
+        <span class="line">
+          <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+            Search HexDocs
+          </button>
+
+            <a href="Erlang System Documentation.epub" title="ePub version">
+              Download ePub version
+            </a>
+
+        </span>
+      </p>
+
+      <p class="built-using">
+        Built using
+        <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.32.2) for the
+
+          <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+      </p>
+<p>Copyright © 1996-2023 <a href="https://www.ericsson.com">Ericsson AB</a></p>
+    </footer>
+  </div>
+</main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: document.body.className.includes("dark") ? "dark" : "default"
+    });
+    let id = 0;
+    for (const codeEl of document.querySelectorAll("pre code.mermaid")) {
+      const preEl = codeEl.parentElement;
+      const graphDefinition = codeEl.textContent;
+      const graphEl = document.createElement("div");
+      const graphId = "mermaid-graph-" + id++;
+      mermaid.render(graphId, graphDefinition).then(({svg, bindFunctions}) => {
+        graphEl.innerHTML = svg;
+        bindFunctions?.(graphEl);
+        preEl.insertAdjacentElement("afterend", graphEl);
+        preEl.remove();
+      });
+    }
+  });
+</script>
+
+  </body>
+</html>

@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.32.2">
+    <meta name="project" content="Erlang System Documentation v27.0">
+
+
+    <title>Drivers — Erlang System Documentation v27.0</title>
+    <link rel="stylesheet" href="dist/html-erlang-EBZIIHAS.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-K7URE6B4.js"></script>
+    <script src="dist/sidebar_items-976EDCF5.js"></script>
+    <script src="docs_config.js"></script>
+    <script async src="dist/html-BHYOTRCH.js"></script>
+
+
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="Erlang System Documentation" />
+        </a>
+
+      <div>
+        <a href="../index.html" class="sidebar-projectName" translate="no">
+Erlang System Documentation
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v27.0
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of Erlang System Documentation</span>
+            <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+          </label>
+          <button type="submit" class="search-button" aria-label="Submit Search">
+            <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+          </button>
+          <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+            <i class="ri-close-line ri-lg" title="Cancel search"></i>
+          </button>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.0/system/doc/efficiency_guide/drivers.md#L1" title="View Source" class="icon-action" rel="help">
+        <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        <span class="sr-only">View Source</span>
+      </a>
+
+
+    <span>Drivers</span>
+  </h1>
+
+<p>This section provides a brief overview on how to write efficient drivers.</p><p>It is assumed that you have a good understanding of drivers.</p><h2 id="drivers-and-concurrency" class="section-heading">
+  <a href="#drivers-and-concurrency" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Drivers and Concurrency</span>
+</h2>
+<p>The runtime system always takes a lock before running any code in a driver.</p><p>By default, that lock is at the driver level, that is, if several ports have
+been opened to the same driver, only code for one port at the same time can be
+running.</p><p>A driver can be configured to have one lock for each port instead.</p><p>If a driver is used in a functional way (that is, holds no state, but only does
+some heavy calculation and returns a result), several ports with registered
+names can be opened beforehand, and the port to be used can be chosen based on
+the scheduler ID as follows:</p><pre><code class="makeup erlang" translate="no"><span class="p">-</span><span class="na">define</span><span class="p" data-group-id="9276726346-1">(</span><span class="n">PORT_NAMES</span><span class="p" data-group-id="9276726346-2">(</span><span class="p" data-group-id="9276726346-2">)</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="p" data-group-id="9276726346-3">{</span><span class="ss">some_driver_01</span><span class="p">,</span><span class="w"> </span><span class="ss">some_driver_02</span><span class="p">,</span><span class="w"> </span><span class="ss">some_driver_03</span><span class="p">,</span><span class="w"> </span><span class="ss">some_driver_04</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w"> </span><span class="ss">some_driver_05</span><span class="p">,</span><span class="w"> </span><span class="ss">some_driver_06</span><span class="p">,</span><span class="w"> </span><span class="ss">some_driver_07</span><span class="p">,</span><span class="w"> </span><span class="ss">some_driver_08</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w"> </span><span class="ss">some_driver_09</span><span class="p">,</span><span class="w"> </span><span class="ss">some_driver_10</span><span class="p">,</span><span class="w"> </span><span class="ss">some_driver_11</span><span class="p">,</span><span class="w"> </span><span class="ss">some_driver_12</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w"> </span><span class="ss">some_driver_13</span><span class="p">,</span><span class="w"> </span><span class="ss">some_driver_14</span><span class="p">,</span><span class="w"> </span><span class="ss">some_driver_15</span><span class="p">,</span><span class="w"> </span><span class="ss">some_driver_16</span><span class="p" data-group-id="9276726346-3">}</span><span class="p" data-group-id="9276726346-1">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">client_port</span><span class="p" data-group-id="9276726346-4">(</span><span class="p" data-group-id="9276726346-4">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">element</span><span class="p" data-group-id="9276726346-5">(</span><span class="nc">erlang</span><span class="p">:</span><span class="nf">system_info</span><span class="p" data-group-id="9276726346-6">(</span><span class="ss">scheduler_id</span><span class="p" data-group-id="9276726346-6">)</span><span class="w"> </span><span class="ow">rem</span><span class="w"> </span><span class="nf">tuple_size</span><span class="p" data-group-id="9276726346-7">(</span><span class="o">?</span><span class="n">PORT_NAMES</span><span class="p" data-group-id="9276726346-8">(</span><span class="p" data-group-id="9276726346-8">)</span><span class="p" data-group-id="9276726346-7">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="o">?</span><span class="n">PORT_NAMES</span><span class="p" data-group-id="9276726346-9">(</span><span class="p" data-group-id="9276726346-9">)</span><span class="p" data-group-id="9276726346-5">)</span><span class="p">.</span></code></pre><p>As long as there are no more than 16 schedulers, there will never be any lock
+contention on the port lock for the driver.</p><h2 id="avoiding-copying-binaries-when-calling-a-driver" class="section-heading">
+  <a href="#avoiding-copying-binaries-when-calling-a-driver" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Avoiding Copying Binaries When Calling a Driver</span>
+</h2>
+<p>There are basically two ways to avoid copying a binary that is sent to a driver:</p><ul><li><p>If the <code class="inline">Data</code> argument for <a href="../../erts-15.0/doc/html/erlang.html#port_control/3"><code class="inline">port_control/3</code></a> is a
+binary, the driver will be passed a pointer to the contents of the binary and
+the binary will not be copied. If the <code class="inline">Data</code> argument is an iolist (list of
+binaries and lists), all binaries in the iolist will be copied.</p><p>Therefore, if you want to send both a pre-existing binary and some extra data
+to a driver without copying the binary, you must call
+<a href="../../erts-15.0/doc/html/erlang.html#port_control/3"><code class="inline">port_control/3</code></a> twice; once with the binary and once with
+the extra data. However, that will only work if there is only one process
+communicating with the port (because otherwise another process can call the
+driver in-between the calls).</p></li><li><p>Implement an <code class="inline">outputv</code> callback (instead of an <code class="inline">output</code> callback) in the
+driver. If a driver has an <code class="inline">outputv</code> callback, refc binaries passed in an
+iolist in the <code class="inline">Data</code> argument for <a href="../../erts-15.0/doc/html/erlang.html#port_command/2"><code class="inline">port_command/2</code></a>
+will be passed as references to the driver.</p></li></ul><h2 id="returning-small-binaries-from-a-driver" class="section-heading">
+  <a href="#returning-small-binaries-from-a-driver" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Returning Small Binaries from a Driver</span>
+</h2>
+<p>The runtime system can represent binaries up to 64 bytes as heap binaries. They
+are always copied when sent in messages, but they require less memory if they
+are not sent to another process and garbage collection is cheaper.</p><p>If you know that the binaries you return are always small, you are advised to
+use driver API calls that do not require a pre-allocated binary, for example,
+<a href="../../erts-15.0/doc/html/erl_driver.html#driver_output"><code class="inline">driver_output()</code></a> or
+<a href="../../erts-15.0/doc/html/erl_driver.html#erl_drv_output_term"><code class="inline">erl_drv_output_term()</code></a>, using the
+<code class="inline">ERL_DRV_BUF2BINARY</code> format, to allow the runtime to construct a heap binary.</p><h2 id="returning-large-binaries-without-copying-from-a-driver" class="section-heading">
+  <a href="#returning-large-binaries-without-copying-from-a-driver" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Returning Large Binaries without Copying from a Driver</span>
+</h2>
+<p>To avoid copying data when a large binary is sent or returned from the driver to
+an Erlang process, the driver must first allocate the binary and then send it to
+an Erlang process in some way.</p><p>Use <a href="../../erts-15.0/doc/html/erl_driver.html#driver_alloc_binary"><code class="inline">driver_alloc_binary()</code></a> to
+allocate a binary.</p><p>There are several ways to send a binary created with <code class="inline">driver_alloc_binary()</code>:</p><ul><li>From the <code class="inline">control</code> callback, a binary can be returned if
+<a href="../../erts-15.0/doc/html/erl_driver.html#set_port_control_flags"><code class="inline">set_port_control_flags()</code></a> has
+been called with the flag value <code class="inline">PORT_CONTROL_FLAG_BINARY</code>.</li><li>A single binary can be sent with
+<a href="../../erts-15.0/doc/html/erl_driver.html#driver_output_binary"><code class="inline">driver_output_binary()</code></a>.</li><li>Using <a href="../../erts-15.0/doc/html/erl_driver.html#erl_drv_output_term"><code class="inline">erl_drv_output_term()</code></a> or
+<a href="../../erts-15.0/doc/html/erl_driver.html#erl_drv_send_term"><code class="inline">erl_drv_send_term()</code></a>, a binary can
+be included in an Erlang term.</li></ul>
+</div>
+
+<div class="bottom-actions" id="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="eff_guide_processes.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Processes
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="memory.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+Memory Usage
+        </span>
+      </a>
+
+  </div>
+</div>
+    <footer class="footer">
+      <p>
+
+        <span class="line">
+          <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+            Search HexDocs
+          </button>
+
+            <a href="Erlang System Documentation.epub" title="ePub version">
+              Download ePub version
+            </a>
+
+        </span>
+      </p>
+
+      <p class="built-using">
+        Built using
+        <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.32.2) for the
+
+          <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+      </p>
+<p>Copyright © 1996-2023 <a href="https://www.ericsson.com">Ericsson AB</a></p>
+    </footer>
+  </div>
+</main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: document.body.className.includes("dark") ? "dark" : "default"
+    });
+    let id = 0;
+    for (const codeEl of document.querySelectorAll("pre code.mermaid")) {
+      const preEl = codeEl.parentElement;
+      const graphDefinition = codeEl.textContent;
+      const graphEl = document.createElement("div");
+      const graphId = "mermaid-graph-" + id++;
+      mermaid.render(graphId, graphDefinition).then(({svg, bindFunctions}) => {
+        graphEl.innerHTML = svg;
+        bindFunctions?.(graphEl);
+        preEl.insertAdjacentElement("afterend", graphEl);
+        preEl.remove();
+      });
+    }
+  });
+</script>
+
+  </body>
+</html>

@@ -1,0 +1,492 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html xmlns:erl="http://erlang.org" xmlns:fn="http://www.w3.org/2005/02/xpath-functions">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8">
+<link rel="stylesheet" href="../otp_doc.css" type="text/css">
+<meta name="major-vsn" content="25">
+<title>Erlang -- Debugging NIFs and Port Drivers</title>
+</head>
+<body>
+<div id="container">
+<script id="js" type="text/javascript" language="JavaScript" src="../js/flipmenu/flipmenu.js"></script><script id="js2" type="text/javascript" src="../js/erlresolvelinks.js"></script><script id="js3" type="text/javascript" src="../js/topbar.js"></script><script language="JavaScript" type="text/javascript">
+            <!--
+              function setscrollpos() {
+                var objf = document.getElementById('loadscrollpos');
+                if (objf) {
+                  document.getElementById("leftnav").firstChild.scrollTop = objf.offsetTop - 10;
+                }
+              }
+
+              function addEvent(obj, evType, fn){
+                if (obj.addEventListener){
+                obj.addEventListener(evType, fn, true);
+                return true;
+              } else if (obj.attachEvent){
+                var r = obj.attachEvent("on"+evType, fn);
+                return r;
+              } else {
+                return false;
+              }
+             }
+
+             addEvent(window, 'load', setscrollpos);
+
+             //-->
+</script><div class="topbar">
+<div class="topbar-expand "><button onclick="toggleDisplay();"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" id="Capa_1" viewBox="0 0 54 54" width="24" height="24"><g><path style="fill:#000000;" d="M27,54c-0.552,0-1-0.448-1-1V8c0-0.552,0.448-1,1-1s1,0.448,1,1v45C28,53.552,27.552,54,27,54z"></path><path style="fill:#000000;" d="M11,25c-0.256,0-0.512-0.098-0.707-0.293c-0.391-0.391-0.391-1.023,0-1.414l16-16                                      c0.391-0.391,1.023-0.391,1.414,0s0.391,1.023,0,1.414l-16,16C11.512,24.902,11.256,25,11,25z"></path><path style="fill:#000000;" d="M43,25c-0.256,0-0.512-0.098-0.707-0.293l-16-16c-0.391-0.391-0.391-1.023,0-1.414                                      s1.023-0.391,1.414,0l16,16c0.391,0.391,0.391,1.023,0,1.414C43.512,24.902,43.256,25,43,25z"></path><path style="fill:#000000;" d="M43,2H11c-0.552,0-1-0.448-1-1s0.448-1,1-1h32c0.552,0,1,0.448,1,1S43.552,2,43,2z"></path></g></svg></button></div>
+<div class="topbar-title"><h1 id="Debugging NIFs and Port Drivers">9 
+                Debugging NIFs and Port Drivers</h1></div>
+<div class="search-expand ">        <button id="docsearch-mobile">
+            <svg fill="#000000" xmlns="http://www.w3.org/2000/svg"  viewBox="0 0 50 50" width="24" height="24"><path d="M 21 3 C 11.621094 3 4 10.621094 4 20 C 4 29.378906 11.621094 37 21 37 C 24.710938 37 28.140625 35.804688 30.9375 33.78125 L 44.09375 46.90625 L 46.90625 44.09375 L 33.90625 31.0625 C 36.460938 28.085938 38 24.222656 38 20 C 38 10.621094 30.378906 3 21 3 Z M 21 5 C 29.296875 5 36 11.703125 36 20 C 36 28.296875 29.296875 35 21 35 C 12.703125 35 6 28.296875 6 20 C 6 11.703125 12.703125 5 21 5 Z"/></svg>
+        </button>
+</div>
+</div>
+<aside class="hide-mobile" id="leftnav"><nav class="leftnav-tube"><div class="erlang-logo-wrapper"><a href="../index.html"><img alt="Erlang Logo" src="../erlang-logo.png" class="erlang-logo"></a></div>
+<p class="section-title">Interoperability Tutorial</p>
+<p class="section-subtitle">User's Guide</p>
+<p class="section-version">Version 13.2.2.9</p>
+<ul class="panel-sections">
+<li><a href="users_guide.html">User's Guide</a></li>
+<li><a href="../pdf/otp-system-documentation.pdf">PDF</a></li>
+<li><a href="../index.html">Top</a></li>
+</ul>
+<div id="docsearch"></div>
+<div style="padding-left: 1rem; padding-top: 0.1rem;"><a href="/doc/search?v=25">Paginated Search</a></div>
+<ul class="expand-collapse-items">
+<li><a href="javascript:openAllFlips()">Expand All</a></li>
+<li><a href="javascript:closeAllFlips()">Contract All</a></li>
+</ul>
+<h3 id="chapters">Chapters</h3>
+<ul class="flipMenu" imagePath="../js/flipmenu">
+<li id="no" title="Introduction" expanded="false">Introduction<ul>
+<li><a href="introduction.html">
+              Top of chapter
+            </a></li>
+<li title="Purpose"><a href="introduction.html#purpose">Purpose</a></li>
+<li title="Prerequisites"><a href="introduction.html#prerequisites">Prerequisites</a></li>
+</ul>
+</li>
+<li id="no" title="Overview" expanded="false">Overview<ul>
+<li><a href="overview.html">
+              Top of chapter
+            </a></li>
+<li title="Built-In Mechanisms"><a href="overview.html#built-in-mechanisms">Built-In Mechanisms</a></li>
+<li title="C and Java Libraries"><a href="overview.html#c-and-java-libraries">C and Java Libraries</a></li>
+<li title="Standard Protocols"><a href="overview.html#standard-protocols">Standard Protocols</a></li>
+<li title="IC and CORBA"><a href="overview.html#ic-and-corba">IC and CORBA</a></li>
+<li title="Old Applications"><a href="overview.html#old-applications">Old Applications</a></li>
+</ul>
+</li>
+<li id="no" title="Problem Example" expanded="false">Problem Example<ul>
+<li><a href="example.html">
+              Top of chapter
+            </a></li>
+<li title="Description"><a href="example.html#description">Description</a></li>
+</ul>
+</li>
+<li id="no" title="Ports" expanded="false">Ports<ul>
+<li><a href="c_port.html">
+              Top of chapter
+            </a></li>
+<li title="Erlang Program"><a href="c_port.html#erlang-program">Erlang Program</a></li>
+<li title="C Program"><a href="c_port.html#c-program">C Program</a></li>
+<li title="Running the Example"><a href="c_port.html#running-the-example">Running the Example</a></li>
+</ul>
+</li>
+<li id="no" title="Erl_Interface" expanded="false">Erl_Interface<ul>
+<li><a href="erl_interface.html">
+              Top of chapter
+            </a></li>
+<li title="Erlang Program"><a href="erl_interface.html#erlang-program">Erlang Program</a></li>
+<li title="C Program"><a href="erl_interface.html#c-program">C Program</a></li>
+<li title="Running the Example"><a href="erl_interface.html#running-the-example">Running the Example</a></li>
+</ul>
+</li>
+<li id="no" title="Port Drivers" expanded="false">Port Drivers<ul>
+<li><a href="c_portdriver.html">
+              Top of chapter
+            </a></li>
+<li title="Erlang Program"><a href="c_portdriver.html#erlang-program">Erlang Program</a></li>
+<li title="C Driver"><a href="c_portdriver.html#c-driver">C Driver</a></li>
+<li title="Running the Example"><a href="c_portdriver.html#running-the-example">Running the Example</a></li>
+</ul>
+</li>
+<li id="no" title="C Nodes" expanded="false">C Nodes<ul><li><a href="cnode.html">
+              Top of chapter
+            </a></li></ul>
+</li>
+<li id="no" title="NIFs" expanded="false">NIFs<ul>
+<li><a href="nif.html">
+              Top of chapter
+            </a></li>
+<li title="Erlang Program"><a href="nif.html#erlang-program">Erlang Program</a></li>
+<li title="NIF Library Code"><a href="nif.html#nif-library-code">NIF Library Code</a></li>
+<li title="Running the Example"><a href="nif.html#running-the-example">Running the Example</a></li>
+</ul>
+</li>
+<li id="loadscrollpos" title="Debugging NIFs and Port Drivers" expanded="true">Debugging NIFs and Port Drivers<ul>
+<li><a href="debugging.html">
+              Top of chapter
+            </a></li>
+<li title="With great power comes great responsibilty"><a href="debugging.html#with-great-power-comes-great-responsibilty">With great power comes great responsibilty</a></li>
+<li title="The debug emulator"><a href="debugging.html#the-debug-emulator">The debug emulator</a></li>
+<li title="Address Sanitizer"><a href="debugging.html#address-sanitizer">Address Sanitizer</a></li>
+<li title="Valgrind"><a href="debugging.html#valgrind">Valgrind</a></li>
+<li title="rr - Record and Replay"><a href="debugging.html#rr---record-and-replay">rr - Record and Replay</a></li>
+</ul>
+</li>
+</ul></nav></aside><div id="content">
+<div class="innertube">
+<h1 id="Debugging NIFs and Port Drivers">9 Debugging NIFs and Port Drivers</h1>
+  
+
+  <h3 id="with-great-power-comes-great-responsibilty" class="title-link" onMouseOver="document.getElementById('ghlink-with-great-power-comes-great-responsibilty-idm589').style.visibility = 'visible';" onMouseOut="document.getElementById('ghlink-with-great-power-comes-great-responsibilty-idm589').style.visibility = 'hidden';">
+<div class="title-name">9.1 
+        With great power comes great responsibilty</div>
+<div class="title-anchors"><span id="ghlink-with-great-power-comes-great-responsibilty-idm589" class="ghlink-after"><a href="#with-great-power-comes-great-responsibilty" title="Link to this place!"><span class="paperclip-after"></span></a><a href="https://github.com/erlang/otp/edit/maint/system/doc/tutorial/debugging.xml#L32" title="Found an issue with the documentation? Fix it by clicking here!"><span class="pencil-after"></span></a></span></div>
+</h3>
+    
+    <p>
+      NIFs and port driver code run inside the Erlang VM OS process (the
+      "Beam"). To maximize performance the code is called directly by the same
+      threads executing Erlang beam code and has full access to all the memory
+      of the OS process. A buggy NIF/driver can thus make severe damage by
+      corrupting memory.
+    </p>
+    <p>
+      In a best case scenario such memory corruption is detected immediately
+      causing the Beam to crash generating a core dump file which can be
+      analyzed to find the bug. However, it is very common for memory corruption
+      bugs to not be immediately detected when the faulty write happens, but
+      instead much later, for example when the calling Erlang process is garbage
+      collected. When that happens it can be very hard to find the root cause of
+      the memory corruption by analysing the core dump. All traces that could
+      have indicated which specific buggy NIF/driver that caused the corruption
+      may be long gone.
+    </p>
+  
+  <h3 id="the-debug-emulator" class="title-link" onMouseOver="document.getElementById('ghlink-the-debug-emulator-idm593').style.visibility = 'visible';" onMouseOut="document.getElementById('ghlink-the-debug-emulator-idm593').style.visibility = 'hidden';">
+<div class="title-name">9.2 
+        The debug emulator</div>
+<div class="title-anchors"><span id="ghlink-the-debug-emulator-idm593" class="ghlink-after"><a href="#the-debug-emulator" title="Link to this place!"><span class="paperclip-after"></span></a><a href="https://github.com/erlang/otp/edit/maint/system/doc/tutorial/debugging.xml#L53" title="Found an issue with the documentation? Fix it by clicking here!"><span class="pencil-after"></span></a></span></div>
+</h3>
+    
+    <p>
+      One way to make debugging easier is to run an emulator built with target
+      <span class="code">debug</span>. It will
+    </p>
+    <ul>
+      <li>
+	<p>
+	  <strong>Increase probability of detecting bugs earlier</strong>. It contains a
+	  lot more runtime checks to ensure correct use of internal interfaces
+	  and data structures.
+	</p>
+      </li>
+      <li>
+	<p>
+	  <strong>Generate a core dump that is easier to analyze</strong>. Compiler
+	  optimizations are turned off, which stops the compiler from
+	  "optimizing away" variables, thus making it easier/possible to inspect
+	  their state.
+	</p>
+      </li>
+      <li>
+	<p>
+	  <strong>Detect lock order violations</strong>. A runtime lock checker will
+	  verify that the locks in the
+	  <span class="bold_code bc-18"><a href="../man/erl_nif.html"><span class="code">erl_nif</span></a></span> and
+	  <span class="bold_code bc-18"><a href="../man/erl_driver.html"><span class="code">erl_driver</span></a></span>
+	  APIs are seized in a consistent order that cannot result in deadlock
+	  bugs.
+	</p>
+      </li>
+    </ul>
+    <p>
+      In fact, we recommend to use the debug emulator as default during
+      development of NIFs and drivers, regardless if you are troubleshooting
+      bugs or not. Some subtle bugs may not be detected by the normal emulator
+      and just happen to work anyway by chance. However, another version of the
+      emulator, or even different circumstances within the same emulator, may
+      cause the bug to later provoke all kinds of problems.
+    </p>
+    <p>
+      The main disadvantage of the <span class="code">debug</span> emulator is its reduced
+      performance. The extra runtime checks and lack of compiler optimizations
+      may result in a slowdown with a factor of two or more depending on
+      load. The memory footprint should be about the same.
+    </p>
+    <p>
+      If the <span class="code">debug</span> emulator is part of the Erlang/OTP installation, it can be
+      started with the <span class="bold_code bc-13"><a href="../man/erl.html#emu_type"><span class="code">-emu_type</span></a></span>
+      option.
+    </p>
+      <div class="example"><pre>
+&gt; <span class="bold_code bc-12">erl -emu_type debug</span>
+Erlang/OTP 25 [erts-13.0.2] ... <strong>[type-assertions] [debug-compiled] [lock-checking]</strong>
+
+Eshell V13.0.2  (abort with ^G)
+1&gt;
+</pre></div>
+    <p>
+      If the <span class="code">debug</span> emulator is not part of the installation, you need to
+      <span class="bold_code bc-13"><a href="../installation_guide/INSTALL.html#Advanced-configuration-and-build-of-ErlangOTP_Building_How-to-Build-a-Debug-Enabled-Erlang-RunTime-System">
+      build it from the Erlang/OTP source code</a></span>. After building from source
+      either make an Erlang/OTP installation or you can run the debug emulator
+      directly in the source tree with the <span class="code">cerl</span> script:
+    </p>
+    <div class="example"><pre>
+&gt; <span class="bold_code bc-12">$ERL_TOP/bin/cerl -debug</span>
+Erlang/OTP 25 [erts-13.0.2] ... <strong>[type-assertions] [debug-compiled] [lock-checking]</strong>
+
+Eshell V13.0.2  (abort with ^G)
+1&gt;
+</pre></div>
+    <p>
+      The <span class="code">cerl</span> script can also be used as a convenient way to start
+      the debugger <span class="code">gdb</span> for core dump analysis:
+    </p>
+    <div class="example"><pre>
+&gt; <span class="bold_code bc-12">$ERL_TOP/bin/cerl -debug -core core.12345</span>
+or
+&gt; <span class="bold_code bc-12">$ERL_TOP/bin/cerl -debug -rcore core.12345</span>
+</pre></div>
+    <p>
+      The first variant starts Emacs and runs <span class="code">gdb</span> within, while
+      the other <span class="code">-rcore</span> runs <span class="code">gdb</span> directly in the terminal. Apart
+      from starting <span class="code">gdb</span> with the correct <span class="code">beam.debug.smp</span> executable
+      file it will also read the file <span class="code">$ERL_TOP/erts/etc/unix/etp-commands</span>
+      which contains a lot of <span class="code">gdb</span> command for inspecting a beam core
+      dump. For example, the command <span class="code">etp</span> that will print the content of
+      an Erlang term (<span class="code">Eterm</span>) in plain Erlang syntax.
+    </p>
+  
+  <h3 id="address-sanitizer" class="title-link" onMouseOver="document.getElementById('ghlink-address-sanitizer-idm644').style.visibility = 'visible';" onMouseOut="document.getElementById('ghlink-address-sanitizer-idm644').style.visibility = 'hidden';">
+<div class="title-name">9.3 
+        Address Sanitizer</div>
+<div class="title-anchors"><span id="ghlink-address-sanitizer-idm644" class="ghlink-after"><a href="#address-sanitizer" title="Link to this place!"><span class="paperclip-after"></span></a><a href="https://github.com/erlang/otp/edit/maint/system/doc/tutorial/debugging.xml#L145" title="Found an issue with the documentation? Fix it by clicking here!"><span class="pencil-after"></span></a></span></div>
+</h3>
+    
+    <p>
+      <span class="bold_code bc-20"><a href="https://clang.llvm.org/docs/AddressSanitizer.html">
+      AddressSanitizer</a></span> (asan) is an open source programming tool that
+      detects memory corruption bugs such as buffer overflows, use-after-free
+      and memory leaks. AddressSanitizer is based on compiler instrumentation
+      and is supported by both gcc and clang.
+    </p>
+    <p>
+      Similar to the <span class="code">debug</span> emulator, the <span class="code">asan</span> emulator runs slower
+      than normal, about 2-3 times slower. However, it also has a larger memory
+      footprint, about 3 times more memory than normal.
+    </p>
+    <p>
+      To get full effect you should compile both your own NIF/driver code as
+      well as the Erlang emulator with AddressSanitizer instrumentation. Compile
+      your own code by passing option <span class="code">-fsanitize=address</span> to gcc or
+      clang. Other recommended options that will improve the fault
+      identification are <span class="code">-fno-common</span> and <span class="code">-fno-omit-frame-pointer</span>.
+    </p>
+    <p>
+      Build and run the emulator with AddressSanitizer support by using the same
+      procedure as for the debug emulator, except use the <span class="code">asan</span> build
+      target instead of <span class="code">debug</span>.
+    </p>
+    <dl>
+      <dt><strong>Run in source tree</strong></dt>
+      <dd>
+	<p>
+	  If you run the <span class="code">asan</span> emulator directly in the source tree with the
+	  <span class="code">cerl</span> script you only need to set environment variable
+	  <span class="code">ASAN_LOG_DIR</span> to the directory where the error log files will be
+	  generated.
+	</p>
+	<div class="example"><pre>
+&gt; <span class="bold_code bc-12">export ASAN_LOG_DIR=/my/asan/log/dir</span>
+&gt; <span class="bold_code bc-12">$ERL_TOP/bin/cerl -asan</span>
+Erlang/OTP 25 [erts-13.0.2] ... <strong>[address-sanitizer]</strong>
+
+Eshell V13.0.2  (abort with ^G)
+1&gt;
+</pre></div>
+        <p>
+	  You may however also want to set <span class="code">ASAN_OPTIONS="halt_on_error=true"</span>
+	  if you want the emulator to crash when an error is detected.
+	</p>
+      </dd>
+      <dt><strong>Run installed Erlang/OTP</strong></dt>
+      <dd>
+	<p>
+	  If you run the <span class="code">asan</span> emulator in an installed Erlang/OTP with <span class="code">erl
+	  -emu_type asan</span> you need to set the path to the error log
+	  <strong>file</strong> with
+	</p>
+	<div class="example"><pre>
+&gt; <span class="bold_code bc-12">export ASAN_OPTIONS="log_path=/my/asan/log/file"</span></pre></div>
+        <p>
+	  To avoid false positive memory leak reports from the emulator
+	  itself set <span class="code">LSAN_OPTIONS</span> (LSAN=LeakSanitizer):
+	</p>
+	<div class="example"><pre>
+&gt; <span class="bold_code bc-12">export LSAN_OPTIONS="suppressions=$ERL_TOP/erts/emulator/asan/suppress"</span></pre></div>
+        <p>
+	  The <span class="code">suppress</span> file is currently not installed but can be copied
+	  manually from the source tree to wherever you want it.
+	</p>
+      </dd>
+    </dl>
+    <p>
+      Memory corruption errors are reported by AddressSanitizer when they
+      happen, but memory leaks are only checked and reported by default then the
+      emulator terminates.
+    </p>
+  
+  <h3 id="valgrind" class="title-link" onMouseOver="document.getElementById('ghlink-valgrind-idm686').style.visibility = 'visible';" onMouseOut="document.getElementById('ghlink-valgrind-idm686').style.visibility = 'hidden';">
+<div class="title-name">9.4 
+        Valgrind</div>
+<div class="title-anchors"><span id="ghlink-valgrind-idm686" class="ghlink-after"><a href="#valgrind" title="Link to this place!"><span class="paperclip-after"></span></a><a href="https://github.com/erlang/otp/edit/maint/system/doc/tutorial/debugging.xml#L220" title="Found an issue with the documentation? Fix it by clicking here!"><span class="pencil-after"></span></a></span></div>
+</h3>
+    
+    <p>
+      An even more heavy weight debugging tool is <span class="bold_code bc-20"><a href="https://valgrind.org">Valgrind</a></span>. It can also find memory
+      corruption bugs and memory leaks similar to <span class="code">asan</span>. Valgrind is not
+      as good at buffer overflow bugs, but it will find use of undefined data,
+      which is a type of error that <span class="code">asan</span> cannot detect.
+    </p>
+    <p>
+      Valgrind is much slower than <span class="code">asan</span> and it is incapable at
+      exploiting CPU multicore processing. We therefore recommend <span class="code">asan</span> as
+      the first choice before trying valgrind.
+    </p>
+    <p>
+      Valgrind runs as a virtual machine itself, emulating execution of hardware
+      machine instructions. This means you can run almost any program unchanged
+      on valgrind. However, we have found that the beam executable benefits from
+      being compiled with special adaptions for running on valgrind.
+    </p>
+    <p>
+      Build the emulator with <span class="code">valgrind</span> target the same as is done for
+      <span class="code">debug</span> and <span class="code">asan</span>. Note that <span class="code">valgrind</span> needs to be
+      installed on the machine before the build starts.
+    </p>
+    <p>
+      Run the <span class="code">valgrind</span> emulator directly in the source tree with the
+      <span class="code">cerl</span> script. Set environment variable <span class="code">VALGRIND_LOG_DIR</span> to
+      the directory where the error log files will be generated.
+    </p>
+    <div class="example"><pre>
+&gt; <span class="bold_code bc-12">export VALGRIND_LOG_DIR=/my/valgrind/log/dir</span>
+&gt; <span class="bold_code bc-12">$ERL_TOP/bin/cerl -valgrind</span>
+Erlang/OTP 25 [erts-13.0.2] ... <strong>[valgrind-compiled]</strong>
+
+Eshell V13.0.2  (abort with ^G)
+1&gt;
+</pre></div>
+  
+  <h3 id="rr---record-and-replay" class="title-link" onMouseOver="document.getElementById('ghlink-rr---record-and-replay-idm709').style.visibility = 'visible';" onMouseOut="document.getElementById('ghlink-rr---record-and-replay-idm709').style.visibility = 'hidden';">
+<div class="title-name">9.5 
+        rr - Record and Replay</div>
+<div class="title-anchors"><span id="ghlink-rr---record-and-replay-idm709" class="ghlink-after"><a href="#rr---record-and-replay" title="Link to this place!"><span class="paperclip-after"></span></a><a href="https://github.com/erlang/otp/edit/maint/system/doc/tutorial/debugging.xml#L259" title="Found an issue with the documentation? Fix it by clicking here!"><span class="pencil-after"></span></a></span></div>
+</h3>
+    
+    <p>
+      Last but not least, the fantastic interactive debugging tool <span class="bold_code bc-20"><a href="https://rr-project.org/">rr</a></span>, developed by Mozilla as
+      open source. <span class="code">rr</span> stands for Record and Replay. While a core dump
+      represents only a static snapshot of the OS process when it crashed, with
+      <span class="code">rr</span> you instead record the entire session, from start of the OS
+      process to the end (the crash). You can then replay that session from
+      within <span class="code">gdb</span>. Single step, set breakpoints and watchpoints, and even
+      <strong>execute backwards</strong>.
+    </p>
+    <p>
+      Considering its powerful utility, <span class="code">rr</span> is remarkably light weight.
+      It runs on Linux with any reasonably modern x86 CPU. You may get a two
+      times slowdown when executing in recording mode. The big weakness is its
+      inability to exploite CPU multicore processing. If the bug is a race
+      condition between concurrently running threads, it may be hard to
+      reproduce with <span class="code">rr</span>.
+    </p>
+    <p>
+      <span class="code">rr</span> does not require any special instrumented compilation. However,
+      if possible, run it together with the <span class="code">debug</span> emulator, as that will
+      result in a much nicer debugging experience. You run <span class="code">rr</span> in the
+      source tree using the <span class="code">cerl</span> script.
+    </p>
+    <p>
+      Here is an example of a typical session. First we catch the crash in an rr
+      recording session:
+    </p>
+    <div class="example"><pre>
+&gt; <span class="bold_code bc-12">$ERL_TOP/bin/cerl -debug -rr</span>
+rr: Saving execution to trace directory /home/foobar/.local/share/rr/beam.debug.smp-1.
+Erlang/OTP 25 [erts-13.0.2]
+
+Eshell V13.0.2  (abort with ^G)
+1&gt; <span class="bold_code bc-12">mymod:buggy_nif().</span>
+Segmentation fault</pre></div>
+    <p>
+      Now we can replay that session with <span class="code">rr replay</span>:
+    </p>
+    <div class="example"><pre>
+&gt; <span class="bold_code bc-12">rr replay</span>
+GNU gdb (Ubuntu 9.2-0ubuntu1~20.04.1) 9.2
+:
+(rr) <span class="bold_code bc-12">continue</span>
+:
+Thread 2 received signal SIGSEGV, Segmentation fault.
+(rr) <span class="bold_code bc-12">backtrace</span></pre></div>
+    <p>
+      You get the call stack at the moment of the crash. Bad luck, it is
+      somewhere deep down in the garbage collection of the beam. But you manage
+      to figure out that variable <span class="code">hp</span> points to a broken Erlang term.
+    </p>
+    <p>
+      Set a watch point on that memory position and resume execution
+      <strong>backwards</strong>. The debugger will then stop at the exact position when
+      that memory position <span class="code">*hp</span> was written.
+    </p>
+    <div class="example"><pre>
+(rr) <span class="bold_code bc-12">watch -l *hp</span>
+Hardware watchpoint 1: -location *hp
+(rr) <span class="bold_code bc-12">reverse-continue</span>
+Continuing.
+
+Thread 2 received signal SIGSEGV, Segmentation fault.</pre></div>
+    <p>
+      This is a quirk to be aware about. We started by executing forward until
+      it crashed with SIGSEGV. We are now executing backwards from that point,
+      so we are hitting the same SIGSEGV again but from the other
+      direction. Just continue backwards once more to move past it.
+    </p>
+    <div class="example"><pre>
+(rr) <span class="bold_code bc-12">reverse-continue</span>
+Continuing.
+
+Thread 2 hit Hardware watchpoint 1: -location *hp
+
+Old value = 42
+New value = 0</pre></div>
+    <p>
+      And here we are at the position when someone wrote a broken term on the
+      process heap. Note that "Old value" and "New value" are reversed when we
+      execute backwards. In this case the value 42 was written on the heap.
+      Let's see who the guilty one is:
+    </p>
+    <div class="example"><pre>
+(rr) <span class="bold_code bc-12">backtrace</span></pre></div>
+  
+</div>
+<div class="footer">
+<hr>
+<p>Copyright © 2000-2024 Ericsson AB. All Rights Reserved.</p>
+</div>
+</div>
+</div>
+<script type="text/javascript">window.__otpTopDocDir = '../js/';</script><script type="text/javascript" src="../js/highlight.js"></script>
+<script type="text/javascript">
+_docsearch_version = "25";
+</script> 
+<script src="/assets/js/doc-search.bundle.js"></script>
+</body>
+</html>

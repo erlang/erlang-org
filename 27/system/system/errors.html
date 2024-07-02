@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.32.2">
+    <meta name="project" content="Erlang System Documentation v27.0">
+
+
+    <title>Errors and Error Handling — Erlang System Documentation v27.0</title>
+    <link rel="stylesheet" href="dist/html-erlang-EBZIIHAS.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-K7URE6B4.js"></script>
+    <script src="dist/sidebar_items-976EDCF5.js"></script>
+    <script src="docs_config.js"></script>
+    <script async src="dist/html-BHYOTRCH.js"></script>
+
+
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="Erlang System Documentation" />
+        </a>
+
+      <div>
+        <a href="../index.html" class="sidebar-projectName" translate="no">
+Erlang System Documentation
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v27.0
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of Erlang System Documentation</span>
+            <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+          </label>
+          <button type="submit" class="search-button" aria-label="Submit Search">
+            <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+          </button>
+          <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+            <i class="ri-close-line ri-lg" title="Cancel search"></i>
+          </button>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.0/system/doc/reference_manual/errors.md#L1" title="View Source" class="icon-action" rel="help">
+        <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        <span class="sr-only">View Source</span>
+      </a>
+
+
+    <span>Errors and Error Handling</span>
+  </h1>
+
+<h2 id="terminology" class="section-heading">
+  <a href="#terminology" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Terminology</span>
+</h2>
+<p>Errors can roughly be divided into four different types:</p><ul><li><p><strong>Compile-time errors</strong> - When the compiler fails to compile the program, for
+example a syntax error.</p></li><li><p><strong>Logical errors</strong> - When a program does not behave as intended, but does not
+crash. An example is that nothing happens when a button in a graphical user
+interface is clicked.</p></li><li><p><strong><a href="" id="run-time-errors"></a> Run-time errors</strong> - 
+When a crash occurs. An example is when an operator is applied to arguments of
+the wrong type. The Erlang programming language has built-in features for
+handling of run-time errors. A run-time error can also be emulated by calling
+<a href="../../erts-15.0/doc/html/erlang.html#error/1"><code class="inline">error(Reason)</code></a>. Run-time errors are exceptions of class
+<code class="inline">error</code>.</p></li><li><p><strong><a href="" id="generated-errors"></a> Generated errors</strong>
+When the code itself calls <a href="../../erts-15.0/doc/html/erlang.html#exit/1"><code class="inline">exit/1</code></a> or
+<a href="../../erts-15.0/doc/html/erlang.html#throw/1"><code class="inline">throw/1</code></a>. Generated errors are exceptions of class <code class="inline">exit</code>
+or <code class="inline">throw</code>.</p></li></ul><p>When an exception occurs in Erlang, execution of the process that evaluated the
+erroneous expression is stopped. This is referred to as a <em>failure</em>, that
+execution or evaluation <em>fails</em>, or that the process <em>fails</em>, <em>terminates</em>, or
+<em>exits</em>. Notice that a process can terminate/exit for other reasons than a
+failure.</p><p>A process that terminates emits an <em>exit signal</em> with an <em>exit reason</em> that
+describes why the process terminated. Normally, some information about any
+erroneous termination is printed to the terminal. See
+<a href="ref_man_processes.html#process-termination">Process Termination</a> in the Processes
+chapter for more details on termination.</p><h2 id="exceptions" class="section-heading">
+  <a href="#exceptions" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Exceptions</span>
+</h2>
+<p>Exceptions are <a href="errors.html#run-time-errors">run-time errors</a> or
+<a href="errors.html#generated-errors">generated errors</a> and are of three different
+classes, with different origins. The <a href="expressions.html#try">try</a> expression can
+distinguish between the different classes, whereas the
+<a href="expressions.html#catch-and-throw">catch</a> expression cannot. <code class="inline">try</code> and <code class="inline">catch</code> are described
+in <a href="expressions.html">Expressions</a>.</p><table><thead><tr><th style="text-align: left;"><em>Class</em></th><th style="text-align: left;"><em>Origin</em></th></tr></thead><tbody><tr><td style="text-align: left;"><code class="inline">error</code></td><td style="text-align: left;">Run-time error, for example, <code class="inline">1+a</code>, or the process called <a href="../../erts-15.0/doc/html/erlang.html#error/1"><code class="inline">error/1</code></a></td></tr><tr><td style="text-align: left;"><code class="inline">exit</code></td><td style="text-align: left;">The process called <a href="../../erts-15.0/doc/html/erlang.html#exit/1"><code class="inline">exit/1</code></a></td></tr><tr><td style="text-align: left;"><code class="inline">throw</code></td><td style="text-align: left;">The process called <a href="../../erts-15.0/doc/html/erlang.html#throw/1"><code class="inline">throw/1</code></a></td></tr></tbody></table><p><em>Table: Exception Classes.</em></p><p>All of the above exceptions can also be generated by calling <a href="../../erts-15.0/doc/html/erlang.html#raise/3"><code class="inline">erlang:raise/3</code></a>.</p><p>An exception consists of its class, an exit reason (see
+<a href="errors.html#exit_reasons">Exit Reason</a>), and a stack trace (which aids in finding
+the code location of the exception).</p><p>The stack trace can be bound to a variable from within a <code class="inline">try</code> expression for
+any exception class, or as part of the exit reason when a run-time error is
+caught by a <code class="inline">catch</code>. Example:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">&gt; </span><span class="p" data-group-id="4943333263-1">{</span><span class="ss">&#39;EXIT&#39;</span><span class="p">,</span><span class="p" data-group-id="4943333263-2">{</span><span class="ss">test</span><span class="p">,</span><span class="n">Stacktrace</span><span class="p" data-group-id="4943333263-2">}</span><span class="p" data-group-id="4943333263-1">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="4943333263-3">(</span><span class="k">catch</span><span class="w"> </span><span class="nf">error</span><span class="p" data-group-id="4943333263-4">(</span><span class="ss">test</span><span class="p" data-group-id="4943333263-4">)</span><span class="p" data-group-id="4943333263-3">)</span><span class="p">,</span><span class="w"> </span><span class="n">Stacktrace</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="4943333263-5">[</span><span class="p" data-group-id="4943333263-6">{</span><span class="ss">shell</span><span class="p">,</span><span class="ss">apply_fun</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="p" data-group-id="4943333263-7">[</span><span class="p" data-group-id="4943333263-7">]</span><span class="p" data-group-id="4943333263-6">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="4943333263-8">{</span><span class="ss">erl_eval</span><span class="p">,</span><span class="ss">do_apply</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="p" data-group-id="4943333263-9">[</span><span class="p" data-group-id="4943333263-9">]</span><span class="p" data-group-id="4943333263-8">}</span><span class="p">,</span><span class="w">
+ </span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p" data-group-id="4943333263-5">]</span><span class="gp unselectable">
+&gt; </span><span class="k">try</span><span class="w"> </span><span class="nf">throw</span><span class="p" data-group-id="4943333263-10">(</span><span class="ss">test</span><span class="p" data-group-id="4943333263-10">)</span><span class="w"> </span><span class="k">catch</span><span class="w"> </span><span class="n">Class</span><span class="p">:</span><span class="n">Reason</span><span class="p">:</span><span class="n">Stacktrace</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="n">Stacktrace</span><span class="w"> </span><span class="k">end</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="4943333263-11">[</span><span class="p" data-group-id="4943333263-12">{</span><span class="ss">shell</span><span class="p">,</span><span class="ss">apply_fun</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="p" data-group-id="4943333263-13">[</span><span class="p" data-group-id="4943333263-13">]</span><span class="p" data-group-id="4943333263-12">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="4943333263-14">{</span><span class="ss">erl_eval</span><span class="p">,</span><span class="ss">do_apply</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="p" data-group-id="4943333263-15">[</span><span class="p" data-group-id="4943333263-15">]</span><span class="p" data-group-id="4943333263-14">}</span><span class="p">,</span><span class="w">
+ </span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p" data-group-id="4943333263-11">]</span></code></pre><p><a href="" id="stacktrace"></a></p><h3 id="the-call-stack-back-trace-stacktrace" class="section-heading">
+  <a href="#the-call-stack-back-trace-stacktrace" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">The call-stack back trace (stacktrace)</span>
+</h3>
+<p>The stack back-trace (<a href="../../erts-15.0/doc/html/erlang.html#t:stacktrace/0"><em>stacktrace</em></a>) is a list that
+contains <code class="inline">{Module, Function, Arity, ExtraInfo}</code> and/or <code class="inline">{Fun, Arity, ExtraInfo}</code>
+tuples. The field <code class="inline">Arity</code> in the tuple can be the argument list of that function
+call instead of an arity integer, depending on the exception.</p><p><code class="inline">ExtraInfo</code> is a (possibly empty) list of two-element tuples in any order that
+provides additional information about the exception. The first element is an
+atom describing the type of information in the second element. The following
+items can occur:</p><ul><li><p><strong><code class="inline">error_info</code></strong> - The second element of the tuple is a map providing
+additional information about what caused the exception. This information can
+be created by calling <a href="../../erts-15.0/doc/html/erlang.html#error/3"><code class="inline">error/3</code></a> and is used by
+<a href="../../lib/stdlib-6.0/doc/html/erl_error.html#format_exception/4"><code class="inline">erl_error:format_exception/4</code></a>.</p></li><li><p><strong><code class="inline">file</code></strong> - The second element of the tuple is a string (list of characters)
+representing the filename of the source file of the function.</p></li><li><p><strong><code class="inline">line</code></strong> - The second element of the tuple is the line number (an
+integer &gt; 0) in the source file where the exception occurred or the function
+was called.</p></li></ul><blockquote><h4 class="warning">Warning</h4><p>Developers should rely on stacktrace entries only for debugging purposes.</p><p>The VM performs tail call optimization, which does not add new entries to the
+stacktrace, and also limits stacktraces to a certain depth. Furthermore,
+compiler options, optimizations, and future changes may add or remove
+stacktrace entries, causing any code that expects the stacktrace to be in a
+certain order or contain specific items to fail.</p><p>The only exception to this rule is the class <code class="inline">error</code> with the reason <code class="inline">undef</code>
+which is guaranteed to include the <code class="inline">Module</code>, <code class="inline">Function</code> and <code class="inline">Arity</code> of the
+attempted function as the first stacktrace entry.</p></blockquote><h2 id="handling-of-run-time-errors-in-erlang" class="section-heading">
+  <a href="#handling-of-run-time-errors-in-erlang" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Handling of Run-time Errors in Erlang</span>
+</h2>
+<h3 id="error-handling-within-processes" class="section-heading">
+  <a href="#error-handling-within-processes" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Error Handling Within Processes</span>
+</h3>
+<p>It is possible to prevent run-time errors and other exceptions from
+causing the process to terminate by using <a href="expressions.html#try"><code class="inline">try</code></a>
+or <a href="expressions.html#catch-and-throw"><code class="inline">catch</code></a>.</p><h3 id="error-handling-between-processes" class="section-heading">
+  <a href="#error-handling-between-processes" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Error Handling Between Processes</span>
+</h3>
+<p>Processes can monitor other processes and detect process terminations, see
+<a href="ref_man_processes.html#errors">Processes</a>.</p><p><a href="" id="exit_reasons"></a></p><h2 id="exit-reasons" class="section-heading">
+  <a href="#exit-reasons" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Exit Reasons</span>
+</h2>
+<p>When a run-time error occurs, that is an exception of class <code class="inline">error</code>. The exit
+reason is a tuple <code class="inline">{Reason,Stack}</code>, where <code class="inline">Reason</code> is a term indicating the type
+of error:</p><ul><li><p><strong><code class="inline">badarg</code></strong> - Bad argument. The argument is of wrong data type, or
+  is otherwise badly formed.</p></li><li><p><strong><code class="inline">badarith</code></strong> - An argument for an arithmetic expression was not numeric,
+  or the expression does not evaluate to finite number.</p></li><li><p><strong><code class="inline">{badmatch,V}</code></strong> - Evaluation of a match expression failed. The
+  value <code class="inline">V</code> did not match.</p></li><li><p><strong><code class="inline">function_clause</code></strong> - No matching function clause is found when
+  evaluating a function call.</p></li><li><p><strong><code class="inline">{case_clause,V}</code></strong> - No matching branch is found when evaluating
+  a <code class="inline">case</code> expression. The value <code class="inline">V</code> did not match.</p></li><li><p><strong><code class="inline">if_clause</code></strong> - No true branch is found when evaluating an <code class="inline">if</code>
+  expression.</p></li><li><p><strong><code class="inline">{try_clause,V}</code></strong> - No matching branch is found when evaluating
+  the of-section of a <code class="inline">try</code> expression. The value <code class="inline">V</code> did not
+  match.</p></li><li><p><strong><code class="inline">undef</code></strong> - The function cannot be found when evaluating a
+  function call.</p></li><li><p><strong><code class="inline">{badfun,F}</code></strong> - <code class="inline">F</code> was expected to a be a fun, but is not.</p></li><li><p><strong><code class="inline">{badarity,{Fun,Args}}</code></strong> - A fun is applied to the wrong number of
+  arguments.</p></li><li><p><strong><code class="inline">timeout_value</code></strong> - The timeout value in a <code class="inline">receive...after</code>
+  expression is evaluated to something else than an integer or
+  <code class="inline">infinity</code>.</p></li><li><p><strong><code class="inline">noproc</code></strong> - Trying to create <a href="../../erts-15.0/doc/html/erlang.html#link/1">link</a> or
+  <a href="../../erts-15.0/doc/html/erlang.html#monitor/2">monitor</a> to a non-existing process or port.</p></li><li><p><strong><code class="inline">noconnection</code></strong> - A link or monitor to a remote process was
+  broken because a connection between the nodes could not be
+  established or was severed.</p></li><li><p><strong><code class="inline">{nocatch,V}</code></strong> - Trying to evaluate a <code class="inline">throw</code>outside a
+  <code class="inline">catch</code>. <code class="inline">V</code> is the thrown term.</p></li><li><p><strong><code class="inline">system_limit</code></strong> - A system limit has been reached. See
+  <a href="../../doc/system/system_limits.html">System Limits in the Efficiency Guide</a>
+  for information about system limits.</p></li></ul><p><code class="inline">Stack</code> is the stack of function calls being evaluated when the error occurred,
+given as a list of tuples <code class="inline">{Module,Name,Arity,ExtraInfo}</code> with the most recent
+function call first. The most recent function call tuple can in some cases be
+<code class="inline">{Module,Name,[Arg],ExtraInfo}</code>.</p>
+</div>
+
+<div class="bottom-actions" id="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="ref_man_records.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Records
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="features.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+Features
+        </span>
+      </a>
+
+  </div>
+</div>
+    <footer class="footer">
+      <p>
+
+        <span class="line">
+          <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+            Search HexDocs
+          </button>
+
+            <a href="Erlang System Documentation.epub" title="ePub version">
+              Download ePub version
+            </a>
+
+        </span>
+      </p>
+
+      <p class="built-using">
+        Built using
+        <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.32.2) for the
+
+          <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+      </p>
+<p>Copyright © 1996-2023 <a href="https://www.ericsson.com">Ericsson AB</a></p>
+    </footer>
+  </div>
+</main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: document.body.className.includes("dark") ? "dark" : "default"
+    });
+    let id = 0;
+    for (const codeEl of document.querySelectorAll("pre code.mermaid")) {
+      const preEl = codeEl.parentElement;
+      const graphDefinition = codeEl.textContent;
+      const graphEl = document.createElement("div");
+      const graphId = "mermaid-graph-" + id++;
+      mermaid.render(graphId, graphDefinition).then(({svg, bindFunctions}) => {
+        graphEl.innerHTML = svg;
+        bindFunctions?.(graphEl);
+        preEl.insertAdjacentElement("afterend", graphEl);
+        preEl.remove();
+      });
+    }
+  });
+</script>
+
+  </body>
+</html>

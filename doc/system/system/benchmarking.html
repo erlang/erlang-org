@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.32.2">
+    <meta name="project" content="Erlang System Documentation v27.0">
+
+
+    <title>Benchmarking — Erlang System Documentation v27.0</title>
+    <link rel="stylesheet" href="dist/html-erlang-EBZIIHAS.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-K7URE6B4.js"></script>
+    <script src="dist/sidebar_items-976EDCF5.js"></script>
+    <script src="docs_config.js"></script>
+    <script async src="dist/html-BHYOTRCH.js"></script>
+
+
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="Erlang System Documentation" />
+        </a>
+
+      <div>
+        <a href="../index.html" class="sidebar-projectName" translate="no">
+Erlang System Documentation
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v27.0
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of Erlang System Documentation</span>
+            <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+          </label>
+          <button type="submit" class="search-button" aria-label="Submit Search">
+            <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+          </button>
+          <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+            <i class="ri-close-line ri-lg" title="Cancel search"></i>
+          </button>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.0/system/doc/efficiency_guide/benchmarking.md#L1" title="View Source" class="icon-action" rel="help">
+        <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        <span class="sr-only">View Source</span>
+      </a>
+
+
+    <span>Benchmarking</span>
+  </h1>
+
+<p>The main purpose of benchmarking is to find out which implementation of a given
+algorithm or function is the fastest. Benchmarking is far from an exact science.
+Today's operating systems generally run background tasks that are difficult to
+turn off. Caches and multiple CPU cores do not facilitate benchmarking. It would
+be best to run UNIX computers in single-user mode when benchmarking, but that is
+inconvenient to say the least for casual testing.</p><h2 id="using-erlperf" class="section-heading">
+  <a href="#using-erlperf" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Using erlperf</span>
+</h2>
+<p>A useful tool for benchmarking is <a href="https://github.com/max-au/erlperf">erlperf</a>
+(<a href="https://hexdocs.pm/erlperf/erlperf.html">documentation</a>).
+It makes it simple to find out which code is faster. For example, here is how
+two methods of generating random bytes can be compared:</p><pre><code class="text">% erlperf 'rand:bytes(2).' 'crypto:strong_rand_bytes(2).'
+Code                                 ||        QPS       Time   Rel
+rand:bytes(2).                        1    7784 Ki     128 ns  100%
+crypto:strong_rand_bytes(2).          1    2286 Ki     437 ns   29%</code></pre><p>From the <strong>Time</strong> column we can read out that on average a call to
+<a href="../../lib/stdlib-6.0/doc/html/rand.html#bytes/1"><code class="inline">rand:bytes(2)</code></a> executes in 128 nano seconds, while
+a call to
+<a href="../../lib/crypto-5.5/doc/html/crypto.html#strong_rand_bytes/1"><code class="inline">crypto:strong_rand_bytes(2)</code></a> executes
+in 437 nano seconds.</p><p>From the <strong>QPS</strong> column we can read out how many calls that can be
+made in a second. For <code class="inline">rand:bytes(2)</code>, it is 7,784,000 calls per second.</p><p>The <strong>Rel</strong> column shows the relative differences, with <code class="inline">100%</code> indicating
+the fastest code.</p><p>When generating two random bytes at the time, <a href="../../lib/stdlib-6.0/doc/html/rand.html#bytes/1"><code class="inline">rand:bytes/1</code></a> is more
+than three times faster than <a href="../../lib/crypto-5.5/doc/html/crypto.html#strong_rand_bytes/1"><code class="inline">crypto:strong_rand_bytes/1</code></a>. Assuming
+that we really need strong random numbers and we need to get them as
+fast as possible, what can we do? One way could be to generate more
+than two bytes at the time.</p><pre><code class="text">% erlperf 'rand:bytes(100).' 'crypto:strong_rand_bytes(100).'
+Code                                   ||        QPS       Time   Rel
+rand:bytes(100).                        1    2124 Ki     470 ns  100%
+crypto:strong_rand_bytes(100).          1    1915 Ki     522 ns   90%</code></pre><p><a href="../../lib/stdlib-6.0/doc/html/rand.html#bytes/1"><code class="inline">rand:bytes/1</code></a> is still faster when we generate 100 bytes at the time,
+but the relative difference is smaller.</p><pre><code class="makeup erlang" translate="no"><span class="c1">% erlperf &#39;rand:bytes(1000).&#39; &#39;crypto:strong_rand_bytes(1000).&#39;</span><span class="w">
+</span><span class="n">Code</span><span class="w">                                    </span><span class="p">||</span><span class="w">        </span><span class="n">QPS</span><span class="w">       </span><span class="n">Time</span><span class="w">   </span><span class="n">Rel</span><span class="w">
+</span><span class="nc">crypto</span><span class="p">:</span><span class="nf">strong_rand_bytes</span><span class="p" data-group-id="0986724773-1">(</span><span class="mi">1000</span><span class="p" data-group-id="0986724773-1">)</span><span class="p">.</span><span class="w">          </span><span class="mi">1</span><span class="w">    </span><span class="mi">1518</span><span class="w"> </span><span class="n">Ki</span><span class="w">     </span><span class="mi">658</span><span class="w"> </span><span class="ss">ns</span><span class="w">  </span><span class="mi">100</span><span class="c1">%</span><span class="w">
+</span><span class="nc">rand</span><span class="p">:</span><span class="nf">bytes</span><span class="p" data-group-id="0986724773-2">(</span><span class="mi">1000</span><span class="p" data-group-id="0986724773-2">)</span><span class="p">.</span><span class="w">                        </span><span class="mi">1</span><span class="w">     </span><span class="mi">284</span><span class="w"> </span><span class="n">Ki</span><span class="w">    </span><span class="mi">3521</span><span class="w"> </span><span class="ss">ns</span><span class="w">   </span><span class="mi">19</span><span class="c1">%</span></code></pre><p>When we generate 1000 bytes at the time, <a href="../../lib/crypto-5.5/doc/html/crypto.html#strong_rand_bytes/1"><code class="inline">crypto:strong_rand_bytes/1</code></a> is
+now the fastest.</p><h2 id="benchmarking-using-erlang-otp-functionality" class="section-heading">
+  <a href="#benchmarking-using-erlang-otp-functionality" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Benchmarking using Erlang/OTP functionality</span>
+</h2>
+<p>Benchmarks can measure wall-clock time or CPU time.</p><ul><li><p><a href="../../lib/stdlib-6.0/doc/html/timer.html#tc/3"><code class="inline">timer:tc/3</code></a> measures wall-clock time. The advantage with wall-clock time is
+that I/O, swapping, and other activities in the operating system kernel are
+included in the measurements. The disadvantage is that the measurements often
+vary a lot. Usually it is best to run the benchmark several times and note
+the shortest time, which is the minimum time that is possible to achieve
+under the best of circumstances.</p></li><li><p><a href="../../erts-15.0/doc/html/erlang.html#statistics/1"><code class="inline">statistics(runtime)</code></a> measures CPU time spent
+in the Erlang virtual machine. The advantage with CPU time is that
+the results are more consistent from run to run. The disadvantage is
+that the time spent in the operating system kernel (such as swapping
+and I/O) is not included. Therefore, measuring CPU time is
+misleading if any I/O (file or socket) is involved.</p></li></ul><p>It is probably a good idea to do both wall-clock measurements and CPU time
+measurements.</p><p>Some final advice:</p><ul><li>The granularity of both measurement types can be high. Therefore, ensure that
+each individual measurement lasts for at least several seconds.</li><li>To make the test fair, each new test run is to run in its own, newly created
+Erlang process. Otherwise, if all tests run in the same process, the later
+tests start out with larger heap sizes and therefore probably do fewer garbage
+collections. Also consider restarting the Erlang emulator between each test.</li><li>Do not assume that the fastest implementation of a given algorithm on computer
+architecture X is also the fastest on computer architecture Y.</li></ul>
+</div>
+
+<div class="bottom-actions" id="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="profiling.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Profiling
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="tutorial.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+Introduction
+        </span>
+      </a>
+
+  </div>
+</div>
+    <footer class="footer">
+      <p>
+
+        <span class="line">
+          <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+            Search HexDocs
+          </button>
+
+            <a href="Erlang System Documentation.epub" title="ePub version">
+              Download ePub version
+            </a>
+
+        </span>
+      </p>
+
+      <p class="built-using">
+        Built using
+        <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.32.2) for the
+
+          <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+      </p>
+<p>Copyright © 1996-2023 <a href="https://www.ericsson.com">Ericsson AB</a></p>
+    </footer>
+  </div>
+</main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: document.body.className.includes("dark") ? "dark" : "default"
+    });
+    let id = 0;
+    for (const codeEl of document.querySelectorAll("pre code.mermaid")) {
+      const preEl = codeEl.parentElement;
+      const graphDefinition = codeEl.textContent;
+      const graphEl = document.createElement("div");
+      const graphId = "mermaid-graph-" + id++;
+      mermaid.render(graphId, graphDefinition).then(({svg, bindFunctions}) => {
+        graphEl.innerHTML = svg;
+        bindFunctions?.(graphEl);
+        preEl.insertAdjacentElement("afterend", graphEl);
+        preEl.remove();
+      });
+    }
+  });
+</script>
+
+  </body>
+</html>

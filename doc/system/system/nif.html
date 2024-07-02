@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.32.2">
+    <meta name="project" content="Erlang System Documentation v27.0">
+
+
+    <title>NIFs — Erlang System Documentation v27.0</title>
+    <link rel="stylesheet" href="dist/html-erlang-EBZIIHAS.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-K7URE6B4.js"></script>
+    <script src="dist/sidebar_items-976EDCF5.js"></script>
+    <script src="docs_config.js"></script>
+    <script async src="dist/html-BHYOTRCH.js"></script>
+
+
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="Erlang System Documentation" />
+        </a>
+
+      <div>
+        <a href="../index.html" class="sidebar-projectName" translate="no">
+Erlang System Documentation
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v27.0
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of Erlang System Documentation</span>
+            <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+          </label>
+          <button type="submit" class="search-button" aria-label="Submit Search">
+            <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+          </button>
+          <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+            <i class="ri-close-line ri-lg" title="Cancel search"></i>
+          </button>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.0/system/doc/tutorial/nif.md#L1" title="View Source" class="icon-action" rel="help">
+        <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        <span class="sr-only">View Source</span>
+      </a>
+
+
+    <span>NIFs</span>
+  </h1>
+
+<p>This section outlines an example of how to solve the example problem in
+<a href="example.html">Problem Example</a> by using Native Implemented Functions (NIFs).</p><p>NIFs are a simpler and more efficient way of calling C-code than using port
+drivers. NIFs are most suitable for synchronous functions, such as <code class="inline">foo</code> and
+<code class="inline">bar</code> in the example, that do some relatively short calculations without side
+effects and return the result.</p><p>A NIF is a function that is implemented in C instead of Erlang. NIFs appear as
+any other functions to the callers. They belong to a module and are called like
+any other Erlang functions. The NIFs of a module are compiled and linked into a
+dynamic loadable, shared library (SO in UNIX, DLL in Windows). The NIF library
+must be loaded in runtime by the Erlang code of the module.</p><p>As a NIF library is dynamically linked into the emulator process, this is the
+fastest way of calling C-code from Erlang (alongside port drivers). Calling NIFs
+requires no context switches. But it is also the least safe, because a crash in
+a NIF brings the emulator down too.</p><h2 id="erlang-program" class="section-heading">
+  <a href="#erlang-program" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Erlang Program</span>
+</h2>
+<p>Even if all functions of a module are NIFs, an Erlang module is still needed for
+two reasons:</p><ul><li>The NIF library must be explicitly loaded by Erlang code in the same module.</li><li>All NIFs of a module must have an Erlang implementation as well.</li></ul><p>Normally these are minimal stub implementations that throw an exception. But
+they can also be used as fallback implementations for functions that do not have
+native implementations on some architectures.</p><p>NIF libraries are loaded by calling <a href="../../erts-15.0/doc/html/erlang.html#load_nif/2"><code class="inline">erlang:load_nif/2</code></a>, with the name of the
+shared library as argument. The second argument can be any term that will be
+passed on to the library and used for initialization:</p><pre><code class="makeup erlang" translate="no"><span class="p">-</span><span class="na">module</span><span class="p" data-group-id="9348379828-1">(</span><span class="ss">complex6</span><span class="p" data-group-id="9348379828-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="9348379828-2">(</span><span class="p" data-group-id="9348379828-3">[</span><span class="ss">foo</span><span class="p">/</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="ss">bar</span><span class="p">/</span><span class="mi">1</span><span class="p" data-group-id="9348379828-3">]</span><span class="p" data-group-id="9348379828-2">)</span><span class="p">.</span><span class="w">
+</span><span class="p">-</span><span class="na">nifs</span><span class="p" data-group-id="9348379828-4">(</span><span class="p" data-group-id="9348379828-5">[</span><span class="ss">foo</span><span class="p">/</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="ss">bar</span><span class="p">/</span><span class="mi">1</span><span class="p" data-group-id="9348379828-5">]</span><span class="p" data-group-id="9348379828-4">)</span><span class="p">.</span><span class="w">
+</span><span class="p">-</span><span class="na">on_load</span><span class="p" data-group-id="9348379828-6">(</span><span class="ss">init</span><span class="p">/</span><span class="mi">0</span><span class="p" data-group-id="9348379828-6">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">init</span><span class="p" data-group-id="9348379828-7">(</span><span class="p" data-group-id="9348379828-7">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="ss">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">erlang</span><span class="p">:</span><span class="nf">load_nif</span><span class="p" data-group-id="9348379828-8">(</span><span class="s">&quot;./complex6_nif&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p" data-group-id="9348379828-8">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">foo</span><span class="p" data-group-id="9348379828-9">(</span><span class="p">_</span><span class="n">X</span><span class="p" data-group-id="9348379828-9">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">erlang</span><span class="p">:</span><span class="nf">nif_error</span><span class="p" data-group-id="9348379828-10">(</span><span class="ss">nif_library_not_loaded</span><span class="p" data-group-id="9348379828-10">)</span><span class="p">.</span><span class="w">
+</span><span class="nf">bar</span><span class="p" data-group-id="9348379828-11">(</span><span class="p">_</span><span class="n">Y</span><span class="p" data-group-id="9348379828-11">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">erlang</span><span class="p">:</span><span class="nf">nif_error</span><span class="p" data-group-id="9348379828-12">(</span><span class="ss">nif_library_not_loaded</span><span class="p" data-group-id="9348379828-12">)</span><span class="p">.</span></code></pre><p>Here, the directive <code class="inline">on_load</code> is used to get function <code class="inline">init</code> to be automatically
+called when the module is loaded. If <code class="inline">init</code> returns anything other than <code class="inline">ok</code>,
+such when the loading of the NIF library fails in this example, the module is
+unloaded and calls to functions within it, fail.</p><p>Loading the NIF library overrides the stub implementations and cause calls to
+<code class="inline">foo</code> and <code class="inline">bar</code> to be dispatched to the NIF implementations instead.</p><h2 id="nif-library-code" class="section-heading">
+  <a href="#nif-library-code" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">NIF Library Code</span>
+</h2>
+<p>The NIFs of the module are compiled and linked into a shared library. Each NIF
+is implemented as a normal C function. The macro <code class="inline">ERL_NIF_INIT</code> together with an
+array of structures defines the names, arity, and function pointers of all the
+NIFs in the module. The header file <code class="inline">erl_nif.h</code> must be included. As the library
+is a shared module, not a program, no main function is to be present.</p><p>The function arguments passed to a NIF appears in an array <code class="inline">argv</code>, with <code class="inline">argc</code>
+as the length of the array, and thus the arity of the function. The Nth argument
+of the function can be accessed as <code class="inline">argv[N-1]</code>. NIFs also take an environment
+argument that serves as an opaque handle that is needed to be passed on to most
+API functions. The environment contains information about the calling Erlang
+process:</p><pre><code class="makeup c" translate="no"><span class="kp">#include</span><span class="w"> </span><span class="o">&lt;</span><span class="n">erl_nif</span><span class="p">.</span><span class="n">h</span><span class="o">&gt;</span><span class="w">
+
+</span><span class="k">extern</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">foo</span><span class="p" data-group-id="6612714340-1">(</span><span class="kt">int</span><span class="w"> </span><span class="n">x</span><span class="p" data-group-id="6612714340-1">)</span><span class="p">;</span><span class="w">
+</span><span class="k">extern</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">bar</span><span class="p" data-group-id="6612714340-2">(</span><span class="kt">int</span><span class="w"> </span><span class="n">y</span><span class="p" data-group-id="6612714340-2">)</span><span class="p">;</span><span class="w">
+
+</span><span class="k">static</span><span class="w"> </span><span class="no">ERL_NIF_TERM</span><span class="w"> </span><span class="nf">foo_nif</span><span class="p" data-group-id="6612714340-3">(</span><span class="no">ErlNifEnv</span><span class="o">*</span><span class="w"> </span><span class="n">env</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="no">ERL_NIF_TERM</span><span class="w"> </span><span class="n">argv</span><span class="p" data-group-id="6612714340-4">[</span><span class="p" data-group-id="6612714340-4">]</span><span class="p" data-group-id="6612714340-3">)</span><span class="w">
+</span><span class="p" data-group-id="6612714340-5">{</span><span class="w">
+    </span><span class="kt">int</span><span class="w"> </span><span class="n">x</span><span class="p">,</span><span class="w"> </span><span class="n">ret</span><span class="p">;</span><span class="w">
+    </span><span class="k">if</span><span class="w"> </span><span class="p" data-group-id="6612714340-6">(</span><span class="o">!</span><span class="nf">enif_get_int</span><span class="p" data-group-id="6612714340-7">(</span><span class="n">env</span><span class="p">,</span><span class="w"> </span><span class="n">argv</span><span class="p" data-group-id="6612714340-8">[</span><span class="mi">0</span><span class="p" data-group-id="6612714340-8">]</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">x</span><span class="p" data-group-id="6612714340-7">)</span><span class="p" data-group-id="6612714340-6">)</span><span class="w"> </span><span class="p" data-group-id="6612714340-9">{</span><span class="w">
+</span><span class="err">	</span><span class="k">return</span><span class="w"> </span><span class="nf">enif_make_badarg</span><span class="p" data-group-id="6612714340-10">(</span><span class="n">env</span><span class="p" data-group-id="6612714340-10">)</span><span class="p">;</span><span class="w">
+    </span><span class="p" data-group-id="6612714340-9">}</span><span class="w">
+    </span><span class="n">ret</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">foo</span><span class="p" data-group-id="6612714340-11">(</span><span class="n">x</span><span class="p" data-group-id="6612714340-11">)</span><span class="p">;</span><span class="w">
+    </span><span class="k">return</span><span class="w"> </span><span class="nf">enif_make_int</span><span class="p" data-group-id="6612714340-12">(</span><span class="n">env</span><span class="p">,</span><span class="w"> </span><span class="n">ret</span><span class="p" data-group-id="6612714340-12">)</span><span class="p">;</span><span class="w">
+</span><span class="p" data-group-id="6612714340-5">}</span><span class="w">
+
+</span><span class="k">static</span><span class="w"> </span><span class="no">ERL_NIF_TERM</span><span class="w"> </span><span class="nf">bar_nif</span><span class="p" data-group-id="6612714340-13">(</span><span class="no">ErlNifEnv</span><span class="o">*</span><span class="w"> </span><span class="n">env</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="no">ERL_NIF_TERM</span><span class="w"> </span><span class="n">argv</span><span class="p" data-group-id="6612714340-14">[</span><span class="p" data-group-id="6612714340-14">]</span><span class="p" data-group-id="6612714340-13">)</span><span class="w">
+</span><span class="p" data-group-id="6612714340-15">{</span><span class="w">
+    </span><span class="kt">int</span><span class="w"> </span><span class="n">y</span><span class="p">,</span><span class="w"> </span><span class="n">ret</span><span class="p">;</span><span class="w">
+    </span><span class="k">if</span><span class="w"> </span><span class="p" data-group-id="6612714340-16">(</span><span class="o">!</span><span class="nf">enif_get_int</span><span class="p" data-group-id="6612714340-17">(</span><span class="n">env</span><span class="p">,</span><span class="w"> </span><span class="n">argv</span><span class="p" data-group-id="6612714340-18">[</span><span class="mi">0</span><span class="p" data-group-id="6612714340-18">]</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">y</span><span class="p" data-group-id="6612714340-17">)</span><span class="p" data-group-id="6612714340-16">)</span><span class="w"> </span><span class="p" data-group-id="6612714340-19">{</span><span class="w">
+</span><span class="err">	</span><span class="k">return</span><span class="w"> </span><span class="nf">enif_make_badarg</span><span class="p" data-group-id="6612714340-20">(</span><span class="n">env</span><span class="p" data-group-id="6612714340-20">)</span><span class="p">;</span><span class="w">
+    </span><span class="p" data-group-id="6612714340-19">}</span><span class="w">
+    </span><span class="n">ret</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">bar</span><span class="p" data-group-id="6612714340-21">(</span><span class="n">y</span><span class="p" data-group-id="6612714340-21">)</span><span class="p">;</span><span class="w">
+    </span><span class="k">return</span><span class="w"> </span><span class="nf">enif_make_int</span><span class="p" data-group-id="6612714340-22">(</span><span class="n">env</span><span class="p">,</span><span class="w"> </span><span class="n">ret</span><span class="p" data-group-id="6612714340-22">)</span><span class="p">;</span><span class="w">
+</span><span class="p" data-group-id="6612714340-15">}</span><span class="w">
+
+</span><span class="k">static</span><span class="w"> </span><span class="no">ErlNifFunc</span><span class="w"> </span><span class="n">nif_funcs</span><span class="p" data-group-id="6612714340-23">[</span><span class="p" data-group-id="6612714340-23">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="6612714340-24">{</span><span class="w">
+    </span><span class="p" data-group-id="6612714340-25">{</span><span class="s">&quot;foo&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">foo_nif</span><span class="p" data-group-id="6612714340-25">}</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="6612714340-26">{</span><span class="s">&quot;bar&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">bar_nif</span><span class="p" data-group-id="6612714340-26">}</span><span class="w">
+</span><span class="p" data-group-id="6612714340-24">}</span><span class="p">;</span><span class="w">
+
+</span><span class="no">ERL_NIF_INIT</span><span class="p" data-group-id="6612714340-27">(</span><span class="n">complex6</span><span class="p">,</span><span class="w"> </span><span class="n">nif_funcs</span><span class="p">,</span><span class="w"> </span><span class="no">NULL</span><span class="p">,</span><span class="w"> </span><span class="no">NULL</span><span class="p">,</span><span class="w"> </span><span class="no">NULL</span><span class="p">,</span><span class="w"> </span><span class="no">NULL</span><span class="p" data-group-id="6612714340-27">)</span></code></pre><p>Here, <code class="inline">ERL_NIF_INIT</code> has the following arguments:</p><ul><li>The first argument must be the name of the Erlang module as a C-identifier. It
+will be stringified by the macro.</li><li>The second argument is the array of <code class="inline">ErlNifFunc</code> structures containing name,
+arity, and function pointer of each NIF.</li><li>The remaining arguments are pointers to callback functions that can be used to
+initialize the library. They are not used in this simple example, hence they
+are all set to <code class="inline">NULL</code>.</li></ul><p>Function arguments and return values are represented as values of type
+<code class="inline">ERL_NIF_TERM</code>. Here, functions like <code class="inline">enif_get_int</code> and <code class="inline">enif_make_int</code> are used
+to convert between Erlang term and C-type. If the function argument <code class="inline">argv[0]</code> is
+not an integer, <code class="inline">enif_get_int</code> returns false, in which case it returns by
+throwing a <code class="inline">badarg</code>-exception with <code class="inline">enif_make_badarg</code>.</p><h2 id="running-the-example" class="section-heading">
+  <a href="#running-the-example" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Running the Example</span>
+</h2>
+<p><em>Step 1.</em> Compile the C code:</p><pre><code class="text">unix&gt; gcc -o complex6_nif.so -fpic -shared complex.c complex6_nif.c
+windows&gt; cl -LD -MD -Fe complex6_nif.dll complex.c complex6_nif.c</code></pre><p><em>Step 2:</em> Start Erlang and compile the Erlang code:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">&gt; </span><span class="ss">erl</span><span class="w">
+</span><span class="n">Erlang</span><span class="w"> </span><span class="n">R13B04</span><span class="w"> </span><span class="p" data-group-id="1216608331-1">(</span><span class="ss">erts</span><span class="o">-</span><span class="mf">5.7</span><span class="p">.</span><span class="mi">5</span><span class="p" data-group-id="1216608331-1">)</span><span class="w"> </span><span class="p" data-group-id="1216608331-2">[</span><span class="mi">64</span><span class="o">-</span><span class="ss">bit</span><span class="p" data-group-id="1216608331-2">]</span><span class="w"> </span><span class="p" data-group-id="1216608331-3">[</span><span class="nc">smp</span><span class="p">:</span><span class="mi">4</span><span class="p">:</span><span class="mi">4</span><span class="p" data-group-id="1216608331-3">]</span><span class="w"> </span><span class="p" data-group-id="1216608331-4">[</span><span class="nc">rq</span><span class="p">:</span><span class="mi">4</span><span class="p" data-group-id="1216608331-4">]</span><span class="w"> </span><span class="p" data-group-id="1216608331-5">[</span><span class="ss">async</span><span class="o">-</span><span class="nc">threads</span><span class="p">:</span><span class="mi">0</span><span class="p" data-group-id="1216608331-5">]</span><span class="w"> </span><span class="p" data-group-id="1216608331-6">[</span><span class="ss">kernel</span><span class="o">-</span><span class="nc">poll</span><span class="p">:</span><span class="ss">false</span><span class="p" data-group-id="1216608331-6">]</span><span class="w">
+
+</span><span class="n">Eshell</span><span class="w"> </span><span class="n">V5</span><span class="p">.</span><span class="mf">7.5</span><span class="w">  </span><span class="p" data-group-id="1216608331-7">(</span><span class="ss">abort</span><span class="w"> </span><span class="ss">with</span><span class="w"> </span><span class="err">^</span><span class="n">G</span><span class="p" data-group-id="1216608331-7">)</span><span class="gp unselectable">
+1&gt; </span><span class="nf">c</span><span class="p" data-group-id="1216608331-8">(</span><span class="ss">complex6</span><span class="p" data-group-id="1216608331-8">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="1216608331-9">{</span><span class="ss">ok</span><span class="p">,</span><span class="ss">complex6</span><span class="p" data-group-id="1216608331-9">}</span></code></pre><p><em>Step 3:</em> Run the example:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">3&gt; </span><span class="nc">complex6</span><span class="p">:</span><span class="nf">foo</span><span class="p" data-group-id="2474152324-1">(</span><span class="mi">3</span><span class="p" data-group-id="2474152324-1">)</span><span class="p">.</span><span class="w">
+</span><span class="mi">4</span><span class="gp unselectable">
+4&gt; </span><span class="nc">complex6</span><span class="p">:</span><span class="nf">bar</span><span class="p" data-group-id="2474152324-2">(</span><span class="mi">5</span><span class="p" data-group-id="2474152324-2">)</span><span class="p">.</span><span class="w">
+</span><span class="mi">10</span><span class="gp unselectable">
+5&gt; </span><span class="nc">complex6</span><span class="p">:</span><span class="nf">foo</span><span class="p" data-group-id="2474152324-3">(</span><span class="s">&quot;not an integer&quot;</span><span class="p" data-group-id="2474152324-3">)</span><span class="p">.</span><span class="w">
+</span><span class="gt">** exception error: bad argument
+     in function  complex6:foo/1
+        called as comlpex6:foo(&quot;not an integer&quot;)</span></code></pre>
+</div>
+
+<div class="bottom-actions" id="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="cnode.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+C Nodes
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="debugging.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+Debugging NIFs and Port Drivers
+        </span>
+      </a>
+
+  </div>
+</div>
+    <footer class="footer">
+      <p>
+
+        <span class="line">
+          <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+            Search HexDocs
+          </button>
+
+            <a href="Erlang System Documentation.epub" title="ePub version">
+              Download ePub version
+            </a>
+
+        </span>
+      </p>
+
+      <p class="built-using">
+        Built using
+        <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.32.2) for the
+
+          <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+      </p>
+<p>Copyright © 1996-2023 <a href="https://www.ericsson.com">Ericsson AB</a></p>
+    </footer>
+  </div>
+</main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: document.body.className.includes("dark") ? "dark" : "default"
+    });
+    let id = 0;
+    for (const codeEl of document.querySelectorAll("pre code.mermaid")) {
+      const preEl = codeEl.parentElement;
+      const graphDefinition = codeEl.textContent;
+      const graphEl = document.createElement("div");
+      const graphId = "mermaid-graph-" + id++;
+      mermaid.render(graphId, graphDefinition).then(({svg, bindFunctions}) => {
+        graphEl.innerHTML = svg;
+        bindFunctions?.(graphEl);
+        preEl.insertAdjacentElement("afterend", graphEl);
+        preEl.remove();
+      });
+    }
+  });
+</script>
+
+  </body>
+</html>

@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.32.2">
+    <meta name="project" content="Erlang System Documentation v27.0">
+
+
+    <title>Upgrade when Erlang/OTP has Changed — Erlang System Documentation v27.0</title>
+    <link rel="stylesheet" href="dist/html-erlang-EBZIIHAS.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-K7URE6B4.js"></script>
+    <script src="dist/sidebar_items-976EDCF5.js"></script>
+    <script src="docs_config.js"></script>
+    <script async src="dist/html-BHYOTRCH.js"></script>
+
+
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="Erlang System Documentation" />
+        </a>
+
+      <div>
+        <a href="../index.html" class="sidebar-projectName" translate="no">
+Erlang System Documentation
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v27.0
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of Erlang System Documentation</span>
+            <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+          </label>
+          <button type="submit" class="search-button" aria-label="Submit Search">
+            <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+          </button>
+          <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+            <i class="ri-close-line ri-lg" title="Cancel search"></i>
+          </button>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.0/system/doc/system_principles/upgrade.md#L1" title="View Source" class="icon-action" rel="help">
+        <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        <span class="sr-only">View Source</span>
+      </a>
+
+
+    <span>Upgrade when Erlang/OTP has Changed</span>
+  </h1>
+
+<p><a href="" id="upgrade-section"></a></p><h2 id="introduction" class="section-heading">
+  <a href="#introduction" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Introduction</span>
+</h2>
+<p><a href="" id="upgrade"></a></p><p>As of Erlang/OTP 17, most applications deliver a valid application upgrade file
+(<code class="inline">appup</code>). Many of the applications use the <code class="inline">restart_application</code>
+instruction. These are applications for which it is not crucial to support real
+soft upgrade, for example, tools and library applications. The
+<code class="inline">restart_application</code> instruction ensures that all modules in the application
+are reloaded and thereby running the new code.</p><h2 id="upgrade-of-core-applications" class="section-heading">
+  <a href="#upgrade-of-core-applications" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Upgrade of Core Applications</span>
+</h2>
+<p>The core applications ERTS, Kernel, STDLIB, and SASL never allow real
+soft upgrade, but require the Erlang runtime system to be
+restarted. This is indicated to the <code class="inline">release_handler</code> by the upgrade
+instruction <code class="inline">restart_new_emulator</code>. This instruction is always the
+very first instruction executed, and it restarts the runtime system
+with the new versions of the previously mentioned core applications
+and the old versions of all other applications. When the node is back
+up, all other upgrade instructions are executed, making sure each
+application is finally running its new version.</p><p>It might seem strange to do a two-step upgrade instead of just
+restarting the runtime system with the new version of all
+applications. The reason for this design decision is to allow
+<code class="inline">code_change</code> functions to have side effects, for example, changing
+data on disk. It also guarantees that the upgrade mechanism for
+non-core applications does not differ depending on whether or not core
+applications are changed at the same time.</p><p>If, however, the more brutal variant is preferred, the release
+upgrade file can be handwritten using only the single upgrade
+instruction <code class="inline">restart_emulator</code>.  This instruction, in contrast to
+<code class="inline">restart_new_emulator</code>, causes the runtime system to restart with the
+new versions of <em>all</em> applications.</p><p><em>Note:</em> If other instructions are included before <code class="inline">restart_emulator</code>
+in the handwritten <code class="inline">relup</code> file, they are executed in the old runtime
+system. This is a big risk since there is no guarantee that new BEAM
+code can be loaded into the old runtime system. Adding instructions
+after <code class="inline">restart_emulator</code> has no effect as the <code class="inline">release_handler</code> will
+not execute them.</p><p>For information about the release upgrade file, see
+<a href="../../lib/sasl-4.2.2/doc/html/relup.html">relup</a> in SASL. For more information about
+upgrade instructions, see <a href="../../lib/sasl-4.2.2/doc/html/appup.html">appup</a> in SASL.</p><h2 id="applications-that-still-do-not-allow-code-upgrade" class="section-heading">
+  <a href="#applications-that-still-do-not-allow-code-upgrade" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Applications that Still do Not Allow Code Upgrade</span>
+</h2>
+<p>A few applications, such as Erl_interface, do not support upgrade. This is
+indicated by an application upgrade file containing only <code class="inline">{Vsn,[],[]}</code>. Any
+attempt at creating a release upgrade file with such input fails. The only way
+to force an upgrade involving applications like this is to handwrite the file
+<code class="inline">relup</code>, preferably as described above with only the <code class="inline">restart_emulator</code>
+instruction.</p>
+</div>
+
+<div class="bottom-actions" id="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="create_target.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Creating and Upgrading a Target System
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="versions.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+Versions
+        </span>
+      </a>
+
+  </div>
+</div>
+    <footer class="footer">
+      <p>
+
+        <span class="line">
+          <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+            Search HexDocs
+          </button>
+
+            <a href="Erlang System Documentation.epub" title="ePub version">
+              Download ePub version
+            </a>
+
+        </span>
+      </p>
+
+      <p class="built-using">
+        Built using
+        <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.32.2) for the
+
+          <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+      </p>
+<p>Copyright © 1996-2023 <a href="https://www.ericsson.com">Ericsson AB</a></p>
+    </footer>
+  </div>
+</main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: document.body.className.includes("dark") ? "dark" : "default"
+    });
+    let id = 0;
+    for (const codeEl of document.querySelectorAll("pre code.mermaid")) {
+      const preEl = codeEl.parentElement;
+      const graphDefinition = codeEl.textContent;
+      const graphEl = document.createElement("div");
+      const graphId = "mermaid-graph-" + id++;
+      mermaid.render(graphId, graphDefinition).then(({svg, bindFunctions}) => {
+        graphEl.innerHTML = svg;
+        bindFunctions?.(graphEl);
+        preEl.insertAdjacentElement("afterend", graphEl);
+        preEl.remove();
+      });
+    }
+  });
+</script>
+
+  </body>
+</html>

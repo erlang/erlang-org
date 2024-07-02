@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.32.2">
+    <meta name="project" content="Erlang System Documentation v27.0">
+
+
+    <title>Robustness — Erlang System Documentation v27.0</title>
+    <link rel="stylesheet" href="dist/html-erlang-EBZIIHAS.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-K7URE6B4.js"></script>
+    <script src="dist/sidebar_items-976EDCF5.js"></script>
+    <script src="docs_config.js"></script>
+    <script async src="dist/html-BHYOTRCH.js"></script>
+
+
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="Erlang System Documentation" />
+        </a>
+
+      <div>
+        <a href="../index.html" class="sidebar-projectName" translate="no">
+Erlang System Documentation
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v27.0
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of Erlang System Documentation</span>
+            <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+          </label>
+          <button type="submit" class="search-button" aria-label="Submit Search">
+            <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+          </button>
+          <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+            <i class="ri-close-line ri-lg" title="Cancel search"></i>
+          </button>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.0/system/doc/getting_started/robustness.md#L1" title="View Source" class="icon-action" rel="help">
+        <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        <span class="sr-only">View Source</span>
+      </a>
+
+
+    <span>Robustness</span>
+  </h1>
+
+<p>Several things are wrong with the messenger example in
+<a href="conc_prog.html#ex">A Larger Example</a>. For example, if a node where a user is
+logged on goes down without doing a logoff, the user remains in the server's
+<code class="inline">User_List</code>, but the client disappears. This makes it impossible for the user to
+log on again as the server thinks the user already is logged on.</p><p>Or what happens if the server goes down in the middle of sending a message,
+leaving the sending client hanging forever in the <code class="inline">await_result</code> function?</p><h2 id="time-outs" class="section-heading">
+  <a href="#time-outs" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Time-outs</span>
+</h2>
+<p>Before improving the messenger program, let us look at some general principles,
+using the ping pong program as an example. Recall that when &quot;ping&quot; finishes, it
+tells &quot;pong&quot; that it has done so by sending the atom <code class="inline">finished</code> as a message to
+&quot;pong&quot; so that &quot;pong&quot; can also finish. Another way to let &quot;pong&quot; finish is to
+make &quot;pong&quot; exit if it does not receive a message from ping within a certain
+time. This can be done by adding a <em>time-out</em> to <code class="inline">pong</code> as shown in the
+following example:</p><pre><code class="makeup erlang" translate="no"><span class="p">-</span><span class="na">module</span><span class="p" data-group-id="1296382691-1">(</span><span class="ss">tut19</span><span class="p" data-group-id="1296382691-1">)</span><span class="p">.</span><span class="w">
+</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="1296382691-2">(</span><span class="p" data-group-id="1296382691-3">[</span><span class="ss">start_ping</span><span class="p">/</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="ss">start_pong</span><span class="p">/</span><span class="mi">0</span><span class="p">,</span><span class="w">  </span><span class="ss">ping</span><span class="p">/</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="ss">pong</span><span class="p">/</span><span class="mi">0</span><span class="p" data-group-id="1296382691-3">]</span><span class="p" data-group-id="1296382691-2">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">ping</span><span class="p" data-group-id="1296382691-4">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">Pong_Node</span><span class="p" data-group-id="1296382691-4">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="1296382691-5">(</span><span class="s">&quot;ping finished</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1296382691-6">[</span><span class="p" data-group-id="1296382691-6">]</span><span class="p" data-group-id="1296382691-5">)</span><span class="p">;</span><span class="w">
+
+</span><span class="nf">ping</span><span class="p" data-group-id="1296382691-7">(</span><span class="n">N</span><span class="p">,</span><span class="w"> </span><span class="n">Pong_Node</span><span class="p" data-group-id="1296382691-7">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="1296382691-8">{</span><span class="ss">pong</span><span class="p">,</span><span class="w"> </span><span class="n">Pong_Node</span><span class="p" data-group-id="1296382691-8">}</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="p" data-group-id="1296382691-9">{</span><span class="ss">ping</span><span class="p">,</span><span class="w"> </span><span class="nf">self</span><span class="p" data-group-id="1296382691-10">(</span><span class="p" data-group-id="1296382691-10">)</span><span class="p" data-group-id="1296382691-9">}</span><span class="p">,</span><span class="w">
+    </span><span class="k">receive</span><span class="w">
+        </span><span class="ss">pong</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="nc">io</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="1296382691-11">(</span><span class="s">&quot;Ping received pong</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1296382691-12">[</span><span class="p" data-group-id="1296382691-12">]</span><span class="p" data-group-id="1296382691-11">)</span><span class="w">
+    </span><span class="k">end</span><span class="p">,</span><span class="w">
+    </span><span class="nf">ping</span><span class="p" data-group-id="1296382691-13">(</span><span class="n">N</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">Pong_Node</span><span class="p" data-group-id="1296382691-13">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">pong</span><span class="p" data-group-id="1296382691-14">(</span><span class="p" data-group-id="1296382691-14">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">receive</span><span class="w">
+        </span><span class="p" data-group-id="1296382691-15">{</span><span class="ss">ping</span><span class="p">,</span><span class="w"> </span><span class="n">Ping_PID</span><span class="p" data-group-id="1296382691-15">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="nc">io</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="1296382691-16">(</span><span class="s">&quot;Pong received ping</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1296382691-17">[</span><span class="p" data-group-id="1296382691-17">]</span><span class="p" data-group-id="1296382691-16">)</span><span class="p">,</span><span class="w">
+            </span><span class="n">Ping_PID</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="ss">pong</span><span class="p">,</span><span class="w">
+            </span><span class="nf">pong</span><span class="p" data-group-id="1296382691-18">(</span><span class="p" data-group-id="1296382691-18">)</span><span class="w">
+    </span><span class="k">after</span><span class="w"> </span><span class="mi">5000</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="nc">io</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="1296382691-19">(</span><span class="s">&quot;Pong timed out</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1296382691-20">[</span><span class="p" data-group-id="1296382691-20">]</span><span class="p" data-group-id="1296382691-19">)</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">start_pong</span><span class="p" data-group-id="1296382691-21">(</span><span class="p" data-group-id="1296382691-21">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">register</span><span class="p" data-group-id="1296382691-22">(</span><span class="ss">pong</span><span class="p">,</span><span class="w"> </span><span class="nf">spawn</span><span class="p" data-group-id="1296382691-23">(</span><span class="ss">tut19</span><span class="p">,</span><span class="w"> </span><span class="ss">pong</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1296382691-24">[</span><span class="p" data-group-id="1296382691-24">]</span><span class="p" data-group-id="1296382691-23">)</span><span class="p" data-group-id="1296382691-22">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">start_ping</span><span class="p" data-group-id="1296382691-25">(</span><span class="n">Pong_Node</span><span class="p" data-group-id="1296382691-25">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">spawn</span><span class="p" data-group-id="1296382691-26">(</span><span class="ss">tut19</span><span class="p">,</span><span class="w"> </span><span class="ss">ping</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1296382691-27">[</span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="n">Pong_Node</span><span class="p" data-group-id="1296382691-27">]</span><span class="p" data-group-id="1296382691-26">)</span><span class="p">.</span></code></pre><p>After this is compiled and the file <code class="inline">tut19.beam</code> is copied to the necessary
+directories, the following is seen on (pong@kosken):</p><pre><code class="text">(pong@kosken)1&gt; tut19:start_pong().
+true
+Pong received ping
+Pong received ping
+Pong received ping
+Pong timed out</code></pre><p>And the following is seen on (ping@gollum):</p><pre><code class="text">(ping@gollum)1&gt; tut19:start_ping(pong@kosken).
+&lt;0.36.0&gt;
+Ping received pong
+Ping received pong
+Ping received pong
+ping finished</code></pre><p>The time-out is set in:</p><pre><code class="makeup erlang" translate="no"><span class="nf">pong</span><span class="p" data-group-id="2988927365-1">(</span><span class="p" data-group-id="2988927365-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">receive</span><span class="w">
+        </span><span class="p" data-group-id="2988927365-2">{</span><span class="ss">ping</span><span class="p">,</span><span class="w"> </span><span class="n">Ping_PID</span><span class="p" data-group-id="2988927365-2">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="nc">io</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="2988927365-3">(</span><span class="s">&quot;Pong received ping</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2988927365-4">[</span><span class="p" data-group-id="2988927365-4">]</span><span class="p" data-group-id="2988927365-3">)</span><span class="p">,</span><span class="w">
+            </span><span class="n">Ping_PID</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="ss">pong</span><span class="p">,</span><span class="w">
+            </span><span class="nf">pong</span><span class="p" data-group-id="2988927365-5">(</span><span class="p" data-group-id="2988927365-5">)</span><span class="w">
+    </span><span class="k">after</span><span class="w"> </span><span class="mi">5000</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="nc">io</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="2988927365-6">(</span><span class="s">&quot;Pong timed out</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2988927365-7">[</span><span class="p" data-group-id="2988927365-7">]</span><span class="p" data-group-id="2988927365-6">)</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span></code></pre><p>The time-out (<code class="inline">after 5000</code>) is started when <code class="inline">receive</code> is entered. The time-out
+is canceled if <code class="inline">{ping,Ping_PID}</code> is received. If <code class="inline">{ping,Ping_PID}</code> is not
+received, the actions following the time-out are done after 5000 milliseconds.
+<code class="inline">after</code> must be last in the <code class="inline">receive</code>, that is, preceded by all other message
+reception specifications in the <code class="inline">receive</code>. It is also possible to call a
+function that returned an integer for the time-out:</p><pre><code class="makeup erlang" translate="no"><span class="k">after</span><span class="w"> </span><span class="nf">pong_timeout</span><span class="p" data-group-id="5588373908-1">(</span><span class="p" data-group-id="5588373908-1">)</span><span class="w"> </span><span class="p">-&gt;</span></code></pre><p>In general, there are better ways than using time-outs to supervise parts of a
+distributed Erlang system. Time-outs are usually appropriate to supervise
+external events, for example, if you have expected a message from some external
+system within a specified time. For example, a time-out can be used to log a
+user out of the messenger system if they have not accessed it for, say, ten
+minutes.</p><h2 id="error-handling" class="section-heading">
+  <a href="#error-handling" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Error Handling</span>
+</h2>
+<p>Before going into details of the supervision and error handling in an Erlang
+system, let us see how Erlang processes terminate, or in Erlang terminology,
+<em>exit</em>.</p><p>A process which executes <a href="../../erts-15.0/doc/html/erlang.html#exit/1"><code class="inline">exit(normal)</code></a> or simply runs out of things
+to do has a <em>normal</em> exit.</p><p>A process which encounters a runtime error (for example, divide by zero, bad
+match, trying to call a function that does not exist and so on) exits with an
+error, that is, has an <em>abnormal</em> exit. A process which executes
+<a href="../../erts-15.0/doc/html/erlang.html#exit/1">exit(Reason)</a> where <code class="inline">Reason</code> is any Erlang term except the
+atom <code class="inline">normal</code>, also has an abnormal exit.</p><p>An Erlang process can set up links to other Erlang processes. If a process calls
+<a href="../../erts-15.0/doc/html/erlang.html#link/1">link(Other_Pid)</a> it sets up a bidirectional link between
+itself and the process called <code class="inline">Other_Pid</code>. When a process terminates, it sends
+something called a <em>signal</em> to all the processes it has links to.</p><p>The signal carries information about the pid it was sent from and the exit
+reason.</p><p>The default behaviour of a process that receives a normal exit is to ignore the
+signal.</p><p>The default behaviour in the two other cases (that is, abnormal exit) above is
+to:</p><ul><li>Bypass all messages to the receiving process.</li><li>Kill the receiving process.</li><li>Propagate the same error signal to the links of the killed process.</li></ul><p>In this way you can connect all processes in a transaction together using links.
+If one of the processes exits abnormally, all the processes in the transaction
+are killed. As it is often wanted to create a process and link to it at the same
+time, there is a special BIF, <a href="../../erts-15.0/doc/html/erlang.html#spawn_link/1">spawn_link</a> that does the
+same as <code class="inline">spawn</code>, but also creates a link to the spawned process.</p><p>Now an example of the ping pong example using links to terminate &quot;pong&quot;:</p><pre><code class="makeup erlang" translate="no"><span class="p">-</span><span class="na">module</span><span class="p" data-group-id="0424485453-1">(</span><span class="ss">tut20</span><span class="p" data-group-id="0424485453-1">)</span><span class="p">.</span><span class="w">
+</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="0424485453-2">(</span><span class="p" data-group-id="0424485453-3">[</span><span class="ss">start</span><span class="p">/</span><span class="mi">1</span><span class="p">,</span><span class="w">  </span><span class="ss">ping</span><span class="p">/</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="ss">pong</span><span class="p">/</span><span class="mi">0</span><span class="p" data-group-id="0424485453-3">]</span><span class="p" data-group-id="0424485453-2">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">ping</span><span class="p" data-group-id="0424485453-4">(</span><span class="n">N</span><span class="p">,</span><span class="w"> </span><span class="n">Pong_Pid</span><span class="p" data-group-id="0424485453-4">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">link</span><span class="p" data-group-id="0424485453-5">(</span><span class="n">Pong_Pid</span><span class="p" data-group-id="0424485453-5">)</span><span class="p">,</span><span class="w">
+    </span><span class="nf">ping1</span><span class="p" data-group-id="0424485453-6">(</span><span class="n">N</span><span class="p">,</span><span class="w"> </span><span class="n">Pong_Pid</span><span class="p" data-group-id="0424485453-6">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">ping1</span><span class="p" data-group-id="0424485453-7">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="p" data-group-id="0424485453-7">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">exit</span><span class="p" data-group-id="0424485453-8">(</span><span class="ss">ping</span><span class="p" data-group-id="0424485453-8">)</span><span class="p">;</span><span class="w">
+
+</span><span class="nf">ping1</span><span class="p" data-group-id="0424485453-9">(</span><span class="n">N</span><span class="p">,</span><span class="w"> </span><span class="n">Pong_Pid</span><span class="p" data-group-id="0424485453-9">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">Pong_Pid</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="p" data-group-id="0424485453-10">{</span><span class="ss">ping</span><span class="p">,</span><span class="w"> </span><span class="nf">self</span><span class="p" data-group-id="0424485453-11">(</span><span class="p" data-group-id="0424485453-11">)</span><span class="p" data-group-id="0424485453-10">}</span><span class="p">,</span><span class="w">
+    </span><span class="k">receive</span><span class="w">
+        </span><span class="ss">pong</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="nc">io</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="0424485453-12">(</span><span class="s">&quot;Ping received pong</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0424485453-13">[</span><span class="p" data-group-id="0424485453-13">]</span><span class="p" data-group-id="0424485453-12">)</span><span class="w">
+    </span><span class="k">end</span><span class="p">,</span><span class="w">
+    </span><span class="nf">ping1</span><span class="p" data-group-id="0424485453-14">(</span><span class="n">N</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">Pong_Pid</span><span class="p" data-group-id="0424485453-14">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">pong</span><span class="p" data-group-id="0424485453-15">(</span><span class="p" data-group-id="0424485453-15">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">receive</span><span class="w">
+        </span><span class="p" data-group-id="0424485453-16">{</span><span class="ss">ping</span><span class="p">,</span><span class="w"> </span><span class="n">Ping_PID</span><span class="p" data-group-id="0424485453-16">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="nc">io</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="0424485453-17">(</span><span class="s">&quot;Pong received ping</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0424485453-18">[</span><span class="p" data-group-id="0424485453-18">]</span><span class="p" data-group-id="0424485453-17">)</span><span class="p">,</span><span class="w">
+            </span><span class="n">Ping_PID</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="ss">pong</span><span class="p">,</span><span class="w">
+            </span><span class="nf">pong</span><span class="p" data-group-id="0424485453-19">(</span><span class="p" data-group-id="0424485453-19">)</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">start</span><span class="p" data-group-id="0424485453-20">(</span><span class="n">Ping_Node</span><span class="p" data-group-id="0424485453-20">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">PongPID</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">spawn</span><span class="p" data-group-id="0424485453-21">(</span><span class="ss">tut20</span><span class="p">,</span><span class="w"> </span><span class="ss">pong</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0424485453-22">[</span><span class="p" data-group-id="0424485453-22">]</span><span class="p" data-group-id="0424485453-21">)</span><span class="p">,</span><span class="w">
+    </span><span class="nf">spawn</span><span class="p" data-group-id="0424485453-23">(</span><span class="n">Ping_Node</span><span class="p">,</span><span class="w"> </span><span class="ss">tut20</span><span class="p">,</span><span class="w"> </span><span class="ss">ping</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0424485453-24">[</span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="n">PongPID</span><span class="p" data-group-id="0424485453-24">]</span><span class="p" data-group-id="0424485453-23">)</span><span class="p">.</span></code></pre><pre><code class="text">(s1@bill)3&gt; tut20:start(s2@kosken).
+Pong received ping
+&lt;3820.41.0&gt;
+Ping received pong
+Pong received ping
+Ping received pong
+Pong received ping
+Ping received pong</code></pre><p>This is a slight modification of the ping pong program where both processes are
+spawned from the same <code class="inline">start/1</code> function, and the &quot;ping&quot; process can be spawned
+on a separate node. Notice the use of the <code class="inline">link</code> BIF. &quot;Ping&quot; calls
+<a href="../../erts-15.0/doc/html/erlang.html#exit/1"><code class="inline">exit(ping)</code></a> when it finishes and this causes an exit signal to be
+sent to &quot;pong&quot;, which also terminates.</p><p>It is possible to modify the default behaviour of a process so that it does not
+get killed when it receives abnormal exit signals. Instead, all signals are
+turned into normal messages on the format <code class="inline">{'EXIT',FromPID,Reason}</code> and added to
+the end of the receiving process' message queue. This behaviour is set by:</p><pre><code class="makeup erlang" translate="no"><span class="nf">process_flag</span><span class="p" data-group-id="5232893584-1">(</span><span class="ss">trap_exit</span><span class="p">,</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="5232893584-1">)</span></code></pre><p>There are several other process flags, see <a href="../../erts-15.0/doc/html/erlang.html#process_flag/2">erlang(3)</a>.
+Changing the default behaviour of a process in this way is usually not done in
+standard user programs, but is left to the supervisory programs in OTP. However,
+the ping pong program is modified to illustrate exit trapping.</p><pre><code class="makeup erlang" translate="no"><span class="p">-</span><span class="na">module</span><span class="p" data-group-id="2280828800-1">(</span><span class="ss">tut21</span><span class="p" data-group-id="2280828800-1">)</span><span class="p">.</span><span class="w">
+</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="2280828800-2">(</span><span class="p" data-group-id="2280828800-3">[</span><span class="ss">start</span><span class="p">/</span><span class="mi">1</span><span class="p">,</span><span class="w">  </span><span class="ss">ping</span><span class="p">/</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="ss">pong</span><span class="p">/</span><span class="mi">0</span><span class="p" data-group-id="2280828800-3">]</span><span class="p" data-group-id="2280828800-2">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">ping</span><span class="p" data-group-id="2280828800-4">(</span><span class="n">N</span><span class="p">,</span><span class="w"> </span><span class="n">Pong_Pid</span><span class="p" data-group-id="2280828800-4">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">link</span><span class="p" data-group-id="2280828800-5">(</span><span class="n">Pong_Pid</span><span class="p" data-group-id="2280828800-5">)</span><span class="p">,</span><span class="w">
+    </span><span class="nf">ping1</span><span class="p" data-group-id="2280828800-6">(</span><span class="n">N</span><span class="p">,</span><span class="w"> </span><span class="n">Pong_Pid</span><span class="p" data-group-id="2280828800-6">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">ping1</span><span class="p" data-group-id="2280828800-7">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="p" data-group-id="2280828800-7">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">exit</span><span class="p" data-group-id="2280828800-8">(</span><span class="ss">ping</span><span class="p" data-group-id="2280828800-8">)</span><span class="p">;</span><span class="w">
+
+</span><span class="nf">ping1</span><span class="p" data-group-id="2280828800-9">(</span><span class="n">N</span><span class="p">,</span><span class="w"> </span><span class="n">Pong_Pid</span><span class="p" data-group-id="2280828800-9">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">Pong_Pid</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="p" data-group-id="2280828800-10">{</span><span class="ss">ping</span><span class="p">,</span><span class="w"> </span><span class="nf">self</span><span class="p" data-group-id="2280828800-11">(</span><span class="p" data-group-id="2280828800-11">)</span><span class="p" data-group-id="2280828800-10">}</span><span class="p">,</span><span class="w">
+    </span><span class="k">receive</span><span class="w">
+        </span><span class="ss">pong</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="nc">io</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="2280828800-12">(</span><span class="s">&quot;Ping received pong</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2280828800-13">[</span><span class="p" data-group-id="2280828800-13">]</span><span class="p" data-group-id="2280828800-12">)</span><span class="w">
+    </span><span class="k">end</span><span class="p">,</span><span class="w">
+    </span><span class="nf">ping1</span><span class="p" data-group-id="2280828800-14">(</span><span class="n">N</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">Pong_Pid</span><span class="p" data-group-id="2280828800-14">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">pong</span><span class="p" data-group-id="2280828800-15">(</span><span class="p" data-group-id="2280828800-15">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">process_flag</span><span class="p" data-group-id="2280828800-16">(</span><span class="ss">trap_exit</span><span class="p">,</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="2280828800-16">)</span><span class="p">,</span><span class="w">
+    </span><span class="nf">pong1</span><span class="p" data-group-id="2280828800-17">(</span><span class="p" data-group-id="2280828800-17">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">pong1</span><span class="p" data-group-id="2280828800-18">(</span><span class="p" data-group-id="2280828800-18">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">receive</span><span class="w">
+        </span><span class="p" data-group-id="2280828800-19">{</span><span class="ss">ping</span><span class="p">,</span><span class="w"> </span><span class="n">Ping_PID</span><span class="p" data-group-id="2280828800-19">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="nc">io</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="2280828800-20">(</span><span class="s">&quot;Pong received ping</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2280828800-21">[</span><span class="p" data-group-id="2280828800-21">]</span><span class="p" data-group-id="2280828800-20">)</span><span class="p">,</span><span class="w">
+            </span><span class="n">Ping_PID</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="ss">pong</span><span class="p">,</span><span class="w">
+            </span><span class="nf">pong1</span><span class="p" data-group-id="2280828800-22">(</span><span class="p" data-group-id="2280828800-22">)</span><span class="p">;</span><span class="w">
+        </span><span class="p" data-group-id="2280828800-23">{</span><span class="ss">&#39;EXIT&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">From</span><span class="p">,</span><span class="w"> </span><span class="n">Reason</span><span class="p" data-group-id="2280828800-23">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="nc">io</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="2280828800-24">(</span><span class="s">&quot;pong exiting, got </span><span class="si">~p</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2280828800-25">[</span><span class="p" data-group-id="2280828800-26">{</span><span class="ss">&#39;EXIT&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">From</span><span class="p">,</span><span class="w"> </span><span class="n">Reason</span><span class="p" data-group-id="2280828800-26">}</span><span class="p" data-group-id="2280828800-25">]</span><span class="p" data-group-id="2280828800-24">)</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">start</span><span class="p" data-group-id="2280828800-27">(</span><span class="n">Ping_Node</span><span class="p" data-group-id="2280828800-27">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">PongPID</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">spawn</span><span class="p" data-group-id="2280828800-28">(</span><span class="ss">tut21</span><span class="p">,</span><span class="w"> </span><span class="ss">pong</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2280828800-29">[</span><span class="p" data-group-id="2280828800-29">]</span><span class="p" data-group-id="2280828800-28">)</span><span class="p">,</span><span class="w">
+    </span><span class="nf">spawn</span><span class="p" data-group-id="2280828800-30">(</span><span class="n">Ping_Node</span><span class="p">,</span><span class="w"> </span><span class="ss">tut21</span><span class="p">,</span><span class="w"> </span><span class="ss">ping</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2280828800-31">[</span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="n">PongPID</span><span class="p" data-group-id="2280828800-31">]</span><span class="p" data-group-id="2280828800-30">)</span><span class="p">.</span></code></pre><pre><code class="text">(s1@bill)1&gt; tut21:start(s2@gollum).
+&lt;3820.39.0&gt;
+Pong received ping
+Ping received pong
+Pong received ping
+Ping received pong
+Pong received ping
+Ping received pong
+pong exiting, got {'EXIT',&lt;3820.39.0&gt;,ping}</code></pre><h2 id="the-larger-example-with-robustness-added" class="section-heading">
+  <a href="#the-larger-example-with-robustness-added" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">The Larger Example with Robustness Added</span>
+</h2>
+<p>Let us return to the messenger program and add changes to make it more robust:</p><pre><code class="makeup erlang" translate="no"><span class="c1">%%% Message passing utility.</span><span class="w">
+</span><span class="c1">%%% User interface:</span><span class="w">
+</span><span class="c1">%%% login(Name)</span><span class="w">
+</span><span class="c1">%%%     One user at a time can log in from each Erlang node in the</span><span class="w">
+</span><span class="c1">%%%     system messenger: and choose a suitable Name. If the Name</span><span class="w">
+</span><span class="c1">%%%     is already logged in at another node or if someone else is</span><span class="w">
+</span><span class="c1">%%%     already logged in at the same node, login will be rejected</span><span class="w">
+</span><span class="c1">%%%     with a suitable error message.</span><span class="w">
+</span><span class="c1">%%% logoff()</span><span class="w">
+</span><span class="c1">%%%     Logs off anybody at that node</span><span class="w">
+</span><span class="c1">%%% message(ToName, Message)</span><span class="w">
+</span><span class="c1">%%%     sends Message to ToName. Error messages if the user of this</span><span class="w">
+</span><span class="c1">%%%     function is not logged on or if ToName is not logged on at</span><span class="w">
+</span><span class="c1">%%%     any node.</span><span class="w">
+</span><span class="c1">%%%</span><span class="w">
+</span><span class="c1">%%% One node in the network of Erlang nodes runs a server which maintains</span><span class="w">
+</span><span class="c1">%%% data about the logged on users. The server is registered as &quot;messenger&quot;</span><span class="w">
+</span><span class="c1">%%% Each node where there is a user logged on runs a client process registered</span><span class="w">
+</span><span class="c1">%%% as &quot;mess_client&quot;</span><span class="w">
+</span><span class="c1">%%%</span><span class="w">
+</span><span class="c1">%%% Protocol between the client processes and the server</span><span class="w">
+</span><span class="c1">%%% ----------------------------------------------------</span><span class="w">
+</span><span class="c1">%%%</span><span class="w">
+</span><span class="c1">%%% To server: {ClientPid, logon, UserName}</span><span class="w">
+</span><span class="c1">%%% Reply {messenger, stop, user_exists_at_other_node} stops the client</span><span class="w">
+</span><span class="c1">%%% Reply {messenger, logged_on} logon was successful</span><span class="w">
+</span><span class="c1">%%%</span><span class="w">
+</span><span class="c1">%%% When the client terminates for some reason</span><span class="w">
+</span><span class="c1">%%% To server: {&#39;EXIT&#39;, ClientPid, Reason}</span><span class="w">
+</span><span class="c1">%%%</span><span class="w">
+</span><span class="c1">%%% To server: {ClientPid, message_to, ToName, Message} send a message</span><span class="w">
+</span><span class="c1">%%% Reply: {messenger, stop, you_are_not_logged_on} stops the client</span><span class="w">
+</span><span class="c1">%%% Reply: {messenger, receiver_not_found} no user with this name logged on</span><span class="w">
+</span><span class="c1">%%% Reply: {messenger, sent} Message has been sent (but no guarantee)</span><span class="w">
+</span><span class="c1">%%%</span><span class="w">
+</span><span class="c1">%%% To client: {message_from, Name, Message},</span><span class="w">
+</span><span class="c1">%%%</span><span class="w">
+</span><span class="c1">%%% Protocol between the &quot;commands&quot; and the client</span><span class="w">
+</span><span class="c1">%%% ----------------------------------------------</span><span class="w">
+</span><span class="c1">%%%</span><span class="w">
+</span><span class="c1">%%% Started: messenger:client(Server_Node, Name)</span><span class="w">
+</span><span class="c1">%%% To client: logoff</span><span class="w">
+</span><span class="c1">%%% To client: {message_to, ToName, Message}</span><span class="w">
+</span><span class="c1">%%%</span><span class="w">
+</span><span class="c1">%%% Configuration: change the server_node() function to return the</span><span class="w">
+</span><span class="c1">%%% name of the node where the messenger server runs</span><span class="w">
+</span><span class="w">
+</span><span class="p">-</span><span class="na">module</span><span class="p" data-group-id="9902948177-1">(</span><span class="ss">messenger</span><span class="p" data-group-id="9902948177-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="9902948177-2">(</span><span class="p" data-group-id="9902948177-3">[</span><span class="ss">start_server</span><span class="p">/</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="ss">server</span><span class="p">/</span><span class="mi">0</span><span class="p">,</span><span class="w">
+         </span><span class="ss">logon</span><span class="p">/</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="ss">logoff</span><span class="p">/</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="ss">message</span><span class="p">/</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="ss">client</span><span class="p">/</span><span class="mi">2</span><span class="p" data-group-id="9902948177-3">]</span><span class="p" data-group-id="9902948177-2">)</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%%% Change the function below to return the name of the node where the</span><span class="w">
+</span><span class="c1">%%% messenger server runs</span><span class="w">
+</span><span class="nf">server_node</span><span class="p" data-group-id="9902948177-4">(</span><span class="p" data-group-id="9902948177-4">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="ss">messenger@super</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%%% This is the server process for the &quot;messenger&quot;</span><span class="w">
+</span><span class="c1">%%% the user list has the format [{ClientPid1, Name1},{ClientPid22, Name2},...]</span><span class="w">
+</span><span class="nf">server</span><span class="p" data-group-id="9902948177-5">(</span><span class="p" data-group-id="9902948177-5">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">process_flag</span><span class="p" data-group-id="9902948177-6">(</span><span class="ss">trap_exit</span><span class="p">,</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="9902948177-6">)</span><span class="p">,</span><span class="w">
+    </span><span class="nf">server</span><span class="p" data-group-id="9902948177-7">(</span><span class="p" data-group-id="9902948177-8">[</span><span class="p" data-group-id="9902948177-8">]</span><span class="p" data-group-id="9902948177-7">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">server</span><span class="p" data-group-id="9902948177-9">(</span><span class="n">User_List</span><span class="p" data-group-id="9902948177-9">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">receive</span><span class="w">
+        </span><span class="p" data-group-id="9902948177-10">{</span><span class="n">From</span><span class="p">,</span><span class="w"> </span><span class="ss">logon</span><span class="p">,</span><span class="w"> </span><span class="n">Name</span><span class="p" data-group-id="9902948177-10">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="n">New_User_List</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">server_logon</span><span class="p" data-group-id="9902948177-11">(</span><span class="n">From</span><span class="p">,</span><span class="w"> </span><span class="n">Name</span><span class="p">,</span><span class="w"> </span><span class="n">User_List</span><span class="p" data-group-id="9902948177-11">)</span><span class="p">,</span><span class="w">
+            </span><span class="nf">server</span><span class="p" data-group-id="9902948177-12">(</span><span class="n">New_User_List</span><span class="p" data-group-id="9902948177-12">)</span><span class="p">;</span><span class="w">
+        </span><span class="p" data-group-id="9902948177-13">{</span><span class="ss">&#39;EXIT&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">From</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="p" data-group-id="9902948177-13">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="n">New_User_List</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">server_logoff</span><span class="p" data-group-id="9902948177-14">(</span><span class="n">From</span><span class="p">,</span><span class="w"> </span><span class="n">User_List</span><span class="p" data-group-id="9902948177-14">)</span><span class="p">,</span><span class="w">
+            </span><span class="nf">server</span><span class="p" data-group-id="9902948177-15">(</span><span class="n">New_User_List</span><span class="p" data-group-id="9902948177-15">)</span><span class="p">;</span><span class="w">
+        </span><span class="p" data-group-id="9902948177-16">{</span><span class="n">From</span><span class="p">,</span><span class="w"> </span><span class="ss">message_to</span><span class="p">,</span><span class="w"> </span><span class="n">To</span><span class="p">,</span><span class="w"> </span><span class="n">Message</span><span class="p" data-group-id="9902948177-16">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="nf">server_transfer</span><span class="p" data-group-id="9902948177-17">(</span><span class="n">From</span><span class="p">,</span><span class="w"> </span><span class="n">To</span><span class="p">,</span><span class="w"> </span><span class="n">Message</span><span class="p">,</span><span class="w"> </span><span class="n">User_List</span><span class="p" data-group-id="9902948177-17">)</span><span class="p">,</span><span class="w">
+            </span><span class="nc">io</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="9902948177-18">(</span><span class="s">&quot;list is now: </span><span class="si">~p</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="9902948177-19">[</span><span class="n">User_List</span><span class="p" data-group-id="9902948177-19">]</span><span class="p" data-group-id="9902948177-18">)</span><span class="p">,</span><span class="w">
+            </span><span class="nf">server</span><span class="p" data-group-id="9902948177-20">(</span><span class="n">User_List</span><span class="p" data-group-id="9902948177-20">)</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%%% Start the server</span><span class="w">
+</span><span class="nf">start_server</span><span class="p" data-group-id="9902948177-21">(</span><span class="p" data-group-id="9902948177-21">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">register</span><span class="p" data-group-id="9902948177-22">(</span><span class="ss">messenger</span><span class="p">,</span><span class="w"> </span><span class="nf">spawn</span><span class="p" data-group-id="9902948177-23">(</span><span class="ss">messenger</span><span class="p">,</span><span class="w"> </span><span class="ss">server</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="9902948177-24">[</span><span class="p" data-group-id="9902948177-24">]</span><span class="p" data-group-id="9902948177-23">)</span><span class="p" data-group-id="9902948177-22">)</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%%% Server adds a new user to the user list</span><span class="w">
+</span><span class="nf">server_logon</span><span class="p" data-group-id="9902948177-25">(</span><span class="n">From</span><span class="p">,</span><span class="w"> </span><span class="n">Name</span><span class="p">,</span><span class="w"> </span><span class="n">User_List</span><span class="p" data-group-id="9902948177-25">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="c1">%% check if logged on anywhere else</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="nc">lists</span><span class="p">:</span><span class="nf">keymember</span><span class="p" data-group-id="9902948177-26">(</span><span class="n">Name</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="n">User_List</span><span class="p" data-group-id="9902948177-26">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+        </span><span class="ss">true</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="n">From</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="p" data-group-id="9902948177-27">{</span><span class="ss">messenger</span><span class="p">,</span><span class="w"> </span><span class="ss">stop</span><span class="p">,</span><span class="w"> </span><span class="ss">user_exists_at_other_node</span><span class="p" data-group-id="9902948177-27">}</span><span class="p">,</span><span class="w">  </span><span class="c1">%reject logon</span><span class="w">
+            </span><span class="n">User_List</span><span class="p">;</span><span class="w">
+        </span><span class="ss">false</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="n">From</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="p" data-group-id="9902948177-28">{</span><span class="ss">messenger</span><span class="p">,</span><span class="w"> </span><span class="ss">logged_on</span><span class="p" data-group-id="9902948177-28">}</span><span class="p">,</span><span class="w">
+            </span><span class="nf">link</span><span class="p" data-group-id="9902948177-29">(</span><span class="n">From</span><span class="p" data-group-id="9902948177-29">)</span><span class="p">,</span><span class="w">
+            </span><span class="p" data-group-id="9902948177-30">[</span><span class="p" data-group-id="9902948177-31">{</span><span class="n">From</span><span class="p">,</span><span class="w"> </span><span class="n">Name</span><span class="p" data-group-id="9902948177-31">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="n">User_List</span><span class="p" data-group-id="9902948177-30">]</span><span class="w">        </span><span class="c1">%add user to the list</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%%% Server deletes a user from the user list</span><span class="w">
+</span><span class="nf">server_logoff</span><span class="p" data-group-id="9902948177-32">(</span><span class="n">From</span><span class="p">,</span><span class="w"> </span><span class="n">User_List</span><span class="p" data-group-id="9902948177-32">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">lists</span><span class="p">:</span><span class="nf">keydelete</span><span class="p" data-group-id="9902948177-33">(</span><span class="n">From</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">User_List</span><span class="p" data-group-id="9902948177-33">)</span><span class="p">.</span><span class="w">
+
+
+</span><span class="c1">%%% Server transfers a message between user</span><span class="w">
+</span><span class="nf">server_transfer</span><span class="p" data-group-id="9902948177-34">(</span><span class="n">From</span><span class="p">,</span><span class="w"> </span><span class="n">To</span><span class="p">,</span><span class="w"> </span><span class="n">Message</span><span class="p">,</span><span class="w"> </span><span class="n">User_List</span><span class="p" data-group-id="9902948177-34">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="c1">%% check that the user is logged on and who he is</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="nc">lists</span><span class="p">:</span><span class="nf">keysearch</span><span class="p" data-group-id="9902948177-35">(</span><span class="n">From</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">User_List</span><span class="p" data-group-id="9902948177-35">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+        </span><span class="ss">false</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="n">From</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="p" data-group-id="9902948177-36">{</span><span class="ss">messenger</span><span class="p">,</span><span class="w"> </span><span class="ss">stop</span><span class="p">,</span><span class="w"> </span><span class="ss">you_are_not_logged_on</span><span class="p" data-group-id="9902948177-36">}</span><span class="p">;</span><span class="w">
+        </span><span class="p" data-group-id="9902948177-37">{</span><span class="ss">value</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="9902948177-38">{</span><span class="p">_</span><span class="p">,</span><span class="w"> </span><span class="n">Name</span><span class="p" data-group-id="9902948177-38">}</span><span class="p" data-group-id="9902948177-37">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="nf">server_transfer</span><span class="p" data-group-id="9902948177-39">(</span><span class="n">From</span><span class="p">,</span><span class="w"> </span><span class="n">Name</span><span class="p">,</span><span class="w"> </span><span class="n">To</span><span class="p">,</span><span class="w"> </span><span class="n">Message</span><span class="p">,</span><span class="w"> </span><span class="n">User_List</span><span class="p" data-group-id="9902948177-39">)</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%%% If the user exists, send the message</span><span class="w">
+</span><span class="nf">server_transfer</span><span class="p" data-group-id="9902948177-40">(</span><span class="n">From</span><span class="p">,</span><span class="w"> </span><span class="n">Name</span><span class="p">,</span><span class="w"> </span><span class="n">To</span><span class="p">,</span><span class="w"> </span><span class="n">Message</span><span class="p">,</span><span class="w"> </span><span class="n">User_List</span><span class="p" data-group-id="9902948177-40">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="c1">%% Find the receiver and send the message</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="nc">lists</span><span class="p">:</span><span class="nf">keysearch</span><span class="p" data-group-id="9902948177-41">(</span><span class="n">To</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="n">User_List</span><span class="p" data-group-id="9902948177-41">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+        </span><span class="ss">false</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="n">From</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="p" data-group-id="9902948177-42">{</span><span class="ss">messenger</span><span class="p">,</span><span class="w"> </span><span class="ss">receiver_not_found</span><span class="p" data-group-id="9902948177-42">}</span><span class="p">;</span><span class="w">
+        </span><span class="p" data-group-id="9902948177-43">{</span><span class="ss">value</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="9902948177-44">{</span><span class="n">ToPid</span><span class="p">,</span><span class="w"> </span><span class="n">To</span><span class="p" data-group-id="9902948177-44">}</span><span class="p" data-group-id="9902948177-43">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="n">ToPid</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="p" data-group-id="9902948177-45">{</span><span class="ss">message_from</span><span class="p">,</span><span class="w"> </span><span class="n">Name</span><span class="p">,</span><span class="w"> </span><span class="n">Message</span><span class="p" data-group-id="9902948177-45">}</span><span class="p">,</span><span class="w">
+            </span><span class="n">From</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="p" data-group-id="9902948177-46">{</span><span class="ss">messenger</span><span class="p">,</span><span class="w"> </span><span class="ss">sent</span><span class="p" data-group-id="9902948177-46">}</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%%% User Commands</span><span class="w">
+</span><span class="nf">logon</span><span class="p" data-group-id="9902948177-47">(</span><span class="n">Name</span><span class="p" data-group-id="9902948177-47">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="nf">whereis</span><span class="p" data-group-id="9902948177-48">(</span><span class="ss">mess_client</span><span class="p" data-group-id="9902948177-48">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+        </span><span class="ss">undefined</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="nf">register</span><span class="p" data-group-id="9902948177-49">(</span><span class="ss">mess_client</span><span class="p">,</span><span class="w">
+                     </span><span class="nf">spawn</span><span class="p" data-group-id="9902948177-50">(</span><span class="ss">messenger</span><span class="p">,</span><span class="w"> </span><span class="ss">client</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="9902948177-51">[</span><span class="nf">server_node</span><span class="p" data-group-id="9902948177-52">(</span><span class="p" data-group-id="9902948177-52">)</span><span class="p">,</span><span class="w"> </span><span class="n">Name</span><span class="p" data-group-id="9902948177-51">]</span><span class="p" data-group-id="9902948177-50">)</span><span class="p" data-group-id="9902948177-49">)</span><span class="p">;</span><span class="w">
+        </span><span class="p">_</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="ss">already_logged_on</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">logoff</span><span class="p" data-group-id="9902948177-53">(</span><span class="p" data-group-id="9902948177-53">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="ss">mess_client</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="ss">logoff</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">message</span><span class="p" data-group-id="9902948177-54">(</span><span class="n">ToName</span><span class="p">,</span><span class="w"> </span><span class="n">Message</span><span class="p" data-group-id="9902948177-54">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="nf">whereis</span><span class="p" data-group-id="9902948177-55">(</span><span class="ss">mess_client</span><span class="p" data-group-id="9902948177-55">)</span><span class="w"> </span><span class="k">of</span><span class="w"> </span><span class="c1">% Test if the client is running</span><span class="w">
+        </span><span class="ss">undefined</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="ss">not_logged_on</span><span class="p">;</span><span class="w">
+        </span><span class="p">_</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="ss">mess_client</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="p" data-group-id="9902948177-56">{</span><span class="ss">message_to</span><span class="p">,</span><span class="w"> </span><span class="n">ToName</span><span class="p">,</span><span class="w"> </span><span class="n">Message</span><span class="p" data-group-id="9902948177-56">}</span><span class="p">,</span><span class="w">
+             </span><span class="ss">ok</span><span class="w">
+</span><span class="k">end</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%%% The client process which runs on each user node</span><span class="w">
+</span><span class="nf">client</span><span class="p" data-group-id="9902948177-57">(</span><span class="n">Server_Node</span><span class="p">,</span><span class="w"> </span><span class="n">Name</span><span class="p" data-group-id="9902948177-57">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="9902948177-58">{</span><span class="ss">messenger</span><span class="p">,</span><span class="w"> </span><span class="n">Server_Node</span><span class="p" data-group-id="9902948177-58">}</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="p" data-group-id="9902948177-59">{</span><span class="nf">self</span><span class="p" data-group-id="9902948177-60">(</span><span class="p" data-group-id="9902948177-60">)</span><span class="p">,</span><span class="w"> </span><span class="ss">logon</span><span class="p">,</span><span class="w"> </span><span class="n">Name</span><span class="p" data-group-id="9902948177-59">}</span><span class="p">,</span><span class="w">
+    </span><span class="nf">await_result</span><span class="p" data-group-id="9902948177-61">(</span><span class="p" data-group-id="9902948177-61">)</span><span class="p">,</span><span class="w">
+    </span><span class="nf">client</span><span class="p" data-group-id="9902948177-62">(</span><span class="n">Server_Node</span><span class="p" data-group-id="9902948177-62">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">client</span><span class="p" data-group-id="9902948177-63">(</span><span class="n">Server_Node</span><span class="p" data-group-id="9902948177-63">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">receive</span><span class="w">
+        </span><span class="ss">logoff</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="nf">exit</span><span class="p" data-group-id="9902948177-64">(</span><span class="ss">normal</span><span class="p" data-group-id="9902948177-64">)</span><span class="p">;</span><span class="w">
+        </span><span class="p" data-group-id="9902948177-65">{</span><span class="ss">message_to</span><span class="p">,</span><span class="w"> </span><span class="n">ToName</span><span class="p">,</span><span class="w"> </span><span class="n">Message</span><span class="p" data-group-id="9902948177-65">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="p" data-group-id="9902948177-66">{</span><span class="ss">messenger</span><span class="p">,</span><span class="w"> </span><span class="n">Server_Node</span><span class="p" data-group-id="9902948177-66">}</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="p" data-group-id="9902948177-67">{</span><span class="nf">self</span><span class="p" data-group-id="9902948177-68">(</span><span class="p" data-group-id="9902948177-68">)</span><span class="p">,</span><span class="w"> </span><span class="ss">message_to</span><span class="p">,</span><span class="w"> </span><span class="n">ToName</span><span class="p">,</span><span class="w"> </span><span class="n">Message</span><span class="p" data-group-id="9902948177-67">}</span><span class="p">,</span><span class="w">
+            </span><span class="nf">await_result</span><span class="p" data-group-id="9902948177-69">(</span><span class="p" data-group-id="9902948177-69">)</span><span class="p">;</span><span class="w">
+        </span><span class="p" data-group-id="9902948177-70">{</span><span class="ss">message_from</span><span class="p">,</span><span class="w"> </span><span class="n">FromName</span><span class="p">,</span><span class="w"> </span><span class="n">Message</span><span class="p" data-group-id="9902948177-70">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="nc">io</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="9902948177-71">(</span><span class="s">&quot;Message from </span><span class="si">~p</span><span class="s">: </span><span class="si">~p</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="9902948177-72">[</span><span class="n">FromName</span><span class="p">,</span><span class="w"> </span><span class="n">Message</span><span class="p" data-group-id="9902948177-72">]</span><span class="p" data-group-id="9902948177-71">)</span><span class="w">
+    </span><span class="k">end</span><span class="p">,</span><span class="w">
+    </span><span class="nf">client</span><span class="p" data-group-id="9902948177-73">(</span><span class="n">Server_Node</span><span class="p" data-group-id="9902948177-73">)</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%%% wait for a response from the server</span><span class="w">
+</span><span class="nf">await_result</span><span class="p" data-group-id="9902948177-74">(</span><span class="p" data-group-id="9902948177-74">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">receive</span><span class="w">
+        </span><span class="p" data-group-id="9902948177-75">{</span><span class="ss">messenger</span><span class="p">,</span><span class="w"> </span><span class="ss">stop</span><span class="p">,</span><span class="w"> </span><span class="n">Why</span><span class="p" data-group-id="9902948177-75">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="c1">% Stop the client</span><span class="w">
+            </span><span class="nc">io</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="9902948177-76">(</span><span class="s">&quot;</span><span class="si">~p</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="9902948177-77">[</span><span class="n">Why</span><span class="p" data-group-id="9902948177-77">]</span><span class="p" data-group-id="9902948177-76">)</span><span class="p">,</span><span class="w">
+            </span><span class="nf">exit</span><span class="p" data-group-id="9902948177-78">(</span><span class="ss">normal</span><span class="p" data-group-id="9902948177-78">)</span><span class="p">;</span><span class="w">
+        </span><span class="p" data-group-id="9902948177-79">{</span><span class="ss">messenger</span><span class="p">,</span><span class="w"> </span><span class="n">What</span><span class="p" data-group-id="9902948177-79">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">  </span><span class="c1">% Normal response</span><span class="w">
+            </span><span class="nc">io</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="9902948177-80">(</span><span class="s">&quot;</span><span class="si">~p</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="9902948177-81">[</span><span class="n">What</span><span class="p" data-group-id="9902948177-81">]</span><span class="p" data-group-id="9902948177-80">)</span><span class="w">
+    </span><span class="k">after</span><span class="w"> </span><span class="mi">5000</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="nc">io</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="9902948177-82">(</span><span class="s">&quot;No response from server</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="9902948177-83">[</span><span class="p" data-group-id="9902948177-83">]</span><span class="p" data-group-id="9902948177-82">)</span><span class="p">,</span><span class="w">
+            </span><span class="nf">exit</span><span class="p" data-group-id="9902948177-84">(</span><span class="ss">timeout</span><span class="p" data-group-id="9902948177-84">)</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span></code></pre><p>The following changes are added:</p><p>The messenger server traps exits. If it receives an exit signal,
+<code class="inline">{'EXIT',From,Reason}</code>, this means that a client process has terminated or is
+unreachable for one of the following reasons:</p><ul><li>The user has logged off (the &quot;logoff&quot; message is removed).</li><li>The network connection to the client is broken.</li><li>The node on which the client process resides has gone down.</li><li>The client processes has done some illegal operation.</li></ul><p>If an exit signal is received as above, the tuple <code class="inline">{From,Name}</code> is deleted from
+the servers <code class="inline">User_List</code> using the <code class="inline">server_logoff</code> function. If the node on which
+the server runs goes down, an exit signal (automatically generated by the
+system) is sent to all of the client processes:
+<code class="inline">{'EXIT',MessengerPID,noconnection}</code> causing all the client processes to
+terminate.</p><p>Also, a time-out of five seconds has been introduced in the <code class="inline">await_result</code>
+function. That is, if the server does not reply within five seconds (5000 ms),
+the client terminates. This is only needed in the logon sequence before the
+client and the server are linked.</p><p>An interesting case is if the client terminates before the server links to it.
+This is taken care of because linking to a non-existent process causes an exit
+signal, <code class="inline">{'EXIT',From,noproc}</code>, to be automatically generated. This is as if the
+process terminated immediately after the link operation.</p>
+</div>
+
+<div class="bottom-actions" id="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="conc_prog.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Concurrent Programming
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="records_macros.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+Records and Macros
+        </span>
+      </a>
+
+  </div>
+</div>
+    <footer class="footer">
+      <p>
+
+        <span class="line">
+          <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+            Search HexDocs
+          </button>
+
+            <a href="Erlang System Documentation.epub" title="ePub version">
+              Download ePub version
+            </a>
+
+        </span>
+      </p>
+
+      <p class="built-using">
+        Built using
+        <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.32.2) for the
+
+          <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+      </p>
+<p>Copyright © 1996-2023 <a href="https://www.ericsson.com">Ericsson AB</a></p>
+    </footer>
+  </div>
+</main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: document.body.className.includes("dark") ? "dark" : "default"
+    });
+    let id = 0;
+    for (const codeEl of document.querySelectorAll("pre code.mermaid")) {
+      const preEl = codeEl.parentElement;
+      const graphDefinition = codeEl.textContent;
+      const graphEl = document.createElement("div");
+      const graphId = "mermaid-graph-" + id++;
+      mermaid.render(graphId, graphDefinition).then(({svg, bindFunctions}) => {
+        graphEl.innerHTML = svg;
+        bindFunctions?.(graphEl);
+        preEl.insertAdjacentElement("afterend", graphEl);
+        preEl.remove();
+      });
+    }
+  });
+</script>
+
+  </body>
+</html>

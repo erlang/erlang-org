@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.32.2">
+    <meta name="project" content="Erlang System Documentation v27.0">
+
+
+    <title>Release Handling — Erlang System Documentation v27.0</title>
+    <link rel="stylesheet" href="dist/html-erlang-EBZIIHAS.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-K7URE6B4.js"></script>
+    <script src="dist/sidebar_items-976EDCF5.js"></script>
+    <script src="docs_config.js"></script>
+    <script async src="dist/html-BHYOTRCH.js"></script>
+
+
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="Erlang System Documentation" />
+        </a>
+
+      <div>
+        <a href="../index.html" class="sidebar-projectName" translate="no">
+Erlang System Documentation
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v27.0
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of Erlang System Documentation</span>
+            <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+          </label>
+          <button type="submit" class="search-button" aria-label="Submit Search">
+            <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+          </button>
+          <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+            <i class="ri-close-line ri-lg" title="Cancel search"></i>
+          </button>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.0/system/doc/design_principles/release_handling.md#L1" title="View Source" class="icon-action" rel="help">
+        <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        <span class="sr-only">View Source</span>
+      </a>
+
+
+    <span>Release Handling</span>
+  </h1>
+
+<p><a href="" id="release-handling"></a></p><h2 id="release-handling-principles" class="section-heading">
+  <a href="#release-handling-principles" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Release Handling Principles</span>
+</h2>
+<p>An important feature of the Erlang programming language is the ability to change
+module code at runtime, <em>code replacement</em>, as described in
+<a href="code_loading.html#code-replacement">Code Replacement</a> in the Erlang Reference
+Manual.</p><p>Based on this feature, the OTP application SASL provides a framework for
+upgrading and downgrading between different versions of an entire release in
+runtime. This is called <em>release handling</em>.</p><p>The framework consists of:</p><ul><li>Offline support - <code class="inline">systools</code> for generating scripts and building release
+packages</li><li>Online support - <code class="inline">release_handler</code> for unpacking and installing release
+packages</li></ul><p>The minimal system based on Erlang/OTP, enabling release handling, thus consists
+of the Kernel, STDLIB, and SASL applications.</p><h3 id="release-handling-workflow" class="section-heading">
+  <a href="#release-handling-workflow" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Release Handling Workflow</span>
+</h3>
+<p><em>Step 1</em>) A release is created as described in <a href="release_structure.html">Releases</a>.</p><p><em>Step 2</em>) The release is transferred to and installed at target environment. For
+information of how to install the first target system, see
+<a href="../../doc/system/create_target.html">System Principles</a>.</p><p><em>Step 3</em>) Modifications, for example, error corrections, are made to the code in
+the development environment.</p><p><em>Step 4</em>) At some point, it is time to make a new version of release. The
+relevant <code class="inline">.app</code> files are updated and a new <code class="inline">.rel</code> file is written.</p><p><em>Step 5</em>) For each modified application, an
+<a href="release_handling.html#appup">application upgrade file</a>, <code class="inline">.appup</code>, is created. In
+this file, it is described how to upgrade and/or downgrade between the old and
+new version of the application.</p><p><em>Step 6</em>) Based on the <code class="inline">.appup</code> files, a
+<a href="release_handling.html#relup">release upgrade file</a> called <code class="inline">relup</code>, is created.
+This file describes how to upgrade and/or downgrade between the old and new
+version of the entire release.</p><p><em>Step 7</em>) A new release package is made and transferred to the target system.</p><p><em>Step 8</em>) The new release package is unpacked using the release handler.</p><p><em>Step 9</em>) The new version of the release is installed, also using the release
+handler. This is done by evaluating the instructions in <code class="inline">relup</code>. Modules can be
+added, deleted, or reloaded, applications can be started, stopped, or restarted,
+and so on. In some cases, it is even necessary to restart the runtime system.</p><ul><li>If the installation fails, the system can be rebooted. The old release version
+is then automatically used.</li><li>If the installation succeeds, the new version is made the default version,
+which is to now be used if there is a system reboot.</li></ul><h3 id="release-handling-aspects" class="section-heading">
+  <a href="#release-handling-aspects" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Release Handling Aspects</span>
+</h3>
+<p><a href="appup_cookbook.html">Appup Cookbook</a>, contains examples of <code class="inline">.appup</code> files for
+typical cases of upgrades/downgrades that are normally easy to handle in
+runtime. However, many aspects can make release handling complicated, for
+example:</p><ul><li><p>Complicated or circular dependencies can make it difficult or even impossible
+to decide in which order things must be done without risking runtime errors
+during an upgrade or downgrade. Dependencies can be:</p><ul><li>Between nodes</li><li>Between processes</li><li>Between modules</li></ul></li><li><p>During release handling, non-affected processes continue normal execution.
+This can lead to time-outs or other problems. For example, new processes
+created in the time window between suspending processes using a certain
+module, and loading a new version of this module, can execute old code.</p></li></ul><p>It is thus recommended that code is changed in as small steps as possible, and
+always kept backwards compatible.</p><p><a href="" id="req"></a></p><h2 id="requirements" class="section-heading">
+  <a href="#requirements" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Requirements</span>
+</h2>
+<p>For release handling to work properly, the runtime system must have knowledge
+about which release it is running. It must also be able to change (in runtime)
+which boot script and system configuration file to use if the system is
+rebooted, for example, by <code class="inline">heart</code> after a failure. Thus, Erlang must be started
+as an embedded system; for information on how to do this, see Embedded System.</p><p>For system reboots to work properly, it is also required that the system is
+started with heartbeat monitoring; see <a href="../../erts-15.0/doc/html/erl_cmd.html"><code class="inline">erl</code></a>
+in ERTS and module <a href="../../lib/kernel-10.0/doc/html/heart.html"><code class="inline">heart</code></a> in Kernel.</p><p>Other requirements:</p><ul><li><p>The boot script included in a release package must be generated from the same
+<code class="inline">.rel</code> file as the release package itself.</p><p>Information about applications is fetched from the script when an upgrade or
+downgrade is performed.</p></li><li><p>The system must be configured using only one system configuration file, called
+<code class="inline">sys.config</code>.</p><p>If found, this file is automatically included when a release package is
+created.</p></li><li><p>All versions of a release, except the first one, must contain a <code class="inline">relup</code> file.</p><p>If found, this file is automatically included when a release package is
+created.</p></li></ul><h2 id="distributed-systems" class="section-heading">
+  <a href="#distributed-systems" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Distributed Systems</span>
+</h2>
+<p>If the system consists of several Erlang nodes, each node can use its own
+version of the release. The release handler is a locally registered process and
+must be called at each node where an upgrade or downgrade is required. A release
+handling instruction, <code class="inline">sync_nodes</code>, can be used to synchronize the release
+handler processes at a number of nodes; see <a href="../../lib/sasl-4.2.2/doc/html/appup.html"><code class="inline">appup</code></a> in SASL.</p><p><a href="" id="instr"></a></p><h2 id="release-handling-instructions" class="section-heading">
+  <a href="#release-handling-instructions" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Release Handling Instructions</span>
+</h2>
+<p>OTP supports a set of <em>release handling instructions</em> that are used when
+creating <code class="inline">.appup</code> files. The release handler understands a subset of these, the
+<em>low-level</em> instructions. To make it easier for the user, there are also a
+number of <em>high-level</em> instructions, which are translated to low-level
+instructions by <code class="inline">systools:make_relup</code>.</p><p>Some of the most frequently used instructions are described in this section. The
+complete list of instructions is included in <a href="../../lib/sasl-4.2.2/doc/html/appup.html"><code class="inline">appup</code></a> in SASL.</p><p>First, some definitions:</p><ul><li><em>Residence module</em> - The module where a process has its tail-recursive loop
+function(s). If these functions are implemented in several modules, all those
+modules are residence modules for the process.</li><li><em>Functional module</em> - A module that is not a residence module for any
+process.</li></ul><p>For a process implemented using an OTP behaviour, the behaviour module is the
+residence module for that process. The callback module is a functional module.</p><h3 id="load_module" class="section-heading">
+  <a href="#load_module" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">load_module</span>
+</h3>
+<p>If a simple extension has been made to a functional module, it is sufficient to
+load the new version of the module into the system, and remove the old version.
+This is called <em>simple code replacement</em> and for this the following instruction
+is used:</p><pre><code class="text">{load_module, Module}</code></pre><h3 id="update" class="section-heading">
+  <a href="#update" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">update</span>
+</h3>
+<p>If a more complex change has been made, for example, a change to the format of
+the internal state of a <a href="../../lib/stdlib-6.0/doc/html/gen_server.html"><code class="inline">gen_server</code></a>, simple code replacement is not sufficient.
+Instead, it is necessary to:</p><ul><li>Suspend the processes using the module (to avoid that they try to handle any
+requests before the code replacement is completed).</li><li>Ask them to transform the internal state format and switch to the new version
+of the module.</li><li>Remove the old version.</li><li>Resume the processes.</li></ul><p>This is called <em>synchronized code replacement</em> and for this the following
+instructions are used:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="6245977517-1">{</span><span class="ss">update</span><span class="p">,</span><span class="w"> </span><span class="n">Module</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6245977517-2">{</span><span class="ss">advanced</span><span class="p">,</span><span class="w"> </span><span class="n">Extra</span><span class="p" data-group-id="6245977517-2">}</span><span class="p" data-group-id="6245977517-1">}</span><span class="w">
+</span><span class="p" data-group-id="6245977517-3">{</span><span class="ss">update</span><span class="p">,</span><span class="w"> </span><span class="n">Module</span><span class="p">,</span><span class="w"> </span><span class="ss">supervisor</span><span class="p" data-group-id="6245977517-3">}</span></code></pre><p><code class="inline">update</code> with argument <code class="inline">{advanced,Extra}</code> is used when changing the internal
+state of a behaviour as described above. It causes behaviour processes to call
+the callback function <code class="inline">code_change/3</code>, passing the term <code class="inline">Extra</code> and some other
+information as arguments. See the manual pages for the respective behaviours and
+<a href="appup_cookbook.html#int_state">Appup Cookbook</a>.</p><p><code class="inline">update</code> with argument <code class="inline">supervisor</code> is used when changing the start
+specification of a supervisor. See <a href="appup_cookbook.html#sup">Appup Cookbook</a>.</p><p>When a module is to be updated, the release handler finds which processes that
+are <em>using</em> the module by traversing the supervision tree of each running
+application and checking all the child specifications:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="5680196416-1">{</span><span class="n">Id</span><span class="p">,</span><span class="w"> </span><span class="n">StartFunc</span><span class="p">,</span><span class="w"> </span><span class="n">Restart</span><span class="p">,</span><span class="w"> </span><span class="n">Shutdown</span><span class="p">,</span><span class="w"> </span><span class="n">Type</span><span class="p">,</span><span class="w"> </span><span class="n">Modules</span><span class="p" data-group-id="5680196416-1">}</span></code></pre><p>A process uses a module if the name is listed in <code class="inline">Modules</code> in the child
+specification for the process.</p><p>If <code class="inline">Modules=dynamic</code>, which is the case for event managers, the event manager
+process informs the release handler about the list of currently installed event
+handlers (<code class="inline">gen_event</code>), and it is checked if the module name is in this list
+instead.</p><p>The release handler suspends, asks for code change, and resumes processes by
+calling the functions <code class="inline">sys:suspend/1,2</code>, <code class="inline">sys:change_code/4,5</code>, and
+<code class="inline">sys:resume/1,2</code>, respectively.</p><h3 id="add_module-and-delete_module" class="section-heading">
+  <a href="#add_module-and-delete_module" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">add_module and delete_module</span>
+</h3>
+<p>If a new module is introduced, the following instruction is used:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="1340047373-1">{</span><span class="ss">add_module</span><span class="p">,</span><span class="w"> </span><span class="n">Module</span><span class="p" data-group-id="1340047373-1">}</span></code></pre><p>This instruction loads module <code class="inline">Module</code>. When running Erlang in
+embedded mode it is necessary to use this this instruction. It is not
+strictly required when running Erlang in interactive mode, since the
+code server automatically searches for and loads unloaded modules.</p><p>The opposite of <code class="inline">add_module</code> is <code class="inline">delete_module</code>, which unloads a module:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="9369720691-1">{</span><span class="nb">delete_module</span><span class="p">,</span><span class="w"> </span><span class="n">Module</span><span class="p" data-group-id="9369720691-1">}</span></code></pre><p>Any process, in any application, with <code class="inline">Module</code> as residence module, is
+killed when the instruction is evaluated. Therefore, the user must
+ensure that all such processes are terminated before deleting module
+<code class="inline">Module</code> to avoid a situation with failing supervisor restarts.</p><h3 id="application-instructions" class="section-heading">
+  <a href="#application-instructions" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Application Instructions</span>
+</h3>
+<p>The following is the instruction for adding an application:</p><pre><code class="text">{add_application, Application}</code></pre><p>Adding an application means that the modules defined by the <code class="inline">modules</code> key in the
+<code class="inline">.app</code> file are loaded using a number of <code class="inline">add_module</code> instructions, and then the
+application is started.</p><p>The following is the instruction for removing an application:</p><pre><code class="text">{remove_application, Application}</code></pre><p>Removing an application means that the application is stopped, the modules are
+unloaded using a number of <code class="inline">delete_module</code> instructions, and then the
+application specification is unloaded from the application controller.</p><p>The following is the instruction for restarting an application:</p><pre><code class="text">{restart_application, Application}</code></pre><p>Restarting an application means that the application is stopped and then started
+again similar to using the instructions <code class="inline">remove_application</code> and
+<code class="inline">add_application</code> in sequence.</p><h3 id="apply-low-level" class="section-heading">
+  <a href="#apply-low-level" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">apply (Low-Level)</span>
+</h3>
+<p>To call an arbitrary function from the release handler, the following
+instruction is used:</p><pre><code class="text">{apply, {M, F, A}}</code></pre><p>The release handler evaluates <a href="../../erts-15.0/doc/html/erlang.html#apply/3"><code class="inline">apply(M, F, A)</code></a>.</p><p><a href="" id="restart_new_emulator_instr"></a></p><h3 id="restart_new_emulator-low-level" class="section-heading">
+  <a href="#restart_new_emulator-low-level" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">restart_new_emulator (Low-Level)</span>
+</h3>
+<p>This instruction is used when changing to a new version of the runtime
+system, or when any of the core applications Kernel, STDLIB, or SASL
+is upgraded. If a system reboot is needed for another reason, the
+<code class="inline">restart_emulator</code> instruction is to be used instead.</p><p>This instruction requires that the system is started with heartbeat monitoring;
+see <a href="../../erts-15.0/doc/html/erl_cmd.html"><code class="inline">erl</code></a> in ERTS and module <a href="../../lib/kernel-10.0/doc/html/heart.html"><code class="inline">heart</code></a> in Kernel.</p><p>The <code class="inline">restart_new_emulator</code> instruction must always be the first instruction in a
+relup. If the relup is generated by
+<a href="../../lib/sasl-4.2.2/doc/html/systools.html#make_relup/4"><code class="inline">systools:make_relup/3,4</code></a>,
+this condition is automatically met.</p><p>When the release handler encounters this instruction, it first generates a
+temporary boot file that starts the new versions of the runtime system and the
+core applications, and the old version of all other applications. Then it shuts
+down the current instance of the runtime system by calling <a href="../../erts-15.0/doc/html/init.html#reboot/0"><code class="inline">init:reboot/0</code></a>.
+All processes are terminated gracefully and the system is rebooted by
+the <code class="inline">heart</code> program, using the temporary boot file. After the reboot, the rest
+of the relup instructions are executed. This is done as a part of the temporary
+boot script.</p><blockquote><h4 class="warning">Warning</h4><p>This mechanism causes the new versions of the runtime system and core
+applications to run with the old version of other applications during startup.
+Thus, take extra care to avoid incompatibility. Incompatible changes in the
+core applications can in some situations be necessary. If possible, such changes
+are preceded by deprecation over two major releases before the actual change.
+To ensure the application is not crashed by an incompatible change, always
+remove any call to deprecated functions as soon as possible.</p></blockquote><p>An info report is written when the upgrade is completed. To programmatically
+find out if the upgrade is complete, call
+<a href="../../lib/sasl-4.2.2/doc/html/release_handler.html#which_releases/1"><code class="inline">release_handler:which_releases(current)</code></a>
+and check whether it returns the expected (that is, the new) release.</p><p>The new release version must be made permanent when the new runtime system is
+operational. Otherwise, the old version will be used if there is a new system
+reboot.</p><p>On UNIX, the release handler tells the <code class="inline">heart</code> program which command to use to
+reboot the system. The environment variable <code class="inline">HEART_COMMAND</code>, normally used by
+the <code class="inline">heart</code> program, is ignored in this case. The command instead defaults to
+<code class="inline">$ROOT/bin/start</code>. Another command can be set by using the SASL configuration
+parameter <code class="inline">start_prg</code>. For more information, see <a href="../../lib/sasl-4.2.2/doc/html/sasl_app.html">SASL</a>.</p><p><a href="" id="restart_emulator_instr"></a></p><h3 id="restart_emulator-low-level" class="section-heading">
+  <a href="#restart_emulator-low-level" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">restart_emulator (Low-Level)</span>
+</h3>
+<p>This instruction is not related to upgrades of ERTS or any of the core
+applications. It can be used by any application to force a restart of the
+runtime system after all upgrade instructions are executed.</p><p>A relup script can only contain one <code class="inline">restart_emulator</code> instruction, and it must
+always be placed at the end. If the relup is generated by
+<a href="../../lib/sasl-4.2.2/doc/html/systools.html#make_relup/4"><code class="inline">systools:make_relup/3,4</code></a>,
+this condition is automatically met.</p><p>When the release handler encounters this instruction, it shuts down
+the runtime system by calling <a href="../../erts-15.0/doc/html/init.html#reboot/0"><code class="inline">init:reboot/0</code></a>. All processes are terminated
+gracefully and the system can then be rebooted by the <code class="inline">heart</code> program
+using the new release version. No more upgrade instruction is executed
+after the restart.</p><p><a href="" id="appup"></a></p><h2 id="application-upgrade-file" class="section-heading">
+  <a href="#application-upgrade-file" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Application Upgrade File</span>
+</h2>
+<p>To define how to upgrade/downgrade between the current version and previous
+versions of an application, an <em>application upgrade file</em>, or in short
+<code class="inline">.appup</code> file is created. The file is to be called <code class="inline">Application.appup</code>, where
+<code class="inline">Application</code> is the application name:</p><pre><code class="makeup c" translate="no"><span class="p" data-group-id="1384670936-1">{</span><span class="no">Vsn</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="1384670936-2">[</span><span class="p" data-group-id="1384670936-3">{</span><span class="no">UpFromVsn1</span><span class="p">,</span><span class="w"> </span><span class="no">InstructionsU1</span><span class="p" data-group-id="1384670936-3">}</span><span class="p">,</span><span class="w">
+  </span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="1384670936-4">{</span><span class="no">UpFromVsnK</span><span class="p">,</span><span class="w"> </span><span class="no">InstructionsUK</span><span class="p" data-group-id="1384670936-4">}</span><span class="p" data-group-id="1384670936-2">]</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="1384670936-5">[</span><span class="p" data-group-id="1384670936-6">{</span><span class="no">DownToVsn1</span><span class="p">,</span><span class="w"> </span><span class="no">InstructionsD1</span><span class="p" data-group-id="1384670936-6">}</span><span class="p">,</span><span class="w">
+  </span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="1384670936-7">{</span><span class="no">DownToVsnK</span><span class="p">,</span><span class="w"> </span><span class="no">InstructionsDK</span><span class="p" data-group-id="1384670936-7">}</span><span class="p" data-group-id="1384670936-5">]</span><span class="p" data-group-id="1384670936-1">}</span><span class="p">.</span></code></pre><ul><li><code class="inline">Vsn</code>, a string, is the current version of the application, as defined in the
+<code class="inline">.app</code> file.</li><li>Each <code class="inline">UpFromVsn</code> is a previous version of the application to upgrade from.</li><li>Each <code class="inline">DownToVsn</code> is a previous version of the application to downgrade to.</li><li>Each <code class="inline">Instructions</code> is a list of release handling instructions.</li></ul><p><code class="inline">UpFromVsn</code> and <code class="inline">DownToVsn</code> can also be specified as regular expressions. For
+more information about the syntax and contents of the <code class="inline">.appup</code> file, see
+<a href="../../lib/sasl-4.2.2/doc/html/appup.html"><code class="inline">appup</code></a> in SASL.</p><p><a href="appup_cookbook.html">Appup Cookbook</a> includes examples of <code class="inline">.appup</code> files for
+typical upgrade/downgrade cases.</p><p><em>Example:</em> Consider the release <code class="inline">ch_rel-1</code> from
+<a href="release_structure.html#ch_rel">Releases</a>. Assume you want to add a function
+<code class="inline">available/0</code> to server <code class="inline">ch3</code>, which returns the number of available channels
+(when trying out the example, make the change in a copy of the original
+directory, to ensure that the first version is still available):</p><pre><code class="makeup erlang" translate="no"><span class="p">-</span><span class="na">module</span><span class="p" data-group-id="1699976813-1">(</span><span class="ss">ch3</span><span class="p" data-group-id="1699976813-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p">-</span><span class="na">behaviour</span><span class="p" data-group-id="1699976813-2">(</span><span class="ss">gen_server</span><span class="p" data-group-id="1699976813-2">)</span><span class="p">.</span><span class="w">
+</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="1699976813-3">(</span><span class="p" data-group-id="1699976813-4">[</span><span class="ss">start_link</span><span class="p">/</span><span class="mi">0</span><span class="p" data-group-id="1699976813-4">]</span><span class="p" data-group-id="1699976813-3">)</span><span class="p">.</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="1699976813-5">(</span><span class="p" data-group-id="1699976813-6">[</span><span class="ss">alloc</span><span class="p">/</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="ss">free</span><span class="p">/</span><span class="mi">1</span><span class="p" data-group-id="1699976813-6">]</span><span class="p" data-group-id="1699976813-5">)</span><span class="p">.</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="1699976813-7">(</span><span class="p" data-group-id="1699976813-8">[</span><span class="ss">available</span><span class="p">/</span><span class="mi">0</span><span class="p" data-group-id="1699976813-8">]</span><span class="p" data-group-id="1699976813-7">)</span><span class="p">.</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="1699976813-9">(</span><span class="p" data-group-id="1699976813-10">[</span><span class="ss">init</span><span class="p">/</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="ss">handle_call</span><span class="p">/</span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="ss">handle_cast</span><span class="p">/</span><span class="mi">2</span><span class="p" data-group-id="1699976813-10">]</span><span class="p" data-group-id="1699976813-9">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">start_link</span><span class="p" data-group-id="1699976813-11">(</span><span class="p" data-group-id="1699976813-11">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">gen_server</span><span class="p">:</span><span class="nf">start_link</span><span class="p" data-group-id="1699976813-12">(</span><span class="p" data-group-id="1699976813-13">{</span><span class="ss">local</span><span class="p">,</span><span class="w"> </span><span class="ss">ch3</span><span class="p" data-group-id="1699976813-13">}</span><span class="p">,</span><span class="w"> </span><span class="ss">ch3</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1699976813-14">[</span><span class="p" data-group-id="1699976813-14">]</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1699976813-15">[</span><span class="p" data-group-id="1699976813-15">]</span><span class="p" data-group-id="1699976813-12">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">alloc</span><span class="p" data-group-id="1699976813-16">(</span><span class="p" data-group-id="1699976813-16">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">gen_server</span><span class="p">:</span><span class="nf">call</span><span class="p" data-group-id="1699976813-17">(</span><span class="ss">ch3</span><span class="p">,</span><span class="w"> </span><span class="ss">alloc</span><span class="p" data-group-id="1699976813-17">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">free</span><span class="p" data-group-id="1699976813-18">(</span><span class="n">Ch</span><span class="p" data-group-id="1699976813-18">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">gen_server</span><span class="p">:</span><span class="nf">cast</span><span class="p" data-group-id="1699976813-19">(</span><span class="ss">ch3</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1699976813-20">{</span><span class="ss">free</span><span class="p">,</span><span class="w"> </span><span class="n">Ch</span><span class="p" data-group-id="1699976813-20">}</span><span class="p" data-group-id="1699976813-19">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">available</span><span class="p" data-group-id="1699976813-21">(</span><span class="p" data-group-id="1699976813-21">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">gen_server</span><span class="p">:</span><span class="nf">call</span><span class="p" data-group-id="1699976813-22">(</span><span class="ss">ch3</span><span class="p">,</span><span class="w"> </span><span class="ss">available</span><span class="p" data-group-id="1699976813-22">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">init</span><span class="p" data-group-id="1699976813-23">(</span><span class="p">_</span><span class="n">Args</span><span class="p" data-group-id="1699976813-23">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="1699976813-24">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="nf">channels</span><span class="p" data-group-id="1699976813-25">(</span><span class="p" data-group-id="1699976813-25">)</span><span class="p" data-group-id="1699976813-24">}</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">handle_call</span><span class="p" data-group-id="1699976813-26">(</span><span class="ss">alloc</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">From</span><span class="p">,</span><span class="w"> </span><span class="n">Chs</span><span class="p" data-group-id="1699976813-26">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="1699976813-27">{</span><span class="n">Ch</span><span class="p">,</span><span class="w"> </span><span class="n">Chs2</span><span class="p" data-group-id="1699976813-27">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">alloc</span><span class="p" data-group-id="1699976813-28">(</span><span class="n">Chs</span><span class="p" data-group-id="1699976813-28">)</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="1699976813-29">{</span><span class="ss">reply</span><span class="p">,</span><span class="w"> </span><span class="n">Ch</span><span class="p">,</span><span class="w"> </span><span class="n">Chs2</span><span class="p" data-group-id="1699976813-29">}</span><span class="p">;</span><span class="w">
+</span><span class="nf">handle_call</span><span class="p" data-group-id="1699976813-30">(</span><span class="ss">available</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">From</span><span class="p">,</span><span class="w"> </span><span class="n">Chs</span><span class="p" data-group-id="1699976813-30">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">N</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">available</span><span class="p" data-group-id="1699976813-31">(</span><span class="n">Chs</span><span class="p" data-group-id="1699976813-31">)</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="1699976813-32">{</span><span class="ss">reply</span><span class="p">,</span><span class="w"> </span><span class="n">N</span><span class="p">,</span><span class="w"> </span><span class="n">Chs</span><span class="p" data-group-id="1699976813-32">}</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">handle_cast</span><span class="p" data-group-id="1699976813-33">(</span><span class="p" data-group-id="1699976813-34">{</span><span class="ss">free</span><span class="p">,</span><span class="w"> </span><span class="n">Ch</span><span class="p" data-group-id="1699976813-34">}</span><span class="p">,</span><span class="w"> </span><span class="n">Chs</span><span class="p" data-group-id="1699976813-33">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">Chs2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">free</span><span class="p" data-group-id="1699976813-35">(</span><span class="n">Ch</span><span class="p">,</span><span class="w"> </span><span class="n">Chs</span><span class="p" data-group-id="1699976813-35">)</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="1699976813-36">{</span><span class="ss">noreply</span><span class="p">,</span><span class="w"> </span><span class="n">Chs2</span><span class="p" data-group-id="1699976813-36">}</span><span class="p">.</span></code></pre><p>A new version of the <code class="inline">ch_app.app</code> file must now be created, where the version is
+updated:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="7693966113-1">{</span><span class="ss">application</span><span class="p">,</span><span class="w"> </span><span class="ss">ch_app</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="7693966113-2">[</span><span class="p" data-group-id="7693966113-3">{</span><span class="ss">description</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Channel allocator&quot;</span><span class="p" data-group-id="7693966113-3">}</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="7693966113-4">{</span><span class="ss">vsn</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;2&quot;</span><span class="p" data-group-id="7693966113-4">}</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="7693966113-5">{</span><span class="ss">modules</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7693966113-6">[</span><span class="ss">ch_app</span><span class="p">,</span><span class="w"> </span><span class="ss">ch_sup</span><span class="p">,</span><span class="w"> </span><span class="ss">ch3</span><span class="p" data-group-id="7693966113-6">]</span><span class="p" data-group-id="7693966113-5">}</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="7693966113-7">{</span><span class="ss">registered</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7693966113-8">[</span><span class="ss">ch3</span><span class="p" data-group-id="7693966113-8">]</span><span class="p" data-group-id="7693966113-7">}</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="7693966113-9">{</span><span class="ss">applications</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7693966113-10">[</span><span class="ss">kernel</span><span class="p">,</span><span class="w"> </span><span class="ss">stdlib</span><span class="p">,</span><span class="w"> </span><span class="ss">sasl</span><span class="p" data-group-id="7693966113-10">]</span><span class="p" data-group-id="7693966113-9">}</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="7693966113-11">{</span><span class="ss">mod</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7693966113-12">{</span><span class="ss">ch_app</span><span class="p">,</span><span class="p" data-group-id="7693966113-13">[</span><span class="p" data-group-id="7693966113-13">]</span><span class="p" data-group-id="7693966113-12">}</span><span class="p" data-group-id="7693966113-11">}</span><span class="w">
+ </span><span class="p" data-group-id="7693966113-2">]</span><span class="p" data-group-id="7693966113-1">}</span><span class="p">.</span></code></pre><p>To upgrade <code class="inline">ch_app</code> from <code class="inline">&quot;1&quot;</code> to <code class="inline">&quot;2&quot;</code> (and to downgrade from <code class="inline">&quot;2&quot;</code> to <code class="inline">&quot;1&quot;</code>),
+you only need to load the new (old) version of the <code class="inline">ch3</code> callback module. Create
+the application upgrade file <code class="inline">ch_app.appup</code> in the <code class="inline">ebin</code> directory:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="6984624781-1">{</span><span class="s">&quot;2&quot;</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="6984624781-2">[</span><span class="p" data-group-id="6984624781-3">{</span><span class="s">&quot;1&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6984624781-4">[</span><span class="p" data-group-id="6984624781-5">{</span><span class="nb">load_module</span><span class="p">,</span><span class="w"> </span><span class="ss">ch3</span><span class="p" data-group-id="6984624781-5">}</span><span class="p" data-group-id="6984624781-4">]</span><span class="p" data-group-id="6984624781-3">}</span><span class="p" data-group-id="6984624781-2">]</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="6984624781-6">[</span><span class="p" data-group-id="6984624781-7">{</span><span class="s">&quot;1&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6984624781-8">[</span><span class="p" data-group-id="6984624781-9">{</span><span class="nb">load_module</span><span class="p">,</span><span class="w"> </span><span class="ss">ch3</span><span class="p" data-group-id="6984624781-9">}</span><span class="p" data-group-id="6984624781-8">]</span><span class="p" data-group-id="6984624781-7">}</span><span class="p" data-group-id="6984624781-6">]</span><span class="w">
+</span><span class="p" data-group-id="6984624781-1">}</span><span class="p">.</span></code></pre><p><a href="" id="relup"></a></p><h2 id="release-upgrade-file" class="section-heading">
+  <a href="#release-upgrade-file" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Release Upgrade File</span>
+</h2>
+<p>To define how to upgrade/downgrade between the new version and previous versions
+of a release, a <em>release upgrade file</em>, or in short <code class="inline">.relup</code> file, is to be
+created.</p><p>This file does not need to be created manually. It can be generated by
+<a href="../../lib/sasl-4.2.2/doc/html/systools.html#make_relup/4"><code class="inline">systools:make_relup/3,4</code></a>.
+The relevant versions of the <code class="inline">.rel</code> file, <code class="inline">.app</code>
+files, and <code class="inline">.appup</code> files are used as input. It is deduced which applications
+are to be added and deleted, and which applications that must be upgraded and/or
+downgraded. The instructions for this are fetched from the <code class="inline">.appup</code> files and
+transformed into a single list of low-level instructions in the right order.</p><p>If the <code class="inline">relup</code> file is relatively simple, it can be created manually. It is only
+to contain low-level instructions.</p><p>For details about the syntax and contents of the release upgrade file, see
+<a href="../../lib/sasl-4.2.2/doc/html/relup.html"><code class="inline">relup</code></a> in SASL.</p><p><em>Example, continued from the previous section:</em> You have a new version &quot;2&quot; of
+<code class="inline">ch_app</code> and an <code class="inline">.appup</code> file. A new version of the <code class="inline">.rel</code> file is also needed.
+This time the file is called <code class="inline">ch_rel-2.rel</code> and the release version string is
+changed from &quot;A&quot; to &quot;B&quot;:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="2172769245-1">{</span><span class="ss">release</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="2172769245-2">{</span><span class="s">&quot;ch_rel&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;B&quot;</span><span class="p" data-group-id="2172769245-2">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="2172769245-3">{</span><span class="ss">erts</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;14.2.5&quot;</span><span class="p" data-group-id="2172769245-3">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="2172769245-4">[</span><span class="p" data-group-id="2172769245-5">{</span><span class="ss">kernel</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;9.2.4&quot;</span><span class="p" data-group-id="2172769245-5">}</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="2172769245-6">{</span><span class="ss">stdlib</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;5.2.3&quot;</span><span class="p" data-group-id="2172769245-6">}</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="2172769245-7">{</span><span class="ss">sasl</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;4.2.1&quot;</span><span class="p" data-group-id="2172769245-7">}</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="2172769245-8">{</span><span class="ss">ch_app</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;2&quot;</span><span class="p" data-group-id="2172769245-8">}</span><span class="p" data-group-id="2172769245-4">]</span><span class="w">
+</span><span class="p" data-group-id="2172769245-1">}</span><span class="p">.</span></code></pre><p>Now the <code class="inline">relup</code> file can be generated:</p><pre><code class="text">1&gt; systools:make_relup(&quot;ch_rel-2&quot;, [&quot;ch_rel-1&quot;], [&quot;ch_rel-1&quot;]).
+ok</code></pre><p>This generates a <code class="inline">relup</code> file with instructions for how to upgrade from version
+&quot;A&quot; (&quot;ch_rel-1&quot;) to version &quot;B&quot; (&quot;ch_rel-2&quot;) and how to downgrade from version
+&quot;B&quot; to version &quot;A&quot;.</p><p>Both the old and new versions of the <code class="inline">.app</code> and <code class="inline">.rel</code> files must be in the code
+path, as well as the <code class="inline">.appup</code> and (new) <code class="inline">.beam</code> files. The code path can be
+extended by using the option <code class="inline">path</code>:</p><pre><code class="text">1&gt; systools:make_relup(&quot;ch_rel-2&quot;, [&quot;ch_rel-1&quot;], [&quot;ch_rel-1&quot;],
+[{path,[&quot;../ch_rel-1&quot;,
+&quot;../ch_rel-1/lib/ch_app-1/ebin&quot;]}]).
+ok</code></pre><p><a href="" id="rel_handler"></a></p><h2 id="installing-a-release" class="section-heading">
+  <a href="#installing-a-release" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Installing a Release</span>
+</h2>
+<p>When you have made a new version of a release, a release package can be created
+with this new version and transferred to the target environment.</p><p>To install the new version of the release in runtime, the <em>release
+handler</em> is used. This is a process belonging to the SASL application,
+which handles unpacking, installation, and removal of release
+packages. The <a href="../../lib/sasl-4.2.2/doc/html/release_handler.html"><code class="inline">release_handler</code></a> module communicates with this process.</p><p>Assuming there is an operational target system with installation root directory
+<code class="inline">$ROOT</code>, the release package with the new version of the release is to be copied
+to <code class="inline">$ROOT/releases</code>.</p><p>First, <em>unpack</em> the release package. The files are then extracted from the
+package:</p><pre><code class="makeup erlang" translate="no"><span class="nc">release_handler</span><span class="p">:</span><span class="nf">unpack_release</span><span class="p" data-group-id="3926965154-1">(</span><span class="n">ReleaseName</span><span class="p" data-group-id="3926965154-1">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p" data-group-id="3926965154-2">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">Vsn</span><span class="p" data-group-id="3926965154-2">}</span></code></pre><ul><li><code class="inline">ReleaseName</code> is the name of the release package except the <code class="inline">.tar.gz</code>
+extension.</li><li><code class="inline">Vsn</code> is the version of the unpacked release, as defined in its <code class="inline">.rel</code> file.</li></ul><p>A directory <code class="inline">$ROOT/lib/releases/Vsn</code> is created, where the <code class="inline">.rel</code> file, the boot
+script <code class="inline">start.boot</code>, the system configuration file <code class="inline">sys.config</code>, and <code class="inline">relup</code> are
+placed. For applications with new version numbers, the application directories
+are placed under <code class="inline">$ROOT/lib</code>. Unchanged applications are not affected.</p><p>An unpacked release can be <em>installed</em>. The release handler then evaluates the
+instructions in <code class="inline">relup</code>, step by step:</p><pre><code class="makeup erlang" translate="no"><span class="nc">release_handler</span><span class="p">:</span><span class="nf">install_release</span><span class="p" data-group-id="7950039484-1">(</span><span class="n">Vsn</span><span class="p" data-group-id="7950039484-1">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p" data-group-id="7950039484-2">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">FromVsn</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7950039484-3">[</span><span class="p" data-group-id="7950039484-3">]</span><span class="p" data-group-id="7950039484-2">}</span></code></pre><p>If an error occurs during the installation, the system is rebooted using the old
+version of the release. If installation succeeds, the system is afterwards using
+the new version of the release, but if anything happens and the system is
+rebooted, it starts using the previous version again.</p><p>To be made the default version, the newly installed release must be made
+<em>permanent</em>, which means the previous version becomes <em>old</em>:</p><pre><code class="text">release_handler:make_permanent(Vsn) =&gt; ok</code></pre><p>The system keeps information about which versions are old and permanent in the
+files <code class="inline">$ROOT/releases/RELEASES</code> and <code class="inline">$ROOT/releases/start_erl.data</code>.</p><p>To downgrade from <code class="inline">Vsn</code> to <code class="inline">FromVsn</code>, <code class="inline">install_release</code> must be called again:</p><pre><code class="makeup erlang" translate="no"><span class="nc">release_handler</span><span class="p">:</span><span class="nf">install_release</span><span class="p" data-group-id="1493556804-1">(</span><span class="n">FromVsn</span><span class="p" data-group-id="1493556804-1">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p" data-group-id="1493556804-2">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">Vsn</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1493556804-3">[</span><span class="p" data-group-id="1493556804-3">]</span><span class="p" data-group-id="1493556804-2">}</span></code></pre><p>An installed, but not permanent, release can be <em>removed</em>. Information about the
+release is then deleted from <code class="inline">$ROOT/releases/RELEASES</code> and the release-specific
+code, that is, the new application directories and the <code class="inline">$ROOT/releases/Vsn</code>
+directory, are removed.</p><pre><code class="text">release_handler:remove_release(Vsn) =&gt; ok</code></pre><h3 id="example-continued-from-the-previous-sections" class="section-heading">
+  <a href="#example-continued-from-the-previous-sections" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Example (continued from the previous sections)</span>
+</h3>
+<p><em>Step 1)</em> Create a target system as described in System Principles of the first
+version <code class="inline">&quot;A&quot;</code> of <code class="inline">ch_rel</code> from <a href="release_structure.html#ch_rel">Releases</a>. This
+time <code class="inline">sys.config</code> must be included in the release package. If no configuration
+is needed, the file is to contain the empty list:</p><pre><code class="text">[].</code></pre><p><em>Step 2)</em> Start the system as a simple target system. In reality, it is to be
+started as an embedded system. However, using <code class="inline">erl</code> with the correct boot script
+and config file is enough for illustration purposes:</p><pre><code class="text">% cd $ROOT
+% bin/erl -boot $ROOT/releases/A/start -config $ROOT/releases/A/sys
+...</code></pre><p><code class="inline">$ROOT</code> is the installation directory of the target system.</p><p><em>Step 3)</em> In another Erlang shell, generate start scripts and create a release
+package for the new version <code class="inline">&quot;B&quot;</code>. Remember to include (a possible updated)
+<code class="inline">sys.config</code> and the <code class="inline">relup</code> file. For more information, see
+<a href="release_handling.html#relup">Release Upgrade File</a>.</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">1&gt; </span><span class="nc">systools</span><span class="p">:</span><span class="nf">make_script</span><span class="p" data-group-id="0973547614-1">(</span><span class="s">&quot;ch_rel-2&quot;</span><span class="p" data-group-id="0973547614-1">)</span><span class="p">.</span><span class="w">
+</span><span class="ss">ok</span><span class="gp unselectable">
+2&gt; </span><span class="nc">systools</span><span class="p">:</span><span class="nf">make_tar</span><span class="p" data-group-id="0973547614-2">(</span><span class="s">&quot;ch_rel-2&quot;</span><span class="p" data-group-id="0973547614-2">)</span><span class="p">.</span><span class="w">
+</span><span class="ss">ok</span></code></pre><p>The new release package now also contains version &quot;2&quot; of <code class="inline">ch_app</code> and the
+<code class="inline">relup</code> file:</p><pre><code class="text">% tar tf ch_rel-2.tar
+lib/kernel-9.2.4/ebin/kernel.app
+lib/kernel-9.2.4/ebin/application.beam
+...
+lib/stdlib-5.2.3/ebin/stdlib.app
+lib/stdlib-5.2.3/ebin/argparse.beam
+...
+lib/sasl-4.2.1/ebin/sasl.app
+lib/sasl-4.2.1/ebin/sasl.beam
+...
+lib/ch_app-2/ebin/ch_app.app
+lib/ch_app-2/ebin/ch_app.beam
+lib/ch_app-2/ebin/ch_sup.beam
+lib/ch_app-2/ebin/ch3.beam
+releases/B/start.boot
+releases/B/relup
+releases/B/sys.config
+releases/B/ch_rel-2.rel
+releases/ch_rel-2.rel</code></pre><p><em>Step 4)</em> Copy the release package <code class="inline">ch_rel-2.tar.gz</code> to the <code class="inline">$ROOT/releases</code>
+directory.</p><p><em>Step 5)</em> In the running target system, unpack the release package:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">1&gt; </span><span class="nc">release_handler</span><span class="p">:</span><span class="nf">unpack_release</span><span class="p" data-group-id="5158772835-1">(</span><span class="s">&quot;ch_rel-2&quot;</span><span class="p" data-group-id="5158772835-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="5158772835-2">{</span><span class="ss">ok</span><span class="p">,</span><span class="s">&quot;B&quot;</span><span class="p" data-group-id="5158772835-2">}</span></code></pre><p>The new application version <code class="inline">ch_app-2</code> is installed under <code class="inline">$ROOT/lib</code> next to
+<code class="inline">ch_app-1</code>. The <code class="inline">kernel</code>, <code class="inline">stdlib</code>, and <code class="inline">sasl</code> directories are not affected, as
+they have not changed.</p><p>Under <code class="inline">$ROOT/releases</code>, a new directory <code class="inline">B</code> is created, containing
+<code class="inline">ch_rel-2.rel</code>, <code class="inline">start.boot</code>, <code class="inline">sys.config</code>, and <code class="inline">relup</code>.</p><p><em>Step 6)</em> Check if the function <code class="inline">ch3:available/0</code> is available:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">2&gt; </span><span class="nc">ch3</span><span class="p">:</span><span class="nf">available</span><span class="p" data-group-id="7373570008-1">(</span><span class="p" data-group-id="7373570008-1">)</span><span class="p">.</span><span class="w">
+</span><span class="gt">** exception error: undefined function ch3:available/0</span></code></pre><p><em>Step 7)</em> Install the new release. The instructions in <code class="inline">$ROOT/releases/B/relup</code>
+are executed one by one, resulting in the new version of <code class="inline">ch3</code> being loaded. The
+function <code class="inline">ch3:available/0</code> is now available:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">3&gt; </span><span class="nc">release_handler</span><span class="p">:</span><span class="nf">install_release</span><span class="p" data-group-id="2046520596-1">(</span><span class="s">&quot;B&quot;</span><span class="p" data-group-id="2046520596-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="2046520596-2">{</span><span class="ss">ok</span><span class="p">,</span><span class="s">&quot;A&quot;</span><span class="p">,</span><span class="p" data-group-id="2046520596-3">[</span><span class="p" data-group-id="2046520596-3">]</span><span class="p" data-group-id="2046520596-2">}</span><span class="gp unselectable">
+4&gt; </span><span class="nc">ch3</span><span class="p">:</span><span class="nf">available</span><span class="p" data-group-id="2046520596-4">(</span><span class="p" data-group-id="2046520596-4">)</span><span class="p">.</span><span class="w">
+</span><span class="mi">3</span><span class="gp unselectable">
+5&gt; </span><span class="nc">code</span><span class="p">:</span><span class="nf">which</span><span class="p" data-group-id="2046520596-5">(</span><span class="ss">ch3</span><span class="p" data-group-id="2046520596-5">)</span><span class="p">.</span><span class="w">
+</span><span class="s">&quot;.../lib/ch_app-2/ebin/ch3.beam&quot;</span><span class="gp unselectable">
+6&gt; </span><span class="nc">code</span><span class="p">:</span><span class="nf">which</span><span class="p" data-group-id="2046520596-6">(</span><span class="ss">ch_sup</span><span class="p" data-group-id="2046520596-6">)</span><span class="p">.</span><span class="w">
+</span><span class="s">&quot;.../lib/ch_app-1/ebin/ch_sup.beam&quot;</span></code></pre><p>Processes in <code class="inline">ch_app</code> for which code have not been updated, for example, the
+supervisor, are still evaluating code from <code class="inline">ch_app-1</code>.</p><p><em>Step 8)</em> If the target system is now rebooted, it uses version &quot;A&quot; again. The
+&quot;B&quot; version must be made permanent, to be used when the system is rebooted.</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">7&gt; </span><span class="nc">release_handler</span><span class="p">:</span><span class="nf">make_permanent</span><span class="p" data-group-id="1105271333-1">(</span><span class="s">&quot;B&quot;</span><span class="p" data-group-id="1105271333-1">)</span><span class="p">.</span><span class="w">
+</span><span class="ss">ok</span></code></pre><p><a href="" id="sys"></a></p><h2 id="updating-application-specifications" class="section-heading">
+  <a href="#updating-application-specifications" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Updating Application Specifications</span>
+</h2>
+<p>When a new version of a release is installed, the application specifications are
+automatically updated for all loaded applications.</p><blockquote><h4 class="info">Note</h4><p>The information about the new application specifications is fetched from the
+boot script included in the release package. Thus, it is important that the
+boot script is generated from the same <code class="inline">.rel</code> file as is used to build the
+release package itself.</p></blockquote><p>Specifically, the application configuration parameters are automatically updated
+according to (in increasing priority order):</p><ul><li>The data in the boot script, fetched from the new application resource file
+<code class="inline">App.app</code></li><li>The new <code class="inline">sys.config</code></li><li>Command-line arguments <code class="inline">-App Par Val</code></li></ul><p>This means that parameter values set in the other system configuration files and
+values set using <a href="../../lib/kernel-10.0/doc/html/application.html#set_env/3"><code class="inline">application:set_env/3</code></a> are disregarded.</p><p>When an installed release is made permanent, the system process <code class="inline">init</code> is set to
+point out the new <code class="inline">sys.config</code>.</p><p>After the installation, the application controller compares the old and new
+configuration parameters for all running applications and call the callback
+function:</p><pre><code class="makeup erlang" translate="no"><span class="n">Module</span><span class="p">:</span><span class="nf">config_change</span><span class="p" data-group-id="9689972571-1">(</span><span class="n">Changed</span><span class="p">,</span><span class="w"> </span><span class="n">New</span><span class="p">,</span><span class="w"> </span><span class="n">Removed</span><span class="p" data-group-id="9689972571-1">)</span></code></pre><ul><li><code class="inline">Module</code> is the application callback module as defined by the <code class="inline">mod</code> key in the
+<code class="inline">.app</code> file.</li><li><code class="inline">Changed</code> and <code class="inline">New</code> are lists of <code class="inline">{Par,Val}</code> for all changed and added
+configuration parameters, respectively.</li><li><code class="inline">Removed</code> is a list of all parameters <code class="inline">Par</code> that have been removed.</li></ul><p>The function is optional and can be omitted when implementing an application
+callback module.</p>
+</div>
+
+<div class="bottom-actions" id="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="release_structure.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Releases
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="appup_cookbook.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+Appup Cookbook
+        </span>
+      </a>
+
+  </div>
+</div>
+    <footer class="footer">
+      <p>
+
+        <span class="line">
+          <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+            Search HexDocs
+          </button>
+
+            <a href="Erlang System Documentation.epub" title="ePub version">
+              Download ePub version
+            </a>
+
+        </span>
+      </p>
+
+      <p class="built-using">
+        Built using
+        <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.32.2) for the
+
+          <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+      </p>
+<p>Copyright © 1996-2023 <a href="https://www.ericsson.com">Ericsson AB</a></p>
+    </footer>
+  </div>
+</main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: document.body.className.includes("dark") ? "dark" : "default"
+    });
+    let id = 0;
+    for (const codeEl of document.querySelectorAll("pre code.mermaid")) {
+      const preEl = codeEl.parentElement;
+      const graphDefinition = codeEl.textContent;
+      const graphEl = document.createElement("div");
+      const graphId = "mermaid-graph-" + id++;
+      mermaid.render(graphId, graphDefinition).then(({svg, bindFunctions}) => {
+        graphEl.innerHTML = svg;
+        bindFunctions?.(graphEl);
+        preEl.insertAdjacentElement("afterend", graphEl);
+        preEl.remove();
+      });
+    }
+  });
+</script>
+
+  </body>
+</html>

@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.32.2">
+    <meta name="project" content="Erlang System Documentation v27.0">
+
+
+    <title>gen_server Behaviour — Erlang System Documentation v27.0</title>
+    <link rel="stylesheet" href="dist/html-erlang-EBZIIHAS.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-K7URE6B4.js"></script>
+    <script src="dist/sidebar_items-976EDCF5.js"></script>
+    <script src="docs_config.js"></script>
+    <script async src="dist/html-BHYOTRCH.js"></script>
+
+
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="Erlang System Documentation" />
+        </a>
+
+      <div>
+        <a href="../index.html" class="sidebar-projectName" translate="no">
+Erlang System Documentation
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v27.0
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of Erlang System Documentation</span>
+            <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+          </label>
+          <button type="submit" class="search-button" aria-label="Submit Search">
+            <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+          </button>
+          <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+            <i class="ri-close-line ri-lg" title="Cancel search"></i>
+          </button>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.0/system/doc/design_principles/gen_server_concepts.md#L1" title="View Source" class="icon-action" rel="help">
+        <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        <span class="sr-only">View Source</span>
+      </a>
+
+
+    <span>gen_server Behaviour</span>
+  </h1>
+
+<p><a href="" id="gen_server"></a></p><p>It is recommended to read this section alongside <a href="../../lib/stdlib-6.0/doc/html/gen_server.html"><code class="inline">gen_server</code></a> in STDLIB.</p><h2 id="client-server-principles" class="section-heading">
+  <a href="#client-server-principles" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Client-Server Principles</span>
+</h2>
+<p>The client-server model is characterized by a central server and an arbitrary
+number of clients. The client-server model is used for resource management
+operations, where several different clients want to share a common resource. The
+server is responsible for managing this resource.</p><p><a href="" id="clientserver"></a></p><pre><code class="mermaid">---
+title: Client Server Model
+---
+
+flowchart LR
+    client1((Client))
+    client2((Client))
+    client3((Client))
+    server((Server))
+
+    client1 --&gt; server
+    server -.-&gt; client1
+
+    client2 --&gt; server
+    server -.-&gt; client2
+
+    client3 --&gt; server
+    server -.-&gt; client3
+
+    subgraph Legend
+        direction LR
+
+        start1[ ] --&gt;|Query| stop1[ ]
+        style start1 height:0px;
+        style stop1 height:0px;
+
+        start2[ ] -.-&gt;|Reply| stop2[ ]
+        style start2 height:0px;
+        style stop2 height:0px;
+    end</code></pre><h2 id="example" class="section-heading">
+  <a href="#example" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Example</span>
+</h2>
+<p>An example of a simple server written in plain Erlang is provided in
+<a href="design_principles.html#ch1">Overview</a>. The server can be reimplemented using
+<code class="inline">gen_server</code>, resulting in this callback module:</p><p><a href="" id="ex"></a></p><pre><code class="makeup erlang" translate="no"><span class="p">-</span><span class="na">module</span><span class="p" data-group-id="1064389887-1">(</span><span class="ss">ch3</span><span class="p" data-group-id="1064389887-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p">-</span><span class="na">behaviour</span><span class="p" data-group-id="1064389887-2">(</span><span class="ss">gen_server</span><span class="p" data-group-id="1064389887-2">)</span><span class="p">.</span><span class="w">
+</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="1064389887-3">(</span><span class="p" data-group-id="1064389887-4">[</span><span class="ss">start_link</span><span class="p">/</span><span class="mi">0</span><span class="p" data-group-id="1064389887-4">]</span><span class="p" data-group-id="1064389887-3">)</span><span class="p">.</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="1064389887-5">(</span><span class="p" data-group-id="1064389887-6">[</span><span class="ss">alloc</span><span class="p">/</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="ss">free</span><span class="p">/</span><span class="mi">1</span><span class="p" data-group-id="1064389887-6">]</span><span class="p" data-group-id="1064389887-5">)</span><span class="p">.</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="1064389887-7">(</span><span class="p" data-group-id="1064389887-8">[</span><span class="ss">init</span><span class="p">/</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="ss">handle_call</span><span class="p">/</span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="ss">handle_cast</span><span class="p">/</span><span class="mi">2</span><span class="p" data-group-id="1064389887-8">]</span><span class="p" data-group-id="1064389887-7">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">start_link</span><span class="p" data-group-id="1064389887-9">(</span><span class="p" data-group-id="1064389887-9">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">gen_server</span><span class="p">:</span><span class="nf">start_link</span><span class="p" data-group-id="1064389887-10">(</span><span class="p" data-group-id="1064389887-11">{</span><span class="ss">local</span><span class="p">,</span><span class="w"> </span><span class="ss">ch3</span><span class="p" data-group-id="1064389887-11">}</span><span class="p">,</span><span class="w"> </span><span class="ss">ch3</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1064389887-12">[</span><span class="p" data-group-id="1064389887-12">]</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1064389887-13">[</span><span class="p" data-group-id="1064389887-13">]</span><span class="p" data-group-id="1064389887-10">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">alloc</span><span class="p" data-group-id="1064389887-14">(</span><span class="p" data-group-id="1064389887-14">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">gen_server</span><span class="p">:</span><span class="nf">call</span><span class="p" data-group-id="1064389887-15">(</span><span class="ss">ch3</span><span class="p">,</span><span class="w"> </span><span class="ss">alloc</span><span class="p" data-group-id="1064389887-15">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">free</span><span class="p" data-group-id="1064389887-16">(</span><span class="n">Ch</span><span class="p" data-group-id="1064389887-16">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">gen_server</span><span class="p">:</span><span class="nf">cast</span><span class="p" data-group-id="1064389887-17">(</span><span class="ss">ch3</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1064389887-18">{</span><span class="ss">free</span><span class="p">,</span><span class="w"> </span><span class="n">Ch</span><span class="p" data-group-id="1064389887-18">}</span><span class="p" data-group-id="1064389887-17">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">init</span><span class="p" data-group-id="1064389887-19">(</span><span class="p">_</span><span class="n">Args</span><span class="p" data-group-id="1064389887-19">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="1064389887-20">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="nf">channels</span><span class="p" data-group-id="1064389887-21">(</span><span class="p" data-group-id="1064389887-21">)</span><span class="p" data-group-id="1064389887-20">}</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">handle_call</span><span class="p" data-group-id="1064389887-22">(</span><span class="ss">alloc</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">From</span><span class="p">,</span><span class="w"> </span><span class="n">Chs</span><span class="p" data-group-id="1064389887-22">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="1064389887-23">{</span><span class="n">Ch</span><span class="p">,</span><span class="w"> </span><span class="n">Chs2</span><span class="p" data-group-id="1064389887-23">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">alloc</span><span class="p" data-group-id="1064389887-24">(</span><span class="n">Chs</span><span class="p" data-group-id="1064389887-24">)</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="1064389887-25">{</span><span class="ss">reply</span><span class="p">,</span><span class="w"> </span><span class="n">Ch</span><span class="p">,</span><span class="w"> </span><span class="n">Chs2</span><span class="p" data-group-id="1064389887-25">}</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">handle_cast</span><span class="p" data-group-id="1064389887-26">(</span><span class="p" data-group-id="1064389887-27">{</span><span class="ss">free</span><span class="p">,</span><span class="w"> </span><span class="n">Ch</span><span class="p" data-group-id="1064389887-27">}</span><span class="p">,</span><span class="w"> </span><span class="n">Chs</span><span class="p" data-group-id="1064389887-26">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">Chs2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">free</span><span class="p" data-group-id="1064389887-28">(</span><span class="n">Ch</span><span class="p">,</span><span class="w"> </span><span class="n">Chs</span><span class="p" data-group-id="1064389887-28">)</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="1064389887-29">{</span><span class="ss">noreply</span><span class="p">,</span><span class="w"> </span><span class="n">Chs2</span><span class="p" data-group-id="1064389887-29">}</span><span class="p">.</span></code></pre><p>The code is explained in the next sections.</p><h2 id="starting-a-gen_server" class="section-heading">
+  <a href="#starting-a-gen_server" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Starting a Gen_Server</span>
+</h2>
+<p>In the example in the previous section, <code class="inline">gen_server</code> is started by calling
+<code class="inline">ch3:start_link()</code>:</p><pre><code class="makeup erlang" translate="no"><span class="nf">start_link</span><span class="p" data-group-id="0098576367-1">(</span><span class="p" data-group-id="0098576367-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">gen_server</span><span class="p">:</span><span class="nf">start_link</span><span class="p" data-group-id="0098576367-2">(</span><span class="p" data-group-id="0098576367-3">{</span><span class="ss">local</span><span class="p">,</span><span class="w"> </span><span class="ss">ch3</span><span class="p" data-group-id="0098576367-3">}</span><span class="p">,</span><span class="w"> </span><span class="ss">ch3</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0098576367-4">[</span><span class="p" data-group-id="0098576367-4">]</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0098576367-5">[</span><span class="p" data-group-id="0098576367-5">]</span><span class="p" data-group-id="0098576367-2">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p" data-group-id="0098576367-6">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">Pid</span><span class="p" data-group-id="0098576367-6">}</span></code></pre><p><code class="inline">start_link/0</code> calls function <a href="../../lib/stdlib-6.0/doc/html/gen_server.html#start_link/4"><code class="inline">gen_server:start_link/4</code></a>. This function spawns and
+links to a new process, a <code class="inline">gen_server</code>.</p><ul><li><p>The first argument, <code class="inline">{local, ch3}</code>, specifies the name. The gen_server is then
+locally registered as <code class="inline">ch3</code>.</p><p>If the name is omitted, the <code class="inline">gen_server</code> is not registered. Instead its pid
+must be used. The name can also be given as <code class="inline">{global, Name}</code>, in which case
+the <code class="inline">gen_server</code> is registered using <a href="../../lib/kernel-10.0/doc/html/global.html#register_name/2"><code class="inline">global:register_name/2</code></a>.</p></li><li><p>The second argument, <code class="inline">ch3</code>, is the name of the callback module, which is
+the module where the callback functions are located.</p><p>The interface functions (<code class="inline">start_link/0</code>, <code class="inline">alloc/0</code>, and <code class="inline">free/1</code>) are located
+in the same module as the callback functions (<code class="inline">init/1</code>, <code class="inline">handle_call/3</code>, and
+<code class="inline">handle_cast/2</code>). It is usually good programming practice to have the code
+corresponding to one process contained in a single module.</p></li><li><p>The third argument, <code class="inline">[]</code>, is a term that is passed as is to the callback
+function <code class="inline">init</code>. Here, <code class="inline">init</code> does not need any indata and ignores the
+argument.</p></li><li><p>The fourth argument, <code class="inline">[]</code>, is a list of options. See <a href="../../lib/stdlib-6.0/doc/html/gen_server.html"><code class="inline">gen_server</code></a>
+for the available options.</p></li></ul><p>If name registration succeeds, the new <code class="inline">gen_server</code> process calls the callback
+function <code class="inline">ch3:init([])</code>. <code class="inline">init</code> is expected to return <code class="inline">{ok, State}</code>, where
+<code class="inline">State</code> is the internal state of the <code class="inline">gen_server</code>. In this case, the state is
+the available channels.</p><pre><code class="makeup erlang" translate="no"><span class="nf">init</span><span class="p" data-group-id="1903678186-1">(</span><span class="p">_</span><span class="n">Args</span><span class="p" data-group-id="1903678186-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="1903678186-2">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="nf">channels</span><span class="p" data-group-id="1903678186-3">(</span><span class="p" data-group-id="1903678186-3">)</span><span class="p" data-group-id="1903678186-2">}</span><span class="p">.</span></code></pre><p><a href="../../lib/stdlib-6.0/doc/html/gen_server.html#start_link/4"><code class="inline">gen_server:start_link/4</code></a> is synchronous. It does not return until the
+<code class="inline">gen_server</code> has been initialized and is ready to receive requests.</p><p><a href="../../lib/stdlib-6.0/doc/html/gen_server.html#start_link/4"><code class="inline">gen_server:start_link/4</code></a> must be used if the <code class="inline">gen_server</code> is part of
+a supervision tree, meaning that it was started by a supervisor. There
+is another function, <a href="../../lib/stdlib-6.0/doc/html/gen_server.html#start/4"><code class="inline">gen_server:start/4</code></a>, to start a standalone
+<code class="inline">gen_server</code> that is not part of a supervision tree.</p><h2 id="synchronous-requests-call" class="section-heading">
+  <a href="#synchronous-requests-call" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Synchronous Requests - Call</span>
+</h2>
+<p>The synchronous request <code class="inline">alloc()</code> is implemented using <a href="../../lib/stdlib-6.0/doc/html/gen_server.html#call/2"><code class="inline">gen_server:call/2</code></a>:</p><pre><code class="text">alloc() -&gt;
+    gen_server:call(ch3, alloc).</code></pre><p><code class="inline">ch3</code> is the name of the <code class="inline">gen_server</code> and must agree with the name used to start
+it. <code class="inline">alloc</code> is the actual request.</p><p>The request is made into a message and sent to the <code class="inline">gen_server</code>. When the
+request is received, the <code class="inline">gen_server</code> calls <code class="inline">handle_call(Request, From, State)</code>,
+which is expected to return a tuple <code class="inline">{reply,Reply,State1}</code>. <code class="inline">Reply</code> is the reply
+that is to be sent back to the client, and <code class="inline">State1</code> is a new value for the state
+of the <code class="inline">gen_server</code>.</p><pre><code class="makeup erlang" translate="no"><span class="nf">handle_call</span><span class="p" data-group-id="9301131798-1">(</span><span class="ss">alloc</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">From</span><span class="p">,</span><span class="w"> </span><span class="n">Chs</span><span class="p" data-group-id="9301131798-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="9301131798-2">{</span><span class="n">Ch</span><span class="p">,</span><span class="w"> </span><span class="n">Chs2</span><span class="p" data-group-id="9301131798-2">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">alloc</span><span class="p" data-group-id="9301131798-3">(</span><span class="n">Chs</span><span class="p" data-group-id="9301131798-3">)</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="9301131798-4">{</span><span class="ss">reply</span><span class="p">,</span><span class="w"> </span><span class="n">Ch</span><span class="p">,</span><span class="w"> </span><span class="n">Chs2</span><span class="p" data-group-id="9301131798-4">}</span><span class="p">.</span></code></pre><p>In this case, the reply is the allocated channel <code class="inline">Ch</code> and the new state is the
+set of remaining available channels <code class="inline">Chs2</code>.</p><p>Thus, the call <code class="inline">ch3:alloc()</code> returns the allocated channel <code class="inline">Ch</code> and the
+<code class="inline">gen_server</code> then waits for new requests, now with an updated list of available
+channels.</p><h2 id="asynchronous-requests-cast" class="section-heading">
+  <a href="#asynchronous-requests-cast" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Asynchronous Requests - Cast</span>
+</h2>
+<p>The asynchronous request <code class="inline">free(Ch)</code> is implemented using <a href="../../lib/stdlib-6.0/doc/html/gen_server.html#cast/2"><code class="inline">gen_server:cast/2</code></a>:</p><pre><code class="makeup erlang" translate="no"><span class="nf">free</span><span class="p" data-group-id="6608768325-1">(</span><span class="n">Ch</span><span class="p" data-group-id="6608768325-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">gen_server</span><span class="p">:</span><span class="nf">cast</span><span class="p" data-group-id="6608768325-2">(</span><span class="ss">ch3</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6608768325-3">{</span><span class="ss">free</span><span class="p">,</span><span class="w"> </span><span class="n">Ch</span><span class="p" data-group-id="6608768325-3">}</span><span class="p" data-group-id="6608768325-2">)</span><span class="p">.</span></code></pre><p><code class="inline">ch3</code> is the name of the <code class="inline">gen_server</code>. <code class="inline">{free, Ch}</code> is the actual request.</p><p>The request is made into a message and sent to the <code class="inline">gen_server</code>. <code class="inline">cast</code>, and
+thus <code class="inline">free</code>, then returns <code class="inline">ok</code>.</p><p>When the request is received, the <code class="inline">gen_server</code> calls
+<code class="inline">handle_cast(Request, State)</code>, which is expected to return a tuple
+<code class="inline">{noreply,State1}</code>. <code class="inline">State1</code> is a new value for the state of the <code class="inline">gen_server</code>.</p><pre><code class="makeup erlang" translate="no"><span class="nf">handle_cast</span><span class="p" data-group-id="1838529416-1">(</span><span class="p" data-group-id="1838529416-2">{</span><span class="ss">free</span><span class="p">,</span><span class="w"> </span><span class="n">Ch</span><span class="p" data-group-id="1838529416-2">}</span><span class="p">,</span><span class="w"> </span><span class="n">Chs</span><span class="p" data-group-id="1838529416-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">Chs2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">free</span><span class="p" data-group-id="1838529416-3">(</span><span class="n">Ch</span><span class="p">,</span><span class="w"> </span><span class="n">Chs</span><span class="p" data-group-id="1838529416-3">)</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="1838529416-4">{</span><span class="ss">noreply</span><span class="p">,</span><span class="w"> </span><span class="n">Chs2</span><span class="p" data-group-id="1838529416-4">}</span><span class="p">.</span></code></pre><p>In this case, the new state is the updated list of available channels <code class="inline">Chs2</code>.
+The <code class="inline">gen_server</code> is now ready for new requests.</p><h2 id="stopping" class="section-heading">
+  <a href="#stopping" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Stopping</span>
+</h2>
+<h3 id="in-a-supervision-tree" class="section-heading">
+  <a href="#in-a-supervision-tree" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">In a Supervision Tree</span>
+</h3>
+<p>If the <code class="inline">gen_server</code> is part of a supervision tree, no stop function is needed.
+The <code class="inline">gen_server</code> is automatically terminated by its supervisor. Exactly how this
+is done is defined by a <a href="sup_princ.html#shutdown">shutdown strategy</a> set in the
+supervisor.</p><p>If it is necessary to clean up before termination, the shutdown strategy must be
+a time-out value and the <code class="inline">gen_server</code> must be set to trap exit signals in
+function <code class="inline">init</code>. When ordered to shutdown, the <code class="inline">gen_server</code> then calls the
+callback function <code class="inline">terminate(shutdown, State)</code>:</p><pre><code class="makeup erlang" translate="no"><span class="nf">init</span><span class="p" data-group-id="8020987487-1">(</span><span class="n">Args</span><span class="p" data-group-id="8020987487-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p">,</span><span class="w">
+    </span><span class="nf">process_flag</span><span class="p" data-group-id="8020987487-2">(</span><span class="ss">trap_exit</span><span class="p">,</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="8020987487-2">)</span><span class="p">,</span><span class="w">
+    </span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="8020987487-3">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="8020987487-3">}</span><span class="p">.</span><span class="w">
+
+</span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">terminate</span><span class="p" data-group-id="8020987487-4">(</span><span class="ss">shutdown</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="8020987487-4">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="c1">%% Code for cleaning up here</span><span class="w">
+    </span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="w">
+    </span><span class="ss">ok</span><span class="p">.</span></code></pre><h3 id="standalone-gen_servers" class="section-heading">
+  <a href="#standalone-gen_servers" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Standalone Gen_Servers</span>
+</h3>
+<p>If the <code class="inline">gen_server</code> is not part of a supervision tree, a stop function can be
+useful, for example:</p><pre><code class="makeup erlang" translate="no"><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="w">
+</span><span class="nf">export</span><span class="p" data-group-id="1619669803-1">(</span><span class="p" data-group-id="1619669803-2">[</span><span class="ss">stop</span><span class="p">/</span><span class="mi">0</span><span class="p" data-group-id="1619669803-2">]</span><span class="p" data-group-id="1619669803-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">stop</span><span class="p" data-group-id="1619669803-3">(</span><span class="p" data-group-id="1619669803-3">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">gen_server</span><span class="p">:</span><span class="nf">cast</span><span class="p" data-group-id="1619669803-4">(</span><span class="ss">ch3</span><span class="p">,</span><span class="w"> </span><span class="ss">stop</span><span class="p" data-group-id="1619669803-4">)</span><span class="p">.</span><span class="w">
+</span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">handle_cast</span><span class="p" data-group-id="1619669803-5">(</span><span class="ss">stop</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="1619669803-5">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="1619669803-6">{</span><span class="ss">stop</span><span class="p">,</span><span class="w"> </span><span class="ss">normal</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="1619669803-6">}</span><span class="p">;</span><span class="w">
+</span><span class="nf">handle_cast</span><span class="p" data-group-id="1619669803-7">(</span><span class="p" data-group-id="1619669803-8">{</span><span class="ss">free</span><span class="p">,</span><span class="w"> </span><span class="n">Ch</span><span class="p" data-group-id="1619669803-8">}</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="1619669803-7">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="w">
+
+</span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">terminate</span><span class="p" data-group-id="1619669803-9">(</span><span class="ss">normal</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="1619669803-9">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="ss">ok</span><span class="p">.</span></code></pre><p>The callback function handling the <code class="inline">stop</code> request returns a tuple
+<code class="inline">{stop,normal,State1}</code>, where <code class="inline">normal</code> specifies that it is a normal termination
+and <code class="inline">State1</code> is a new value for the state of the <code class="inline">gen_server</code>. This causes the
+<code class="inline">gen_server</code> to call <code class="inline">terminate(normal, State1)</code> and then it terminates
+gracefully.</p><h2 id="handling-other-messages" class="section-heading">
+  <a href="#handling-other-messages" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Handling Other Messages</span>
+</h2>
+<p>If the <code class="inline">gen_server</code> is to be able to receive other messages than requests, the
+callback function <code class="inline">handle_info(Info, State)</code> must be implemented to handle them.
+Examples of other messages are exit messages, if the <code class="inline">gen_server</code> is linked to
+other processes than the supervisor and it is trapping exit signals.</p><pre><code class="makeup erlang" translate="no"><span class="nf">handle_info</span><span class="p" data-group-id="0793420888-1">(</span><span class="p" data-group-id="0793420888-2">{</span><span class="ss">&#39;EXIT&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">Pid</span><span class="p">,</span><span class="w"> </span><span class="n">Reason</span><span class="p" data-group-id="0793420888-2">}</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="0793420888-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="c1">%% Code to handle exits here.</span><span class="w">
+    </span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="w">
+    </span><span class="p" data-group-id="0793420888-3">{</span><span class="ss">noreply</span><span class="p">,</span><span class="w"> </span><span class="n">State1</span><span class="p" data-group-id="0793420888-3">}</span><span class="p">.</span></code></pre><p>The final function to implement is <code class="inline">code_change/3</code>:</p><pre><code class="makeup erlang" translate="no"><span class="nf">code_change</span><span class="p" data-group-id="6568560834-1">(</span><span class="n">OldVsn</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p">,</span><span class="w"> </span><span class="n">Extra</span><span class="p" data-group-id="6568560834-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="c1">%% Code to convert state (and more) during code change.</span><span class="w">
+    </span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="w">
+    </span><span class="p" data-group-id="6568560834-2">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">NewState</span><span class="p" data-group-id="6568560834-2">}</span><span class="p">.</span></code></pre>
+</div>
+
+<div class="bottom-actions" id="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="design_principles.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Overview
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="statem.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+gen_statem Behaviour
+        </span>
+      </a>
+
+  </div>
+</div>
+    <footer class="footer">
+      <p>
+
+        <span class="line">
+          <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+            Search HexDocs
+          </button>
+
+            <a href="Erlang System Documentation.epub" title="ePub version">
+              Download ePub version
+            </a>
+
+        </span>
+      </p>
+
+      <p class="built-using">
+        Built using
+        <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.32.2) for the
+
+          <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+      </p>
+<p>Copyright © 1996-2023 <a href="https://www.ericsson.com">Ericsson AB</a></p>
+    </footer>
+  </div>
+</main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: document.body.className.includes("dark") ? "dark" : "default"
+    });
+    let id = 0;
+    for (const codeEl of document.querySelectorAll("pre code.mermaid")) {
+      const preEl = codeEl.parentElement;
+      const graphDefinition = codeEl.textContent;
+      const graphEl = document.createElement("div");
+      const graphId = "mermaid-graph-" + id++;
+      mermaid.render(graphId, graphDefinition).then(({svg, bindFunctions}) => {
+        graphEl.innerHTML = svg;
+        bindFunctions?.(graphEl);
+        preEl.insertAdjacentElement("afterend", graphEl);
+        preEl.remove();
+      });
+    }
+  });
+</script>
+
+  </body>
+</html>

@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.32.2">
+    <meta name="project" content="Erlang System Documentation v27.0">
+
+
+    <title>Creating and Upgrading a Target System — Erlang System Documentation v27.0</title>
+    <link rel="stylesheet" href="dist/html-erlang-EBZIIHAS.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-K7URE6B4.js"></script>
+    <script src="dist/sidebar_items-976EDCF5.js"></script>
+    <script src="docs_config.js"></script>
+    <script async src="dist/html-BHYOTRCH.js"></script>
+
+
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="Erlang System Documentation" />
+        </a>
+
+      <div>
+        <a href="../index.html" class="sidebar-projectName" translate="no">
+Erlang System Documentation
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v27.0
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of Erlang System Documentation</span>
+            <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+          </label>
+          <button type="submit" class="search-button" aria-label="Submit Search">
+            <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+          </button>
+          <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+            <i class="ri-close-line ri-lg" title="Cancel search"></i>
+          </button>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.0/system/doc/system_principles/create_target.md#L1" title="View Source" class="icon-action" rel="help">
+        <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        <span class="sr-only">View Source</span>
+      </a>
+
+
+    <span>Creating and Upgrading a Target System</span>
+  </h1>
+
+<p><a href="" id="creating-upgrading-target-system"></a></p><p>When creating a system using Erlang/OTP, the simplest way is to install
+Erlang/OTP somewhere, install the application-specific code somewhere else, and
+then start the Erlang runtime system, making sure the code path includes the
+application-specific code.</p><p>It is often not desirable to use an Erlang/OTP system as is. A developer can
+create new Erlang/OTP-compliant applications for a particular purpose, and
+several original Erlang/OTP applications can be irrelevant for the purpose in
+question. Thus, there is a need to be able to create a new system based on a
+given Erlang/OTP system, where dispensable applications are removed and new
+applications are included. Documentation and source code is irrelevant and is
+therefore not included in the new system.</p><p>This chapter is about creating such a system, which is called a <em>target system</em>.</p><p>The following sections deal with target systems with different requirements of
+functionality:</p><ul><li>A <em>basic target system</em> that can be started by calling the ordinary <code class="inline">erl</code>
+script.</li><li>A <em>simple target system</em> that also supports code replacement in runtime.</li><li>An <em>embedded target system</em> that also supports starting automatically
+at boot time, and logging output from the system files for later inspection.</li></ul><p>Here is only considered the case when Erlang/OTP is running on a UNIX system.</p><p>The <code class="inline">sasl</code> application includes the example Erlang module <code class="inline">target_system.erl</code>,
+which contains functions for creating and installing a target system. This
+module is used in the following examples. The source code of the module is
+listed in
+<a href="create_target.html#listing-of-target-system">Listing of target_system.erl</a></p><p><a href="" id="create"></a></p><h2 id="creating-a-target-system" class="section-heading">
+  <a href="#creating-a-target-system" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Creating a Target System</span>
+</h2>
+<p>It is assumed that you have a working Erlang/OTP system structured according to
+the OTP design principles.</p><p><em>Step 1.</em> Create a <code class="inline">.rel</code> file (see the <a href="../../lib/sasl-4.2.2/doc/html/rel.html">rel(4)</a> manual page in
+SASL), which specifies the ERTS version and lists all applications that are to
+be included in the new basic target system. An example is the following
+<code class="inline">mysystem.rel</code> file:</p><pre><code class="makeup erlang" translate="no"><span class="c1">%% mysystem.rel</span><span class="w">
+</span><span class="p" data-group-id="4503615982-1">{</span><span class="ss">release</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="4503615982-2">{</span><span class="s">&quot;MYSYSTEM&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;FIRST&quot;</span><span class="p" data-group-id="4503615982-2">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="4503615982-3">{</span><span class="ss">erts</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;5.10.4&quot;</span><span class="p" data-group-id="4503615982-3">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="4503615982-4">[</span><span class="p" data-group-id="4503615982-5">{</span><span class="ss">kernel</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;2.16.4&quot;</span><span class="p" data-group-id="4503615982-5">}</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="4503615982-6">{</span><span class="ss">stdlib</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;1.19.4&quot;</span><span class="p" data-group-id="4503615982-6">}</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="4503615982-7">{</span><span class="ss">sasl</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;2.3.4&quot;</span><span class="p" data-group-id="4503615982-7">}</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="4503615982-8">{</span><span class="ss">pea</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;1.0&quot;</span><span class="p" data-group-id="4503615982-8">}</span><span class="p" data-group-id="4503615982-4">]</span><span class="p" data-group-id="4503615982-1">}</span><span class="p">.</span></code></pre><p>The listed applications are not only original Erlang/OTP applications but
+possibly also new applications that you have written (here exemplified by the
+application Pea (<code class="inline">pea</code>)).</p><p><em>Step 2.</em> Start Erlang/OTP from the directory where the <code class="inline">mysystem.rel</code> file
+resides:</p><pre><code class="text">% erl -pa /home/user/target_system/myapps/pea-1.0/ebin</code></pre><p>The <code class="inline">-pa</code> argument prepends the path to the <code class="inline">ebin</code> directory for
+the Pea application to the code path.</p><p><em>Step 3.</em> Create the target system:</p><pre><code class="text">1&gt; target_system:create(&quot;mysystem&quot;).</code></pre><p>The function <code class="inline">target_system:create/1</code> performs the following:</p><ol><li><p>Reads the file <code class="inline">mysystem.rel</code> and creates a new file <code class="inline">plain.rel</code>.
+The new file is identical to the original, except that it only
+lists the Kernel and STDLIB applications.</p></li><li><p>From the files <code class="inline">mysystem.rel</code> and <code class="inline">plain.rel</code> creates the files
+<code class="inline">mysystem.script</code>, <code class="inline">mysystem.boot</code>, <code class="inline">plain.script</code>, and <code class="inline">plain.boot</code>
+by calling <a href="../../lib/sasl-4.2.2/doc/html/systools.html#make_script/2"><code class="inline">systools:make_script/2</code></a>.</p></li><li><p>Creates the file <code class="inline">mysystem.tar.gz</code> by calling <a href="../../lib/sasl-4.2.2/doc/html/systools.html#make_tar/2"><code class="inline">systools:make_tar/2</code></a>. That
+file has the following contents:</p></li></ol><pre><code class="text">erts-5.10.4/bin/
+releases/FIRST/start.boot
+releases/FIRST/mysystem.rel
+releases/mysystem.rel
+lib/kernel-2.16.4/
+lib/stdlib-1.19.4/
+lib/sasl-2.3.4/
+lib/pea-1.0/</code></pre><p>The file <code class="inline">releases/FIRST/start.boot</code> is a copy of our <code class="inline">mysystem.boot</code></p><p>The release resource file <code class="inline">mysystem.rel</code> is duplicated in the tar file.
+Originally, this file was only stored in the <code class="inline">releases</code> directory to make it
+possible for the <code class="inline">release_handler</code> to extract this file separately. After
+unpacking the tar file, <code class="inline">release_handler</code> would automatically copy the file to
+<code class="inline">releases/FIRST</code>. However, sometimes the tar file is unpacked without involving
+the <code class="inline">release_handler</code> (for example, when unpacking the first target system).
+Hence, the file is now duplicated within the tar archive, eliminating the
+need for manual copying.</p><ol><li>Creates the temporary directory <code class="inline">tmp</code> and extracts the tar file
+<code class="inline">mysystem.tar.gz</code> into that directory.</li><li>Deletes the files <code class="inline">erl</code> and <code class="inline">start</code> from <code class="inline">tmp/erts-5.10.4/bin</code>. These files
+are created again from source when installing the release.</li><li>Creates the directory <code class="inline">tmp/bin</code>.</li><li>Copies the previously created file <code class="inline">plain.boot</code> to <code class="inline">tmp/bin/start.boot</code>.</li><li>Copies the files <code class="inline">epmd</code>, <code class="inline">run_erl</code>, and <code class="inline">to_erl</code> from the directory
+<code class="inline">tmp/erts-5.10.4/bin</code> to the directory <code class="inline">tmp/bin</code>.</li><li>Creates the directory <code class="inline">tmp/log</code>, which is used if the system is started as
+embedded with the <code class="inline">bin/start</code> script.</li><li>Creates the file <code class="inline">tmp/releases/start_erl.data</code> with the contents &quot;5.10.4
+FIRST&quot;. This file is to be passed as data file to the <code class="inline">start_erl</code> script.</li><li>Recreates the file <code class="inline">mysystem.tar.gz</code> from the directories in the directory
+<code class="inline">tmp</code> and removes <code class="inline">tmp</code>.</li></ol><h2 id="installing-a-target-system" class="section-heading">
+  <a href="#installing-a-target-system" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Installing a Target System</span>
+</h2>
+<p><em>Step 4.</em> Install the created target system in a suitable directory.</p><pre><code class="text">2&gt; target_system:install(&quot;mysystem&quot;, &quot;/usr/local/erl-target&quot;).</code></pre><p>The function <code class="inline">target_system:install/2</code> performs the following:</p><ol><li>Extracts the tar file <code class="inline">mysystem.tar.gz</code> into the target directory
+<code class="inline">/usr/local/erl-target</code>.</li><li>In the target directory reads the file <code class="inline">releases/start_erl.data</code> to find the
+Erlang runtime system version (&quot;5.10.4&quot;).</li><li>Substitutes <code class="inline">%FINAL_ROOTDIR%</code> and <code class="inline">%EMU%</code> for <code class="inline">/usr/local/erl-target</code> and
+<code class="inline">beam</code>, respectively, in the files <code class="inline">erl.src</code>, <code class="inline">start.src</code>, and
+<code class="inline">start_erl.src</code> of the target <code class="inline">erts-5.10.4/bin</code> directory, and puts the
+resulting files <code class="inline">erl</code>, <code class="inline">start</code>, and <code class="inline">run_erl</code> in the target <code class="inline">bin</code> directory.</li><li>Finally the target <code class="inline">releases/RELEASES</code> file is created from data in the file
+<code class="inline">releases/mysystem.rel</code>.</li></ol><p><a href="" id="start"></a></p><h2 id="starting-a-target-system" class="section-heading">
+  <a href="#starting-a-target-system" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Starting a Target System</span>
+</h2>
+<p>Now we have a target system that can be started in various ways. We start it as
+a <em>basic target system</em> by invoking:</p><pre><code class="text">% /usr/local/erl-target/bin/erl</code></pre><p>Here only the Kernel and STDLIB applications are started, that is, the system is
+started as an ordinary development system. Only two files are needed for all
+this to work:</p><ol><li><code class="inline">bin/erl</code> (obtained from <code class="inline">erts-5.10.4/bin/erl.src</code>)</li><li><code class="inline">bin/start.boot</code> (a copy of <code class="inline">plain.boot</code>)</li></ol><p>We can also start a distributed system (requires <code class="inline">bin/epmd</code>).</p><p>To start all applications specified in the original <code class="inline">mysystem.rel</code> file, use
+flag <code class="inline">-boot</code> as follows:</p><pre><code class="text">% /usr/local/erl-target/bin/erl -boot /usr/local/erl-target/releases/FIRST/start</code></pre><p>We start a <em>simple target system</em> as above. The only difference is that also the
+file <code class="inline">releases/RELEASES</code> is present for code replacement in runtime to work.</p><p>To start an <em>embedded target system</em>, the shell script <code class="inline">bin/start</code> is used. The
+script calls <code class="inline">bin/run_erl</code>, which in turn calls <code class="inline">bin/start_erl</code> (roughly,
+<code class="inline">start_erl</code> is an embedded variant of <code class="inline">erl</code>).</p><p>The shell script <code class="inline">start</code>, which is generated from <code class="inline">erts-5.10.4/bin/start.src</code>
+during installation, is merely an example. Edit it to suite your needs. Typically
+it is executed when the UNIX system boots.</p><p><code class="inline">run_erl</code> is a wrapper that provides logging of output from the runtime system
+to file. It also provides a simple mechanism for attaching to the Erlang shell
+(<code class="inline">to_erl</code>).</p><p><code class="inline">start_erl</code> requires:</p><ol><li>The root directory (<code class="inline">&quot;/usr/local/erl-target&quot;</code>)</li><li>The releases directory (<code class="inline">&quot;/usr/local/erl-target/releases&quot;</code></li><li>The location of the file <code class="inline">start_erl.data</code></li></ol><p>It performs the following:</p><ol><li>Reads the runtime system version (<code class="inline">&quot;5.10.4&quot;</code>) and release version (<code class="inline">&quot;FIRST&quot;</code>)
+from the file <code class="inline">start_erl.data</code>.</li><li>Starts the runtime system of the version found.</li><li>Provides the flag <code class="inline">-boot</code> specifying the boot file of the release version
+found (<code class="inline">&quot;releases/FIRST/start.boot&quot;</code>).</li></ol><p><code class="inline">start_erl</code> also assumes that there is <code class="inline">sys.config</code> in the release version
+directory (<code class="inline">&quot;releases/FIRST/sys.config&quot;</code>). That is the topic of the next
+section.</p><p>The <code class="inline">start_erl</code> shell script is normally not to be altered by the user.</p><h2 id="system-configuration-parameters" class="section-heading">
+  <a href="#system-configuration-parameters" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">System Configuration Parameters</span>
+</h2>
+<p>As was mentioned in the previous section, <code class="inline">start_erl</code> requires a <code class="inline">sys.config</code> in
+the release version directory (<code class="inline">&quot;releases/FIRST/sys.config&quot;</code>). If there is no
+such file, the system start fails. Such a file must therefore also be added.</p><p>If you have system configuration data that is neither file-location-dependent
+nor site-dependent, it can be convenient to create <code class="inline">sys.config</code> early, so it
+becomes part of the target system tar file created by <code class="inline">target_system:create/1</code>.
+In fact, if you in the current directory create not only the file
+<code class="inline">mysystem.rel</code>, but also file <code class="inline">sys.config</code>, the latter file is tacitly put in
+the appropriate directory.</p><p>However, it can also be convenient to replace variables in within a <code class="inline">sys.config</code>
+on the target after unpacking but before running the release. If you have a
+<code class="inline">sys.config.src</code> it will be included and is not required to be a valid Erlang
+term file like <code class="inline">sys.config</code>. Before running the release you must have a valid
+<code class="inline">sys.config</code> in the same directory, so using <code class="inline">sys.config.src</code> requires having
+some tool to populate what is needed and write <code class="inline">sys.config</code> to disk before
+booting the release.</p><h2 id="differences-from-the-install-script" class="section-heading">
+  <a href="#differences-from-the-install-script" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Differences From the Install Script</span>
+</h2>
+<p>The previous <code class="inline">install/2</code> procedure differs somewhat from that of the ordinary
+<code class="inline">Install</code> shell script. In fact, <code class="inline">create/1</code> makes the release package as
+complete as possible, and leave to the <code class="inline">install/2</code> procedure to finish by only
+considering location-dependent files.</p><h2 id="creating-the-next-version" class="section-heading">
+  <a href="#creating-the-next-version" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Creating the Next Version</span>
+</h2>
+<p>In this example the Pea application has been changed, and so are the
+applications ERTS, Kernel, STDLIB and SASL.</p><p><em>Step 1.</em> Create the file <code class="inline">.rel</code>:</p><pre><code class="makeup erlang" translate="no"><span class="c1">%% mysystem2.rel</span><span class="w">
+</span><span class="p" data-group-id="7204426865-1">{</span><span class="ss">release</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="7204426865-2">{</span><span class="s">&quot;MYSYSTEM&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;SECOND&quot;</span><span class="p" data-group-id="7204426865-2">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="7204426865-3">{</span><span class="ss">erts</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;6.0&quot;</span><span class="p" data-group-id="7204426865-3">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="7204426865-4">[</span><span class="p" data-group-id="7204426865-5">{</span><span class="ss">kernel</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;3.0&quot;</span><span class="p" data-group-id="7204426865-5">}</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="7204426865-6">{</span><span class="ss">stdlib</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;2.0&quot;</span><span class="p" data-group-id="7204426865-6">}</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="7204426865-7">{</span><span class="ss">sasl</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;2.4&quot;</span><span class="p" data-group-id="7204426865-7">}</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="7204426865-8">{</span><span class="ss">pea</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;2.0&quot;</span><span class="p" data-group-id="7204426865-8">}</span><span class="p" data-group-id="7204426865-4">]</span><span class="p" data-group-id="7204426865-1">}</span><span class="p">.</span></code></pre><p><em>Step 2.</em> Create the application upgrade file (see
+<a href="../../lib/sasl-4.2.2/doc/html/appup.html">appup</a> in SASL) for Pea, for example:</p><pre><code class="makeup erlang" translate="no"><span class="c1">%% pea.appup</span><span class="w">
+</span><span class="p" data-group-id="8488490952-1">{</span><span class="s">&quot;2.0&quot;</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="8488490952-2">[</span><span class="p" data-group-id="8488490952-3">{</span><span class="s">&quot;1.0&quot;</span><span class="p">,</span><span class="p" data-group-id="8488490952-4">[</span><span class="p" data-group-id="8488490952-5">{</span><span class="nb">load_module</span><span class="p">,</span><span class="ss">pea_lib</span><span class="p" data-group-id="8488490952-5">}</span><span class="p" data-group-id="8488490952-4">]</span><span class="p" data-group-id="8488490952-3">}</span><span class="p" data-group-id="8488490952-2">]</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="8488490952-6">[</span><span class="p" data-group-id="8488490952-7">{</span><span class="s">&quot;1.0&quot;</span><span class="p">,</span><span class="p" data-group-id="8488490952-8">[</span><span class="p" data-group-id="8488490952-9">{</span><span class="nb">load_module</span><span class="p">,</span><span class="ss">pea_lib</span><span class="p" data-group-id="8488490952-9">}</span><span class="p" data-group-id="8488490952-8">]</span><span class="p" data-group-id="8488490952-7">}</span><span class="p" data-group-id="8488490952-6">]</span><span class="p" data-group-id="8488490952-1">}</span><span class="p">.</span></code></pre><p><em>Step 3.</em> From the directory where the file <code class="inline">mysystem2.rel</code> resides, start the
+Erlang/OTP system, giving the path to the new version of Pea:</p><pre><code class="text">% erl -pa /home/user/target_system/myapps/pea-2.0/ebin</code></pre><p><em>Step 4.</em> Create the release upgrade file (see <a href="../../lib/sasl-4.2.2/doc/html/relup.html">relup</a>
+in SASL):</p><pre><code class="text">1&gt; systools:make_relup(&quot;mysystem2&quot;,[&quot;mysystem&quot;],[&quot;mysystem&quot;],
+    [{path,[&quot;/home/user/target_system/myapps/pea-1.0/ebin&quot;,
+    &quot;/my/old/erlang/lib/*/ebin&quot;]}]).</code></pre><p>Here <code class="inline">&quot;mysystem&quot;</code> is the base release and <code class="inline">&quot;mysystem2&quot;</code> is the release to
+upgrade to.</p><p>The <code class="inline">path</code> option is used for pointing out the old version of all applications.
+(The new versions are already in the code path - assuming of course that the
+Erlang node on which this is executed is running the correct version of
+Erlang/OTP.)</p><p><em>Step 5.</em> Create the new release:</p><pre><code class="text">2&gt; target_system:create(&quot;mysystem2&quot;).</code></pre><p>Given that the file <code class="inline">relup</code> generated in Step 4 is now located in the current
+directory, it is automatically included in the release package.</p><h2 id="upgrading-the-target-system" class="section-heading">
+  <a href="#upgrading-the-target-system" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Upgrading the Target System</span>
+</h2>
+<p>This part is done on the target node, and for this example we want the node to
+be running as an embedded system with the <code class="inline">-heart</code> option, allowing automatic
+restart of the node. For more information, see
+<a href="create_target.html#start">Starting a Target System</a>.</p><p>We add <code class="inline">-heart</code> to <code class="inline">bin/start</code>:</p><pre><code class="text">#!/bin/sh
+ROOTDIR=/usr/local/erl-target/
+
+if [ -z &quot;$RELDIR&quot; ]
+then
+   RELDIR=$ROOTDIR/releases
+fi
+
+START_ERL_DATA=${1:-$RELDIR/start_erl.data}
+
+$ROOTDIR/bin/run_erl -daemon /tmp/ $ROOTDIR/log &quot;exec $ROOTDIR/bin/start_erl $ROOTDIR\
+$RELDIR $START_ERL_DATA -heart&quot;</code></pre><p>We use the simplest possible <code class="inline">sys.config</code>, which we store in <code class="inline">releases/FIRST</code>:</p><pre><code class="text">%% sys.config
+[].</code></pre><p>Finally, to prepare the upgrade, we must put the new release package in the
+<code class="inline">releases</code> directory of the first target system:</p><pre><code class="text">% cp mysystem2.tar.gz /usr/local/erl-target/releases</code></pre><p>Assuming that the node has been started as follows:</p><pre><code class="text">% /usr/local/erl-target/bin/start</code></pre><p>It can be accessed as follows:</p><pre><code class="text">% /usr/local/erl-target/bin/to_erl /tmp/erlang.pipe.1</code></pre><p>Logs can be found in <code class="inline">/usr/local/erl-target/log</code>. This directory is specified as
+an argument to <code class="inline">run_erl</code>in the start script listed above.</p><p><em>Step 1.</em> Unpack the release:</p><pre><code class="text">1&gt; {ok,Vsn} = release_handler:unpack_release(&quot;mysystem2&quot;).</code></pre><p><em>Step 2.</em> Install the release:</p><pre><code class="text">2&gt; release_handler:install_release(Vsn).
+{continue_after_restart,&quot;FIRST&quot;,[]}
+heart: Tue Apr  1 12:15:10 2014: Erlang has closed.
+heart: Tue Apr  1 12:15:11 2014: Executed &quot;/usr/local/erl-target/bin/start /usr/local/erl-target/releases/new_start_erl.data&quot; -&gt; 0. Terminating.
+[End]</code></pre><p>The above return value and output after the call to
+<a href="../../lib/sasl-4.2.2/doc/html/release_handler.html#install_release/1"><code class="inline">release_handler:install_release/1</code></a> means that the <code class="inline">release_handler</code> has
+restarted the node by using <code class="inline">heart</code>. This is always done when the upgrade
+involves a change of the applications ERTS, Kernel, STDLIB, or SASL. For more
+information, see <a href="upgrade.html">Upgrade when Erlang/OTP has Changed</a>.</p><p>The node is accessible through a new pipe:</p><pre><code class="text">% /usr/local/erl-target/bin/to_erl /tmp/erlang.pipe.2</code></pre><p>List the available releases in the system:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">1&gt; </span><span class="nc">release_handler</span><span class="p">:</span><span class="nf">which_releases</span><span class="p" data-group-id="4519580818-1">(</span><span class="p" data-group-id="4519580818-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="4519580818-2">[</span><span class="p" data-group-id="4519580818-3">{</span><span class="s">&quot;MYSYSTEM&quot;</span><span class="p">,</span><span class="s">&quot;SECOND&quot;</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="4519580818-4">[</span><span class="s">&quot;kernel-3.0&quot;</span><span class="p">,</span><span class="s">&quot;stdlib-2.0&quot;</span><span class="p">,</span><span class="s">&quot;sasl-2.4&quot;</span><span class="p">,</span><span class="s">&quot;pea-2.0&quot;</span><span class="p" data-group-id="4519580818-4">]</span><span class="p">,</span><span class="w">
+  </span><span class="ss">current</span><span class="p" data-group-id="4519580818-3">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="4519580818-5">{</span><span class="s">&quot;MYSYSTEM&quot;</span><span class="p">,</span><span class="s">&quot;FIRST&quot;</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="4519580818-6">[</span><span class="s">&quot;kernel-2.16.4&quot;</span><span class="p">,</span><span class="s">&quot;stdlib-1.19.4&quot;</span><span class="p">,</span><span class="s">&quot;sasl-2.3.4&quot;</span><span class="p">,</span><span class="s">&quot;pea-1.0&quot;</span><span class="p" data-group-id="4519580818-6">]</span><span class="p">,</span><span class="w">
+  </span><span class="ss">permanent</span><span class="p" data-group-id="4519580818-5">}</span><span class="p" data-group-id="4519580818-2">]</span></code></pre><p>Our new release, &quot;SECOND&quot;, is now the current release, but we can also see that
+our &quot;FIRST&quot; release is still permanent. This means that if the node would be
+restarted now, it would come up running the &quot;FIRST&quot; release again.</p><p><em>Step 3.</em> Make the new release permanent:</p><pre><code class="text">2&gt; release_handler:make_permanent(&quot;SECOND&quot;).</code></pre><p>Check the releases again:</p><pre><code class="makeup c" translate="no"><span class="mi">3</span><span class="o">&gt;</span><span class="w"> </span><span class="n">release_handler</span><span class="o">:</span><span class="nf">which_releases</span><span class="p" data-group-id="5329449792-1">(</span><span class="p" data-group-id="5329449792-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="5329449792-2">[</span><span class="p" data-group-id="5329449792-3">{</span><span class="s">&quot;MYSYSTEM&quot;</span><span class="p">,</span><span class="s">&quot;SECOND&quot;</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="5329449792-4">[</span><span class="s">&quot;kernel-3.0&quot;</span><span class="p">,</span><span class="s">&quot;stdlib-2.0&quot;</span><span class="p">,</span><span class="s">&quot;sasl-2.4&quot;</span><span class="p">,</span><span class="s">&quot;pea-2.0&quot;</span><span class="p" data-group-id="5329449792-4">]</span><span class="p">,</span><span class="w">
+  </span><span class="n">permanent</span><span class="p" data-group-id="5329449792-3">}</span><span class="p">,</span><span class="w">
+ </span><span class="p" data-group-id="5329449792-5">{</span><span class="s">&quot;MYSYSTEM&quot;</span><span class="p">,</span><span class="s">&quot;FIRST&quot;</span><span class="p">,</span><span class="w">
+  </span><span class="p" data-group-id="5329449792-6">[</span><span class="s">&quot;kernel-2.16.4&quot;</span><span class="p">,</span><span class="s">&quot;stdlib-1.19.4&quot;</span><span class="p">,</span><span class="s">&quot;sasl-2.3.4&quot;</span><span class="p">,</span><span class="s">&quot;pea-1.0&quot;</span><span class="p" data-group-id="5329449792-6">]</span><span class="p">,</span><span class="w">
+  </span><span class="n">old</span><span class="p" data-group-id="5329449792-5">}</span><span class="p" data-group-id="5329449792-2">]</span></code></pre><p>We see that the new release version is <code class="inline">permanent</code>, so it would be safe to
+restart the node.</p><p><a href="" id="listing-of-target-system"></a></p><h2 id="listing-of-target_system-erl" class="section-heading">
+  <a href="#listing-of-target_system-erl" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Listing of target_system.erl</span>
+</h2>
+<p>This module can also be found in the <code class="inline">examples</code> directory of the SASL
+application.</p><pre><code class="makeup erlang" translate="no"><span class="w">
+</span><span class="p">-</span><span class="na">module</span><span class="p" data-group-id="1010802499-1">(</span><span class="ss">target_system</span><span class="p" data-group-id="1010802499-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="1010802499-2">(</span><span class="p" data-group-id="1010802499-3">[</span><span class="ss">create</span><span class="p">/</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="ss">create</span><span class="p">/</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="ss">install</span><span class="p">/</span><span class="mi">2</span><span class="p" data-group-id="1010802499-3">]</span><span class="p" data-group-id="1010802499-2">)</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%% Note: RelFileName below is the *stem* without trailing .rel,</span><span class="w">
+</span><span class="c1">%% .script etc.</span><span class="w">
+</span><span class="c1">%%</span><span class="w">
+
+</span><span class="c1">%% create(RelFileName)</span><span class="w">
+</span><span class="c1">%%</span><span class="w">
+</span><span class="nf">create</span><span class="p" data-group-id="1010802499-4">(</span><span class="n">RelFileName</span><span class="p" data-group-id="1010802499-4">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">create</span><span class="p" data-group-id="1010802499-5">(</span><span class="n">RelFileName</span><span class="p">,</span><span class="p" data-group-id="1010802499-6">[</span><span class="p" data-group-id="1010802499-6">]</span><span class="p" data-group-id="1010802499-5">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">create</span><span class="p" data-group-id="1010802499-7">(</span><span class="n">RelFileName</span><span class="p">,</span><span class="n">SystoolsOpts</span><span class="p" data-group-id="1010802499-7">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">RelFile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">RelFileName</span><span class="w"> </span><span class="o">++</span><span class="w"> </span><span class="s">&quot;.rel&quot;</span><span class="p">,</span><span class="w">
+    </span><span class="n">Dir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">filename</span><span class="p">:</span><span class="nf">dirname</span><span class="p" data-group-id="1010802499-8">(</span><span class="n">RelFileName</span><span class="p" data-group-id="1010802499-8">)</span><span class="p">,</span><span class="w">
+    </span><span class="n">PlainRelFileName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">filename</span><span class="p">:</span><span class="nf">join</span><span class="p" data-group-id="1010802499-9">(</span><span class="n">Dir</span><span class="p">,</span><span class="s">&quot;plain&quot;</span><span class="p" data-group-id="1010802499-9">)</span><span class="p">,</span><span class="w">
+    </span><span class="n">PlainRelFile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">PlainRelFileName</span><span class="w"> </span><span class="o">++</span><span class="w"> </span><span class="s">&quot;.rel&quot;</span><span class="p">,</span><span class="w">
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">fwrite</span><span class="p" data-group-id="1010802499-10">(</span><span class="s">&quot;Reading file: ~ts ...</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1010802499-11">[</span><span class="n">RelFile</span><span class="p" data-group-id="1010802499-11">]</span><span class="p" data-group-id="1010802499-10">)</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="1010802499-12">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1010802499-13">[</span><span class="n">RelSpec</span><span class="p" data-group-id="1010802499-13">]</span><span class="p" data-group-id="1010802499-12">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">file</span><span class="p">:</span><span class="nf">consult</span><span class="p" data-group-id="1010802499-14">(</span><span class="n">RelFile</span><span class="p" data-group-id="1010802499-14">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">fwrite</span><span class="p" data-group-id="1010802499-15">(</span><span class="s">&quot;Creating file: ~ts from ~ts ...</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w">
+              </span><span class="p" data-group-id="1010802499-16">[</span><span class="n">PlainRelFile</span><span class="p">,</span><span class="w"> </span><span class="n">RelFile</span><span class="p" data-group-id="1010802499-16">]</span><span class="p" data-group-id="1010802499-15">)</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="1010802499-17">{</span><span class="ss">release</span><span class="p">,</span><span class="w">
+     </span><span class="p" data-group-id="1010802499-18">{</span><span class="n">RelName</span><span class="p">,</span><span class="w"> </span><span class="n">RelVsn</span><span class="p" data-group-id="1010802499-18">}</span><span class="p">,</span><span class="w">
+     </span><span class="p" data-group-id="1010802499-19">{</span><span class="ss">erts</span><span class="p">,</span><span class="w"> </span><span class="n">ErtsVsn</span><span class="p" data-group-id="1010802499-19">}</span><span class="p">,</span><span class="w">
+     </span><span class="n">AppVsns</span><span class="p" data-group-id="1010802499-17">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">RelSpec</span><span class="p">,</span><span class="w">
+    </span><span class="n">PlainRelSpec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="1010802499-20">{</span><span class="ss">release</span><span class="p">,</span><span class="w">
+                    </span><span class="p" data-group-id="1010802499-21">{</span><span class="n">RelName</span><span class="p">,</span><span class="w"> </span><span class="n">RelVsn</span><span class="p" data-group-id="1010802499-21">}</span><span class="p">,</span><span class="w">
+                    </span><span class="p" data-group-id="1010802499-22">{</span><span class="ss">erts</span><span class="p">,</span><span class="w"> </span><span class="n">ErtsVsn</span><span class="p" data-group-id="1010802499-22">}</span><span class="p">,</span><span class="w">
+                    </span><span class="nc">lists</span><span class="p">:</span><span class="nf">filter</span><span class="p" data-group-id="1010802499-23">(</span><span class="nf">fun</span><span class="p" data-group-id="1010802499-24">(</span><span class="p" data-group-id="1010802499-25">{</span><span class="ss">kernel</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="p" data-group-id="1010802499-25">}</span><span class="p" data-group-id="1010802499-24">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                                         </span><span class="ss">true</span><span class="p">;</span><span class="w">
+                                    </span><span class="p" data-group-id="1010802499-26">(</span><span class="p" data-group-id="1010802499-27">{</span><span class="ss">stdlib</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="p" data-group-id="1010802499-27">}</span><span class="p" data-group-id="1010802499-26">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                                         </span><span class="ss">true</span><span class="p">;</span><span class="w">
+                                    </span><span class="p" data-group-id="1010802499-28">(</span><span class="p">_</span><span class="p" data-group-id="1010802499-28">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                                         </span><span class="ss">false</span><span class="w">
+                                 </span><span class="k">end</span><span class="p">,</span><span class="w"> </span><span class="n">AppVsns</span><span class="p" data-group-id="1010802499-23">)</span><span class="w">
+                   </span><span class="p" data-group-id="1010802499-20">}</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="1010802499-29">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">Fd</span><span class="p" data-group-id="1010802499-29">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">file</span><span class="p">:</span><span class="nf">open</span><span class="p" data-group-id="1010802499-30">(</span><span class="n">PlainRelFile</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1010802499-31">[</span><span class="ss">write</span><span class="p" data-group-id="1010802499-31">]</span><span class="p" data-group-id="1010802499-30">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">fwrite</span><span class="p" data-group-id="1010802499-32">(</span><span class="n">Fd</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;</span><span class="si">~p</span><span class="s">.</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1010802499-33">[</span><span class="n">PlainRelSpec</span><span class="p" data-group-id="1010802499-33">]</span><span class="p" data-group-id="1010802499-32">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">file</span><span class="p">:</span><span class="nf">close</span><span class="p" data-group-id="1010802499-34">(</span><span class="n">Fd</span><span class="p" data-group-id="1010802499-34">)</span><span class="p">,</span><span class="w">
+
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">fwrite</span><span class="p" data-group-id="1010802499-35">(</span><span class="s">&quot;Making \&quot;~ts.script\&quot; and \&quot;~ts.boot\&quot; files ...</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w">      </span><span class="p" data-group-id="1010802499-36">[</span><span class="n">PlainRelFileName</span><span class="p">,</span><span class="n">PlainRelFileName</span><span class="p" data-group-id="1010802499-36">]</span><span class="p" data-group-id="1010802499-35">)</span><span class="p">,</span><span class="w">
+    </span><span class="nf">make_script</span><span class="p" data-group-id="1010802499-37">(</span><span class="n">PlainRelFileName</span><span class="p">,</span><span class="n">SystoolsOpts</span><span class="p" data-group-id="1010802499-37">)</span><span class="p">,</span><span class="w">
+
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">fwrite</span><span class="p" data-group-id="1010802499-38">(</span><span class="s">&quot;Making \&quot;~ts.script\&quot; and \&quot;~ts.boot\&quot; files ...</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w">
+              </span><span class="p" data-group-id="1010802499-39">[</span><span class="n">RelFileName</span><span class="p">,</span><span class="w"> </span><span class="n">RelFileName</span><span class="p" data-group-id="1010802499-39">]</span><span class="p" data-group-id="1010802499-38">)</span><span class="p">,</span><span class="w">
+    </span><span class="nf">make_script</span><span class="p" data-group-id="1010802499-40">(</span><span class="n">RelFileName</span><span class="p">,</span><span class="n">SystoolsOpts</span><span class="p" data-group-id="1010802499-40">)</span><span class="p">,</span><span class="w">
+
+    </span><span class="n">TarFileName</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">RelFileName</span><span class="w"> </span><span class="o">++</span><span class="w"> </span><span class="s">&quot;.tar.gz&quot;</span><span class="p">,</span><span class="w">
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">fwrite</span><span class="p" data-group-id="1010802499-41">(</span><span class="s">&quot;Creating tar file ~ts ...</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1010802499-42">[</span><span class="n">TarFileName</span><span class="p" data-group-id="1010802499-42">]</span><span class="p" data-group-id="1010802499-41">)</span><span class="p">,</span><span class="w">
+    </span><span class="nf">make_tar</span><span class="p" data-group-id="1010802499-43">(</span><span class="n">RelFileName</span><span class="p">,</span><span class="n">SystoolsOpts</span><span class="p" data-group-id="1010802499-43">)</span><span class="p">,</span><span class="w">
+
+    </span><span class="n">TmpDir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">filename</span><span class="p">:</span><span class="nf">join</span><span class="p" data-group-id="1010802499-44">(</span><span class="n">Dir</span><span class="p">,</span><span class="s">&quot;tmp&quot;</span><span class="p" data-group-id="1010802499-44">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">fwrite</span><span class="p" data-group-id="1010802499-45">(</span><span class="s">&quot;Creating directory ~tp ...</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="p" data-group-id="1010802499-46">[</span><span class="n">TmpDir</span><span class="p" data-group-id="1010802499-46">]</span><span class="p" data-group-id="1010802499-45">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">file</span><span class="p">:</span><span class="nf">make_dir</span><span class="p" data-group-id="1010802499-47">(</span><span class="n">TmpDir</span><span class="p" data-group-id="1010802499-47">)</span><span class="p">,</span><span class="w">
+
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">fwrite</span><span class="p" data-group-id="1010802499-48">(</span><span class="s">&quot;Extracting ~ts into directory ~ts ...</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1010802499-49">[</span><span class="n">TarFileName</span><span class="p">,</span><span class="n">TmpDir</span><span class="p" data-group-id="1010802499-49">]</span><span class="p" data-group-id="1010802499-48">)</span><span class="p">,</span><span class="w">
+    </span><span class="nf">extract_tar</span><span class="p" data-group-id="1010802499-50">(</span><span class="n">TarFileName</span><span class="p">,</span><span class="w"> </span><span class="n">TmpDir</span><span class="p" data-group-id="1010802499-50">)</span><span class="p">,</span><span class="w">
+
+    </span><span class="n">TmpBinDir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">filename</span><span class="p">:</span><span class="nf">join</span><span class="p" data-group-id="1010802499-51">(</span><span class="p" data-group-id="1010802499-52">[</span><span class="n">TmpDir</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;bin&quot;</span><span class="p" data-group-id="1010802499-52">]</span><span class="p" data-group-id="1010802499-51">)</span><span class="p">,</span><span class="w">
+    </span><span class="n">ErtsBinDir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">filename</span><span class="p">:</span><span class="nf">join</span><span class="p" data-group-id="1010802499-53">(</span><span class="p" data-group-id="1010802499-54">[</span><span class="n">TmpDir</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;erts-&quot;</span><span class="w"> </span><span class="o">++</span><span class="w"> </span><span class="n">ErtsVsn</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;bin&quot;</span><span class="p" data-group-id="1010802499-54">]</span><span class="p" data-group-id="1010802499-53">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">fwrite</span><span class="p" data-group-id="1010802499-55">(</span><span class="s">&quot;Deleting \&quot;erl\&quot; and \&quot;start\&quot; in directory ~ts ...</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w">
+              </span><span class="p" data-group-id="1010802499-56">[</span><span class="n">ErtsBinDir</span><span class="p" data-group-id="1010802499-56">]</span><span class="p" data-group-id="1010802499-55">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">file</span><span class="p">:</span><span class="nf">delete</span><span class="p" data-group-id="1010802499-57">(</span><span class="nc">filename</span><span class="p">:</span><span class="nf">join</span><span class="p" data-group-id="1010802499-58">(</span><span class="p" data-group-id="1010802499-59">[</span><span class="n">ErtsBinDir</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;erl&quot;</span><span class="p" data-group-id="1010802499-59">]</span><span class="p" data-group-id="1010802499-58">)</span><span class="p" data-group-id="1010802499-57">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">file</span><span class="p">:</span><span class="nf">delete</span><span class="p" data-group-id="1010802499-60">(</span><span class="nc">filename</span><span class="p">:</span><span class="nf">join</span><span class="p" data-group-id="1010802499-61">(</span><span class="p" data-group-id="1010802499-62">[</span><span class="n">ErtsBinDir</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;start&quot;</span><span class="p" data-group-id="1010802499-62">]</span><span class="p" data-group-id="1010802499-61">)</span><span class="p" data-group-id="1010802499-60">)</span><span class="p">,</span><span class="w">
+
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">fwrite</span><span class="p" data-group-id="1010802499-63">(</span><span class="s">&quot;Creating temporary directory ~ts ...</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1010802499-64">[</span><span class="n">TmpBinDir</span><span class="p" data-group-id="1010802499-64">]</span><span class="p" data-group-id="1010802499-63">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">file</span><span class="p">:</span><span class="nf">make_dir</span><span class="p" data-group-id="1010802499-65">(</span><span class="n">TmpBinDir</span><span class="p" data-group-id="1010802499-65">)</span><span class="p">,</span><span class="w">
+
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">fwrite</span><span class="p" data-group-id="1010802499-66">(</span><span class="s">&quot;Copying file \&quot;~ts.boot\&quot; to ~ts ...</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w">
+              </span><span class="p" data-group-id="1010802499-67">[</span><span class="n">PlainRelFileName</span><span class="p">,</span><span class="w"> </span><span class="nc">filename</span><span class="p">:</span><span class="nf">join</span><span class="p" data-group-id="1010802499-68">(</span><span class="p" data-group-id="1010802499-69">[</span><span class="n">TmpBinDir</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;start.boot&quot;</span><span class="p" data-group-id="1010802499-69">]</span><span class="p" data-group-id="1010802499-68">)</span><span class="p" data-group-id="1010802499-67">]</span><span class="p" data-group-id="1010802499-66">)</span><span class="p">,</span><span class="w">
+    </span><span class="nf">copy_file</span><span class="p" data-group-id="1010802499-70">(</span><span class="n">PlainRelFileName</span><span class="o">++</span><span class="s">&quot;.boot&quot;</span><span class="p">,</span><span class="nc">filename</span><span class="p">:</span><span class="nf">join</span><span class="p" data-group-id="1010802499-71">(</span><span class="p" data-group-id="1010802499-72">[</span><span class="n">TmpBinDir</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;start.boot&quot;</span><span class="p" data-group-id="1010802499-72">]</span><span class="p" data-group-id="1010802499-71">)</span><span class="p" data-group-id="1010802499-70">)</span><span class="p">,</span><span class="w">
+
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">fwrite</span><span class="p" data-group-id="1010802499-73">(</span><span class="s">&quot;Copying files \&quot;epmd\&quot;, \&quot;run_erl\&quot; and \&quot;to_erl\&quot; from \n&quot;</span><span class="w">
+              </span><span class="s">&quot;~ts to ~ts ...</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w">
+              </span><span class="p" data-group-id="1010802499-74">[</span><span class="n">ErtsBinDir</span><span class="p">,</span><span class="w"> </span><span class="n">TmpBinDir</span><span class="p" data-group-id="1010802499-74">]</span><span class="p" data-group-id="1010802499-73">)</span><span class="p">,</span><span class="w">
+    </span><span class="nf">copy_file</span><span class="p" data-group-id="1010802499-75">(</span><span class="nc">filename</span><span class="p">:</span><span class="nf">join</span><span class="p" data-group-id="1010802499-76">(</span><span class="p" data-group-id="1010802499-77">[</span><span class="n">ErtsBinDir</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;epmd&quot;</span><span class="p" data-group-id="1010802499-77">]</span><span class="p" data-group-id="1010802499-76">)</span><span class="p">,</span><span class="w">
+              </span><span class="nc">filename</span><span class="p">:</span><span class="nf">join</span><span class="p" data-group-id="1010802499-78">(</span><span class="p" data-group-id="1010802499-79">[</span><span class="n">TmpBinDir</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;epmd&quot;</span><span class="p" data-group-id="1010802499-79">]</span><span class="p" data-group-id="1010802499-78">)</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1010802499-80">[</span><span class="ss">preserve</span><span class="p" data-group-id="1010802499-80">]</span><span class="p" data-group-id="1010802499-75">)</span><span class="p">,</span><span class="w">
+    </span><span class="nf">copy_file</span><span class="p" data-group-id="1010802499-81">(</span><span class="nc">filename</span><span class="p">:</span><span class="nf">join</span><span class="p" data-group-id="1010802499-82">(</span><span class="p" data-group-id="1010802499-83">[</span><span class="n">ErtsBinDir</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;run_erl&quot;</span><span class="p" data-group-id="1010802499-83">]</span><span class="p" data-group-id="1010802499-82">)</span><span class="p">,</span><span class="w">
+              </span><span class="nc">filename</span><span class="p">:</span><span class="nf">join</span><span class="p" data-group-id="1010802499-84">(</span><span class="p" data-group-id="1010802499-85">[</span><span class="n">TmpBinDir</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;run_erl&quot;</span><span class="p" data-group-id="1010802499-85">]</span><span class="p" data-group-id="1010802499-84">)</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1010802499-86">[</span><span class="ss">preserve</span><span class="p" data-group-id="1010802499-86">]</span><span class="p" data-group-id="1010802499-81">)</span><span class="p">,</span><span class="w">
+    </span><span class="nf">copy_file</span><span class="p" data-group-id="1010802499-87">(</span><span class="nc">filename</span><span class="p">:</span><span class="nf">join</span><span class="p" data-group-id="1010802499-88">(</span><span class="p" data-group-id="1010802499-89">[</span><span class="n">ErtsBinDir</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;to_erl&quot;</span><span class="p" data-group-id="1010802499-89">]</span><span class="p" data-group-id="1010802499-88">)</span><span class="p">,</span><span class="w">
+              </span><span class="nc">filename</span><span class="p">:</span><span class="nf">join</span><span class="p" data-group-id="1010802499-90">(</span><span class="p" data-group-id="1010802499-91">[</span><span class="n">TmpBinDir</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;to_erl&quot;</span><span class="p" data-group-id="1010802499-91">]</span><span class="p" data-group-id="1010802499-90">)</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1010802499-92">[</span><span class="ss">preserve</span><span class="p" data-group-id="1010802499-92">]</span><span class="p" data-group-id="1010802499-87">)</span><span class="p">,</span><span class="w">
+
+    </span><span class="c1">%% This is needed if &#39;start&#39; script created from &#39;start.src&#39; shall</span><span class="w">
+    </span><span class="c1">%% be used as it points out this directory as log dir for &#39;run_erl&#39;</span><span class="w">
+    </span><span class="n">TmpLogDir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">filename</span><span class="p">:</span><span class="nf">join</span><span class="p" data-group-id="1010802499-93">(</span><span class="p" data-group-id="1010802499-94">[</span><span class="n">TmpDir</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;log&quot;</span><span class="p" data-group-id="1010802499-94">]</span><span class="p" data-group-id="1010802499-93">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">fwrite</span><span class="p" data-group-id="1010802499-95">(</span><span class="s">&quot;Creating temporary directory ~ts ...</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1010802499-96">[</span><span class="n">TmpLogDir</span><span class="p" data-group-id="1010802499-96">]</span><span class="p" data-group-id="1010802499-95">)</span><span class="p">,</span><span class="w">
+    </span><span class="ss">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">file</span><span class="p">:</span><span class="nf">make_dir</span><span class="p" data-group-id="1010802499-97">(</span><span class="n">TmpLogDir</span><span class="p" data-group-id="1010802499-97">)</span><span class="p">,</span><span class="w">
+
+    </span><span class="n">StartErlDataFile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">filename</span><span class="p">:</span><span class="nf">join</span><span class="p" data-group-id="1010802499-98">(</span><span class="p" data-group-id="1010802499-99">[</span><span class="n">TmpDir</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;releases&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;start_erl.data&quot;</span><span class="p" data-group-id="1010802499-99">]</span><span class="p" data-group-id="1010802499-98">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">fwrite</span><span class="p" data-group-id="1010802499-100">(</span><span class="s">&quot;Creating ~ts ...</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1010802499-101">[</span><span class="n">StartErlDataFile</span><span class="p" data-group-id="1010802499-101">]</span><span class="p" data-group-id="1010802499-100">)</span><span class="p">,</span><span class="w">
+    </span><span class="n">StartErlData</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">io_lib</span><span class="p">:</span><span class="nf">fwrite</span><span class="p" data-group-id="1010802499-102">(</span><span class="s">&quot;</span><span class="si">~s</span><span class="s"> </span><span class="si">~s</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1010802499-103">[</span><span class="n">ErtsVsn</span><span class="p">,</span><span class="w"> </span><span class="n">RelVsn</span><span class="p" data-group-id="1010802499-103">]</span><span class="p" data-group-id="1010802499-102">)</span><span class="p">,</span><span class="w">
+    </span><span class="nf">write_file</span><span class="p" data-group-id="1010802499-104">(</span><span class="n">StartErlDataFile</span><span class="p">,</span><span class="w"> </span><span class="n">StartErlData</span><span class="p" data-group-id="1010802499-104">)</span><span class="p">,</span><span class="w">
+
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">fwrite</span><span class="p" data-group-id="1010802499-105">(</span><span class="s">&quot;Recreating tar file ~ts from contents in directory ~ts ...</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w">      </span><span class="p" data-group-id="1010802499-106">[</span><span class="n">TarFileName</span><span class="p">,</span><span class="n">TmpDir</span><span class="p" data-group-id="1010802499-106">]</span><span class="p" data-group-id="1010802499-105">)</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="1010802499-107">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">Tar</span><span class="p" data-group-id="1010802499-107">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">erl_tar</span><span class="p">:</span><span class="nf">open</span><span class="p" data-group-id="1010802499-108">(</span><span class="n">TarFileName</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1010802499-109">[</span><span class="ss">write</span><span class="p">,</span><span class="w"> </span><span class="ss">compressed</span><span class="p" data-group-id="1010802499-109">]</span><span class="p" data-group-id="1010802499-108">)</span><span class="p">,</span><span class="w">
+    </span><span class="c1">%% {ok, Cwd} = file:get_cwd(),</span><span class="w">
+    </span><span class="c1">%% file:set_cwd(&quot;tmp&quot;),</span><span class="w">
+    </span><span class="n">ErtsDir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;erts-&quot;</span><span class="o">++</span><span class="n">ErtsVsn</span><span class="p">,</span><span class="w">
+    </span><span class="nc">erl_tar</span><span class="p">:</span><span class="nf">add</span><span class="p" data-group-id="1010802499-110">(</span><span class="n">Tar</span><span class="p">,</span><span class="w"> </span><span class="nc">filename</span><span class="p">:</span><span class="nf">join</span><span class="p" data-group-id="1010802499-111">(</span><span class="n">TmpDir</span><span class="p">,</span><span class="s">&quot;bin&quot;</span><span class="p" data-group-id="1010802499-111">)</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;bin&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1010802499-112">[</span><span class="p" data-group-id="1010802499-112">]</span><span class="p" data-group-id="1010802499-110">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">erl_tar</span><span class="p">:</span><span class="nf">add</span><span class="p" data-group-id="1010802499-113">(</span><span class="n">Tar</span><span class="p">,</span><span class="w"> </span><span class="nc">filename</span><span class="p">:</span><span class="nf">join</span><span class="p" data-group-id="1010802499-114">(</span><span class="n">TmpDir</span><span class="p">,</span><span class="n">ErtsDir</span><span class="p" data-group-id="1010802499-114">)</span><span class="p">,</span><span class="w"> </span><span class="n">ErtsDir</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1010802499-115">[</span><span class="p" data-group-id="1010802499-115">]</span><span class="p" data-group-id="1010802499-113">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">erl_tar</span><span class="p">:</span><span class="nf">add</span><span class="p" data-group-id="1010802499-116">(</span><span class="n">Tar</span><span class="p">,</span><span class="w"> </span><span class="nc">filename</span><span class="p">:</span><span class="nf">join</span><span class="p" data-group-id="1010802499-117">(</span><span class="n">TmpDir</span><span class="p">,</span><span class="s">&quot;releases&quot;</span><span class="p" data-group-id="1010802499-117">)</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;releases&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1010802499-118">[</span><span class="p" data-group-id="1010802499-118">]</span><span class="p" data-group-id="1010802499-116">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">erl_tar</span><span class="p">:</span><span class="nf">add</span><span class="p" data-group-id="1010802499-119">(</span><span class="n">Tar</span><span class="p">,</span><span class="w"> </span><span class="nc">filename</span><span class="p">:</span><span class="nf">join</span><span class="p" data-group-id="1010802499-120">(</span><span class="n">TmpDir</span><span class="p">,</span><span class="s">&quot;lib&quot;</span><span class="p" data-group-id="1010802499-120">)</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;lib&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1010802499-121">[</span><span class="p" data-group-id="1010802499-121">]</span><span class="p" data-group-id="1010802499-119">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">erl_tar</span><span class="p">:</span><span class="nf">add</span><span class="p" data-group-id="1010802499-122">(</span><span class="n">Tar</span><span class="p">,</span><span class="w"> </span><span class="nc">filename</span><span class="p">:</span><span class="nf">join</span><span class="p" data-group-id="1010802499-123">(</span><span class="n">TmpDir</span><span class="p">,</span><span class="s">&quot;log&quot;</span><span class="p" data-group-id="1010802499-123">)</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;log&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1010802499-124">[</span><span class="p" data-group-id="1010802499-124">]</span><span class="p" data-group-id="1010802499-122">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">erl_tar</span><span class="p">:</span><span class="nf">close</span><span class="p" data-group-id="1010802499-125">(</span><span class="n">Tar</span><span class="p" data-group-id="1010802499-125">)</span><span class="p">,</span><span class="w">
+    </span><span class="c1">%% file:set_cwd(Cwd),</span><span class="w">
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">fwrite</span><span class="p" data-group-id="1010802499-126">(</span><span class="s">&quot;Removing directory ~ts ...</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="p" data-group-id="1010802499-127">[</span><span class="n">TmpDir</span><span class="p" data-group-id="1010802499-127">]</span><span class="p" data-group-id="1010802499-126">)</span><span class="p">,</span><span class="w">
+    </span><span class="nf">remove_dir_tree</span><span class="p" data-group-id="1010802499-128">(</span><span class="n">TmpDir</span><span class="p" data-group-id="1010802499-128">)</span><span class="p">,</span><span class="w">
+    </span><span class="ss">ok</span><span class="p">.</span><span class="w">
+
+
+</span><span class="nf">install</span><span class="p" data-group-id="1010802499-129">(</span><span class="n">RelFileName</span><span class="p">,</span><span class="w"> </span><span class="n">RootDir</span><span class="p" data-group-id="1010802499-129">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">TarFile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">RelFileName</span><span class="w"> </span><span class="o">++</span><span class="w"> </span><span class="s">&quot;.tar.gz&quot;</span><span class="p">,</span><span class="w">
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">fwrite</span><span class="p" data-group-id="1010802499-130">(</span><span class="s">&quot;Extracting ~ts ...</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1010802499-131">[</span><span class="n">TarFile</span><span class="p" data-group-id="1010802499-131">]</span><span class="p" data-group-id="1010802499-130">)</span><span class="p">,</span><span class="w">
+    </span><span class="nf">extract_tar</span><span class="p" data-group-id="1010802499-132">(</span><span class="n">TarFile</span><span class="p">,</span><span class="w"> </span><span class="n">RootDir</span><span class="p" data-group-id="1010802499-132">)</span><span class="p">,</span><span class="w">
+    </span><span class="n">StartErlDataFile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">filename</span><span class="p">:</span><span class="nf">join</span><span class="p" data-group-id="1010802499-133">(</span><span class="p" data-group-id="1010802499-134">[</span><span class="n">RootDir</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;releases&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;start_erl.data&quot;</span><span class="p" data-group-id="1010802499-134">]</span><span class="p" data-group-id="1010802499-133">)</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="1010802499-135">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">StartErlData</span><span class="p" data-group-id="1010802499-135">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">read_txt_file</span><span class="p" data-group-id="1010802499-136">(</span><span class="n">StartErlDataFile</span><span class="p" data-group-id="1010802499-136">)</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="1010802499-137">[</span><span class="n">ErlVsn</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">RelVsn</span><span class="p">|</span><span class="w"> </span><span class="p">_</span><span class="p" data-group-id="1010802499-137">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">string</span><span class="p">:</span><span class="nf">tokens</span><span class="p" data-group-id="1010802499-138">(</span><span class="n">StartErlData</span><span class="p">,</span><span class="w"> </span><span class="s">&quot; \n&quot;</span><span class="p" data-group-id="1010802499-138">)</span><span class="p">,</span><span class="w">
+    </span><span class="n">ErtsBinDir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">filename</span><span class="p">:</span><span class="nf">join</span><span class="p" data-group-id="1010802499-139">(</span><span class="p" data-group-id="1010802499-140">[</span><span class="n">RootDir</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;erts-&quot;</span><span class="w"> </span><span class="o">++</span><span class="w"> </span><span class="n">ErlVsn</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;bin&quot;</span><span class="p" data-group-id="1010802499-140">]</span><span class="p" data-group-id="1010802499-139">)</span><span class="p">,</span><span class="w">
+    </span><span class="n">BinDir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">filename</span><span class="p">:</span><span class="nf">join</span><span class="p" data-group-id="1010802499-141">(</span><span class="p" data-group-id="1010802499-142">[</span><span class="n">RootDir</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;bin&quot;</span><span class="p" data-group-id="1010802499-142">]</span><span class="p" data-group-id="1010802499-141">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">fwrite</span><span class="p" data-group-id="1010802499-143">(</span><span class="s">&quot;Substituting in erl.src, start.src and start_erl.src to &quot;</span><span class="w">
+              </span><span class="s">&quot;form erl, start and start_erl ...\n&quot;</span><span class="p" data-group-id="1010802499-143">)</span><span class="p">,</span><span class="w">
+    </span><span class="nf">subst_src_scripts</span><span class="p" data-group-id="1010802499-144">(</span><span class="p" data-group-id="1010802499-145">[</span><span class="s">&quot;erl&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;start&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;start_erl&quot;</span><span class="p" data-group-id="1010802499-145">]</span><span class="p">,</span><span class="w"> </span><span class="n">ErtsBinDir</span><span class="p">,</span><span class="w"> </span><span class="n">BinDir</span><span class="p">,</span><span class="w">
+                      </span><span class="p" data-group-id="1010802499-146">[</span><span class="p" data-group-id="1010802499-147">{</span><span class="s">&quot;FINAL_ROOTDIR&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">RootDir</span><span class="p" data-group-id="1010802499-147">}</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1010802499-148">{</span><span class="s">&quot;EMU&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;beam&quot;</span><span class="p" data-group-id="1010802499-148">}</span><span class="p" data-group-id="1010802499-146">]</span><span class="p">,</span><span class="w">
+                      </span><span class="p" data-group-id="1010802499-149">[</span><span class="ss">preserve</span><span class="p" data-group-id="1010802499-149">]</span><span class="p" data-group-id="1010802499-144">)</span><span class="p">,</span><span class="w">
+    </span><span class="c1">%%! Workaround for pre OTP 17.0: start.src and start_erl.src did</span><span class="w">
+    </span><span class="c1">%%! not have correct permissions, so the above &#39;preserve&#39; option did not help</span><span class="w">
+    </span><span class="ss">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">file</span><span class="p">:</span><span class="nf">change_mode</span><span class="p" data-group-id="1010802499-150">(</span><span class="nc">filename</span><span class="p">:</span><span class="nf">join</span><span class="p" data-group-id="1010802499-151">(</span><span class="n">BinDir</span><span class="p">,</span><span class="s">&quot;start&quot;</span><span class="p" data-group-id="1010802499-151">)</span><span class="p">,</span><span class="mi">8#0755</span><span class="p" data-group-id="1010802499-150">)</span><span class="p">,</span><span class="w">
+    </span><span class="ss">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">file</span><span class="p">:</span><span class="nf">change_mode</span><span class="p" data-group-id="1010802499-152">(</span><span class="nc">filename</span><span class="p">:</span><span class="nf">join</span><span class="p" data-group-id="1010802499-153">(</span><span class="n">BinDir</span><span class="p">,</span><span class="s">&quot;start_erl&quot;</span><span class="p" data-group-id="1010802499-153">)</span><span class="p">,</span><span class="mi">8#0755</span><span class="p" data-group-id="1010802499-152">)</span><span class="p">,</span><span class="w">
+
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">fwrite</span><span class="p" data-group-id="1010802499-154">(</span><span class="s">&quot;Creating the RELEASES file ...\n&quot;</span><span class="p" data-group-id="1010802499-154">)</span><span class="p">,</span><span class="w">
+    </span><span class="nf">create_RELEASES</span><span class="p" data-group-id="1010802499-155">(</span><span class="n">RootDir</span><span class="p">,</span><span class="w"> </span><span class="nc">filename</span><span class="p">:</span><span class="nf">join</span><span class="p" data-group-id="1010802499-156">(</span><span class="p" data-group-id="1010802499-157">[</span><span class="n">RootDir</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;releases&quot;</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="w">    </span><span class="nc">filename</span><span class="p">:</span><span class="nf">basename</span><span class="p" data-group-id="1010802499-158">(</span><span class="n">RelFileName</span><span class="p" data-group-id="1010802499-158">)</span><span class="p" data-group-id="1010802499-157">]</span><span class="p" data-group-id="1010802499-156">)</span><span class="p" data-group-id="1010802499-155">)</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%% LOCALS</span><span class="w">
+
+</span><span class="c1">%% make_script(RelFileName,Opts)</span><span class="w">
+</span><span class="c1">%%</span><span class="w">
+</span><span class="nf">make_script</span><span class="p" data-group-id="1010802499-159">(</span><span class="n">RelFileName</span><span class="p">,</span><span class="n">Opts</span><span class="p" data-group-id="1010802499-159">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">systools</span><span class="p">:</span><span class="nf">make_script</span><span class="p" data-group-id="1010802499-160">(</span><span class="n">RelFileName</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1010802499-161">[</span><span class="ss">no_module_tests</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="w">       </span><span class="p" data-group-id="1010802499-162">{</span><span class="ss">outdir</span><span class="p">,</span><span class="nc">filename</span><span class="p">:</span><span class="nf">dirname</span><span class="p" data-group-id="1010802499-163">(</span><span class="n">RelFileName</span><span class="p" data-group-id="1010802499-163">)</span><span class="p" data-group-id="1010802499-162">}</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="w">       </span><span class="p">|</span><span class="n">Opts</span><span class="p" data-group-id="1010802499-161">]</span><span class="p" data-group-id="1010802499-160">)</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%% make_tar(RelFileName,Opts)</span><span class="w">
+</span><span class="c1">%%</span><span class="w">
+</span><span class="nf">make_tar</span><span class="p" data-group-id="1010802499-164">(</span><span class="n">RelFileName</span><span class="p">,</span><span class="n">Opts</span><span class="p" data-group-id="1010802499-164">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">RootDir</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">code</span><span class="p">:</span><span class="nf">root_dir</span><span class="p" data-group-id="1010802499-165">(</span><span class="p" data-group-id="1010802499-165">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">systools</span><span class="p">:</span><span class="nf">make_tar</span><span class="p" data-group-id="1010802499-166">(</span><span class="n">RelFileName</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1010802499-167">[</span><span class="p" data-group-id="1010802499-168">{</span><span class="ss">erts</span><span class="p">,</span><span class="w"> </span><span class="n">RootDir</span><span class="p" data-group-id="1010802499-168">}</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="w">    </span><span class="p" data-group-id="1010802499-169">{</span><span class="ss">outdir</span><span class="p">,</span><span class="nc">filename</span><span class="p">:</span><span class="nf">dirname</span><span class="p" data-group-id="1010802499-170">(</span><span class="n">RelFileName</span><span class="p" data-group-id="1010802499-170">)</span><span class="p" data-group-id="1010802499-169">}</span><span class="w">
+</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="err">	</span><span class="w">    </span><span class="p">|</span><span class="n">Opts</span><span class="p" data-group-id="1010802499-167">]</span><span class="p" data-group-id="1010802499-166">)</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%% extract_tar(TarFile, DestDir)</span><span class="w">
+</span><span class="c1">%%</span><span class="w">
+</span><span class="nf">extract_tar</span><span class="p" data-group-id="1010802499-171">(</span><span class="n">TarFile</span><span class="p">,</span><span class="w"> </span><span class="n">DestDir</span><span class="p" data-group-id="1010802499-171">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">erl_tar</span><span class="p">:</span><span class="nf">extract</span><span class="p" data-group-id="1010802499-172">(</span><span class="n">TarFile</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1010802499-173">[</span><span class="p" data-group-id="1010802499-174">{</span><span class="ss">cwd</span><span class="p">,</span><span class="w"> </span><span class="n">DestDir</span><span class="p" data-group-id="1010802499-174">}</span><span class="p">,</span><span class="w"> </span><span class="ss">compressed</span><span class="p" data-group-id="1010802499-173">]</span><span class="p" data-group-id="1010802499-172">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">create_RELEASES</span><span class="p" data-group-id="1010802499-175">(</span><span class="n">DestDir</span><span class="p">,</span><span class="w"> </span><span class="n">RelFileName</span><span class="p" data-group-id="1010802499-175">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">release_handler</span><span class="p">:</span><span class="nf">create_RELEASES</span><span class="p" data-group-id="1010802499-176">(</span><span class="n">DestDir</span><span class="p">,</span><span class="w"> </span><span class="n">RelFileName</span><span class="w"> </span><span class="o">++</span><span class="w"> </span><span class="s">&quot;.rel&quot;</span><span class="p" data-group-id="1010802499-176">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">subst_src_scripts</span><span class="p" data-group-id="1010802499-177">(</span><span class="n">Scripts</span><span class="p">,</span><span class="w"> </span><span class="n">SrcDir</span><span class="p">,</span><span class="w"> </span><span class="n">DestDir</span><span class="p">,</span><span class="w"> </span><span class="n">Vars</span><span class="p">,</span><span class="w"> </span><span class="n">Opts</span><span class="p" data-group-id="1010802499-177">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">lists</span><span class="p">:</span><span class="nf">foreach</span><span class="p" data-group-id="1010802499-178">(</span><span class="nf">fun</span><span class="p" data-group-id="1010802499-179">(</span><span class="n">Script</span><span class="p" data-group-id="1010802499-179">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                          </span><span class="nf">subst_src_script</span><span class="p" data-group-id="1010802499-180">(</span><span class="n">Script</span><span class="p">,</span><span class="w"> </span><span class="n">SrcDir</span><span class="p">,</span><span class="w"> </span><span class="n">DestDir</span><span class="p">,</span><span class="w">
+                                           </span><span class="n">Vars</span><span class="p">,</span><span class="w"> </span><span class="n">Opts</span><span class="p" data-group-id="1010802499-180">)</span><span class="w">
+                  </span><span class="k">end</span><span class="p">,</span><span class="w"> </span><span class="n">Scripts</span><span class="p" data-group-id="1010802499-178">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">subst_src_script</span><span class="p" data-group-id="1010802499-181">(</span><span class="n">Script</span><span class="p">,</span><span class="w"> </span><span class="n">SrcDir</span><span class="p">,</span><span class="w"> </span><span class="n">DestDir</span><span class="p">,</span><span class="w"> </span><span class="n">Vars</span><span class="p">,</span><span class="w"> </span><span class="n">Opts</span><span class="p" data-group-id="1010802499-181">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">subst_file</span><span class="p" data-group-id="1010802499-182">(</span><span class="nc">filename</span><span class="p">:</span><span class="nf">join</span><span class="p" data-group-id="1010802499-183">(</span><span class="p" data-group-id="1010802499-184">[</span><span class="n">SrcDir</span><span class="p">,</span><span class="w"> </span><span class="n">Script</span><span class="w"> </span><span class="o">++</span><span class="w"> </span><span class="s">&quot;.src&quot;</span><span class="p" data-group-id="1010802499-184">]</span><span class="p" data-group-id="1010802499-183">)</span><span class="p">,</span><span class="w">
+               </span><span class="nc">filename</span><span class="p">:</span><span class="nf">join</span><span class="p" data-group-id="1010802499-185">(</span><span class="p" data-group-id="1010802499-186">[</span><span class="n">DestDir</span><span class="p">,</span><span class="w"> </span><span class="n">Script</span><span class="p" data-group-id="1010802499-186">]</span><span class="p" data-group-id="1010802499-185">)</span><span class="p">,</span><span class="w">
+               </span><span class="n">Vars</span><span class="p">,</span><span class="w"> </span><span class="n">Opts</span><span class="p" data-group-id="1010802499-182">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">subst_file</span><span class="p" data-group-id="1010802499-187">(</span><span class="n">Src</span><span class="p">,</span><span class="w"> </span><span class="n">Dest</span><span class="p">,</span><span class="w"> </span><span class="n">Vars</span><span class="p">,</span><span class="w"> </span><span class="n">Opts</span><span class="p" data-group-id="1010802499-187">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="1010802499-188">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">Conts</span><span class="p" data-group-id="1010802499-188">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">read_txt_file</span><span class="p" data-group-id="1010802499-189">(</span><span class="n">Src</span><span class="p" data-group-id="1010802499-189">)</span><span class="p">,</span><span class="w">
+    </span><span class="n">NConts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">subst</span><span class="p" data-group-id="1010802499-190">(</span><span class="n">Conts</span><span class="p">,</span><span class="w"> </span><span class="n">Vars</span><span class="p" data-group-id="1010802499-190">)</span><span class="p">,</span><span class="w">
+    </span><span class="nf">write_file</span><span class="p" data-group-id="1010802499-191">(</span><span class="n">Dest</span><span class="p">,</span><span class="w"> </span><span class="n">NConts</span><span class="p" data-group-id="1010802499-191">)</span><span class="p">,</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="nc">lists</span><span class="p">:</span><span class="nf">member</span><span class="p" data-group-id="1010802499-192">(</span><span class="ss">preserve</span><span class="p">,</span><span class="w"> </span><span class="n">Opts</span><span class="p" data-group-id="1010802499-192">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+        </span><span class="ss">true</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="p" data-group-id="1010802499-193">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">FileInfo</span><span class="p" data-group-id="1010802499-193">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">file</span><span class="p">:</span><span class="nf">read_file_info</span><span class="p" data-group-id="1010802499-194">(</span><span class="n">Src</span><span class="p" data-group-id="1010802499-194">)</span><span class="p">,</span><span class="w">
+            </span><span class="nc">file</span><span class="p">:</span><span class="nf">write_file_info</span><span class="p" data-group-id="1010802499-195">(</span><span class="n">Dest</span><span class="p">,</span><span class="w"> </span><span class="n">FileInfo</span><span class="p" data-group-id="1010802499-195">)</span><span class="p">;</span><span class="w">
+        </span><span class="ss">false</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="ss">ok</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%% subst(Str, Vars)</span><span class="w">
+</span><span class="c1">%% Vars = [{Var, Val}]</span><span class="w">
+</span><span class="c1">%% Var = Val = string()</span><span class="w">
+</span><span class="c1">%% Substitute all occurrences of %Var% for Val in Str, using the list</span><span class="w">
+</span><span class="c1">%% of variables in Vars.</span><span class="w">
+</span><span class="c1">%%</span><span class="w">
+</span><span class="nf">subst</span><span class="p" data-group-id="1010802499-196">(</span><span class="n">Str</span><span class="p">,</span><span class="w"> </span><span class="n">Vars</span><span class="p" data-group-id="1010802499-196">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">subst</span><span class="p" data-group-id="1010802499-197">(</span><span class="n">Str</span><span class="p">,</span><span class="w"> </span><span class="n">Vars</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1010802499-198">[</span><span class="p" data-group-id="1010802499-198">]</span><span class="p" data-group-id="1010802499-197">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">subst</span><span class="p" data-group-id="1010802499-199">(</span><span class="p" data-group-id="1010802499-200">[</span><span class="sc">$%</span><span class="p">,</span><span class="w"> </span><span class="n">C</span><span class="p">|</span><span class="w"> </span><span class="n">Rest</span><span class="p" data-group-id="1010802499-200">]</span><span class="p">,</span><span class="w"> </span><span class="n">Vars</span><span class="p">,</span><span class="w"> </span><span class="n">Result</span><span class="p" data-group-id="1010802499-199">)</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="sc">$A</span><span class="w"> </span><span class="o">=&lt;</span><span class="w"> </span><span class="n">C</span><span class="p">,</span><span class="w"> </span><span class="n">C</span><span class="w"> </span><span class="o">=&lt;</span><span class="w"> </span><span class="sc">$Z</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">subst_var</span><span class="p" data-group-id="1010802499-201">(</span><span class="p" data-group-id="1010802499-202">[</span><span class="n">C</span><span class="p">|</span><span class="w"> </span><span class="n">Rest</span><span class="p" data-group-id="1010802499-202">]</span><span class="p">,</span><span class="w"> </span><span class="n">Vars</span><span class="p">,</span><span class="w"> </span><span class="n">Result</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1010802499-203">[</span><span class="p" data-group-id="1010802499-203">]</span><span class="p" data-group-id="1010802499-201">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">subst</span><span class="p" data-group-id="1010802499-204">(</span><span class="p" data-group-id="1010802499-205">[</span><span class="sc">$%</span><span class="p">,</span><span class="w"> </span><span class="n">C</span><span class="p">|</span><span class="w"> </span><span class="n">Rest</span><span class="p" data-group-id="1010802499-205">]</span><span class="p">,</span><span class="w"> </span><span class="n">Vars</span><span class="p">,</span><span class="w"> </span><span class="n">Result</span><span class="p" data-group-id="1010802499-204">)</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="sc">$a</span><span class="w"> </span><span class="o">=&lt;</span><span class="w"> </span><span class="n">C</span><span class="p">,</span><span class="w"> </span><span class="n">C</span><span class="w"> </span><span class="o">=&lt;</span><span class="w"> </span><span class="sc">$z</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">subst_var</span><span class="p" data-group-id="1010802499-206">(</span><span class="p" data-group-id="1010802499-207">[</span><span class="n">C</span><span class="p">|</span><span class="w"> </span><span class="n">Rest</span><span class="p" data-group-id="1010802499-207">]</span><span class="p">,</span><span class="w"> </span><span class="n">Vars</span><span class="p">,</span><span class="w"> </span><span class="n">Result</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1010802499-208">[</span><span class="p" data-group-id="1010802499-208">]</span><span class="p" data-group-id="1010802499-206">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">subst</span><span class="p" data-group-id="1010802499-209">(</span><span class="p" data-group-id="1010802499-210">[</span><span class="sc">$%</span><span class="p">,</span><span class="w"> </span><span class="n">C</span><span class="p">|</span><span class="w"> </span><span class="n">Rest</span><span class="p" data-group-id="1010802499-210">]</span><span class="p">,</span><span class="w"> </span><span class="n">Vars</span><span class="p">,</span><span class="w"> </span><span class="n">Result</span><span class="p" data-group-id="1010802499-209">)</span><span class="w"> </span><span class="k">when</span><span class="w">  </span><span class="n">C</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="sc">$_</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">subst_var</span><span class="p" data-group-id="1010802499-211">(</span><span class="p" data-group-id="1010802499-212">[</span><span class="n">C</span><span class="p">|</span><span class="w"> </span><span class="n">Rest</span><span class="p" data-group-id="1010802499-212">]</span><span class="p">,</span><span class="w"> </span><span class="n">Vars</span><span class="p">,</span><span class="w"> </span><span class="n">Result</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1010802499-213">[</span><span class="p" data-group-id="1010802499-213">]</span><span class="p" data-group-id="1010802499-211">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">subst</span><span class="p" data-group-id="1010802499-214">(</span><span class="p" data-group-id="1010802499-215">[</span><span class="n">C</span><span class="p">|</span><span class="w"> </span><span class="n">Rest</span><span class="p" data-group-id="1010802499-215">]</span><span class="p">,</span><span class="w"> </span><span class="n">Vars</span><span class="p">,</span><span class="w"> </span><span class="n">Result</span><span class="p" data-group-id="1010802499-214">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">subst</span><span class="p" data-group-id="1010802499-216">(</span><span class="n">Rest</span><span class="p">,</span><span class="w"> </span><span class="n">Vars</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1010802499-217">[</span><span class="n">C</span><span class="p">|</span><span class="w"> </span><span class="n">Result</span><span class="p" data-group-id="1010802499-217">]</span><span class="p" data-group-id="1010802499-216">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">subst</span><span class="p" data-group-id="1010802499-218">(</span><span class="p" data-group-id="1010802499-219">[</span><span class="p" data-group-id="1010802499-219">]</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">Vars</span><span class="p">,</span><span class="w"> </span><span class="n">Result</span><span class="p" data-group-id="1010802499-218">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">lists</span><span class="p">:</span><span class="nf">reverse</span><span class="p" data-group-id="1010802499-220">(</span><span class="n">Result</span><span class="p" data-group-id="1010802499-220">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">subst_var</span><span class="p" data-group-id="1010802499-221">(</span><span class="p" data-group-id="1010802499-222">[</span><span class="sc">$%</span><span class="p">|</span><span class="w"> </span><span class="n">Rest</span><span class="p" data-group-id="1010802499-222">]</span><span class="p">,</span><span class="w"> </span><span class="n">Vars</span><span class="p">,</span><span class="w"> </span><span class="n">Result</span><span class="p">,</span><span class="w"> </span><span class="n">VarAcc</span><span class="p" data-group-id="1010802499-221">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">Key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">lists</span><span class="p">:</span><span class="nf">reverse</span><span class="p" data-group-id="1010802499-223">(</span><span class="n">VarAcc</span><span class="p" data-group-id="1010802499-223">)</span><span class="p">,</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="nc">lists</span><span class="p">:</span><span class="nf">keysearch</span><span class="p" data-group-id="1010802499-224">(</span><span class="n">Key</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">Vars</span><span class="p" data-group-id="1010802499-224">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+        </span><span class="p" data-group-id="1010802499-225">{</span><span class="ss">value</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1010802499-226">{</span><span class="n">Key</span><span class="p">,</span><span class="w"> </span><span class="n">Value</span><span class="p" data-group-id="1010802499-226">}</span><span class="p" data-group-id="1010802499-225">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="nf">subst</span><span class="p" data-group-id="1010802499-227">(</span><span class="n">Rest</span><span class="p">,</span><span class="w"> </span><span class="n">Vars</span><span class="p">,</span><span class="w"> </span><span class="nc">lists</span><span class="p">:</span><span class="nf">reverse</span><span class="p" data-group-id="1010802499-228">(</span><span class="n">Value</span><span class="p">,</span><span class="w"> </span><span class="n">Result</span><span class="p" data-group-id="1010802499-228">)</span><span class="p" data-group-id="1010802499-227">)</span><span class="p">;</span><span class="w">
+        </span><span class="ss">false</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="nf">subst</span><span class="p" data-group-id="1010802499-229">(</span><span class="n">Rest</span><span class="p">,</span><span class="w"> </span><span class="n">Vars</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1010802499-230">[</span><span class="sc">$%</span><span class="p">|</span><span class="w"> </span><span class="n">VarAcc</span><span class="w"> </span><span class="o">++</span><span class="w"> </span><span class="p" data-group-id="1010802499-231">[</span><span class="sc">$%</span><span class="p">|</span><span class="w"> </span><span class="n">Result</span><span class="p" data-group-id="1010802499-231">]</span><span class="p" data-group-id="1010802499-230">]</span><span class="p" data-group-id="1010802499-229">)</span><span class="w">
+    </span><span class="k">end</span><span class="p">;</span><span class="w">
+</span><span class="nf">subst_var</span><span class="p" data-group-id="1010802499-232">(</span><span class="p" data-group-id="1010802499-233">[</span><span class="n">C</span><span class="p">|</span><span class="w"> </span><span class="n">Rest</span><span class="p" data-group-id="1010802499-233">]</span><span class="p">,</span><span class="w"> </span><span class="n">Vars</span><span class="p">,</span><span class="w"> </span><span class="n">Result</span><span class="p">,</span><span class="w"> </span><span class="n">VarAcc</span><span class="p" data-group-id="1010802499-232">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">subst_var</span><span class="p" data-group-id="1010802499-234">(</span><span class="n">Rest</span><span class="p">,</span><span class="w"> </span><span class="n">Vars</span><span class="p">,</span><span class="w"> </span><span class="n">Result</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1010802499-235">[</span><span class="n">C</span><span class="p">|</span><span class="w"> </span><span class="n">VarAcc</span><span class="p" data-group-id="1010802499-235">]</span><span class="p" data-group-id="1010802499-234">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">subst_var</span><span class="p" data-group-id="1010802499-236">(</span><span class="p" data-group-id="1010802499-237">[</span><span class="p" data-group-id="1010802499-237">]</span><span class="p">,</span><span class="w"> </span><span class="n">Vars</span><span class="p">,</span><span class="w"> </span><span class="n">Result</span><span class="p">,</span><span class="w"> </span><span class="n">VarAcc</span><span class="p" data-group-id="1010802499-236">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">subst</span><span class="p" data-group-id="1010802499-238">(</span><span class="p" data-group-id="1010802499-239">[</span><span class="p" data-group-id="1010802499-239">]</span><span class="p">,</span><span class="w"> </span><span class="n">Vars</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1010802499-240">[</span><span class="n">VarAcc</span><span class="w"> </span><span class="o">++</span><span class="w"> </span><span class="p" data-group-id="1010802499-241">[</span><span class="sc">$%</span><span class="p">|</span><span class="w"> </span><span class="n">Result</span><span class="p" data-group-id="1010802499-241">]</span><span class="p" data-group-id="1010802499-240">]</span><span class="p" data-group-id="1010802499-238">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">copy_file</span><span class="p" data-group-id="1010802499-242">(</span><span class="n">Src</span><span class="p">,</span><span class="w"> </span><span class="n">Dest</span><span class="p" data-group-id="1010802499-242">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">copy_file</span><span class="p" data-group-id="1010802499-243">(</span><span class="n">Src</span><span class="p">,</span><span class="w"> </span><span class="n">Dest</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1010802499-244">[</span><span class="p" data-group-id="1010802499-244">]</span><span class="p" data-group-id="1010802499-243">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">copy_file</span><span class="p" data-group-id="1010802499-245">(</span><span class="n">Src</span><span class="p">,</span><span class="w"> </span><span class="n">Dest</span><span class="p">,</span><span class="w"> </span><span class="n">Opts</span><span class="p" data-group-id="1010802499-245">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="1010802499-246">{</span><span class="ss">ok</span><span class="p">,</span><span class="p">_</span><span class="p" data-group-id="1010802499-246">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">file</span><span class="p">:</span><span class="nf">copy</span><span class="p" data-group-id="1010802499-247">(</span><span class="n">Src</span><span class="p">,</span><span class="w"> </span><span class="n">Dest</span><span class="p" data-group-id="1010802499-247">)</span><span class="p">,</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="nc">lists</span><span class="p">:</span><span class="nf">member</span><span class="p" data-group-id="1010802499-248">(</span><span class="ss">preserve</span><span class="p">,</span><span class="w"> </span><span class="n">Opts</span><span class="p" data-group-id="1010802499-248">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+        </span><span class="ss">true</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="p" data-group-id="1010802499-249">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">FileInfo</span><span class="p" data-group-id="1010802499-249">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">file</span><span class="p">:</span><span class="nf">read_file_info</span><span class="p" data-group-id="1010802499-250">(</span><span class="n">Src</span><span class="p" data-group-id="1010802499-250">)</span><span class="p">,</span><span class="w">
+            </span><span class="nc">file</span><span class="p">:</span><span class="nf">write_file_info</span><span class="p" data-group-id="1010802499-251">(</span><span class="n">Dest</span><span class="p">,</span><span class="w"> </span><span class="n">FileInfo</span><span class="p" data-group-id="1010802499-251">)</span><span class="p">;</span><span class="w">
+        </span><span class="ss">false</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="ss">ok</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">write_file</span><span class="p" data-group-id="1010802499-252">(</span><span class="n">FName</span><span class="p">,</span><span class="w"> </span><span class="n">Conts</span><span class="p" data-group-id="1010802499-252">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">Enc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">file</span><span class="p">:</span><span class="nf">native_name_encoding</span><span class="p" data-group-id="1010802499-253">(</span><span class="p" data-group-id="1010802499-253">)</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="1010802499-254">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">Fd</span><span class="p" data-group-id="1010802499-254">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">file</span><span class="p">:</span><span class="nf">open</span><span class="p" data-group-id="1010802499-255">(</span><span class="n">FName</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1010802499-256">[</span><span class="ss">write</span><span class="p" data-group-id="1010802499-256">]</span><span class="p" data-group-id="1010802499-255">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">file</span><span class="p">:</span><span class="nf">write</span><span class="p" data-group-id="1010802499-257">(</span><span class="n">Fd</span><span class="p">,</span><span class="w"> </span><span class="nc">unicode</span><span class="p">:</span><span class="nf">characters_to_binary</span><span class="p" data-group-id="1010802499-258">(</span><span class="n">Conts</span><span class="p">,</span><span class="n">Enc</span><span class="p">,</span><span class="n">Enc</span><span class="p" data-group-id="1010802499-258">)</span><span class="p" data-group-id="1010802499-257">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">file</span><span class="p">:</span><span class="nf">close</span><span class="p" data-group-id="1010802499-259">(</span><span class="n">Fd</span><span class="p" data-group-id="1010802499-259">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">read_txt_file</span><span class="p" data-group-id="1010802499-260">(</span><span class="n">File</span><span class="p" data-group-id="1010802499-260">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="1010802499-261">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">Bin</span><span class="p" data-group-id="1010802499-261">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">file</span><span class="p">:</span><span class="nf">read_file</span><span class="p" data-group-id="1010802499-262">(</span><span class="n">File</span><span class="p" data-group-id="1010802499-262">)</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="1010802499-263">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="nf">binary_to_list</span><span class="p" data-group-id="1010802499-264">(</span><span class="n">Bin</span><span class="p" data-group-id="1010802499-264">)</span><span class="p" data-group-id="1010802499-263">}</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">remove_dir_tree</span><span class="p" data-group-id="1010802499-265">(</span><span class="n">Dir</span><span class="p" data-group-id="1010802499-265">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">remove_all_files</span><span class="p" data-group-id="1010802499-266">(</span><span class="s">&quot;.&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1010802499-267">[</span><span class="n">Dir</span><span class="p" data-group-id="1010802499-267">]</span><span class="p" data-group-id="1010802499-266">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">remove_all_files</span><span class="p" data-group-id="1010802499-268">(</span><span class="n">Dir</span><span class="p">,</span><span class="w"> </span><span class="n">Files</span><span class="p" data-group-id="1010802499-268">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">lists</span><span class="p">:</span><span class="nf">foreach</span><span class="p" data-group-id="1010802499-269">(</span><span class="nf">fun</span><span class="p" data-group-id="1010802499-270">(</span><span class="n">File</span><span class="p" data-group-id="1010802499-270">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                          </span><span class="n">FilePath</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">filename</span><span class="p">:</span><span class="nf">join</span><span class="p" data-group-id="1010802499-271">(</span><span class="p" data-group-id="1010802499-272">[</span><span class="n">Dir</span><span class="p">,</span><span class="w"> </span><span class="n">File</span><span class="p" data-group-id="1010802499-272">]</span><span class="p" data-group-id="1010802499-271">)</span><span class="p">,</span><span class="w">
+                          </span><span class="k">case</span><span class="w"> </span><span class="nc">filelib</span><span class="p">:</span><span class="nf">is_dir</span><span class="p" data-group-id="1010802499-273">(</span><span class="n">FilePath</span><span class="p" data-group-id="1010802499-273">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+                              </span><span class="ss">true</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                                  </span><span class="p" data-group-id="1010802499-274">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">DirFiles</span><span class="p" data-group-id="1010802499-274">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">file</span><span class="p">:</span><span class="nf">list_dir</span><span class="p" data-group-id="1010802499-275">(</span><span class="n">FilePath</span><span class="p" data-group-id="1010802499-275">)</span><span class="p">,</span><span class="w">
+                                  </span><span class="nf">remove_all_files</span><span class="p" data-group-id="1010802499-276">(</span><span class="n">FilePath</span><span class="p">,</span><span class="w"> </span><span class="n">DirFiles</span><span class="p" data-group-id="1010802499-276">)</span><span class="p">,</span><span class="w">
+                                  </span><span class="nc">file</span><span class="p">:</span><span class="nf">del_dir</span><span class="p" data-group-id="1010802499-277">(</span><span class="n">FilePath</span><span class="p" data-group-id="1010802499-277">)</span><span class="p">;</span><span class="w">
+                              </span><span class="p">_</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                                  </span><span class="nc">file</span><span class="p">:</span><span class="nf">delete</span><span class="p" data-group-id="1010802499-278">(</span><span class="n">FilePath</span><span class="p" data-group-id="1010802499-278">)</span><span class="w">
+                          </span><span class="k">end</span><span class="w">
+                  </span><span class="k">end</span><span class="p">,</span><span class="w"> </span><span class="n">Files</span><span class="p" data-group-id="1010802499-269">)</span><span class="p">.</span></code></pre>
+</div>
+
+<div class="bottom-actions" id="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="error_logging.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Error Logging
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="upgrade.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+Upgrade when Erlang/OTP has Changed
+        </span>
+      </a>
+
+  </div>
+</div>
+    <footer class="footer">
+      <p>
+
+        <span class="line">
+          <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+            Search HexDocs
+          </button>
+
+            <a href="Erlang System Documentation.epub" title="ePub version">
+              Download ePub version
+            </a>
+
+        </span>
+      </p>
+
+      <p class="built-using">
+        Built using
+        <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.32.2) for the
+
+          <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+      </p>
+<p>Copyright © 1996-2023 <a href="https://www.ericsson.com">Ericsson AB</a></p>
+    </footer>
+  </div>
+</main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: document.body.className.includes("dark") ? "dark" : "default"
+    });
+    let id = 0;
+    for (const codeEl of document.querySelectorAll("pre code.mermaid")) {
+      const preEl = codeEl.parentElement;
+      const graphDefinition = codeEl.textContent;
+      const graphEl = document.createElement("div");
+      const graphId = "mermaid-graph-" + id++;
+      mermaid.render(graphId, graphDefinition).then(({svg, bindFunctions}) => {
+        graphEl.innerHTML = svg;
+        bindFunctions?.(graphEl);
+        preEl.insertAdjacentElement("afterend", graphEl);
+        preEl.remove();
+      });
+    }
+  });
+</script>
+
+  </body>
+</html>
