@@ -1,0 +1,2744 @@
+---
+layout: patch
+name: 17.0
+win32: https://erlang.org/download/otp_win32_17.0.exe
+release: 17
+tag_name: OTP-17.0
+src: https://erlang.org/download/otp_src_17.0.tar.gz
+erlang_download_readme: https://erlang.org/download/otp_src_17.0.readme
+readme: https://erlang.org/download/otp_src_17.0.readme
+html: https://erlang.org/download/otp_doc_html_17.0.tar.gz
+man: https://erlang.org/download/otp_doc_man_17.0.tar.gz
+win64: https://erlang.org/download/otp_win64_17.0.exe
+---
+<code><pre>Major release  : otp_src_17.0
+Build date     : 2014-04-07
+        
+17.0 is a major new release of Erlang/OTP.
+You can download the full source distribution from
+        
+  http://www.erlang.org/download/otp_src_17.0.tar.gz
+  http://www.erlang.org/download/otp_src_17.0.readme (this file)
+    
+Note: To unpack the TAR archive you need a GNU TAR compatible program.
+  
+For installation instructions please read the README that is part of
+the distribution.
+  
+The Windows binary distribution can be downloaded from
+  
+  http://www.erlang.org/download/otp_win32_17.0.exe
+  http://www.erlang.org/download/otp_win64_17.0.exe
+ 
+ 
+On-line documentation can be found at http://www.erlang.org/doc/.
+You can also download the complete HTML documentation or the Unix manual files
+ 
+  http://www.erlang.org/download/otp_doc_html_17.0.tar.gz
+  http://www.erlang.org/download/otp_doc_man_17.0.tar.gz
+ 
+We also want to thank those that sent us patches, suggestions and bug reports,
+ 
+The OTP Team
+
+
+
+--- HIGHLIGHTS ----------------------------------------------------------
+
+   OTP-11334  == erts ose kernel ==
+
+	      Erlang/OTP has been ported to the realtime operating system
+	      OSE. The port supports both smp and non-smp emulator. For
+	      details around the port and how to started see the User's
+	      Guide in the ose application. 
+
+	      Note that not all parts of Erlang/OTP has been ported. 
+
+	      Notable things that work are: non-smp and smp emulators, OSE
+	      signal interaction, crypto, asn1, run_erl/to_erl, tcp, epmd,
+	      distribution and most if not all non-os specific
+	      functionality of Erlang.
+
+	      Notable things that does not work are: udp/sctp, os_mon,
+	      erl_interface, binding of schedulers.
+
+   OTP-11368  == erts kernel ==
+
+	      Add the {active,N} socket option for TCP, UDP, and SCTP,
+	      where N is an integer in the range -32768..32767, to allow a
+	      caller to specify the number of data messages to be delivered
+	      to the controlling process. Once the socket's delivered
+	      message count either reaches 0 or is explicitly set to 0 with
+	      inet:setopts/2 or by including {active,0} as an option when
+	      the socket is created, the socket transitions to passive
+	      ({active, false}) mode and the socket's controlling process
+	      receives a message to inform it of the transition. TCP
+	      sockets receive {tcp_passive,Socket}, UDP sockets receive
+	      {udp_passive,Socket} and SCTP sockets receive
+	      {sctp_passive,Socket}. 
+
+	      The socket's delivered message counter defaults to 0, but it
+	      can be set using {active,N} via any gen_tcp, gen_udp, or
+	      gen_sctp function that takes socket options as arguments, or
+	      via inet:setopts/2. New N values are added to the socket's
+	      current counter value, and negative numbers can be used to
+	      reduce the counter value. Specifying a number that would
+	      cause the socket's counter value to go above 32767 causes an
+	      einval error. If a negative number is specified such that the
+	      counter value would become negative, the socket's counter
+	      value is set to 0 and the socket transitions to passive mode.
+	      If the counter value is already 0 and inet:setopts(Socket,
+	      [{active,0}]) is specified, the counter value remains at 0
+	      but the appropriate passive mode transition message is
+	      generated for the socket.
+
+	      Thanks to Steve Vinoski
+
+   OTP-11594  == asn1 ==
+
+	      The OCTET STRING and BIT STRING types now have a more natural
+	      mapping to Erlang types (binary and bitstring, respectively),
+	      which is more efficient and will avoid useless conversions
+	      between lists and binaries/bitstrings.
+
+	      This is an incompatible change. To revert to the old mapping
+	      to support existing applications, use the legacy_erlang_types
+	      option.
+
+	      Impact: There is a potential for better performance, as it is
+	      now possible to avoid conversions between lists and binaries
+	      both in the generated ASN.1 encode/decode code and in the
+	      application itself.
+
+   OTP-11615  == otp ==
+
+	      A new version scheme for OTP as well as all applications in
+	      OTP has been introduced. The version scheme is described in
+	      the versions chapter of the system principles guide in the
+	      OTP documentation.
+
+   OTP-11616  == erts stdlib hipe dialyzer compiler typer ==
+
+	      EEP43: New data type - Maps
+
+	      With Maps you may for instance:
+
+	      -- M0 = #{ a => 1, b => 2}, % create associations
+
+	      -- M1 = M0#{ a := 10 }, % update values
+
+	      -- M2 = M1#{ "hi" => "hello"}, % add new associations
+
+	      -- #{ "hi" := V1, a := V2, b := V3} = M2. % match keys with
+	      values
+
+	      For information on how to use Maps please see the Reference
+	      Manual.
+
+	      The current implementation is without the following features:
+
+	      -- No variable keys
+
+	      -- No single value access
+
+	      -- No map comprehensions
+
+	      Note that Maps is experimental during OTP 17.0.
+
+   OTP-11777  == erts ==
+
+	      Halfword emulator is marked as deprecated. It still works as
+	      before but is planned to be removed in a future major
+	      release.
+
+--- POTENTIAL INCOMPATIBILITIES -----------------------------------------
+
+   OTP-10915  == appmon debugger dialyzer et observer pman toolbar tv ==
+
+	      Removed gs based applications and gs based backends. The
+	      observer application replaces the removed applications.
+
+   OTP-11082  == erts ==
+
+	      A common case is to wrap an argument to list_to_binary/1 in a
+	      list to ensure conversion can happen even though the argument
+	      may already be a binary. Take special care of this case and
+	      do not copy binary.
+
+	      Impact: May cause incompatibility since a single binary is no
+	      longer copied. Use binary:copy/1,2 instead.
+
+   OTP-11179  == observer ==
+
+	      The crashdump_viewer is re-written using wx. The old webtool
+	      interface for crashdump_viewer does no longer exist.
+
+   OTP-11204  == erts stdlib ==
+
+	      The version of the PCRE library Used by Erlang's re module is
+	      raised to 8.33 from 7.6. This means, among other things,
+	      better Unicode and Unicode Character Properties support. New
+	      options connected to PCRE 8.33 are also added to the re
+	      module (ucd, notempty_atstart, no_start_optimize). PCRE has
+	      extended the regular expression syntax between 7.6 and 8.33,
+	      why this imposes a potential incompatibility. Only very
+	      complicated regular expressions may be affected, but if you
+	      know you are using obscure features, please test run your
+	      regular expressions and verify that their behavior has not
+	      changed.
+
+   OTP-11593  == diameter ==
+
+	      Change interface for communicating outbound stream id to
+	      diameter_sctp
+
+	      The module uses the transport_data field of record
+	      diameter_packet to communicate the stream on which the an
+	      incoming message is received and on which an outgoing message
+	      should be sent, the previous interface being that both are
+	      communicated as a tuple of the form {stream, Id}. However,
+	      since diameter retains the value of an incoming request's
+	      transport_data unless the corresponding answer message
+	      specifies otherwise, the behaviour in this case is to send an
+	      answer on the outbound stream with the same identifier as the
+	      that of the inbound stream on which the request was received.
+	      If the inbound stream id is greater than or equal to the
+	      number of outbound streams then this is guaranteed to fail,
+	      causing the transport process in question to terminate. There
+	      is no relationship between inbound and outbound stream
+	      identifiers so diameter_sctp's imposition of one is simply
+	      wrong.
+
+	      Outbound stream ids are now communicated with a different
+	      tuple: {outstream, Id}, interpreted modulo the number of
+	      outbound streams. Thus, retention of an inbound request's
+	      transport_data has no effect on the selection of an outbound
+	      stream.
+
+	      The change in interface is not strictly backwards compatible
+	      because of the new atom for the outbound stream. However, as
+	      there is currently no documented way of obtaining the
+	      available number of outbound streams for a peer connection,
+	      there is no way for a client to have known the range of ids
+	      from which it could reliably have chosen with the previous
+	      interface, so any setting of the outbound stream has probably
+	      been unintentional. Not explicitly specifying an outbound
+	      stream now results in a round-robin selection.
+
+	      Thanks to Sharmila Pillai for reporting the problem.
+
+   OTP-11594  == asn1 ==
+
+	      The OCTET STRING and BIT STRING types now have a more natural
+	      mapping to Erlang types (binary and bitstring, respectively),
+	      which is more efficient and will avoid useless conversions
+	      between lists and binaries/bitstrings.
+
+	      This is an incompatible change. To revert to the old mapping
+	      to support existing applications, use the legacy_erlang_types
+	      option.
+
+	      Impact: There is a potential for better performance, as it is
+	      now possible to avoid conversions between lists and binaries
+	      both in the generated ASN.1 encode/decode code and in the
+	      application itself.
+
+   OTP-11612  == erts ==
+
+	      +fnaw is now default when starting the emulator; it used to
+	      be +fnl.
+
+              Selection between +fnl and +fnu is done based on the current
+              locale settings in the OS, meaning that if you have set your
+              terminal for UTF-8 encoding, the filesystem is expected to
+              use the same encoding for file names.
+
+   OTP-11628  == erts ==
+
+	      The previously deprecated driver API function
+	      driver_async_cancel() has been removed. Due to this, the
+	      driver API version has been bumped to 3.0.
+
+	      Thanks to Steve Vinoski.
+
+   OTP-11639  == erts ==
+
+	      sendfile no longer uses async threads by default
+
+	      This has been done because a slow client attack is possible
+	      if the async thread pool is used. The scenario is:
+
+	      Client does a request for a file and then slowly receives the
+	      file one byte at a time. This will eventually fill the async
+	      thread pool with blocking sendfile operations and thus
+	      starving the vm of all file operations.
+
+	      If you still want to use the async threads pool for sendfile
+	      an option to enable it has been introduced.
+
+	      Thanks to Christopher Faulet for identifying this
+	      vulnerability.
+
+   OTP-11716  == sasl ==
+
+	      The upgrade instruction 'restart_application' would earlier
+	      ignore the restart type configured in the .rel file and
+	      always restart the application as permanent. This is now
+	      changed, and the restart type from the .rel file is used. If
+	      restart type is 'load', the application will only be loaded
+	      and not started. If the restart type is 'none', the
+	      application will not be loaded nor started, but all modules
+	      in the application will be loaded. (Thanks to Tobias Schlager
+	      for reporting this problem)
+
+   OTP-11719  == otp ==
+
+	      The default encoding of Erlang files has been changed from
+	      ISO-8859-1 to UTF-8.
+
+	      The encoding of XML files has also been changed to UTF-8.
+
+   OTP-11723  == erts ==
+
+	      Changed the default configuration when configuring with
+	      $ERL_TOP/configure to be the same as when configuring with
+	      $ERL_TOP/otp_build configure.
+
+	      Previously floating point exceptions got enabled by default
+	      on Linux when HiPE was enabled when configuring with
+	      $ERL_TOP/configure, but not when configuring with
+	      $ERL_TOP/otp_build configure. The default is now in both
+	      cases not to use floating point exceptions since there still
+	      exist unresolved issues with floating point exceptions on
+	      Linux.
+
+	      For more information see $ERL_TOP/HOWTO/INSTALL.md.
+
+   OTP-11727  == asn1 ==
+
+	      When specifying the value for an OCTET STRING in a
+	      specification, the ASN.1 standard clearly states that the
+	      value must be either a bstring or an hstring, but NOT a
+	      cstring. The ASN.1 compiler will now generate a compilation
+	      error if the value of an OCTET STRING is given as a character
+	      string.
+
+	      That is, the following example is now illegal:
+
+	      string OCTET STRING ::= "Now illegal"
+
+   OTP-11732  == common_test ==
+
+	      Test case group name information has been added to the data
+	      sent with tc_user_skip and tc_auto_skip event messages, as
+	      well as the data passed in calls to the CT Hook functions
+	      on_tc_skip/3 and on_tc_fail/3. The modification only affects
+	      the function name element/argument. This value remains an
+	      atom if the test case in question does not belong to a test
+	      case group. Otherwise a tuple {FuncName,GroupName}
+	      ({atom(),atom()}) is passed instead.
+
+	      Note that this change may (depending on the patterns used for
+	      matching) require modifications of user event handlers and
+	      hook modules. Please see the Event Handling chapter in the
+	      Common Test User's Guide, and the reference manual for
+	      ct_hooks, for details.
+
+	      Note also that the Test Server framework callback function
+	      report/2 has been modified. This change only affects users
+	      with test frameworks interfacing Test Server rather than
+	      Common Test. See the test_server_ctrl reference manual for
+	      details.
+
+   OTP-11738  == erts ==
+
+	      The default float encoding in binary_to_term and
+	      external_size has been changed to use minor_mode 1 instead of
+	      0.
+
+   OTP-11771  == stdlib ==
+
+	      The Erlang Code Linter (erl_lint) has since Erlang/OTP R13B
+	      emitted warnings whenever any of the types arity(),
+	      bitstring(), iodata(), or boolean() were re-defined. Now
+	      errors are emitted instead.
+
+   OTP-11782  == erts ==
+
+	      The external format for Maps has changed in a way that is not
+	      compatible with the format used in OTP 17.0-rc1 and OTP
+	      17.0-rc2.
+
+   OTP-11817  == stdlib ==
+
+	      The functions sys:get_state/1,2 and sys:replace_state/2,3 are
+	      fixed so they can now be run while the process is sys
+	      suspended. To accomplish this, the new callbacks
+	      Mod:system_get_state/1 and Mod:system_replace_state/2 are
+	      added, which are also implemented by the generic behaviours
+	      gen_server, gen_event and gen_fsm.
+
+	      The potential incompatibility refers to
+
+	      -- The previous behaviour of intercepting the system message
+	      and passing a tuple of size 2 as the last argument to
+	      sys:handle_system_msg/6 is no longer supported.
+
+	      -- The error handling when StateFun in sys:replace_state/2,3
+	      fails is changed from being totally silent to possibly (if
+	      the callback module does not catch) throw an exception in the
+	      client process.
+
+	      (Thanks to James Fish and Steve Vinoski)
+
+--- otp -----------------------------------------------------------------
+
+   OTP-11537  Funs can now be a given a name. Thanks to to Richard O'Keefe
+	      for the idea (EEP37) and to Anthony Ramine for the
+	      implementation.
+
+   OTP-11606  Documentation correction in special processes chapter (Thanks
+	      to Alexander Zhuravlev)
+
+   OTP-11615  A new version scheme for OTP as well as all applications in
+	      OTP has been introduced. The version scheme is described in
+	      the versions chapter of the system principles guide in the
+	      OTP documentation.
+
+   OTP-11637  Fixed bug in example code in the Distributed Erlang chapter.
+	      (Thanks to Loïc Hoguin.)
+
+   OTP-11657  The -callback attribute is now mentioned in the reference
+	      manual, in section Behaviour Module Attribute. (Thanks to
+	      Vance Shipley for mentioning the omission.)
+
+   OTP-11683  A new make target called "distclean" is added. This new
+	      target removes files created by configure
+
+   OTP-11713  The OTP documentation can now be built the same way in a
+	      cross built source tree as in a native built source tree. For
+	      more information see $ERL_TOP/HOWTO/INSTALL.md.
+
+   OTP-11717  Some more documentation is added to explain the behavior when
+	      an upgrade includes new versions of ERTS, Kernel, STDLIB or
+	      SASL.
+
+   OTP-11719  The default encoding of Erlang files has been changed from
+	      ISO-8859-1 to UTF-8.
+
+	      The encoding of XML files has also been changed to UTF-8.
+
+   OTP-11736  The release name in all delivered release resource files
+	      (.rel) are changed to "Erlang/OTP". This is visible for
+	      example in the return value from
+	      release_handler:which_releases/0.
+
+   OTP-11746  By default, silent rules are now default in configure.
+	      (Thanks to Tuncer Ayaz.)
+
+   OTP-11754  "Introducing Erlang " and "Learn You Some Erlang for Great
+	      Good" is added to the list of books in the documentation
+	      (Thanks to Byaruhanga Franklin)
+
+   OTP-11773  The app-file key runtime_dependencies has been introduced.
+
+	      Runtime dependencies have been added to all app-files in OTP.
+	      Note that these may not be completely correct during OTP 17,
+	      but this is actively being worked on.
+
+	      The function system_information:sanity_check/0 will verify
+	      all declared runtime dependencies in the system when called.
+
+   OTP-11792  Clarification regarding autoconf in the INSTALL.md (Thanks to
+	      Sage Imel)
+
+   OTP-11805  Enable a cross compile Erlang/OTP platform to Android or
+	      Raspberry PI using Android NDK. Port emulator and core
+	      application to support target HW platform. Exclude any add-on
+	      services required for OTP platform deployment into target
+	      hardware due to device fragmentation and jail-break
+	      requirements. (Thanks to Dmitry Kolesnikov)
+
+--- appmon --------------------------------------------------------------
+
+   OTP-10915  Removed gs based applications and gs based backends. The
+	      observer application replaces the removed applications.
+
+--- asn1-3.0 ------------------------------------------------------------
+
+   OTP-11258  By giving --enable-static-{nifs,drivers} to configure it is
+	      now possible to statically linking of nifs and drivers to the
+	      main Erlang VM binary. At the moment only the asn1 and crypto
+	      nifs of the Erlang/OTP nifs and drivers have been prepared to
+	      be statically linked. For more details see the Installation
+	      Guide in the System documentation.
+
+   OTP-11573  Code generation for the per and uper backends has been
+	      somewhat improved.
+
+   OTP-11594  The OCTET STRING and BIT STRING types now have a more natural
+	      mapping to Erlang types (binary and bitstring, respectively),
+	      which is more efficient and will avoid useless conversions
+	      between lists and binaries/bitstrings.
+
+	      This is an incompatible change. To revert to the old mapping
+	      to support existing applications, use the legacy_erlang_types
+	      option.
+
+	      Impact: There is a potential for better performance, as it is
+	      now possible to avoid conversions between lists and binaries
+	      both in the generated ASN.1 encode/decode code and in the
+	      application itself.
+
+   OTP-11700  Subtyping an extensible ENUMERATED would cause an compilation
+	      error. (Thanks to Morten Nygaard Åsnes for reporting this
+	      bug.)
+
+   OTP-11727  When specifying the value for an OCTET STRING in a
+	      specification, the ASN.1 standard clearly states that the
+	      value must be either a bstring or an hstring, but NOT a
+	      cstring. The ASN.1 compiler will now generate a compilation
+	      error if the value of an OCTET STRING is given as a character
+	      string.
+
+	      That is, the following example is now illegal:
+
+	      string OCTET STRING ::= "Now illegal"
+
+   OTP-11731  All functions in the asn1rt module, as well as
+	      asn1ct:decode/3 and asn1ct:encode/3, are now deprecated.
+
+   OTP-11744  Application upgrade (appup) files are corrected for the
+	      following applications: 
+
+	      asn1, common_test, compiler, crypto, debugger, dialyzer,
+	      edoc, eldap, erl_docgen, et, eunit, gs, hipe, inets,
+	      observer, odbc, os_mon, otp_mibs, parsetools, percept,
+	      public_key, reltool, runtime_tools, ssh, syntax_tools,
+	      test_server, tools, typer, webtool, wx, xmerl
+
+	      A new test utility for testing appup files is added to
+	      test_server. This is now used by most applications in OTP.
+
+	      (Thanks to Tobias Schlager)
+
+   OTP-11804  Generated .hrl files are now protected from being included
+	      more than once.
+
+--- common_test-1.8 -----------------------------------------------------
+
+   OTP-11440  ct_telnet can now log all communication taking place during a
+	      telnet session. Previously, only information about ct_telnet
+	      operations and commands, as well as explicitly requested data
+	      from the server, was logged.
+
+	      Furthermore, a logging mechanism based on an Error Logger
+	      event handler and a dedicated Common Test hook, cth_conn_log,
+	      now makes it possible to print data for individual
+	      connections to separate log files. Please see the ct_telnet
+	      reference manual for more information and examples.
+
+	      Important note: A new argument, ConnName has been added to
+	      the unix_telnet:connect/5 callback function. This forces
+	      users that use private ct_telnet callback modules to update
+	      their code according to unix_telnet:connect/6. Please see the
+	      unix_telnet reference manual and source code module for
+	      details.
+
+   OTP-11643  The error generated if a test case process received an exit
+	      from a linked process while executing init_per_testcase/2,
+	      was handled incorrectly by Common Test. The problem has been
+	      solved, and Common Test now reports this type of error
+	      correctly, with proper error reason and exit location as
+	      well.
+
+   OTP-11644  Running a parallel test case group with two or more instances
+	      of the same test case would result in identical log file
+	      names, and one test case instance would overwrite the log
+	      file of another. This problem has been solved.
+
+   OTP-11689  A new timeout option has been introduced for the
+	      ct_telnet:expect/3 function. With {total_timeout,Time} it's
+	      possible to set a time limit for the complete expect
+	      operation. After Time milliseconds, expect/3 returns
+	      {error,timeout}. The default value used if total_timeout is
+	      not specified, is infinity (i.e. no time limit). Please see
+	      the ct_telnet reference manual for more information.
+
+   OTP-11702  Some function specs are corrected or moved and some edoc
+	      comments are corrected in order to allow use of edoc. (Thanks
+	      to Pierre Fenoll)
+
+   OTP-11732  Test case group name information has been added to the data
+	      sent with tc_user_skip and tc_auto_skip event messages, as
+	      well as the data passed in calls to the CT Hook functions
+	      on_tc_skip/3 and on_tc_fail/3. The modification only affects
+	      the function name element/argument. This value remains an
+	      atom if the test case in question does not belong to a test
+	      case group. Otherwise a tuple {FuncName,GroupName}
+	      ({atom(),atom()}) is passed instead.
+
+	      Note that this change may (depending on the patterns used for
+	      matching) require modifications of user event handlers and
+	      hook modules. Please see the Event Handling chapter in the
+	      Common Test User's Guide, and the reference manual for
+	      ct_hooks, for details.
+
+	      Note also that the Test Server framework callback function
+	      report/2 has been modified. This change only affects users
+	      with test frameworks interfacing Test Server rather than
+	      Common Test. See the test_server_ctrl reference manual for
+	      details.
+
+   OTP-11744  Application upgrade (appup) files are corrected for the
+	      following applications: 
+
+	      asn1, common_test, compiler, crypto, debugger, dialyzer,
+	      edoc, eldap, erl_docgen, et, eunit, gs, hipe, inets,
+	      observer, odbc, os_mon, otp_mibs, parsetools, percept,
+	      public_key, reltool, runtime_tools, ssh, syntax_tools,
+	      test_server, tools, typer, webtool, wx, xmerl
+
+	      A new test utility for testing appup files is added to
+	      test_server. This is now used by most applications in OTP.
+
+	      (Thanks to Tobias Schlager)
+
+   OTP-11769  If Common Test can't prompt the user to abort or continue the
+	      test run when one or more test suites fail to compile, a new
+	      option, {abort_if_missing_suites,Bool}, can be used to
+	      specify whether it should proceed with the test run, or stop
+	      execution. The default value of Bool is false (i.e. to
+	      proceed even if suites are missing).
+
+   OTP-11811  The cth_surefire hook would crash in pre_init_per_suite/3 if
+	      a previous hook returned {skip,Reason} or {fail,Reason}
+	      instead of a Config list. This error has been corrected, and
+	      cth_surefire will now simply propagate the received InitData
+	      value instead.
+
+   OTP-11834  Specs of return values are corrected for ct_netconfc:get/2,3,
+	      ct_netconfc:get_config/3,4, ct_netconfc:action/2,3,
+	      ct_netconfc:send_rpc/2,3 and ct_netconfc:send/2,3.
+
+--- compiler-5.0 --------------------------------------------------------
+
+   OTP-10652  Compilation times for modules with a huge number for record
+	      accesses using the dot operator has been improved.
+
+   OTP-11056  The compiler can generate somewhat better code by moving let
+	      expressions into sequences. (Thanks to Anthony Ramine.)
+
+   OTP-11186  Forbid unsized fields in patterns of binary generators and
+	      simplified v3_core's translation of bit string generators.
+	      (Thanks to Anthony Ramine.)
+
+   OTP-11537  Funs can now be a given a name. Thanks to to Richard O'Keefe
+	      for the idea (EEP37) and to Anthony Ramine for the
+	      implementation.
+
+   OTP-11544  Using the from_asm option to produce a BEAM file starting
+	      from BEAM assembly code would often fail because early
+	      optimization passes would not understand instructions that
+	      later optimization passes would introduce. (Thanks to Anthony
+	      Ramine.)
+
+   OTP-11547  The .core and .S extensions are now documented in the erlc
+	      documentation, and the 'from_core' and 'from_asm' options are
+	      now documented in the compiler documentation. (Thanks to
+	      Tuncer Ayaz.)
+
+   OTP-11572  Line numbers would not be correct when a binary construction
+	      such as '&lt;&lt;Bin/binary,...>>' fails. (Thanks to Stanislav
+	      Seletskiy for reporting this bug.)
+
+   OTP-11580  The compiler now properly annotates the code in value in the
+	      'after' clause for a 'try' so that Dialyzer no longer
+	      generates a false warning for an unmatched return.
+
+   OTP-11584  Optimization of case expressions that build tuples or lists
+	      have been improved.
+
+   OTP-11610  Some case statements where no clause would match could cause
+	      an internal error in the compiler. (Thanks to Erik Soe
+	      Sorensen for reporting this bug.)
+
+   OTP-11616  EEP43: New data type - Maps
+
+	      With Maps you may for instance:
+
+	      -- M0 = #{ a => 1, b => 2}, % create associations
+
+	      -- M1 = M0#{ a := 10 }, % update values
+
+	      -- M2 = M1#{ "hi" => "hello"}, % add new associations
+
+	      -- #{ "hi" := V1, a := V2, b := V3} = M2. % match keys with
+	      values
+
+	      For information on how to use Maps please see the Reference
+	      Manual.
+
+	      The current implementation is without the following features:
+
+	      -- No variable keys
+
+	      -- No single value access
+
+	      -- No map comprehensions
+
+	      Note that Maps is experimental during OTP 17.0.
+
+   OTP-11626  With --Wunmatched_returns, dialyzer will no longer warn when
+	      the value of a list comprehension is ignored, provided that
+	      the each value in the list would be an atomic value (such as
+	      integer or atoms, as opposed to tuples and lists). Example:
+	      ignoring '[io:format(...) || ...]' will not cause a warning,
+	      while ignoring '[file:close(Fd) || ...]' will.
+
+   OTP-11672  Matching out a binary and applying the binary as if it were a
+	      fun would crash the run-time system. (Thanks to Loïc
+	      Hoguin.)
+
+   OTP-11678  Some local implementations of removing the last element from
+	      a list are replaced by lists:droplast/1. Note that this
+	      requires at least stdlib-2.0, which is the stdlib version
+	      delivered in OTP 17.0. (Thanks to Hans Svensson)
+
+   OTP-11682  Allow all auto imports to be suppressed at once. Introducing
+	      the no_auto_import attribute: -compile(no_auto_import).
+	      Useful for code generation tools that always use the
+	      qualified function names and want to avoid the auto imported
+	      functions clashing with local ones. (Thanks to José Valim.)
+
+   OTP-11702  Some function specs are corrected or moved and some edoc
+	      comments are corrected in order to allow use of edoc. (Thanks
+	      to Pierre Fenoll)
+
+   OTP-11720  Thanks to Anthony Ramine for several improvements to the
+	      optimizations in the BEAM compiler and for cleaning up the
+	      code the code that transforms list and binary comprehensions
+	      to Core Erlang.
+
+   OTP-11744  Application upgrade (appup) files are corrected for the
+	      following applications: 
+
+	      asn1, common_test, compiler, crypto, debugger, dialyzer,
+	      edoc, eldap, erl_docgen, et, eunit, gs, hipe, inets,
+	      observer, odbc, os_mon, otp_mibs, parsetools, percept,
+	      public_key, reltool, runtime_tools, ssh, syntax_tools,
+	      test_server, tools, typer, webtool, wx, xmerl
+
+	      A new test utility for testing appup files is added to
+	      test_server. This is now used by most applications in OTP.
+
+	      (Thanks to Tobias Schlager)
+
+   OTP-11751  Adapt 'asm' deprecation message to new version scheme.
+	      (Thanks to Tuncer Ayaz)
+
+   OTP-11770  A number of compiler errors where unusual or nonsensical code
+	      would crash the compiler have been reported by Ulf Norell and
+	      corrected by Anthony Ramine.
+
+   OTP-11791  The default encoding for Erlang source files is now UTF-8. As
+	      a temporary measure to ease the transition from the old
+	      default of latin-1, if the compiler encounters byte sequences
+	      that are not valid UTF-8 sequences, the compiler will re-try
+	      the compilation in latin-1 mode. This workaround will be
+	      removed in a future release.
+
+--- crypto-3.3 ----------------------------------------------------------
+
+   OTP-11258  By giving --enable-static-{nifs,drivers} to configure it is
+	      now possible to statically linking of nifs and drivers to the
+	      main Erlang VM binary. At the moment only the asn1 and crypto
+	      nifs of the Erlang/OTP nifs and drivers have been prepared to
+	      be statically linked. For more details see the Installation
+	      Guide in the System documentation.
+
+   OTP-11522  Add IGE mode for AES cipher in crypto (Thanks to Yura
+	      Beznos).
+
+   OTP-11550  Fix memory leaks and invalid deallocations in mod_pow,
+	      mod_exp and generate_key(srp,...) when bad arguments are
+	      passed. (Thanks to Florian Zumbiehi)
+
+   OTP-11578  Moved elliptic curve definition from the crypto NIF/OpenSSL
+	      into Erlang code, adds the RFC-5639 brainpool curves and
+	      makes TLS use them (RFC-7027).
+
+	      Thanks to Andreas Schultz
+
+   OTP-11609  Correction of the word 'ChipherText' throughout the
+	      documentation (Thanks to Andrew Tunnell-Jones)
+
+   OTP-11619  Remove all obsolete application processes from crypto and
+	      make it into a pure library application.
+
+   OTP-11724  Fix fatal bug when using a hmac context variable in more than
+	      one call to hmac_update or hmac_final. The reuse of hmac
+	      contexts has never worked as the underlying OpenSSL
+	      implementation does not support it. It is now documented as
+	      having undefined behaviour, but it does not crash or corrupt
+	      the VM anymore.
+
+   OTP-11725  Crypto handles out-of-memory with a controlled abort instead
+	      of crash/corruption. (Thanks to Florian Zumbiehi)
+
+   OTP-11744  Application upgrade (appup) files are corrected for the
+	      following applications: 
+
+	      asn1, common_test, compiler, crypto, debugger, dialyzer,
+	      edoc, eldap, erl_docgen, et, eunit, gs, hipe, inets,
+	      observer, odbc, os_mon, otp_mibs, parsetools, percept,
+	      public_key, reltool, runtime_tools, ssh, syntax_tools,
+	      test_server, tools, typer, webtool, wx, xmerl
+
+	      A new test utility for testing appup files is added to
+	      test_server. This is now used by most applications in OTP.
+
+	      (Thanks to Tobias Schlager)
+
+--- debugger-4.0 --------------------------------------------------------
+
+   OTP-10915  Removed gs based applications and gs based backends. The
+	      observer application replaces the removed applications.
+
+   OTP-11553  The debugger now correctly evaluates code such as 'X = true
+	      andalso X'. (Thanks to Anthony Ramine.)
+
+   OTP-11673  Support Maps syntax in debugger (Thanks to Anthony Ramine).
+
+   OTP-11676  A few subtle bugs in the evaluation of code in the debugger
+	      has been corrected. (Thanks to Anthony Ramine.)
+
+   OTP-11744  Application upgrade (appup) files are corrected for the
+	      following applications: 
+
+	      asn1, common_test, compiler, crypto, debugger, dialyzer,
+	      edoc, eldap, erl_docgen, et, eunit, gs, hipe, inets,
+	      observer, odbc, os_mon, otp_mibs, parsetools, percept,
+	      public_key, reltool, runtime_tools, ssh, syntax_tools,
+	      test_server, tools, typer, webtool, wx, xmerl
+
+	      A new test utility for testing appup files is added to
+	      test_server. This is now used by most applications in OTP.
+
+	      (Thanks to Tobias Schlager)
+
+--- dialyzer-2.7 --------------------------------------------------------
+
+   OTP-10342  The pre-defined types array/0, dict/0, digraph/0, gb_set/0,
+	      gb_tree/0, queue/0, set/0, and tid/0 have been deprecated.
+	      They will be removed in Erlang/OTP 18.0.
+
+	      Instead the types array:array/0, dict:dict/0,
+	      digraph:graph/0, gb_set:set/0, gb_tree:tree/0, queue:queue/0,
+	      sets:set/0, and ets:tid/0 can be used. (Note: it has always
+	      been necessary to use ets:tid/0.)
+
+	      It is allowed in Erlang/OTP 17.0 to locally re-define the
+	      types array/0, dict/0, and so on.
+
+	      New types array:array/1, dict:dict/2, gb_sets:set/1,
+	      gb_trees:tree/2, queue:queue/1, and sets:set/1 have been
+	      added.
+
+	      A compiler option, nowarn_deprecated_type, has been
+	      introduced. By including the attribute
+
+	      -compile(nowarn_deprecated_type).
+
+	      in an Erlang source file, warnings about deprecated types can
+	      be avoided in Erlang/OTP 17.0.
+
+	      The option can also be given as a compiler flag:
+
+	      erlc +nowarn_deprecated_type file.erl
+
+   OTP-10397  Dialyzer will no longer emit warnings when inspecting or
+	      modifying opaque types within the scope of a module.
+
+	      Hitherto the shape of terms (tuple, list, etc.) has been used
+	      to determine the opaque terms, but now the contracts are used
+	      for decorating types with opaqueness.
+
+   OTP-10915  Removed gs based applications and gs based backends. The
+	      observer application replaces the removed applications.
+
+   OTP-11186  Forbid unsized fields in patterns of binary generators and
+	      simplified v3_core's translation of bit string generators.
+	      (Thanks to Anthony Ramine.)
+
+   OTP-11616  EEP43: New data type - Maps
+
+	      With Maps you may for instance:
+
+	      -- M0 = #{ a => 1, b => 2}, % create associations
+
+	      -- M1 = M0#{ a := 10 }, % update values
+
+	      -- M2 = M1#{ "hi" => "hello"}, % add new associations
+
+	      -- #{ "hi" := V1, a := V2, b := V3} = M2. % match keys with
+	      values
+
+	      For information on how to use Maps please see the Reference
+	      Manual.
+
+	      The current implementation is without the following features:
+
+	      -- No variable keys
+
+	      -- No single value access
+
+	      -- No map comprehensions
+
+	      Note that Maps is experimental during OTP 17.0.
+
+   OTP-11625  Parameterized opaque types have been introduced.
+
+   OTP-11626  With --Wunmatched_returns, dialyzer will no longer warn when
+	      the value of a list comprehension is ignored, provided that
+	      the each value in the list would be an atomic value (such as
+	      integer or atoms, as opposed to tuples and lists). Example:
+	      ignoring '[io:format(...) || ...]' will not cause a warning,
+	      while ignoring '[file:close(Fd) || ...]' will.
+
+   OTP-11702  Some function specs are corrected or moved and some edoc
+	      comments are corrected in order to allow use of edoc. (Thanks
+	      to Pierre Fenoll)
+
+   OTP-11706  The man page for dialyzer now contains correct information
+	      regarding -Wno_behaviours. (Thanks to Steve Vinosky.)
+
+   OTP-11743  Fix handling of 'on_load' attribute. (Thanks to Kostis
+	      Sagonas.)
+
+   OTP-11744  Application upgrade (appup) files are corrected for the
+	      following applications: 
+
+	      asn1, common_test, compiler, crypto, debugger, dialyzer,
+	      edoc, eldap, erl_docgen, et, eunit, gs, hipe, inets,
+	      observer, odbc, os_mon, otp_mibs, parsetools, percept,
+	      public_key, reltool, runtime_tools, ssh, syntax_tools,
+	      test_server, tools, typer, webtool, wx, xmerl
+
+	      A new test utility for testing appup files is added to
+	      test_server. This is now used by most applications in OTP.
+
+	      (Thanks to Tobias Schlager)
+
+   OTP-11798  The generalization of guard constraints has been modified.
+
+   OTP-11826  Dialyzer now plays nicely with funs that come as "external"
+	      arguments. (Thanks to Stavros Aronis for fixing the bug.)
+
+--- diameter-1.6 --------------------------------------------------------
+
+   OTP-11561  Add missing check at dictionary compilation.
+
+	      In particular, that an AVP defined as having type Grouped in
+	      an @avp_types section has a corresponding definition in a
+	      @grouped section.
+
+   OTP-11583  Correct documentation on the setting of Origin-State-Id
+
+	      It was incorrectly stated that the AVP would be set in an
+	      outgoing DPR/DPA.
+
+   OTP-11593  Change interface for communicating outbound stream id to
+	      diameter_sctp
+
+	      The module uses the transport_data field of record
+	      diameter_packet to communicate the stream on which the an
+	      incoming message is received and on which an outgoing message
+	      should be sent, the previous interface being that both are
+	      communicated as a tuple of the form {stream, Id}. However,
+	      since diameter retains the value of an incoming request's
+	      transport_data unless the corresponding answer message
+	      specifies otherwise, the behaviour in this case is to send an
+	      answer on the outbound stream with the same identifier as the
+	      that of the inbound stream on which the request was received.
+	      If the inbound stream id is greater than or equal to the
+	      number of outbound streams then this is guaranteed to fail,
+	      causing the transport process in question to terminate. There
+	      is no relationship between inbound and outbound stream
+	      identifiers so diameter_sctp's imposition of one is simply
+	      wrong.
+
+	      Outbound stream ids are now communicated with a different
+	      tuple: {outstream, Id}, interpreted modulo the number of
+	      outbound streams. Thus, retention of an inbound request's
+	      transport_data has no effect on the selection of an outbound
+	      stream.
+
+	      The change in interface is not strictly backwards compatible
+	      because of the new atom for the outbound stream. However, as
+	      there is currently no documented way of obtaining the
+	      available number of outbound streams for a peer connection,
+	      there is no way for a client to have known the range of ids
+	      from which it could reliably have chosen with the previous
+	      interface, so any setting of the outbound stream has probably
+	      been unintentional. Not explicitly specifying an outbound
+	      stream now results in a round-robin selection.
+
+	      Thanks to Sharmila Pillai for reporting the problem.
+
+   OTP-11655  Fix unicode path failure in diameter_make:codec/2.
+
+	      A dictionary path containing a unicode codepoint > 255 caused
+	      the function to fail.
+
+   OTP-11661  Fix 'accept' config to diameter_sctp.
+
+	      OTP-10893 added support for {accept, Match} tuples to specify
+	      addresses or regexps that should be matched against peer
+	      addresses to decide whether or not a newly established
+	      association should be retained, but this hasn't been
+	      functional in the SCTP case because of missing support in
+	      inet(3).
+
+	      The display of both local and peer addresses in
+	      diameter:service_info/2 output has also been corrected.
+
+   OTP-11675  Be lenient with the M-bit in Grouped AVPs.
+
+	      RFC 6733 says this, in 4.4:
+
+	      -- 
+
+	      Receivers of a Grouped AVP that does not have the 'M'
+	      (mandatory) bit set and one or more of the encapsulated AVPs
+	      within the group has the 'M' (mandatory) bit set MAY simply
+	      be ignored if the Grouped AVP itself is unrecognized. The
+	      rule applies even if the encapsulated AVP with its 'M'
+	      (mandatory) bit set is further encapsulated within other
+	      sub-groups, i.e., other Grouped AVPs embedded within the
+	      Grouped AVP.
+
+	      The first sentence is mangled but take it to mean this:
+
+	      -- 
+
+	      An unrecognized AVP of type Grouped that does not set the 'M'
+	      bit MAY be ignored even if one of its encapsulated AVPs sets
+	      the 'M' bit.
+
+	      This is a bit of a non-statement since if the AVP is
+	      unrecognized then its type is unknown. We therefore don't
+	      know that its data bytes contain encapsulated AVPs, so can't
+	      but ignore any of those that set the M-bit. Doing anything
+	      else when the type *is* known would be inconsistent.
+
+	      OTP-11087 (R16B03) caused the M-bit on any unrecognized AVP
+	      to be regarded as an error, unrecognized being taken to mean
+	      "not explicitly defined as a member of its container". (That
+	      is, an AVP that can't be packed into a dedicated record
+	      field, which is slightly stronger than "not defined".) This
+	      fixed the original intention for top-level AVPs but broke the
+	      required leniency for Grouped AVPs whose type is known. This
+	      leniency is now restored.
+
+	      Note that dictionary files need to be recompiled for the
+	      change to have effect.
+
+	      Thanks to Rory McKeown for reporting the problem.
+
+   OTP-11789  Fix pick_peer case clause failure.
+
+	      In the case of {call_mutates_state, true} configuration on
+	      the service in question, any peer selection that failed to
+	      select a peer resulted in a case clause failure. This was
+	      noticed in the case of a peer failover in which an alternate
+	      peer wasn't available.
+
+--- edoc-0.7.13 ---------------------------------------------------------
+
+   OTP-11744  Application upgrade (appup) files are corrected for the
+	      following applications: 
+
+	      asn1, common_test, compiler, crypto, debugger, dialyzer,
+	      edoc, eldap, erl_docgen, et, eunit, gs, hipe, inets,
+	      observer, odbc, os_mon, otp_mibs, parsetools, percept,
+	      public_key, reltool, runtime_tools, ssh, syntax_tools,
+	      test_server, tools, typer, webtool, wx, xmerl
+
+	      A new test utility for testing appup files is added to
+	      test_server. This is now used by most applications in OTP.
+
+	      (Thanks to Tobias Schlager)
+
+--- eldap-1.0.3 ---------------------------------------------------------
+
+   OTP-11744  Application upgrade (appup) files are corrected for the
+	      following applications: 
+
+	      asn1, common_test, compiler, crypto, debugger, dialyzer,
+	      edoc, eldap, erl_docgen, et, eunit, gs, hipe, inets,
+	      observer, odbc, os_mon, otp_mibs, parsetools, percept,
+	      public_key, reltool, runtime_tools, ssh, syntax_tools,
+	      test_server, tools, typer, webtool, wx, xmerl
+
+	      A new test utility for testing appup files is added to
+	      test_server. This is now used by most applications in OTP.
+
+	      (Thanks to Tobias Schlager)
+
+   OTP-11753  Add support for IPv6 connections, By including the [inet6]
+	      option in eldap:open/2. Default value is still [inet] (Thanks
+	      to Edwin Fine)
+
+   OTP-11768  Fixed bug where eldap:search returned binaries instead of
+	      strings. (Thanks Simon MacMullen for the report)
+
+--- erl_docgen-0.3.5 ----------------------------------------------------
+
+   OTP-11744  Application upgrade (appup) files are corrected for the
+	      following applications: 
+
+	      asn1, common_test, compiler, crypto, debugger, dialyzer,
+	      edoc, eldap, erl_docgen, et, eunit, gs, hipe, inets,
+	      observer, odbc, os_mon, otp_mibs, parsetools, percept,
+	      public_key, reltool, runtime_tools, ssh, syntax_tools,
+	      test_server, tools, typer, webtool, wx, xmerl
+
+	      A new test utility for testing appup files is added to
+	      test_server. This is now used by most applications in OTP.
+
+	      (Thanks to Tobias Schlager)
+
+   OTP-11776  Handle map types in docgen_edoc_xml_cb
+
+--- erl_interface-3.7.16 ------------------------------------------------
+
+   OTP-11608  Fix memcheck warning in gen_challange (Thanks to Olivier
+	      Girondel)
+
+--- erts-6.0 ------------------------------------------------------------
+
+   OTP-10285  Options to set match_limit and match_limit_recursion are
+	      added to re:run. The option report_errors is also added to
+	      get more information when re:run fails due to limits or
+	      compilation errors.
+
+   OTP-10908  Dialyzer's unmatched_return warnings have been corrected.
+
+   OTP-11082  A common case is to wrap an argument to list_to_binary/1 in a
+	      list to ensure conversion can happen even though the argument
+	      may already be a binary. Take special care of this case and
+	      do not copy binary.
+
+	      Impact: May cause incompatibility since a single binary is no
+	      longer copied. Use binary:copy/1,2 instead.
+
+   OTP-11105  Make erlang:open_port/2 spawn and spawn_executable handle
+	      unicode.
+
+   OTP-11135  Handle unicode (widestring) in erl, erlc, heart, etc on
+	      windows.
+
+   OTP-11204  The version of the PCRE library Used by Erlang's re module is
+	      raised to 8.33 from 7.6. This means, among other things,
+	      better Unicode and Unicode Character Properties support. New
+	      options connected to PCRE 8.33 are also added to the re
+	      module (ucd, notempty_atstart, no_start_optimize). PCRE has
+	      extended the regular expression syntax between 7.6 and 8.33,
+	      why this imposes a potential incompatibility. Only very
+	      complicated regular expressions may be affected, but if you
+	      know you are using obscure features, please test run your
+	      regular expressions and verify that their behavior has not
+	      changed.
+
+   OTP-11205  The option dupnames did not work as intended in re. When
+	      looking for names with {capture, [Name, ...]}, re:run
+	      returned a random instance of the match for that name,
+	      instead of the leftmost matching instance, which was what the
+	      documentation stated. This is now corrected to adhere to the
+	      documentation. The option {capture,all_names} along with a
+	      re:inspect/2 function is also added to further help in using
+	      named subpatterns.
+
+   OTP-11248  Filenames containing UTF-8 encoded characters can now be
+	      handled by erlc.
+
+	      If you have set the ERLC_EMULATOR environment variable, note
+	      that erlc in OTP 17 will only work with erl in OTP 17 since
+	      the protocol between the erlc program and the erl_compile
+	      module has changed.
+
+   OTP-11258  By giving --enable-static-{nifs,drivers} to configure it is
+	      now possible to statically linking of nifs and drivers to the
+	      main Erlang VM binary. At the moment only the asn1 and crypto
+	      nifs of the Erlang/OTP nifs and drivers have been prepared to
+	      be statically linked. For more details see the Installation
+	      Guide in the System documentation.
+
+   OTP-11334  Erlang/OTP has been ported to the realtime operating system
+	      OSE. The port supports both smp and non-smp emulator. For
+	      details around the port and how to started see the User's
+	      Guide in the ose application. 
+
+	      Note that not all parts of Erlang/OTP has been ported. 
+
+	      Notable things that work are: non-smp and smp emulators, OSE
+	      signal interaction, crypto, asn1, run_erl/to_erl, tcp, epmd,
+	      distribution and most if not all non-os specific
+	      functionality of Erlang.
+
+	      Notable things that does not work are: udp/sctp, os_mon,
+	      erl_interface, binding of schedulers.
+
+   OTP-11368  Add the {active,N} socket option for TCP, UDP, and SCTP,
+	      where N is an integer in the range -32768..32767, to allow a
+	      caller to specify the number of data messages to be delivered
+	      to the controlling process. Once the socket's delivered
+	      message count either reaches 0 or is explicitly set to 0 with
+	      inet:setopts/2 or by including {active,0} as an option when
+	      the socket is created, the socket transitions to passive
+	      ({active, false}) mode and the socket's controlling process
+	      receives a message to inform it of the transition. TCP
+	      sockets receive {tcp_passive,Socket}, UDP sockets receive
+	      {udp_passive,Socket} and SCTP sockets receive
+	      {sctp_passive,Socket}. 
+
+	      The socket's delivered message counter defaults to 0, but it
+	      can be set using {active,N} via any gen_tcp, gen_udp, or
+	      gen_sctp function that takes socket options as arguments, or
+	      via inet:setopts/2. New N values are added to the socket's
+	      current counter value, and negative numbers can be used to
+	      reduce the counter value. Specifying a number that would
+	      cause the socket's counter value to go above 32767 causes an
+	      einval error. If a negative number is specified such that the
+	      counter value would become negative, the socket's counter
+	      value is set to 0 and the socket transitions to passive mode.
+	      If the counter value is already 0 and inet:setopts(Socket,
+	      [{active,0}]) is specified, the counter value remains at 0
+	      but the appropriate passive mode transition message is
+	      generated for the socket.
+
+	      Thanks to Steve Vinoski
+
+   OTP-11385  A new optional scheduler utilization balancing mechanism has
+	      been introduced. For more information see the +sub command
+	      line argument.
+
+	      Characteristics impact: None, when not enabled. When enabled,
+	      changed timing in the system, normally a small overhead due
+	      to measuring of utilization and calculating balancing
+	      information. On some systems, such as old Windows systems,
+	      the overhead can be quite substantial. This time measurement
+	      overhead highly depend on the underlying primitives provided
+	      by the OS.
+
+   OTP-11388  A call to either the garbage_collect/1 BIF or the
+	      check_process_code/2 BIF may trigger garbage collection of
+	      another processes than the process calling the BIF. The
+	      previous implementations performed these kinds of garbage
+	      collections without considering the internal state of the
+	      process being garbage collected. In order to be able to more
+	      easily and more efficiently implement yielding native code,
+	      these types of garbage collections have been rewritten. A
+	      garbage collection like this is now triggered by an
+	      asynchronous request signal, the actual garbage collection is
+	      performed by the process being garbage collected itself, and
+	      finalized by a reply signal to the process issuing the
+	      request. Using this approach processes can disable garbage
+	      collection and yield without having to set up the heap in a
+	      state that can be garbage collected.
+
+	      The garbage_collect/2, and check_process_code/3 BIFs have
+	      been introduced. Both taking an option list as last argument.
+	      Using these, one can issue asynchronous requests.
+
+	      code:purge/1 and code:soft_purge/1 have been rewritten to
+	      utilize asynchronous check_process_code requests in order to
+	      parallelize work.
+
+	      Characteristics impact: A call to the garbage_collect/1 BIF
+	      or the check_process_code/2 BIF will normally take longer
+	      time to complete while the system as a whole wont be as much
+	      negatively effected by the operation as before. A call to
+	      code:purge/1 and code:soft_purge/1 may complete faster or
+	      slower depending on the state of the system while the system
+	      as a whole wont be as much negatively effected by the
+	      operation as before.
+
+   OTP-11408  Allow loading of NIF library with unicode path name
+
+   OTP-11419  Cleanup 'Buckets' and 'Time left' fields in crashdump to ease
+	      parsing.
+
+   OTP-11498  Add sync option to file:open/2.
+
+	      The sync option adds the POSIX O_SYNC flag to the open system
+	      call on platforms that support the flag or its equivalent,
+	      e.g., FILE_FLAG_WRITE_THROUGH on Windows. For platforms that
+	      don't support it, file:open/2 returns {error, enotsup} if the
+	      sync option is passed in. Thank to Steve Vinoski and Joseph
+	      Blomstedt
+
+   OTP-11535  erlang:binary_to_term will now cost an appropriate amount of
+	      reductions and will interrupt (yield) for reschedule if the
+	      term is big. This avoids too long schedules when
+	      binary_to_term is used. (Thanks to Svante Karlsson for the
+	      original patch)
+
+	      Impact: Programs running binary_to_term on large binaries
+	      will run more smoothly, but rescheduling will impact the
+	      single process performance of the BIF. Single threaded
+	      benchmarks might show degraded performance of the BIF, while
+	      general system behaviour will be improved.
+
+   OTP-11549  Allow loading of driver with unicode path name
+
+   OTP-11558  Fixed a bug where starting Erlang without having an open
+	      stdin on fd 0 would sometimes deadlock the emulator when
+	      terminating.
+
+   OTP-11560  Added high resolution icon for windows. (Thanks to Daniel
+	      Goertz for the inspiration.)
+
+   OTP-11565  The option '-names' in epmd now works on Windows (Thanks to
+	      Johannes Weißl)
+
+   OTP-11577  Correction of the examples in escript documentation. (Thanks
+	      to Pierre Fenoll).
+
+   OTP-11581  Fix bs_get_integer instruction
+
+	      The instruction bs_get_integer could unnecessarily trigger a
+	      garbage collection in failure cases which is unwanted or
+	      outright dangerous.
+
+	      Ex:
+
+	      &lt;&lt;X:Sz,_/bits>> = &lt;&lt;"some binary">>
+
+	      Previously, if Sz induced X to a bignum it would reserved
+	      memory size this on the heap via a garbage collection before
+	      checking if the size could actually match.
+
+	      It will now check the binary size before triggering a
+	      collection.
+
+   OTP-11585  Remove heap space overestimation in binary_to_term (and
+	      remote message reception) for integers in the intervals
+	      [-2147483648,-1] and [256,2147483647] on 64-bit emulators.
+
+   OTP-11590  Add support for detecting the separate tinfo library from
+	      ncurses (Thanks to Dirkjan Ochtman)
+
+   OTP-11602  Deprecation warning for system_flag(cpu_topology) has been
+	      extended for removal in OTP 18 (Thanks to Steve Vinoski for
+	      the update)
+
+   OTP-11604  Migration of memory carriers has been enabled by default on
+	      all ERTS internal memory allocators based on the alloc_util
+	      framework except for temp_alloc. That is, +M&lt;S>acul de is
+	      default for these allocators. Note that this also implies
+	      changed allocation strategies for all of these allocators.
+	      They will all now use the "address order first fit carrier
+	      best fit" strategy.
+
+	      By passing +Muacul 0 on the command line, all configuration
+	      changes made by this change will be reverted.
+
+	      Characteristics impact: Improved memory characteristics with
+	      a smaller memory footprint at the expense of a quite small
+	      performance cost.
+
+   OTP-11607  Documentation improvement regarding some awkward wording
+	      around the +spp flag. (Thanks to Brian L. Troutwine )
+
+   OTP-11611  A clarification has been added to the documentation of
+	      -on_load() in the Reference Manual that it is only
+	      recommended for loading NIF libraries.
+
+   OTP-11612  +fnaw is now default when starting the emulator; it used to
+	      be +fnl.
+
+   OTP-11614  Fixed bug where sendfile would return the wrong error code
+	      for a remotely closed socket if the socket was in passive
+	      mode. (Thanks to Vincent Siliakus for reporting the bug.)
+
+   OTP-11616  EEP43: New data type - Maps
+
+	      With Maps you may for instance:
+
+	      -- M0 = #{ a => 1, b => 2}, % create associations
+
+	      -- M1 = M0#{ a := 10 }, % update values
+
+	      -- M2 = M1#{ "hi" => "hello"}, % add new associations
+
+	      -- #{ "hi" := V1, a := V2, b := V3} = M2. % match keys with
+	      values
+
+	      For information on how to use Maps please see the Reference
+	      Manual.
+
+	      The current implementation is without the following features:
+
+	      -- No variable keys
+
+	      -- No single value access
+
+	      -- No map comprehensions
+
+	      Note that Maps is experimental during OTP 17.0.
+
+   OTP-11617  Increase garbage collection tenure rate
+
+	      The garbage collector tries to maintain the previous heap
+	      block size during a minor gc, i.e. 'need' is not utilized in
+	      determining the size of the new heap, instead it relies on
+	      tenure and garbage to be sufficiently large.
+
+	      In instances during intense growing with exclusively live
+	      data on the heap coupled with delayed tenure, fullsweeps
+	      would be triggered directly after a minor gc to make room for
+	      'need' since the new heap would be full.
+
+	      To remedy this, the tenure of terms on the minor heap will
+	      always happen (if it is below the high watermark) instead of
+	      every other minor gc.
+
+	      Characteristics Impact: Reduced CPU-time spent in garbage
+	      collection but may infer delays in collecting garbage from
+	      the heap. Tweak 'fullsweep_after' options to increase gc
+	      pressure if needed.
+
+   OTP-11618  Fix bug when comparing integers with floats larger than
+	      2^992. The bug could potentially cause memory corruption on
+	      32-bit emulators.
+
+   OTP-11628  The previously deprecated driver API function
+	      driver_async_cancel() has been removed. Due to this, the
+	      driver API version has been bumped to 3.0.
+
+	      Thanks to Steve Vinoski.
+
+   OTP-11629  Experimental "dirty scheduler" functionality has been
+	      introduced. In order to try the functionality out, you need
+	      to pass the command line argument --enable-dirty-schedulers
+	      to configure when building the system.
+
+	      Dirty schedulers can currently only be used by NIFs on a
+	      system with SMP support. More information can be found in the
+	      erl_nif(3) documentation, the erl(1) documentation, and in
+	      the git commit comment of commit
+	      'c1c03ae4ee50e58b7669ea88ec4d29c6b2b67c7b'.
+
+	      Note that the functionality is experimental, and not
+	      supported. This functionality will be subject to backward
+	      incompatible changes. You should not enable the dirty
+	      scheduler functionality on production systems. It is only
+	      provided for testing.
+
+	      Thanks to Steve Vinoski.
+
+   OTP-11635  Cross-compilation fixes for TileraMDE-3.0.1.125620
+
+   OTP-11639  sendfile no longer uses async threads by default
+
+	      This has been done because a slow client attack is possible
+	      if the async thread pool is used. The scenario is:
+
+	      Client does a request for a file and then slowly receives the
+	      file one byte at a time. This will eventually fill the async
+	      thread pool with blocking sendfile operations and thus
+	      starving the vm of all file operations.
+
+	      If you still want to use the async threads pool for sendfile
+	      an option to enable it has been introduced.
+
+	      Thanks to Christopher Faulet for identifying this
+	      vulnerability.
+
+   OTP-11648  Improve reduction cost and yielding of term_to_binary. The
+	      reduction cost is increased and garbage collection is
+	      disabled during yield.
+
+	      Impact: Improves system responsiveness when term_to_binary is
+	      called with large terms without significant degradation of
+	      single threaded performance.
+
+   OTP-11669  By default, the system's version of zlib will be used,
+	      provided its version is 1.2.4 or higher; otherwise the
+	      built-in zlib will be used. The built-in version of zlib has
+	      been bumped to 1.2.8. (Use the --enable-builtin-zlib option
+	      to configure to force the use of the built-in zlib.)
+
+   OTP-11722  Do proper rollback of calls to enif_open_resource_type when
+	      load/upgrade callbacks of NIF library return failure.
+
+   OTP-11723  Changed the default configuration when configuring with
+	      $ERL_TOP/configure to be the same as when configuring with
+	      $ERL_TOP/otp_build configure.
+
+	      Previously floating point exceptions got enabled by default
+	      on Linux when HiPE was enabled when configuring with
+	      $ERL_TOP/configure, but not when configuring with
+	      $ERL_TOP/otp_build configure. The default is now in both
+	      cases not to use floating point exceptions since there still
+	      exist unresolved issues with floating point exceptions on
+	      Linux.
+
+	      For more information see $ERL_TOP/HOWTO/INSTALL.md.
+
+   OTP-11738  The default float encoding in binary_to_term and
+	      external_size has been changed to use minor_mode 1 instead of
+	      0.
+
+   OTP-11742  Introduced the configure option
+	      --with-assumed-cache-line-size=SIZE. For more information see
+	      $ERL_TOP/HOWTO/INSTALL.md.
+
+   OTP-11777  Halfword emulator is marked as deprecated. It still works as
+	      before but is planned to be removed in a future major
+	      release.
+
+   OTP-11782  The external format for Maps has changed in a way that is not
+	      compatible with the format used in OTP 17.0-rc1 and OTP
+	      17.0-rc2.
+
+   OTP-11784  Fixed faulty make dependency that would make some make
+	      versions fail while building gen_git_version.mk.
+
+   OTP-11793  A comment in erl_db_tree.c no longer differ from the code.
+	      (Thanks to Cobus Carstens)
+
+   OTP-11808  Fix epmd debug functionality for VxWorks (Thanks to Jay True)
+
+   OTP-11809  Use closefrom/2 when available in child_setup (Thanks to Rick
+	      Reed and Anthony Ramine)
+
+   OTP-11813  Support file paths longer than 259 characters on Windows.
+	      Long absolute paths are automatically converted to UNC format
+	      with a \\?\ prefix which is the only way to represent long
+	      paths. The 259 character limit still applies for individual
+	      file names, relative paths and the current working directory.
+
+   OTP-11816  Fix dtrace/systemtap bug where the probe arguments would be
+	      concatenated due to faulty length calculation. 
+
+	      Thanks to Michal Ptaszek and Scott Lystig Fritchie
+
+   OTP-11818  It is now better documented that the +fn* flags to erl also
+	      affect how command line parameters and environment variables
+	      are read. (Thanks to Vlad Dumitrescu)
+
+   OTP-11827  Document that escript:create/2 also accepts a 3-elements
+	      tuple containing files and zip:create/3 options to build a
+	      zip file.
+
+	      Thanks to Pierre Fenoll
+
+   OTP-11829  Add systemd socket activation for epmd.
+
+	      Thanks to Matwey V. Kornilov
+
+--- et-1.5 --------------------------------------------------------------
+
+   OTP-10915  Removed gs based applications and gs based backends. The
+	      observer application replaces the removed applications.
+
+   OTP-11744  Application upgrade (appup) files are corrected for the
+	      following applications: 
+
+	      asn1, common_test, compiler, crypto, debugger, dialyzer,
+	      edoc, eldap, erl_docgen, et, eunit, gs, hipe, inets,
+	      observer, odbc, os_mon, otp_mibs, parsetools, percept,
+	      public_key, reltool, runtime_tools, ssh, syntax_tools,
+	      test_server, tools, typer, webtool, wx, xmerl
+
+	      A new test utility for testing appup files is added to
+	      test_server. This is now used by most applications in OTP.
+
+	      (Thanks to Tobias Schlager)
+
+--- eunit-2.2.7 ---------------------------------------------------------
+
+   OTP-11744  Application upgrade (appup) files are corrected for the
+	      following applications: 
+
+	      asn1, common_test, compiler, crypto, debugger, dialyzer,
+	      edoc, eldap, erl_docgen, et, eunit, gs, hipe, inets,
+	      observer, odbc, os_mon, otp_mibs, parsetools, percept,
+	      public_key, reltool, runtime_tools, ssh, syntax_tools,
+	      test_server, tools, typer, webtool, wx, xmerl
+
+	      A new test utility for testing appup files is added to
+	      test_server. This is now used by most applications in OTP.
+
+	      (Thanks to Tobias Schlager)
+
+--- gs-1.5.16 -----------------------------------------------------------
+
+   OTP-11744  Application upgrade (appup) files are corrected for the
+	      following applications: 
+
+	      asn1, common_test, compiler, crypto, debugger, dialyzer,
+	      edoc, eldap, erl_docgen, et, eunit, gs, hipe, inets,
+	      observer, odbc, os_mon, otp_mibs, parsetools, percept,
+	      public_key, reltool, runtime_tools, ssh, syntax_tools,
+	      test_server, tools, typer, webtool, wx, xmerl
+
+	      A new test utility for testing appup files is added to
+	      test_server. This is now used by most applications in OTP.
+
+	      (Thanks to Tobias Schlager)
+
+--- hipe-3.10.3 ---------------------------------------------------------
+
+   OTP-10342  The pre-defined types array/0, dict/0, digraph/0, gb_set/0,
+	      gb_tree/0, queue/0, set/0, and tid/0 have been deprecated.
+	      They will be removed in Erlang/OTP 18.0.
+
+	      Instead the types array:array/0, dict:dict/0,
+	      digraph:graph/0, gb_set:set/0, gb_tree:tree/0, queue:queue/0,
+	      sets:set/0, and ets:tid/0 can be used. (Note: it has always
+	      been necessary to use ets:tid/0.)
+
+	      It is allowed in Erlang/OTP 17.0 to locally re-define the
+	      types array/0, dict/0, and so on.
+
+	      New types array:array/1, dict:dict/2, gb_sets:set/1,
+	      gb_trees:tree/2, queue:queue/1, and sets:set/1 have been
+	      added.
+
+	      A compiler option, nowarn_deprecated_type, has been
+	      introduced. By including the attribute
+
+	      -compile(nowarn_deprecated_type).
+
+	      in an Erlang source file, warnings about deprecated types can
+	      be avoided in Erlang/OTP 17.0.
+
+	      The option can also be given as a compiler flag:
+
+	      erlc +nowarn_deprecated_type file.erl
+
+   OTP-11564  Fix compilation with 'no_remove_comments' (Thanks to Johannes
+	      Weißl)
+
+   OTP-11616  EEP43: New data type - Maps
+
+	      With Maps you may for instance:
+
+	      -- M0 = #{ a => 1, b => 2}, % create associations
+
+	      -- M1 = M0#{ a := 10 }, % update values
+
+	      -- M2 = M1#{ "hi" => "hello"}, % add new associations
+
+	      -- #{ "hi" := V1, a := V2, b := V3} = M2. % match keys with
+	      values
+
+	      For information on how to use Maps please see the Reference
+	      Manual.
+
+	      The current implementation is without the following features:
+
+	      -- No variable keys
+
+	      -- No single value access
+
+	      -- No map comprehensions
+
+	      Note that Maps is experimental during OTP 17.0.
+
+   OTP-11625  Parameterized opaque types have been introduced.
+
+   OTP-11744  Application upgrade (appup) files are corrected for the
+	      following applications: 
+
+	      asn1, common_test, compiler, crypto, debugger, dialyzer,
+	      edoc, eldap, erl_docgen, et, eunit, gs, hipe, inets,
+	      observer, odbc, os_mon, otp_mibs, parsetools, percept,
+	      public_key, reltool, runtime_tools, ssh, syntax_tools,
+	      test_server, tools, typer, webtool, wx, xmerl
+
+	      A new test utility for testing appup files is added to
+	      test_server. This is now used by most applications in OTP.
+
+	      (Thanks to Tobias Schlager)
+
+   OTP-11748  There is now a test suite for the Hipe application
+
+   OTP-11801  Support for a LLVM backend has been added in HiPE
+
+   OTP-11831  Add support for the compilation of the is_map/1 and
+	      map_size/1 guards to native code.
+
+--- ic-4.3.5 ------------------------------------------------------------
+
+   OTP-11783  Added Latin-1 code directive in the generated files to keep
+	      old behaviour. Updated IC so it can handle Unicode characters
+	      in the path.
+
+--- inets-5.10 ----------------------------------------------------------
+
+   OTP-11538  Fixed a spelling mistake in httpc doc (Thanks to Wasif Riaz
+	      Malik)
+
+   OTP-11744  Application upgrade (appup) files are corrected for the
+	      following applications: 
+
+	      asn1, common_test, compiler, crypto, debugger, dialyzer,
+	      edoc, eldap, erl_docgen, et, eunit, gs, hipe, inets,
+	      observer, odbc, os_mon, otp_mibs, parsetools, percept,
+	      public_key, reltool, runtime_tools, ssh, syntax_tools,
+	      test_server, tools, typer, webtool, wx, xmerl
+
+	      A new test utility for testing appup files is added to
+	      test_server. This is now used by most applications in OTP.
+
+	      (Thanks to Tobias Schlager)
+
+   OTP-11750  ftp now sanitize file name, user name and passwords from &lt;CR>
+	      and &lt;LF> tags (Thanks to Sergei Golovan)
+
+   OTP-11756  The commit 6189bc07 "inets: httpc improve pipelining" has
+	      been reverted, as it turned out to break things rather than
+	      improve pipelining utilization. It is instead up to the user
+	      to configure httpc and use it wisely to be able to get the
+	      most out of pipelining.
+
+   OTP-11794  Corrected error handling in the HTTP client, making it behave
+	      more graceful.
+
+	      Thanks to Kirilll Zaborsky
+
+   OTP-11802  Support identity transfer-encoding in httpc.
+
+	      Thanks to Anthony Ramine
+
+   OTP-11803  Ignore empty Set-Cookie headers to increase interoperability
+	      with servers that violate the RFC. 
+
+	      Thanks to Kirilll Zaborsky
+
+   OTP-11838  Handle all response codes in httpd_util:message/3
+
+--- jinterface-1.5.9 ----------------------------------------------------
+
+   OTP-11703  Implement support for Maps
+
+	      The API and implementation are simplistic, like for lists and
+	      tuples, using arrays and without any connection to
+	      java.util.Map. (Thanks to Vlad Dumitrescu)
+
+--- kernel-3.0 ----------------------------------------------------------
+
+   OTP-10843  heart:set_cmd/1 is updated to allow unicode code points > 255
+	      in the given heart command
+
+   OTP-10908  Dialyzer's unmatched_return warnings have been corrected.
+
+   OTP-11105  Make erlang:open_port/2 spawn and spawn_executable handle
+	      unicode.
+
+   OTP-11171  Fixed a deadlock possibility in terminate application
+
+   OTP-11334  Erlang/OTP has been ported to the realtime operating system
+	      OSE. The port supports both smp and non-smp emulator. For
+	      details around the port and how to started see the User's
+	      Guide in the ose application. 
+
+	      Note that not all parts of Erlang/OTP has been ported. 
+
+	      Notable things that work are: non-smp and smp emulators, OSE
+	      signal interaction, crypto, asn1, run_erl/to_erl, tcp, epmd,
+	      distribution and most if not all non-os specific
+	      functionality of Erlang.
+
+	      Notable things that does not work are: udp/sctp, os_mon,
+	      erl_interface, binding of schedulers.
+
+   OTP-11368  Add the {active,N} socket option for TCP, UDP, and SCTP,
+	      where N is an integer in the range -32768..32767, to allow a
+	      caller to specify the number of data messages to be delivered
+	      to the controlling process. Once the socket's delivered
+	      message count either reaches 0 or is explicitly set to 0 with
+	      inet:setopts/2 or by including {active,0} as an option when
+	      the socket is created, the socket transitions to passive
+	      ({active, false}) mode and the socket's controlling process
+	      receives a message to inform it of the transition. TCP
+	      sockets receive {tcp_passive,Socket}, UDP sockets receive
+	      {udp_passive,Socket} and SCTP sockets receive
+	      {sctp_passive,Socket}. 
+
+	      The socket's delivered message counter defaults to 0, but it
+	      can be set using {active,N} via any gen_tcp, gen_udp, or
+	      gen_sctp function that takes socket options as arguments, or
+	      via inet:setopts/2. New N values are added to the socket's
+	      current counter value, and negative numbers can be used to
+	      reduce the counter value. Specifying a number that would
+	      cause the socket's counter value to go above 32767 causes an
+	      einval error. If a negative number is specified such that the
+	      counter value would become negative, the socket's counter
+	      value is set to 0 and the socket transitions to passive mode.
+	      If the counter value is already 0 and inet:setopts(Socket,
+	      [{active,0}]) is specified, the counter value remains at 0
+	      but the appropriate passive mode transition message is
+	      generated for the socket.
+
+	      Thanks to Steve Vinoski
+
+   OTP-11388  A call to either the garbage_collect/1 BIF or the
+	      check_process_code/2 BIF may trigger garbage collection of
+	      another processes than the process calling the BIF. The
+	      previous implementations performed these kinds of garbage
+	      collections without considering the internal state of the
+	      process being garbage collected. In order to be able to more
+	      easily and more efficiently implement yielding native code,
+	      these types of garbage collections have been rewritten. A
+	      garbage collection like this is now triggered by an
+	      asynchronous request signal, the actual garbage collection is
+	      performed by the process being garbage collected itself, and
+	      finalized by a reply signal to the process issuing the
+	      request. Using this approach processes can disable garbage
+	      collection and yield without having to set up the heap in a
+	      state that can be garbage collected.
+
+	      The garbage_collect/2, and check_process_code/3 BIFs have
+	      been introduced. Both taking an option list as last argument.
+	      Using these, one can issue asynchronous requests.
+
+	      code:purge/1 and code:soft_purge/1 have been rewritten to
+	      utilize asynchronous check_process_code requests in order to
+	      parallelize work.
+
+	      Characteristics impact: A call to the garbage_collect/1 BIF
+	      or the check_process_code/2 BIF will normally take longer
+	      time to complete while the system as a whole wont be as much
+	      negatively effected by the operation as before. A call to
+	      code:purge/1 and code:soft_purge/1 may complete faster or
+	      slower depending on the state of the system while the system
+	      as a whole wont be as much negatively effected by the
+	      operation as before.
+
+   OTP-11498  Add sync option to file:open/2.
+
+	      The sync option adds the POSIX O_SYNC flag to the open system
+	      call on platforms that support the flag or its equivalent,
+	      e.g., FILE_FLAG_WRITE_THROUGH on Windows. For platforms that
+	      don't support it, file:open/2 returns {error, enotsup} if the
+	      sync option is passed in. Thank to Steve Vinoski and Joseph
+	      Blomstedt
+
+   OTP-11614  Fixed bug where sendfile would return the wrong error code
+	      for a remotely closed socket if the socket was in passive
+	      mode. (Thanks to Vincent Siliakus for reporting the bug.)
+
+   OTP-11708  The new option persistent is added to application:set_env/4
+	      and application:unset_env/3. An environment key set with the
+	      persistent option will not be overridden by the ones
+	      configured in the application resource file on load. This
+	      means persistent values will stick after the application is
+	      loaded and also on application reload. (Thanks to José
+	      Valim)
+
+   OTP-11730  The contract of inet:ntoa/1 has been corrected.
+
+	      Thanks to Max Treskin.
+
+   OTP-11787  The spec for file:set_cwd/1 is modified to also accept
+	      binaries as arguments. This has always been allowed in the
+	      code, but it was not reflected in the spec since binaries are
+	      mostly used for raw file names. Raw file names are names that
+	      are not encoded according to file:native_name_encoding(), and
+	      these are not allowed in file:set_cwd/1. The spec is now,
+	      however, more allowing in order to avoid unnecessary dialyzer
+	      warnings. Raw file names will still fail in runtime with
+	      reason 'no_translation'. (Thanks to José Valim)
+
+--- mnesia-4.12 ---------------------------------------------------------
+
+   OTP-11497  To prevent a race condition if there is a short communication
+	      problem when node-down and node-up events are received. They
+	      are now stored and later checked if the node came up just
+	      before mnesia flagged the node as down. (Thanks to Jonas
+	      Falkevik )
+
+   OTP-11678  Some local implementations of removing the last element from
+	      a list are replaced by lists:droplast/1. Note that this
+	      requires at least stdlib-2.0, which is the stdlib version
+	      delivered in OTP 17.0. (Thanks to Hans Svensson)
+
+   OTP-11729  Added mnesia:sync_log/0 to explicit sync mnesias transaction
+	      log.
+
+   OTP-11744  Application upgrade (appup) files are corrected for the
+	      following applications: 
+
+	      asn1, common_test, compiler, crypto, debugger, dialyzer,
+	      edoc, eldap, erl_docgen, et, eunit, gs, hipe, inets,
+	      observer, odbc, os_mon, otp_mibs, parsetools, percept,
+	      public_key, reltool, runtime_tools, ssh, syntax_tools,
+	      test_server, tools, typer, webtool, wx, xmerl
+
+	      A new test utility for testing appup files is added to
+	      test_server. This is now used by most applications in OTP.
+
+	      (Thanks to Tobias Schlager)
+
+--- observer-2.0 --------------------------------------------------------
+
+   OTP-10915  Removed gs based applications and gs based backends. The
+	      observer application replaces the removed applications.
+
+   OTP-11179  The crashdump_viewer is re-written using wx. The old webtool
+	      interface for crashdump_viewer does no longer exist.
+
+   OTP-11633  etop trace handler now works in smp environment (Thanks to
+	      Péter Gömöri)
+
+   OTP-11744  Application upgrade (appup) files are corrected for the
+	      following applications: 
+
+	      asn1, common_test, compiler, crypto, debugger, dialyzer,
+	      edoc, eldap, erl_docgen, et, eunit, gs, hipe, inets,
+	      observer, odbc, os_mon, otp_mibs, parsetools, percept,
+	      public_key, reltool, runtime_tools, ssh, syntax_tools,
+	      test_server, tools, typer, webtool, wx, xmerl
+
+	      A new test utility for testing appup files is added to
+	      test_server. This is now used by most applications in OTP.
+
+	      (Thanks to Tobias Schlager)
+
+--- odbc-2.10.20 --------------------------------------------------------
+
+   OTP-11569  Removed warnings at compile time by adding missing include
+	      file (Thanks to Anthony Ramine)
+
+   OTP-11630  Apple has removed iODBC in OS X 10.9 Mavericks, but forgot to
+	      remove all binaries, adopt configure so that will be possible
+	      to build odbc with own installation.
+
+   OTP-11744  Application upgrade (appup) files are corrected for the
+	      following applications: 
+
+	      asn1, common_test, compiler, crypto, debugger, dialyzer,
+	      edoc, eldap, erl_docgen, et, eunit, gs, hipe, inets,
+	      observer, odbc, os_mon, otp_mibs, parsetools, percept,
+	      public_key, reltool, runtime_tools, ssh, syntax_tools,
+	      test_server, tools, typer, webtool, wx, xmerl
+
+	      A new test utility for testing appup files is added to
+	      test_server. This is now used by most applications in OTP.
+
+	      (Thanks to Tobias Schlager)
+
+--- orber-3.6.27 --------------------------------------------------------
+
+   OTP-11678  Some local implementations of removing the last element from
+	      a list are replaced by lists:droplast/1. Note that this
+	      requires at least stdlib-2.0, which is the stdlib version
+	      delivered in OTP 17.0. (Thanks to Hans Svensson)
+
+--- os_mon-2.2.15 -------------------------------------------------------
+
+   OTP-10842  Calls to erlang:open_port/2 with 'spawn' are updated to
+	      handle space in the command path.
+
+   OTP-11744  Application upgrade (appup) files are corrected for the
+	      following applications: 
+
+	      asn1, common_test, compiler, crypto, debugger, dialyzer,
+	      edoc, eldap, erl_docgen, et, eunit, gs, hipe, inets,
+	      observer, odbc, os_mon, otp_mibs, parsetools, percept,
+	      public_key, reltool, runtime_tools, ssh, syntax_tools,
+	      test_server, tools, typer, webtool, wx, xmerl
+
+	      A new test utility for testing appup files is added to
+	      test_server. This is now used by most applications in OTP.
+
+	      (Thanks to Tobias Schlager)
+
+--- ose-1.0 -------------------------------------------------------------
+
+   OTP-11334  Erlang/OTP has been ported to the realtime operating system
+	      OSE. The port supports both smp and non-smp emulator. For
+	      details around the port and how to started see the User's
+	      Guide in the ose application. 
+
+	      Note that not all parts of Erlang/OTP has been ported. 
+
+	      Notable things that work are: non-smp and smp emulators, OSE
+	      signal interaction, crypto, asn1, run_erl/to_erl, tcp, epmd,
+	      distribution and most if not all non-os specific
+	      functionality of Erlang.
+
+	      Notable things that does not work are: udp/sctp, os_mon,
+	      erl_interface, binding of schedulers.
+
+--- otp_mibs-1.0.9 ------------------------------------------------------
+
+   OTP-11203  Add type based integer value truncation/reset.
+
+	      This fixes errors when querying e.g. the erlNodeReductions,
+	      erlNodeInBytes and erlNodeOutBytes objects in long-running
+	      Erlang/OTP systems.
+
+	      Update types of applicable MIB objects to 64bit based types.
+
+	      Potential incompatibility: Type change of Counter32 to
+	      Counter64 in OTP-MIB.mib
+
+	      (Thanks to Tobias Schlager)
+
+   OTP-11744  Application upgrade (appup) files are corrected for the
+	      following applications: 
+
+	      asn1, common_test, compiler, crypto, debugger, dialyzer,
+	      edoc, eldap, erl_docgen, et, eunit, gs, hipe, inets,
+	      observer, odbc, os_mon, otp_mibs, parsetools, percept,
+	      public_key, reltool, runtime_tools, ssh, syntax_tools,
+	      test_server, tools, typer, webtool, wx, xmerl
+
+	      A new test utility for testing appup files is added to
+	      test_server. This is now used by most applications in OTP.
+
+	      (Thanks to Tobias Schlager)
+
+--- parsetools-2.0.11 ---------------------------------------------------
+
+   OTP-11744  Application upgrade (appup) files are corrected for the
+	      following applications: 
+
+	      asn1, common_test, compiler, crypto, debugger, dialyzer,
+	      edoc, eldap, erl_docgen, et, eunit, gs, hipe, inets,
+	      observer, odbc, os_mon, otp_mibs, parsetools, percept,
+	      public_key, reltool, runtime_tools, ssh, syntax_tools,
+	      test_server, tools, typer, webtool, wx, xmerl
+
+	      A new test utility for testing appup files is added to
+	      test_server. This is now used by most applications in OTP.
+
+	      (Thanks to Tobias Schlager)
+
+   OTP-11749  A Yecc example has been updated in the documentation (Thanks
+	      to Pierre Fenoll.)
+
+--- percept-0.8.9 -------------------------------------------------------
+
+   OTP-11744  Application upgrade (appup) files are corrected for the
+	      following applications: 
+
+	      asn1, common_test, compiler, crypto, debugger, dialyzer,
+	      edoc, eldap, erl_docgen, et, eunit, gs, hipe, inets,
+	      observer, odbc, os_mon, otp_mibs, parsetools, percept,
+	      public_key, reltool, runtime_tools, ssh, syntax_tools,
+	      test_server, tools, typer, webtool, wx, xmerl
+
+	      A new test utility for testing appup files is added to
+	      test_server. This is now used by most applications in OTP.
+
+	      (Thanks to Tobias Schlager)
+
+--- pman ----------------------------------------------------------------
+
+   OTP-10915  Removed gs based applications and gs based backends. The
+	      observer application replaces the removed applications.
+
+--- public_key-0.22 -----------------------------------------------------
+
+   OTP-11578  Moved elliptic curve definition from the crypto NIF/OpenSSL
+	      into Erlang code, adds the RFC-5639 brainpool curves and
+	      makes TLS use them (RFC-7027).
+
+	      Thanks to Andreas Schultz
+
+   OTP-11627  Fix incorrect dialyzer spec and types, also enhance
+	      documentation. 
+
+	      Thanks to Ayaz Tuncer.
+
+   OTP-11744  Application upgrade (appup) files are corrected for the
+	      following applications: 
+
+	      asn1, common_test, compiler, crypto, debugger, dialyzer,
+	      edoc, eldap, erl_docgen, et, eunit, gs, hipe, inets,
+	      observer, odbc, os_mon, otp_mibs, parsetools, percept,
+	      public_key, reltool, runtime_tools, ssh, syntax_tools,
+	      test_server, tools, typer, webtool, wx, xmerl
+
+	      A new test utility for testing appup files is added to
+	      test_server. This is now used by most applications in OTP.
+
+	      (Thanks to Tobias Schlager)
+
+   OTP-11761  Handle v1 CRLs, with no extensions and fixes issues with IDP
+	      (Issuing Distribution Point) comparison during CRL
+	      validation. 
+
+	      Thanks to Andrew Thompson
+
+--- reltool-0.6.5 -------------------------------------------------------
+
+   OTP-11591  When adding a regexp to a filter in reltool using
+	      {add,Regexp}, and the existing regexp was undefined, reltool
+	      would crash since it got an improper list. This has been
+	      corrected. (Thanks to Håkan Mattsson)
+
+   OTP-11592  Adapted reltool test server to common test usage of
+	      tc_status. (Note that this code is not used by OTP daily test
+	      runs.) (Thanks to Håkan Mattsson)
+
+   OTP-11744  Application upgrade (appup) files are corrected for the
+	      following applications: 
+
+	      asn1, common_test, compiler, crypto, debugger, dialyzer,
+	      edoc, eldap, erl_docgen, et, eunit, gs, hipe, inets,
+	      observer, odbc, os_mon, otp_mibs, parsetools, percept,
+	      public_key, reltool, runtime_tools, ssh, syntax_tools,
+	      test_server, tools, typer, webtool, wx, xmerl
+
+	      A new test utility for testing appup files is added to
+	      test_server. This is now used by most applications in OTP.
+
+	      (Thanks to Tobias Schlager)
+
+--- runtime_tools-1.8.14 ------------------------------------------------
+
+   OTP-10877  Allow install path to have unicode characters.
+
+   OTP-11603  The documentation for the return value of
+	      dbg:{stop,stop_clear} functions are now correct (Thanks to
+	      Luca Favatella)
+
+   OTP-11622  Fix DTrace build on Illumos. (Thanks to Ryan Zezeski.)
+
+   OTP-11662  The erts_alloc_config tool has been updated to produce
+	      configurations that better fit todays SMP support in the VM.
+
+   OTP-11693  Do not turn off scheduler_wall_time, as it can interfere with
+	      other applications usage.
+
+   OTP-11744  Application upgrade (appup) files are corrected for the
+	      following applications: 
+
+	      asn1, common_test, compiler, crypto, debugger, dialyzer,
+	      edoc, eldap, erl_docgen, et, eunit, gs, hipe, inets,
+	      observer, odbc, os_mon, otp_mibs, parsetools, percept,
+	      public_key, reltool, runtime_tools, ssh, syntax_tools,
+	      test_server, tools, typer, webtool, wx, xmerl
+
+	      A new test utility for testing appup files is added to
+	      test_server. This is now used by most applications in OTP.
+
+	      (Thanks to Tobias Schlager)
+
+   OTP-11773  The app-file key runtime_dependencies has been introduced.
+
+	      Runtime dependencies have been added to all app-files in OTP.
+	      Note that these may not be completely correct during OTP 17,
+	      but this is actively being worked on.
+
+	      The function system_information:sanity_check/0 will verify
+	      all declared runtime dependencies in the system when called.
+
+--- sasl-2.4 ------------------------------------------------------------
+
+   OTP-10842  Calls to erlang:open_port/2 with 'spawn' are updated to
+	      handle space in the command path.
+
+   OTP-11716  The upgrade instruction 'restart_application' would earlier
+	      ignore the restart type configured in the .rel file and
+	      always restart the application as permanent. This is now
+	      changed, and the restart type from the .rel file is used. If
+	      restart type is 'load', the application will only be loaded
+	      and not started. If the restart type is 'none', the
+	      application will not be loaded nor started, but all modules
+	      in the application will be loaded. (Thanks to Tobias Schlager
+	      for reporting this problem)
+
+   OTP-11717  Some more documentation is added to explain the behavior when
+	      an upgrade includes new versions of ERTS, Kernel, STDLIB or
+	      SASL.
+
+   OTP-11819  If systools:make_script/2 failed with reason
+	      duplicate_modules, and the silent flag was not used, a crash
+	      with reason function_clause would occur when systools tried
+	      to format the error message. This has been corrected. (Thanks
+	      to Jean-Sébastien Pédron)
+
+--- snmp-4.25.1 ---------------------------------------------------------
+
+   OTP-11744  Application upgrade (appup) files are corrected for the
+	      following applications: 
+
+	      asn1, common_test, compiler, crypto, debugger, dialyzer,
+	      edoc, eldap, erl_docgen, et, eunit, gs, hipe, inets,
+	      observer, odbc, os_mon, otp_mibs, parsetools, percept,
+	      public_key, reltool, runtime_tools, ssh, syntax_tools,
+	      test_server, tools, typer, webtool, wx, xmerl
+
+	      A new test utility for testing appup files is added to
+	      test_server. This is now used by most applications in OTP.
+
+	      (Thanks to Tobias Schlager)
+
+--- ssh-3.0.1 -----------------------------------------------------------
+
+   OTP-10732  Fixes the problem that ssh_cli in some cases could delay the
+	      prompt if a tty was not requested by the client.
+
+   OTP-10953  Ssh now fully supports unicode filenames, filecontents, shell
+	      and cli. Please note that the underlying os and emulator must
+	      also give support for unicode. You may want to start the
+	      emulator with "erl +fnu" on Linux.
+
+   OTP-11566  The variable NewCol is now correctly calculated allowing for
+	      tab-completion of function calls even when preceded with
+	      blank space (Thanks to Alexander Demidenko)
+
+   OTP-11627  Fix incorrect dialyzer spec and types, also enhance
+	      documentation. 
+
+	      Thanks to Ayaz Tuncer.
+
+   OTP-11671  Fixed a bug with the ssh file 'known_hosts' which made the
+	      file grow with many equal entries.
+
+   OTP-11678  Some local implementations of removing the last element from
+	      a list are replaced by lists:droplast/1. Note that this
+	      requires at least stdlib-2.0, which is the stdlib version
+	      delivered in OTP 17.0. (Thanks to Hans Svensson)
+
+   OTP-11680  Bug fix for ssh:daemon/2,3 so that the failfun is called when
+	      it should.
+
+   OTP-11705  dialyzer specs are now correct for ssh:start/0, ssh:start/1,
+	      ssh:stop/0 and ssh_connection_handler:open_channel/5. (Thanks
+	      to Johannes Weißl )
+
+   OTP-11744  Application upgrade (appup) files are corrected for the
+	      following applications: 
+
+	      asn1, common_test, compiler, crypto, debugger, dialyzer,
+	      edoc, eldap, erl_docgen, et, eunit, gs, hipe, inets,
+	      observer, odbc, os_mon, otp_mibs, parsetools, percept,
+	      public_key, reltool, runtime_tools, ssh, syntax_tools,
+	      test_server, tools, typer, webtool, wx, xmerl
+
+	      A new test utility for testing appup files is added to
+	      test_server. This is now used by most applications in OTP.
+
+	      (Thanks to Tobias Schlager)
+
+   OTP-11821  Fixed dialyzer warning for ssh_connection:send.
+
+   OTP-11823  ssh:daemon/2,3 : Added options negotiation_timeout and
+	      parallel_login to tune the authentication behaviour.
+
+--- ssl-5.3.4 -----------------------------------------------------------
+
+   OTP-11578  Moved elliptic curve definition from the crypto NIF/OpenSSL
+	      into Erlang code, adds the RFC-5639 brainpool curves and
+	      makes TLS use them (RFC-7027).
+
+	      Thanks to Andreas Schultz
+
+   OTP-11620  Unicode adaptations
+
+   OTP-11621  Added option honor_cipher_order. This instructs the server to
+	      prefer its own cipher ordering rather than the client's and
+	      can help protect against things like BEAST while maintaining
+	      compatability with clients which only support older ciphers. 
+
+	      Thanks to Andrew Thompson for the implementation, and Andreas
+	      Schultz for the test cases.
+
+   OTP-11627  Fix incorrect dialyzer spec and types, also enhance
+	      documentation. 
+
+	      Thanks to Ayaz Tuncer.
+
+   OTP-11634  Replace boolean checking in validate_option with is_boolean
+	      guard. 
+
+	      Thanks to Andreas Schultz.
+
+   OTP-11702  Some function specs are corrected or moved and some edoc
+	      comments are corrected in order to allow use of edoc. (Thanks
+	      to Pierre Fenoll)
+
+   OTP-11712  Fix possible mismatch between SSL/TLS version and default
+	      ciphers. Could happen when you specified SSL/TLS-version in
+	      optionlist to listen or accept.
+
+   OTP-11733  Correct clean up of certificate database when certs are
+	      inputed in pure DER format.The incorrect code could cause a
+	      memory leek when certs where inputed in DER. Thanks to
+	      Bernard Duggan for reporting this.
+
+   OTP-11744  Application upgrade (appup) files are corrected for the
+	      following applications: 
+
+	      asn1, common_test, compiler, crypto, debugger, dialyzer,
+	      edoc, eldap, erl_docgen, et, eunit, gs, hipe, inets,
+	      observer, odbc, os_mon, otp_mibs, parsetools, percept,
+	      public_key, reltool, runtime_tools, ssh, syntax_tools,
+	      test_server, tools, typer, webtool, wx, xmerl
+
+	      A new test utility for testing appup files is added to
+	      test_server. This is now used by most applications in OTP.
+
+	      (Thanks to Tobias Schlager)
+
+   OTP-11759  Improved documentation of the cacertfile option
+
+   OTP-11760  Avoid next protocol negotiation failure due to incorrect
+	      option format.
+
+   OTP-11761  Handle v1 CRLs, with no extensions and fixes issues with IDP
+	      (Issuing Distribution Point) comparison during CRL
+	      validation. 
+
+	      Thanks to Andrew Thompson
+
+   OTP-11780  Server now ignores client ECC curves that it does not support
+	      instead of crashing. 
+
+	      Thanks to Danil Zagoskin for reporting the issue and
+	      suggesting a solution.
+
+   OTP-11815  Handle SNI (Server Name Indication) alert unrecognized_name
+	      and gracefully deal with unexpected alerts. 
+
+	      Thanks to Masatake Daimon for reporting this.
+
+   OTP-11837  Add possibility to specify ssl options when calling
+	      ssl:ssl_accept
+
+--- stdlib-2.0 ----------------------------------------------------------
+
+   OTP-10285  Options to set match_limit and match_limit_recursion are
+	      added to re:run. The option report_errors is also added to
+	      get more information when re:run fails due to limits or
+	      compilation errors.
+
+   OTP-10342  The pre-defined types array/0, dict/0, digraph/0, gb_set/0,
+	      gb_tree/0, queue/0, set/0, and tid/0 have been deprecated.
+	      They will be removed in Erlang/OTP 18.0.
+
+	      Instead the types array:array/0, dict:dict/0,
+	      digraph:graph/0, gb_set:set/0, gb_tree:tree/0, queue:queue/0,
+	      sets:set/0, and ets:tid/0 can be used. (Note: it has always
+	      been necessary to use ets:tid/0.)
+
+	      It is allowed in Erlang/OTP 17.0 to locally re-define the
+	      types array/0, dict/0, and so on.
+
+	      New types array:array/1, dict:dict/2, gb_sets:set/1,
+	      gb_trees:tree/2, queue:queue/1, and sets:set/1 have been
+	      added.
+
+	      A compiler option, nowarn_deprecated_type, has been
+	      introduced. By including the attribute
+
+	      -compile(nowarn_deprecated_type).
+
+	      in an Erlang source file, warnings about deprecated types can
+	      be avoided in Erlang/OTP 17.0.
+
+	      The option can also be given as a compiler flag:
+
+	      erlc +nowarn_deprecated_type file.erl
+
+   OTP-10842  Calls to erlang:open_port/2 with 'spawn' are updated to
+	      handle space in the command path.
+
+   OTP-10908  Dialyzer's unmatched_return warnings have been corrected.
+
+   OTP-11186  Forbid unsized fields in patterns of binary generators and
+	      simplified v3_core's translation of bit string generators.
+	      (Thanks to Anthony Ramine.)
+
+   OTP-11204  The version of the PCRE library Used by Erlang's re module is
+	      raised to 8.33 from 7.6. This means, among other things,
+	      better Unicode and Unicode Character Properties support. New
+	      options connected to PCRE 8.33 are also added to the re
+	      module (ucd, notempty_atstart, no_start_optimize). PCRE has
+	      extended the regular expression syntax between 7.6 and 8.33,
+	      why this imposes a potential incompatibility. Only very
+	      complicated regular expressions may be affected, but if you
+	      know you are using obscure features, please test run your
+	      regular expressions and verify that their behavior has not
+	      changed.
+
+   OTP-11205  The option dupnames did not work as intended in re. When
+	      looking for names with {capture, [Name, ...]}, re:run
+	      returned a random instance of the match for that name,
+	      instead of the leftmost matching instance, which was what the
+	      documentation stated. This is now corrected to adhere to the
+	      documentation. The option {capture,all_names} along with a
+	      re:inspect/2 function is also added to further help in using
+	      named subpatterns.
+
+   OTP-11353  Added dict:is_empty/1 and orddict:is_empty/1. (Thanks to
+	      Magnus Henoch.)
+
+   OTP-11388  A call to either the garbage_collect/1 BIF or the
+	      check_process_code/2 BIF may trigger garbage collection of
+	      another processes than the process calling the BIF. The
+	      previous implementations performed these kinds of garbage
+	      collections without considering the internal state of the
+	      process being garbage collected. In order to be able to more
+	      easily and more efficiently implement yielding native code,
+	      these types of garbage collections have been rewritten. A
+	      garbage collection like this is now triggered by an
+	      asynchronous request signal, the actual garbage collection is
+	      performed by the process being garbage collected itself, and
+	      finalized by a reply signal to the process issuing the
+	      request. Using this approach processes can disable garbage
+	      collection and yield without having to set up the heap in a
+	      state that can be garbage collected.
+
+	      The garbage_collect/2, and check_process_code/3 BIFs have
+	      been introduced. Both taking an option list as last argument.
+	      Using these, one can issue asynchronous requests.
+
+	      code:purge/1 and code:soft_purge/1 have been rewritten to
+	      utilize asynchronous check_process_code requests in order to
+	      parallelize work.
+
+	      Characteristics impact: A call to the garbage_collect/1 BIF
+	      or the check_process_code/2 BIF will normally take longer
+	      time to complete while the system as a whole wont be as much
+	      negatively effected by the operation as before. A call to
+	      code:purge/1 and code:soft_purge/1 may complete faster or
+	      slower depending on the state of the system while the system
+	      as a whole wont be as much negatively effected by the
+	      operation as before.
+
+   OTP-11399  Improve the documentation of the supervisor's via reference.
+	      (Thanks to MaximMinin.)
+
+   OTP-11552  orddict:from_list/1 now uses the optimized sort routines in
+	      the lists module instead of (essentially) an insertion sort.
+	      Depending on the input data, the speed of the new from_list/1
+	      is anything from slightly faster up to several orders of
+	      magnitude faster than the old from_list/1. (Thanks to Steve
+	      Vinoski.)
+
+   OTP-11589  If option 'binary' was set for standard_input, then c:i()
+	      would hang if the output was more than one page long - i.e.
+	      then input after "(c)ontinue (q)uit -->" could not be read.
+	      This has been corrected. (Thanks to José Valim)
+
+   OTP-11616  EEP43: New data type - Maps
+
+	      With Maps you may for instance:
+
+	      -- M0 = #{ a => 1, b => 2}, % create associations
+
+	      -- M1 = M0#{ a := 10 }, % update values
+
+	      -- M2 = M1#{ "hi" => "hello"}, % add new associations
+
+	      -- #{ "hi" := V1, a := V2, b := V3} = M2. % match keys with
+	      values
+
+	      For information on how to use Maps please see the Reference
+	      Manual.
+
+	      The current implementation is without the following features:
+
+	      -- No variable keys
+
+	      -- No single value access
+
+	      -- No map comprehensions
+
+	      Note that Maps is experimental during OTP 17.0.
+
+   OTP-11677  stdlib/lists: Add function droplast/1 This functions drops
+	      the last element of a non-empty list. lists:last/1 and
+	      lists:droplast/1 are the dual of hd/1 and tl/1 but for the
+	      end of a list. (Thanks to Hans Svensson)
+
+   OTP-11682  Allow all auto imports to be suppressed at once. Introducing
+	      the no_auto_import attribute: -compile(no_auto_import).
+	      Useful for code generation tools that always use the
+	      qualified function names and want to avoid the auto imported
+	      functions clashing with local ones. (Thanks to José Valim.)
+
+   OTP-11684  When tab completing the erlang shell now expands zero-arity
+	      functions all the way to closing parenthesis, unless there is
+	      another function with the same name and a different arity.
+	      (Thanks to Pierre Fenoll.)
+
+   OTP-11685  supervisor_bridge does no longer report normal termination of
+	      children. The reason is that in some cases, for instance when
+	      the restart strategy is simple_one_for_one, the log could be
+	      completely overloaded with reports about normally terminating
+	      processes. (Thanks to Artem Ocheredko)
+
+   OTP-11707  The type annotations for alternative registries using the
+	      {via, Module, Name} syntax for sup_name() and sup_ref() in
+	      the supervisor module are now consistent with the
+	      documentation. Dialyzer should no longer complain about valid
+	      supervisor:start_link() and supervisor:start_child() calls.
+	      (Thanks to Caleb Helbling.)
+
+   OTP-11709  Two Dets bugs have been fixed. When trying to open a short
+	      file that is not a Dets file, the file was deleted even with
+	      just read access. Calling dets:is_dets_file/1 with a file
+	      that is not a Dets file, a file descriptor was left open.
+	      (Thanks to Håkan Mattsson for reporting the bugs.)
+
+   OTP-11726  Fix race bug in ets:all. Concurrent creation of tables could
+	      cause other tables to not be included in the result. (Thanks
+	      to Florian Schintke for bug report)
+
+   OTP-11728  The Erlang Code Preprocessor (epp) could loop when
+	      encountering a circular macro definition in an included file.
+	      This bug has been fixed.
+
+	      Thanks to Maruthavanan Subbarayan for reporting the bug, and
+	      to Richard Carlsson for providing a bug fix.
+
+   OTP-11747  erl_eval now properly evaluates '=='/2 when it is used in
+	      guards. (Thanks to José Valim)
+
+   OTP-11752  Calls to proplists:get_value/3 are replaced by the faster
+	      lists:keyfind/3 in io_lib_pretty. Elements in the list are
+	      always 2-tuples. (Thanks to Andrew Thompson)
+
+   OTP-11758  A qlc bug where filters were erroneously optimized away has
+	      been fixed. Thanks to Sam Bobroff for reporting the bug.
+
+   OTP-11770  A number of compiler errors where unusual or nonsensical code
+	      would crash the compiler have been reported by Ulf Norell and
+	      corrected by Anthony Ramine.
+
+   OTP-11771  The Erlang Code Linter (erl_lint) has since Erlang/OTP R13B
+	      emitted warnings whenever any of the types arity(),
+	      bitstring(), iodata(), or boolean() were re-defined. Now
+	      errors are emitted instead.
+
+   OTP-11772  Since Erlang/OTP R16B the Erlang Core Linter (erl_lint) has
+	      not emitted errors when built-in types were re-defined. This
+	      bug has been fixed. (Thanks to Roberto Aloi.)
+
+   OTP-11807  The encoding option of erl_parse:abstract/2 has been extended
+	      to include none and a callback function (a predicate).
+
+   OTP-11817  The functions sys:get_state/1,2 and sys:replace_state/2,3 are
+	      fixed so they can now be run while the process is sys
+	      suspended. To accomplish this, the new callbacks
+	      Mod:system_get_state/1 and Mod:system_replace_state/2 are
+	      added, which are also implemented by the generic behaviours
+	      gen_server, gen_event and gen_fsm.
+
+	      The potential incompatibility refers to
+
+	      -- The previous behaviour of intercepting the system message
+	      and passing a tuple of size 2 as the last argument to
+	      sys:handle_system_msg/6 is no longer supported.
+
+	      -- The error handling when StateFun in sys:replace_state/2,3
+	      fails is changed from being totally silent to possibly (if
+	      the callback module does not catch) throw an exception in the
+	      client process.
+
+	      (Thanks to James Fish and Steve Vinoski)
+
+   OTP-11828  Export zip option types to allow referal from other modules.
+
+	      Thanks to Pierre Fenoll and Håkan Mattson
+
+   OTP-11840  The module pg has been deprecated and will be removed in
+	      Erlang/OTP 18.
+
+--- syntax_tools-1.6.14 -------------------------------------------------
+
+   OTP-11632  Add implementation of having erl_tidy print to screen instead
+	      of writing to the file provided. (Thanks to Aaron France)
+
+   OTP-11663  Support Maps syntax in syntax_tools (Thanks to Anthony
+	      Ramine).
+
+   OTP-11744  Application upgrade (appup) files are corrected for the
+	      following applications: 
+
+	      asn1, common_test, compiler, crypto, debugger, dialyzer,
+	      edoc, eldap, erl_docgen, et, eunit, gs, hipe, inets,
+	      observer, odbc, os_mon, otp_mibs, parsetools, percept,
+	      public_key, reltool, runtime_tools, ssh, syntax_tools,
+	      test_server, tools, typer, webtool, wx, xmerl
+
+	      A new test utility for testing appup files is added to
+	      test_server. This is now used by most applications in OTP.
+
+	      (Thanks to Tobias Schlager)
+
+--- test_server-3.7 -----------------------------------------------------
+
+   OTP-10842  Calls to erlang:open_port/2 with 'spawn' are updated to
+	      handle space in the command path.
+
+   OTP-11744  Application upgrade (appup) files are corrected for the
+	      following applications: 
+
+	      asn1, common_test, compiler, crypto, debugger, dialyzer,
+	      edoc, eldap, erl_docgen, et, eunit, gs, hipe, inets,
+	      observer, odbc, os_mon, otp_mibs, parsetools, percept,
+	      public_key, reltool, runtime_tools, ssh, syntax_tools,
+	      test_server, tools, typer, webtool, wx, xmerl
+
+	      A new test utility for testing appup files is added to
+	      test_server. This is now used by most applications in OTP.
+
+	      (Thanks to Tobias Schlager)
+
+--- toolbar -------------------------------------------------------------
+
+   OTP-10915  Removed gs based applications and gs based backends. The
+	      observer application replaces the removed applications.
+
+--- tools-2.6.14 --------------------------------------------------------
+
+   OTP-11568  Removed the support for the query keyword from emacs mode
+	      (Thanks to Paul Oliver)
+
+   OTP-11601  Emacs mode improvements (Thanks to Steve Vinoski)
+
+   OTP-11692  cover can run on itself. Also, support for reading BEAM files
+	      produced by ancient OTP versions before R9C has been removed.
+
+   OTP-11744  Application upgrade (appup) files are corrected for the
+	      following applications: 
+
+	      asn1, common_test, compiler, crypto, debugger, dialyzer,
+	      edoc, eldap, erl_docgen, et, eunit, gs, hipe, inets,
+	      observer, odbc, os_mon, otp_mibs, parsetools, percept,
+	      public_key, reltool, runtime_tools, ssh, syntax_tools,
+	      test_server, tools, typer, webtool, wx, xmerl
+
+	      A new test utility for testing appup files is added to
+	      test_server. This is now used by most applications in OTP.
+
+	      (Thanks to Tobias Schlager)
+
+   OTP-11764  Support maps in cover
+
+   OTP-11786  The emacs erlang mode now match erlang keywords more
+	      carefully (Thanks to Steve Vinoski)
+
+   OTP-11788  The emacs erlang-mode now auto loads for more file types
+	      (Thanks to Phil Hagelberg)
+
+--- tv ------------------------------------------------------------------
+
+   OTP-10915  Removed gs based applications and gs based backends. The
+	      observer application replaces the removed applications.
+
+--- typer-0.9.6 ---------------------------------------------------------
+
+   OTP-11616  EEP43: New data type - Maps
+
+	      With Maps you may for instance:
+
+	      -- M0 = #{ a => 1, b => 2}, % create associations
+
+	      -- M1 = M0#{ a := 10 }, % update values
+
+	      -- M2 = M1#{ "hi" => "hello"}, % add new associations
+
+	      -- #{ "hi" := V1, a := V2, b := V3} = M2. % match keys with
+	      values
+
+	      For information on how to use Maps please see the Reference
+	      Manual.
+
+	      The current implementation is without the following features:
+
+	      -- No variable keys
+
+	      -- No single value access
+
+	      -- No map comprehensions
+
+	      Note that Maps is experimental during OTP 17.0.
+
+   OTP-11744  Application upgrade (appup) files are corrected for the
+	      following applications: 
+
+	      asn1, common_test, compiler, crypto, debugger, dialyzer,
+	      edoc, eldap, erl_docgen, et, eunit, gs, hipe, inets,
+	      observer, odbc, os_mon, otp_mibs, parsetools, percept,
+	      public_key, reltool, runtime_tools, ssh, syntax_tools,
+	      test_server, tools, typer, webtool, wx, xmerl
+
+	      A new test utility for testing appup files is added to
+	      test_server. This is now used by most applications in OTP.
+
+	      (Thanks to Tobias Schlager)
+
+--- webtool-0.8.10 ------------------------------------------------------
+
+   OTP-11744  Application upgrade (appup) files are corrected for the
+	      following applications: 
+
+	      asn1, common_test, compiler, crypto, debugger, dialyzer,
+	      edoc, eldap, erl_docgen, et, eunit, gs, hipe, inets,
+	      observer, odbc, os_mon, otp_mibs, parsetools, percept,
+	      public_key, reltool, runtime_tools, ssh, syntax_tools,
+	      test_server, tools, typer, webtool, wx, xmerl
+
+	      A new test utility for testing appup files is added to
+	      test_server. This is now used by most applications in OTP.
+
+	      (Thanks to Tobias Schlager)
+
+--- wx-1.2 --------------------------------------------------------------
+
+   OTP-11586  Refactored C++ code, fixed crashes and a deadlock on linux.
+
+   OTP-11678  Some local implementations of removing the last element from
+	      a list are replaced by lists:droplast/1. Note that this
+	      requires at least stdlib-2.0, which is the stdlib version
+	      delivered in OTP 17.0. (Thanks to Hans Svensson)
+
+   OTP-11699  Reworked the internal event handling to avoid crashes in
+	      destroy objects. Thanks Tom for the bug report.
+
+   OTP-11744  Application upgrade (appup) files are corrected for the
+	      following applications: 
+
+	      asn1, common_test, compiler, crypto, debugger, dialyzer,
+	      edoc, eldap, erl_docgen, et, eunit, gs, hipe, inets,
+	      observer, odbc, os_mon, otp_mibs, parsetools, percept,
+	      public_key, reltool, runtime_tools, ssh, syntax_tools,
+	      test_server, tools, typer, webtool, wx, xmerl
+
+	      A new test utility for testing appup files is added to
+	      test_server. This is now used by most applications in OTP.
+
+	      (Thanks to Tobias Schlager)
+
+--- xmerl-1.3.7 ---------------------------------------------------------
+
+   OTP-11744  Application upgrade (appup) files are corrected for the
+	      following applications: 
+
+	      asn1, common_test, compiler, crypto, debugger, dialyzer,
+	      edoc, eldap, erl_docgen, et, eunit, gs, hipe, inets,
+	      observer, odbc, os_mon, otp_mibs, parsetools, percept,
+	      public_key, reltool, runtime_tools, ssh, syntax_tools,
+	      test_server, tools, typer, webtool, wx, xmerl
+
+	      A new test utility for testing appup files is added to
+	      test_server. This is now used by most applications in OTP.
+
+	      (Thanks to Tobias Schlager)
+
+</pre></code>
