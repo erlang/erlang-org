@@ -262,6 +262,7 @@ short_status(Status) ->
                 <<"Draft">> => "",
                 <<"Accepted">> => "A",
                 <<"Rejected">> => "R",
+                <<"Replaced">> => "Rep",
                 <<"Withdrawn">> => "W",
                 <<"Deferred">> => "D",
                 <<"Final">> => "F"}).
