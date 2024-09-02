@@ -24,7 +24,7 @@ You can build Erlang from source on your own, following the [building and instal
 
 If you clone the release from git, there may be some additional steps needed depending on which version of Erlang/OTP you are compiling. So always make sure to read the build and install instruction of the release you are compiling.
 
-You can also use third-party tools such as [Kerl](https://github.com/kerl/kerl) or [asdf](https://github.com/asdf-vm/asdf-erlang) to compile Erlang. They help to remove the differences between Erlang/OTP releases and the OS you are compiling on.
+You can also use third-party tools such as [Kerl](https://github.com/kerl/kerl), [asdf](https://github.com/asdf-vm/asdf-erlang) or [mise](https://mise.jdx.dev/lang/erlang.html) to compile Erlang. They help to remove the differences between Erlang/OTP releases and the OS you are compiling on.
 
 ### Pre-built Binary Packages <a href="#prebuilt" name="prebuilt">#</a>
 
@@ -43,4 +43,3 @@ So [Erlang Solutions](https://www.erlang-solutions.com/downloads/) provides up t
 ### License
 
 Since Erlang/OTP 18.0, Erlang/OTP is released under [Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0). The older releases prior to Erlang/OTP 18.0 were released under [Erlang Public License (EPL)](/EPLICENSE), a derivative work of the Mozilla Public License (MPL).
-
