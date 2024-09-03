@@ -30,7 +30,7 @@ _get_doc_hash() {
 
 _flatten_docs() {
     if [ -f "docs/doc-$1/doc/readme.html" ]; then
-        (cd docs && ../_scripts/otp_flatten_ex_docs "doc-$1" "$2")
+        (cd docs && ../_scripts/otp_flatten_ex_docs "doc-$1" "$2" "$3")
     else
         (cd docs && ../_scripts/otp_flatten_docs "doc-$1" "$2")
     fi
@@ -98,7 +98,7 @@ for ARCHIVE in docs/*.tar.gz; do
         mv docs/doc-1 docs/doc
         printf -- '---\nlayout: search\nversion: %s\n---\n' "${MAJOR_VSN}" > "docs/doc/search.html"
     fi
-    _flatten_docs "${ERTS_VSN}" "${MAJOR_VSN}"
+    _flatten_docs "${ERTS_VSN}" "${MAJOR_VSN}" "${LATEST_MAJOR_VSN}"
     touch "docs/doc-1/$(_get_doc_hash "${VSN}")"
     rm -rf "docs/${MAJOR_VSN}" || true
     mv docs/doc-1 "docs/${MAJOR_VSN}"
