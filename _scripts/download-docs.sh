@@ -93,7 +93,7 @@ for ARCHIVE in docs/*.tar.gz; do
     echo "Flattening ${MAJOR_VSN}"
     mv "docs/tmp" "docs/doc-${ERTS_VSN}"
     if [ "${MAJOR_VSN}" = "${LATEST_MAJOR_VSN}" ]; then
-        _flatten_docs "${ERTS_VSN}" "${MAJOR_VSN}"
+        _flatten_docs "${ERTS_VSN}" "${MAJOR_VSN}" "${LATEST_MAJOR_VSN}"
         rm -rf "docs/doc" || true
         mv docs/doc-1 docs/doc
         printf -- '---\nlayout: search\nversion: %s\n---\n' "${MAJOR_VSN}" > "docs/doc/search.html"
