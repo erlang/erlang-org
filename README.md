@@ -239,7 +239,7 @@ You can of course also create your own styles, but we try to stay with the boots
 ### Redirection fixes
 - [x] Redirect blog.erlang.org/* to www.erlang.org/blog
 - [x] Redirect bugs.erlang.org/browse/* to www.erlang.org/bugs/
-- [x] Redirect bugs.erlang.org to github.com/erlang/otp/issues
+- [x] Redirect bugs.erlang.org/* to github.com/erlang/otp/issues
 - [ ] Redirect erlang.org/faq/* to www.erlang.org/faq
 - [ ] Redirect erlang.org/eep/* to www.erlang.org/eep
 - [ ] Redirect erlang.org/eeps/* to www.erlang.org/eeps
