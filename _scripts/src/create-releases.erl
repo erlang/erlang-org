@@ -37,8 +37,8 @@ parse_erlang_org_downloads() ->
                  erlang_download_readme_md => "^(?:otp_src_|OTP-)(.*)\\.(?:readme|README).md$",
                  html => "^otp_(?:doc_)?html_(.*)\\.tar\\.gz$",
                  man => "^otp_(?:doc_)?man_(.*)\\.tar\\.gz$",
-                 win32 => "^otp_win32_(.*)\\.exe$",
-                 win64 => "^otp_win64_(.*)\\.exe$",
+                 win32_exe => "^otp_win32_(.*)\\.exe$",
+                 win64_exe => "^otp_win64_(.*)\\.exe$",
                  src => "^otp_src_(.*)\\.tar\\.gz$" },
     lists:foldl(
       fun(Download, Vsns) ->
@@ -118,8 +118,10 @@ fetch_assets(Assets) ->
     Matches = #{ readme => "^OTP-.*\\.(?:README|readme|README.md|readme.md)$",
                  html => "^otp_doc_html.*",
                  man => "^otp_doc_man.*",
-                 win32 => "^otp_win32.*",
-                 win64 => "^otp_win64.*",
+                 win32_exe => "^otp_win32.*\\.exe$",
+                 win64_exe => "^otp_win64.*\\.exe$",
+                 win32_zip => "^otp_win32.*\\.zip$",
+                 win64_zip => "^otp_win64.*\\.zip$",
                  src => "^otp_src.*" },
     maps:from_list(
       lists:flatmap(
