@@ -43,3 +43,5 @@ The photograph shows Danie Schutte, Carlos Varela, Rex Page and Ulf Wiger in fro
 * [ACM SIGPLAN Erlang Workshop 2020](https://icfp20.sigplan.org/home/erlang-2020), Online
 * [ACM SIGPLAN Erlang Workshop 2021](https://icfp21.sigplan.org/home/erlang-2021), Online
 * [ACM SIGPLAN Erlang Workshop 2022](https://icfp22.sigplan.org/home/erlang-2022), Ljubljana
+* [ACM SIGPLAN Erlang Workshop 2023](https://icfp22.sigplan.org/home/erlang-2023), Seattle
+* [ACM SIGPLAN Erlang Workshop 2024](https://icfp22.sigplan.org/home/erlang-2024), Milan
