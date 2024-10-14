@@ -8,7 +8,7 @@
 set -e
 
 VERIFY_SOURCE=false
-SYSTEM_GUIDES=$(find docs/26/ -name users_guide.html | grep -v "apps" | awk -F/ '{print $3}' | grep -v general_info | grep -v system_architecture_intro)
+SYSTEM_GUIDES=$(find docs/26/ -name users_guide.html | grep -v "apps" | awk -F/ '{print $3}' | grep -v general_info | grep -v system_architecture_intro | grep -v oam )
 
 _check() {
     LOWERCASE_TARGET=$(echo "$2" | tr '[:upper:]' '[:lower:]')
