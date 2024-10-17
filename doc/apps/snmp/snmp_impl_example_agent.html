@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.34.1">
+    <meta name="project" content="snmp v5.17">
+
+
+<meta name="exdoc:full-text-search-url" content="/doc/search.html?v=27&q=">
+<meta name="major-vsn" content="27">
+<link rel="canonical" href="https://www.erlang.org/doc/apps/snmp/snmp_impl_example_agent.html" />
+    <title>Agent Implementation Example — snmp v5.17</title>
+    <link rel="stylesheet" href="dist/html-erlang-APNLKZCW.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-K7URE6B4.js"></script>
+    <script src="dist/sidebar_items-B210B861.js"></script>
+    <script src="docs_config.js"></script>
+    <script async src="dist/html-7XSQ4GTY.js"></script>
+
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="snmp" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+snmp
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v5.17
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of snmp</span>
+            <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+          </label>
+          <button type="submit" class="search-button" aria-label="Submit Search">
+            <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+          </button>
+          <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+            <i class="ri-close-line ri-lg" title="Cancel search"></i>
+          </button>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/snmp/doc/guides/snmp_impl_example_agent.md#L1" title="View Source" class="icon-action" rel="help">
+        <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        <span class="sr-only">View Source</span>
+      </a>
+
+
+    <span>Agent Implementation Example</span>
+  </h1>
+
+<p>This <em>Implementation Example</em> section describes how an MIB can be implemented
+with the SNMP Development Toolkit.</p><p>The example shown can be found in the toolkit distribution.</p><p>The agent is configured with the configuration tool, using default suggestions
+for everything but the manager node.</p><h2 id="mib" class="section-heading">
+  <a href="#mib" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">MIB</span>
+</h2>
+<p>The MIB used in this example is called EX1-MIB. It contains two objects, a
+variable with a name and a table with friends.</p><pre><code class="text">EX1-MIB DEFINITIONS ::= BEGIN
+
+          IMPORTS
+                  experimental   FROM RFC1155-SMI
+                  RowStatus      FROM STANDARD-MIB
+                  DisplayString  FROM RFC1213-MIB
+                  OBJECT-TYPE    FROM RFC-1212
+                  ;
+
+          example1       OBJECT IDENTIFIER ::= { experimental 7 }
+
+          myName OBJECT-TYPE
+              SYNTAX  DisplayString (SIZE (0..255))
+              ACCESS  read-write
+              STATUS  mandatory
+              DESCRIPTION
+                      &quot;My own name&quot;
+              ::= { example1 1 }
+
+          friendsTable OBJECT-TYPE
+              SYNTAX  SEQUENCE OF FriendsEntry
+              ACCESS  not-accessible
+              STATUS  mandatory
+              DESCRIPTION
+                      &quot;A list of friends.&quot;
+              ::= { example1 4 }
+
+          friendsEntry OBJECT-TYPE
+              SYNTAX  FriendsEntry
+              ACCESS  not-accessible
+              STATUS  mandatory
+              DESCRIPTION
+                      &quot;&quot;
+              INDEX   { fIndex }
+              ::= { friendsTable 1 }
+
+          FriendsEntry ::=
+              SEQUENCE {
+                   fIndex
+                      INTEGER,
+                   fName
+                      DisplayString,
+                   fAddress
+                      DisplayString,
+                   fStatus
+                      RowStatus              }
+
+          fIndex OBJECT-TYPE
+              SYNTAX  INTEGER
+              ACCESS  not-accessible
+              STATUS  mandatory
+               DESCRIPTION
+                      &quot;number of friend&quot;
+              ::= { friendsEntry 1 }
+
+          fName OBJECT-TYPE
+              SYNTAX  DisplayString (SIZE (0..255))
+              ACCESS  read-write
+              STATUS  mandatory
+              DESCRIPTION
+                      &quot;Name of friend&quot;
+              ::= { friendsEntry 2 }
+
+          fAddress OBJECT-TYPE
+              SYNTAX  DisplayString (SIZE (0..255))
+              ACCESS  read-write
+              STATUS  mandatory
+              DESCRIPTION
+                      &quot;Address of friend&quot;
+              ::= { friendsEntry 3 }
+
+           fStatus OBJECT-TYPE
+              SYNTAX      RowStatus
+              ACCESS      read-write
+              STATUS      mandatory
+              DESCRIPTION
+                      &quot;The status of this conceptual row.&quot;
+              ::= { friendsEntry 4 }
+
+          fTrap TRAP-TYPE
+              ENTERPRISE  example1
+              VARIABLES   { myName, fIndex }
+              DESCRIPTION
+                      &quot;This trap is sent when something happens to
+                      the friend specified by fIndex.&quot;
+              ::= 1
+END</code></pre><h2 id="default-implementation" class="section-heading">
+  <a href="#default-implementation" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Default Implementation</span>
+</h2>
+<p>Without writing any instrumentation functions, we can compile the MIB and use
+the default implementation of it. Recall that MIBs imported by &quot;EX1-MIB.mib&quot;
+must be present and compiled in the current directory
+(&quot;./STANDARD-MIB.bin&quot;,&quot;./RFC1213-MIB.bin&quot;) when compiling.</p><pre><code class="makeup erlang" translate="no"><span class="ss">unix</span><span class="o">&gt;</span><span class="w"> </span><span class="ss">erl</span><span class="w"> </span><span class="o">-</span><span class="ss">config</span><span class="w"> </span><span class="p">.</span><span class="o">/</span><span class="ss">sys</span><span class="gp unselectable">
+1&gt; </span><span class="nc">application</span><span class="p">:</span><span class="nf">start</span><span class="p" data-group-id="1569707253-1">(</span><span class="ss">snmp</span><span class="p" data-group-id="1569707253-1">)</span><span class="p">.</span><span class="w">
+</span><span class="ss">ok</span><span class="gp unselectable">
+2&gt; </span><span class="nc">snmpc</span><span class="p">:</span><span class="nf">compile</span><span class="p" data-group-id="1569707253-2">(</span><span class="s">&quot;EX1-MIB&quot;</span><span class="p" data-group-id="1569707253-2">)</span><span class="p">.</span><span class="w">
+</span><span class="n">No</span><span class="w"> </span><span class="ss">accessfunction</span><span class="w"> </span><span class="ss">for</span><span class="w"> </span><span class="ss">&#39;friendsTable&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">using</span><span class="w"> </span><span class="ss">default</span><span class="p">.</span><span class="w">
+</span><span class="n">No</span><span class="w"> </span><span class="ss">accessfunction</span><span class="w"> </span><span class="ss">for</span><span class="w"> </span><span class="ss">&#39;myName&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">using</span><span class="w"> </span><span class="ss">default</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="1569707253-3">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;EX1-MIB.bin&quot;</span><span class="p" data-group-id="1569707253-3">}</span><span class="gp unselectable">
+3&gt; </span><span class="nc">snmpa</span><span class="p">:</span><span class="nf">load_mibs</span><span class="p" data-group-id="1569707253-4">(</span><span class="ss">snmp_master_agent</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1569707253-5">[</span><span class="s">&quot;EX1-MIB&quot;</span><span class="p" data-group-id="1569707253-5">]</span><span class="p" data-group-id="1569707253-4">)</span><span class="p">.</span><span class="w">
+</span><span class="ss">ok</span></code></pre><p>This MIB is now loaded into the agent, and a manager can ask questions. As an
+example of this, we start another Erlang system and the simple Erlang manager in
+the toolkit:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">1&gt; </span><span class="nc">snmp_test_mgr</span><span class="p">:</span><span class="nf">start_link</span><span class="p" data-group-id="2271269723-1">(</span><span class="p" data-group-id="2271269723-2">[</span><span class="p" data-group-id="2271269723-3">{</span><span class="ss">agent</span><span class="p">,</span><span class="s">&quot;dront.ericsson.se&quot;</span><span class="p" data-group-id="2271269723-3">}</span><span class="p">,</span><span class="p" data-group-id="2271269723-4">{</span><span class="ss">community</span><span class="p">,</span><span class="s">&quot;all-rights&quot;</span><span class="p" data-group-id="2271269723-4">}</span><span class="p">,</span><span class="w">
+ </span><span class="c1">%% making it understand symbolic names: {mibs,[&quot;EX1-MIB&quot;,&quot;STANDARD-MIB&quot;]}]).</span><span class="w">
+</span><span class="p" data-group-id="2271269723-5">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="o">&lt;</span><span class="mf">0.89</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="p" data-group-id="2271269723-5">}</span><span class="w">
+</span><span class="c1">%% a get-next request with one OID.</span><span class="gp unselectable">
+2&gt; </span><span class="nc">snmp_test_mgr</span><span class="p">:</span><span class="nf">gn</span><span class="p" data-group-id="2271269723-6">(</span><span class="p" data-group-id="2271269723-7">[</span><span class="p" data-group-id="2271269723-8">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">7</span><span class="p" data-group-id="2271269723-8">]</span><span class="p" data-group-id="2271269723-7">]</span><span class="p" data-group-id="2271269723-6">)</span><span class="p">.</span><span class="w">
+</span><span class="ss">ok</span><span class="w">
+</span><span class="gt">* Got PDU:</span><span class="w">
+</span><span class="p" data-group-id="2271269723-9">[</span><span class="ss">myName</span><span class="p">,</span><span class="mi">0</span><span class="p" data-group-id="2271269723-9">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="2271269723-10">[</span><span class="p" data-group-id="2271269723-10">]</span><span class="w">
+</span><span class="c1">%% A set-request (now using symbolic names for convenience)</span><span class="gp unselectable">
+3&gt; </span><span class="nc">snmp_test_mgr</span><span class="p">:</span><span class="nf">s</span><span class="p" data-group-id="2271269723-11">(</span><span class="p" data-group-id="2271269723-12">[</span><span class="p" data-group-id="2271269723-13">{</span><span class="p" data-group-id="2271269723-14">[</span><span class="ss">myName</span><span class="p">,</span><span class="mi">0</span><span class="p" data-group-id="2271269723-14">]</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Martin&quot;</span><span class="p" data-group-id="2271269723-13">}</span><span class="p" data-group-id="2271269723-12">]</span><span class="p" data-group-id="2271269723-11">)</span><span class="p">.</span><span class="w">
+</span><span class="ss">ok</span><span class="w">
+</span><span class="gt">* Got PDU:</span><span class="w">
+</span><span class="p" data-group-id="2271269723-15">[</span><span class="ss">myName</span><span class="p">,</span><span class="mi">0</span><span class="p" data-group-id="2271269723-15">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Martin&quot;</span><span class="w">
+</span><span class="c1">%% Try the same get-next request again</span><span class="gp unselectable">
+4&gt; </span><span class="nc">snmp_test_mgr</span><span class="p">:</span><span class="nf">gn</span><span class="p" data-group-id="2271269723-16">(</span><span class="p" data-group-id="2271269723-17">[</span><span class="p" data-group-id="2271269723-18">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">7</span><span class="p" data-group-id="2271269723-18">]</span><span class="p" data-group-id="2271269723-17">]</span><span class="p" data-group-id="2271269723-16">)</span><span class="p">.</span><span class="w">
+</span><span class="ss">ok</span><span class="w">
+</span><span class="gt">* Got PDU:</span><span class="w">
+</span><span class="p" data-group-id="2271269723-19">[</span><span class="ss">myName</span><span class="p">,</span><span class="mi">0</span><span class="p" data-group-id="2271269723-19">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Martin&quot;</span><span class="w">
+</span><span class="c1">%% ... and we got the new value.</span><span class="w">
+</span><span class="c1">%% you can event do row operations. How to add a row:</span><span class="gp unselectable">
+5&gt; </span><span class="nc">snmp_test_mgr</span><span class="p">:</span><span class="nf">s</span><span class="p" data-group-id="2271269723-20">(</span><span class="p" data-group-id="2271269723-21">[</span><span class="p" data-group-id="2271269723-22">{</span><span class="p" data-group-id="2271269723-23">[</span><span class="ss">fName</span><span class="p">,</span><span class="mi">0</span><span class="p" data-group-id="2271269723-23">]</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Martin&quot;</span><span class="p" data-group-id="2271269723-22">}</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2271269723-24">{</span><span class="p" data-group-id="2271269723-25">[</span><span class="ss">fAddress</span><span class="p">,</span><span class="mi">0</span><span class="p" data-group-id="2271269723-25">]</span><span class="p">,</span><span class="s">&quot;home&quot;</span><span class="p" data-group-id="2271269723-24">}</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2271269723-26">{</span><span class="p" data-group-id="2271269723-27">[</span><span class="ss">fStatus</span><span class="p">,</span><span class="mi">0</span><span class="p" data-group-id="2271269723-27">]</span><span class="p">,</span><span class="mi">4</span><span class="p" data-group-id="2271269723-26">}</span><span class="p" data-group-id="2271269723-21">]</span><span class="p" data-group-id="2271269723-20">)</span><span class="p">.</span><span class="w">
+ </span><span class="c1">%% createAndGo</span><span class="w">
+</span><span class="ss">ok</span><span class="w">
+</span><span class="gt">* Got PDU:</span><span class="w">
+</span><span class="p" data-group-id="2271269723-28">[</span><span class="ss">fName</span><span class="p">,</span><span class="mi">0</span><span class="p" data-group-id="2271269723-28">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Martin&quot;</span><span class="w">
+</span><span class="p" data-group-id="2271269723-29">[</span><span class="ss">fAddress</span><span class="p">,</span><span class="mi">0</span><span class="p" data-group-id="2271269723-29">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;home&quot;</span><span class="w">
+</span><span class="p" data-group-id="2271269723-30">[</span><span class="ss">fStatus</span><span class="p">,</span><span class="mi">0</span><span class="p" data-group-id="2271269723-30">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span><span class="gp unselectable">
+6&gt; </span><span class="nc">snmp_test_mgr</span><span class="p">:</span><span class="nf">gn</span><span class="p" data-group-id="2271269723-31">(</span><span class="p" data-group-id="2271269723-32">[</span><span class="p" data-group-id="2271269723-33">[</span><span class="ss">myName</span><span class="p">,</span><span class="mi">0</span><span class="p" data-group-id="2271269723-33">]</span><span class="p" data-group-id="2271269723-32">]</span><span class="p" data-group-id="2271269723-31">)</span><span class="p">.</span><span class="w">
+</span><span class="ss">ok</span><span class="w">
+</span><span class="gt">* Got PDU:</span><span class="w">
+</span><span class="p" data-group-id="2271269723-34">[</span><span class="ss">fName</span><span class="p">,</span><span class="mi">0</span><span class="p" data-group-id="2271269723-34">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Martin&quot;</span><span class="gp unselectable">
+7&gt; </span><span class="nc">snmp_test_mgr</span><span class="p">:</span><span class="nf">gn</span><span class="p" data-group-id="2271269723-35">(</span><span class="p" data-group-id="2271269723-35">)</span><span class="p">.</span><span class="w">
+</span><span class="ss">ok</span><span class="w">
+</span><span class="gt">* Got PDU:</span><span class="w">
+</span><span class="p" data-group-id="2271269723-36">[</span><span class="ss">fAddress</span><span class="p">,</span><span class="mi">0</span><span class="p" data-group-id="2271269723-36">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;home&quot;</span><span class="gp unselectable">
+8&gt; </span><span class="nc">snmp_test_mgr</span><span class="p">:</span><span class="nf">gn</span><span class="p" data-group-id="2271269723-37">(</span><span class="p" data-group-id="2271269723-37">)</span><span class="p">.</span><span class="w">
+</span><span class="ss">ok</span><span class="w">
+</span><span class="gt">* Got PDU:</span><span class="w">
+</span><span class="p" data-group-id="2271269723-38">[</span><span class="ss">fStatus</span><span class="p">,</span><span class="mi">0</span><span class="p" data-group-id="2271269723-38">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w">
+</span><span class="mi">9</span><span class="o">&gt;</span></code></pre><h2 id="manual-implementation" class="section-heading">
+  <a href="#manual-implementation" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Manual Implementation</span>
+</h2>
+<p>The following example shows a &quot;manual&quot; implementation of the EX1-MIB in Erlang.
+In this example, the values of the objects are stored in an Erlang server. The
+server has a 2-tuple as loop data, where the first element is the value of
+variable <code class="inline">myName</code>, and the second is a sorted list of rows in the table
+<code class="inline">friendsTable</code>. Each row is a 4-tuple.</p><blockquote><h4 class="info">Note</h4><p>There are more efficient ways to create tables manually, i.e. to use the
+module <code class="inline">snmp_index</code>.</p></blockquote><h3 id="code" class="section-heading">
+  <a href="#code" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Code</span>
+</h3>
+<pre><code class="makeup erlang" translate="no"><span class="p">-</span><span class="na">module</span><span class="p" data-group-id="6750656594-1">(</span><span class="ss">ex1</span><span class="p" data-group-id="6750656594-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p">-</span><span class="na">author</span><span class="p" data-group-id="6750656594-2">(</span><span class="ss">&#39;dummy@flop.org&#39;</span><span class="p" data-group-id="6750656594-2">)</span><span class="p">.</span><span class="w">
+</span><span class="c1">%% External exports</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="6750656594-3">(</span><span class="p" data-group-id="6750656594-4">[</span><span class="ss">start</span><span class="p">/</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="ss">my_name</span><span class="p">/</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="ss">my_name</span><span class="p">/</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="ss">friends_table</span><span class="p">/</span><span class="mi">3</span><span class="p" data-group-id="6750656594-4">]</span><span class="p" data-group-id="6750656594-3">)</span><span class="p">.</span><span class="w">
+</span><span class="c1">%% Internal exports</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="6750656594-5">(</span><span class="p" data-group-id="6750656594-6">[</span><span class="ss">init</span><span class="p">/</span><span class="mi">0</span><span class="p" data-group-id="6750656594-6">]</span><span class="p" data-group-id="6750656594-5">)</span><span class="p">.</span><span class="w">
+</span><span class="p">-</span><span class="na">define</span><span class="p" data-group-id="6750656594-7">(</span><span class="ss">status_col</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="p" data-group-id="6750656594-7">)</span><span class="p">.</span><span class="w">
+</span><span class="p">-</span><span class="na">define</span><span class="p" data-group-id="6750656594-8">(</span><span class="ss">active</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p" data-group-id="6750656594-8">)</span><span class="p">.</span><span class="w">
+</span><span class="p">-</span><span class="na">define</span><span class="p" data-group-id="6750656594-9">(</span><span class="ss">notInService</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p" data-group-id="6750656594-9">)</span><span class="p">.</span><span class="w">
+</span><span class="p">-</span><span class="na">define</span><span class="p" data-group-id="6750656594-10">(</span><span class="ss">notReady</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p" data-group-id="6750656594-10">)</span><span class="p">.</span><span class="w">
+</span><span class="p">-</span><span class="na">define</span><span class="p" data-group-id="6750656594-11">(</span><span class="ss">createAndGo</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="p" data-group-id="6750656594-11">)</span><span class="p">.</span><span class="w">   </span><span class="c1">% Action; written, not read</span><span class="w">
+</span><span class="p">-</span><span class="na">define</span><span class="p" data-group-id="6750656594-12">(</span><span class="ss">createAndWait</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="p" data-group-id="6750656594-12">)</span><span class="p">.</span><span class="w"> </span><span class="c1">% Action; written, not read</span><span class="w">
+</span><span class="p">-</span><span class="na">define</span><span class="p" data-group-id="6750656594-13">(</span><span class="ss">destroy</span><span class="p">,</span><span class="w"> </span><span class="mi">6</span><span class="p" data-group-id="6750656594-13">)</span><span class="p">.</span><span class="w">       </span><span class="c1">% Action; written, not read</span><span class="w">
+</span><span class="nf">start</span><span class="p" data-group-id="6750656594-14">(</span><span class="p" data-group-id="6750656594-14">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">spawn</span><span class="p" data-group-id="6750656594-15">(</span><span class="ss">ex1</span><span class="p">,</span><span class="w"> </span><span class="ss">init</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6750656594-16">[</span><span class="p" data-group-id="6750656594-16">]</span><span class="p" data-group-id="6750656594-15">)</span><span class="p">.</span><span class="w">
+</span><span class="c1">%%----------------------------------------------------------------</span><span class="w">
+</span><span class="c1">%% Instrumentation function for variable myName.</span><span class="w">
+</span><span class="c1">%% Returns: (get) {value, Name}</span><span class="w">
+</span><span class="c1">%%          (set) noError</span><span class="w">
+</span><span class="c1">%%----------------------------------------------------------------</span><span class="w">
+</span><span class="nf">my_name</span><span class="p" data-group-id="6750656594-17">(</span><span class="nb">get</span><span class="p" data-group-id="6750656594-17">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="ss">ex1_server</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="p" data-group-id="6750656594-18">{</span><span class="nf">self</span><span class="p" data-group-id="6750656594-19">(</span><span class="p" data-group-id="6750656594-19">)</span><span class="p">,</span><span class="w"> </span><span class="ss">get_my_name</span><span class="p" data-group-id="6750656594-18">}</span><span class="p">,</span><span class="w">
+    </span><span class="n">Name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">wait_answer</span><span class="p" data-group-id="6750656594-20">(</span><span class="p" data-group-id="6750656594-20">)</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="6750656594-21">{</span><span class="ss">value</span><span class="p">,</span><span class="w"> </span><span class="n">Name</span><span class="p" data-group-id="6750656594-21">}</span><span class="p">.</span><span class="w">
+</span><span class="nf">my_name</span><span class="p" data-group-id="6750656594-22">(</span><span class="ss">set</span><span class="p">,</span><span class="w"> </span><span class="n">NewName</span><span class="p" data-group-id="6750656594-22">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="ss">ex1_server</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="p" data-group-id="6750656594-23">{</span><span class="nf">self</span><span class="p" data-group-id="6750656594-24">(</span><span class="p" data-group-id="6750656594-24">)</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6750656594-25">{</span><span class="ss">set_my_name</span><span class="p">,</span><span class="w"> </span><span class="n">NewName</span><span class="p" data-group-id="6750656594-25">}</span><span class="p" data-group-id="6750656594-23">}</span><span class="p">,</span><span class="w">
+    </span><span class="ss">noError</span><span class="p">.</span><span class="w">
+</span><span class="c1">%%----------------------------------------------------------------</span><span class="w">
+</span><span class="c1">%% Instrumentation function for table friendsTable.</span><span class="w">
+</span><span class="c1">%%----------------------------------------------------------------</span><span class="w">
+</span><span class="nf">friends_table</span><span class="p" data-group-id="6750656594-26">(</span><span class="nb">get</span><span class="p">,</span><span class="w"> </span><span class="n">RowIndex</span><span class="p">,</span><span class="w"> </span><span class="n">Cols</span><span class="p" data-group-id="6750656594-26">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="nf">get_row</span><span class="p" data-group-id="6750656594-27">(</span><span class="n">RowIndex</span><span class="p" data-group-id="6750656594-27">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+   </span><span class="p" data-group-id="6750656594-28">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">Row</span><span class="p" data-group-id="6750656594-28">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+        </span><span class="nf">get_cols</span><span class="p" data-group-id="6750656594-29">(</span><span class="n">Cols</span><span class="p">,</span><span class="w"> </span><span class="n">Row</span><span class="p" data-group-id="6750656594-29">)</span><span class="p">;</span><span class="w">
+   </span><span class="p">_</span><span class="w">  </span><span class="p">-&gt;</span><span class="w">
+        </span><span class="p" data-group-id="6750656594-30">{</span><span class="ss">noValue</span><span class="p">,</span><span class="w"> </span><span class="ss">noSuchInstance</span><span class="p" data-group-id="6750656594-30">}</span><span class="w">
+    </span><span class="k">end</span><span class="p">;</span><span class="w">
+</span><span class="nf">friends_table</span><span class="p" data-group-id="6750656594-31">(</span><span class="ss">get_next</span><span class="p">,</span><span class="w"> </span><span class="n">RowIndex</span><span class="p">,</span><span class="w"> </span><span class="n">Cols</span><span class="p" data-group-id="6750656594-31">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="nf">get_next_row</span><span class="p" data-group-id="6750656594-32">(</span><span class="n">RowIndex</span><span class="p" data-group-id="6750656594-32">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+   </span><span class="p" data-group-id="6750656594-33">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">Row</span><span class="p" data-group-id="6750656594-33">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+        </span><span class="nf">get_next_cols</span><span class="p" data-group-id="6750656594-34">(</span><span class="n">Cols</span><span class="p">,</span><span class="w"> </span><span class="n">Row</span><span class="p" data-group-id="6750656594-34">)</span><span class="p">;</span><span class="w">
+   </span><span class="p">_</span><span class="w">  </span><span class="p">-&gt;</span><span class="w">
+       </span><span class="k">case</span><span class="w"> </span><span class="nf">get_next_row</span><span class="p" data-group-id="6750656594-35">(</span><span class="p" data-group-id="6750656594-36">[</span><span class="p" data-group-id="6750656594-36">]</span><span class="p" data-group-id="6750656594-35">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+     </span><span class="p" data-group-id="6750656594-37">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">Row</span><span class="p" data-group-id="6750656594-37">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+         </span><span class="c1">% Get next cols from first row.</span><span class="w">
+         </span><span class="n">NewCols</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">add_one_to_cols</span><span class="p" data-group-id="6750656594-38">(</span><span class="n">Cols</span><span class="p" data-group-id="6750656594-38">)</span><span class="p">,</span><span class="w">
+         </span><span class="nf">get_next_cols</span><span class="p" data-group-id="6750656594-39">(</span><span class="n">NewCols</span><span class="p">,</span><span class="w"> </span><span class="n">Row</span><span class="p" data-group-id="6750656594-39">)</span><span class="p">;</span><span class="w">
+     </span><span class="p">_</span><span class="w">  </span><span class="p">-&gt;</span><span class="w">
+        </span><span class="nf">end_of_table</span><span class="p" data-group-id="6750656594-40">(</span><span class="n">Cols</span><span class="p" data-group-id="6750656594-40">)</span><span class="w">
+        </span><span class="k">end</span><span class="w">
+    </span><span class="k">end</span><span class="p">;</span><span class="w">
+</span><span class="c1">%%----------------------------------------------------------------</span><span class="w">
+</span><span class="c1">%% If RowStatus is set, then:</span><span class="w">
+</span><span class="c1">%%    *) If set to destroy, check that row does exist</span><span class="w">
+</span><span class="c1">%%    *) If set to createAndGo, check that row does not exist AND</span><span class="w">
+</span><span class="c1">%%         that all columns are given values.</span><span class="w">
+</span><span class="c1">%%    *) Otherwise, error (for simplicity).</span><span class="w">
+</span><span class="c1">%% Otherwise, row is modified; check that row exists.</span><span class="w">
+</span><span class="c1">%%----------------------------------------------------------------</span><span class="w">
+</span><span class="nf">friends_table</span><span class="p" data-group-id="6750656594-41">(</span><span class="ss">is_set_ok</span><span class="p">,</span><span class="w"> </span><span class="n">RowIndex</span><span class="p">,</span><span class="w"> </span><span class="n">Cols</span><span class="p" data-group-id="6750656594-41">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">RowExists</span><span class="w"> </span><span class="o">=</span><span class="w">
+   </span><span class="k">case</span><span class="w"> </span><span class="nf">get_row</span><span class="p" data-group-id="6750656594-42">(</span><span class="n">RowIndex</span><span class="p" data-group-id="6750656594-42">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+        </span><span class="p" data-group-id="6750656594-43">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">Row</span><span class="p" data-group-id="6750656594-43">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="ss">true</span><span class="p">;</span><span class="w">
+       </span><span class="p">_</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="ss">false</span><span class="w">
+   </span><span class="k">end</span><span class="p">,</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="nf">is_row_status_col_changed</span><span class="p" data-group-id="6750656594-44">(</span><span class="n">Cols</span><span class="p" data-group-id="6750656594-44">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+   </span><span class="p" data-group-id="6750656594-45">{</span><span class="ss">true</span><span class="p">,</span><span class="w"> </span><span class="o">?</span><span class="ss">destroy</span><span class="p" data-group-id="6750656594-45">}</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="n">RowExists</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="ss">true</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+        </span><span class="p" data-group-id="6750656594-46">{</span><span class="ss">noError</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p" data-group-id="6750656594-46">}</span><span class="p">;</span><span class="w">
+   </span><span class="p" data-group-id="6750656594-47">{</span><span class="ss">true</span><span class="p">,</span><span class="w"> </span><span class="o">?</span><span class="ss">createAndGo</span><span class="p" data-group-id="6750656594-47">}</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="n">RowExists</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="ss">false</span><span class="p">,</span><span class="w">
+                                 </span><span class="nf">length</span><span class="p" data-group-id="6750656594-48">(</span><span class="n">Cols</span><span class="p" data-group-id="6750656594-48">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">3</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+        </span><span class="p" data-group-id="6750656594-49">{</span><span class="ss">noError</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p" data-group-id="6750656594-49">}</span><span class="p">;</span><span class="w">
+   </span><span class="p" data-group-id="6750656594-50">{</span><span class="ss">true</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="p" data-group-id="6750656594-50">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+       </span><span class="p" data-group-id="6750656594-51">{</span><span class="ss">inconsistentValue</span><span class="p">,</span><span class="w"> </span><span class="o">?</span><span class="ss">status_col</span><span class="p" data-group-id="6750656594-51">}</span><span class="p">;</span><span class="w">
+   </span><span class="ss">false</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="n">RowExists</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="ss">true</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+        </span><span class="p" data-group-id="6750656594-52">{</span><span class="ss">noError</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p" data-group-id="6750656594-52">}</span><span class="p">;</span><span class="w">
+   </span><span class="p">_</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+        </span><span class="p" data-group-id="6750656594-53">[</span><span class="p" data-group-id="6750656594-54">{</span><span class="n">Col</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">NewVal</span><span class="p" data-group-id="6750656594-54">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="p">_</span><span class="n">Cols</span><span class="p" data-group-id="6750656594-53">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Cols</span><span class="p">,</span><span class="w">
+       </span><span class="p" data-group-id="6750656594-55">{</span><span class="ss">inconsistentName</span><span class="p">,</span><span class="w"> </span><span class="n">Col</span><span class="p" data-group-id="6750656594-55">}</span><span class="w">
+      </span><span class="k">end</span><span class="p">;</span><span class="w">
+</span><span class="nf">friends_table</span><span class="p" data-group-id="6750656594-56">(</span><span class="ss">set</span><span class="p">,</span><span class="w"> </span><span class="n">RowIndex</span><span class="p">,</span><span class="w"> </span><span class="n">Cols</span><span class="p" data-group-id="6750656594-56">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="nf">is_row_status_col_changed</span><span class="p" data-group-id="6750656594-57">(</span><span class="n">Cols</span><span class="p" data-group-id="6750656594-57">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+   </span><span class="p" data-group-id="6750656594-58">{</span><span class="ss">true</span><span class="p">,</span><span class="w"> </span><span class="o">?</span><span class="ss">destroy</span><span class="p" data-group-id="6750656594-58">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+        </span><span class="ss">ex1_server</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="p" data-group-id="6750656594-59">{</span><span class="nf">self</span><span class="p" data-group-id="6750656594-60">(</span><span class="p" data-group-id="6750656594-60">)</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6750656594-61">{</span><span class="ss">delete_row</span><span class="p">,</span><span class="w"> </span><span class="n">RowIndex</span><span class="p" data-group-id="6750656594-61">}</span><span class="p" data-group-id="6750656594-59">}</span><span class="p">;</span><span class="w">
+   </span><span class="p" data-group-id="6750656594-62">{</span><span class="ss">true</span><span class="p">,</span><span class="w"> </span><span class="o">?</span><span class="ss">createAndGo</span><span class="p" data-group-id="6750656594-62">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+       </span><span class="n">NewRow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">make_row</span><span class="p" data-group-id="6750656594-63">(</span><span class="n">RowIndex</span><span class="p">,</span><span class="w"> </span><span class="n">Cols</span><span class="p" data-group-id="6750656594-63">)</span><span class="p">,</span><span class="w">
+        </span><span class="ss">ex1_server</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="p" data-group-id="6750656594-64">{</span><span class="nf">self</span><span class="p" data-group-id="6750656594-65">(</span><span class="p" data-group-id="6750656594-65">)</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6750656594-66">{</span><span class="ss">add_row</span><span class="p">,</span><span class="w"> </span><span class="n">NewRow</span><span class="p" data-group-id="6750656594-66">}</span><span class="p" data-group-id="6750656594-64">}</span><span class="p">;</span><span class="w">
+   </span><span class="ss">false</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+       </span><span class="p" data-group-id="6750656594-67">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">Row</span><span class="p" data-group-id="6750656594-67">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">get_row</span><span class="p" data-group-id="6750656594-68">(</span><span class="n">RowIndex</span><span class="p" data-group-id="6750656594-68">)</span><span class="p">,</span><span class="w">
+        </span><span class="n">NewRow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">merge_rows</span><span class="p" data-group-id="6750656594-69">(</span><span class="n">Row</span><span class="p">,</span><span class="w"> </span><span class="n">Cols</span><span class="p" data-group-id="6750656594-69">)</span><span class="p">,</span><span class="w">
+    </span><span class="ss">ex1_server</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="p" data-group-id="6750656594-70">{</span><span class="nf">self</span><span class="p" data-group-id="6750656594-71">(</span><span class="p" data-group-id="6750656594-71">)</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6750656594-72">{</span><span class="ss">delete_row</span><span class="p">,</span><span class="w"> </span><span class="n">RowIndex</span><span class="p" data-group-id="6750656594-72">}</span><span class="p" data-group-id="6750656594-70">}</span><span class="p">,</span><span class="w">
+       </span><span class="ss">ex1_server</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="p" data-group-id="6750656594-73">{</span><span class="nf">self</span><span class="p" data-group-id="6750656594-74">(</span><span class="p" data-group-id="6750656594-74">)</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6750656594-75">{</span><span class="ss">add_row</span><span class="p">,</span><span class="w"> </span><span class="n">NewRow</span><span class="p" data-group-id="6750656594-75">}</span><span class="p" data-group-id="6750656594-73">}</span><span class="w">
+   </span><span class="k">end</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="6750656594-76">{</span><span class="ss">noError</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p" data-group-id="6750656594-76">}</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%%----------------------------------------------------------------</span><span class="w">
+</span><span class="c1">%% Make a list of {value, Val} of the Row and Cols list.</span><span class="w">
+</span><span class="c1">%%----------------------------------------------------------------</span><span class="w">
+</span><span class="nf">get_cols</span><span class="p" data-group-id="6750656594-77">(</span><span class="p" data-group-id="6750656594-78">[</span><span class="n">Col</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="n">Cols</span><span class="p" data-group-id="6750656594-78">]</span><span class="p">,</span><span class="w"> </span><span class="n">Row</span><span class="p" data-group-id="6750656594-77">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="6750656594-79">[</span><span class="p" data-group-id="6750656594-80">{</span><span class="ss">value</span><span class="p">,</span><span class="w"> </span><span class="nf">element</span><span class="p" data-group-id="6750656594-81">(</span><span class="n">Col</span><span class="p">,</span><span class="w"> </span><span class="n">Row</span><span class="p" data-group-id="6750656594-81">)</span><span class="p" data-group-id="6750656594-80">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="nf">get_cols</span><span class="p" data-group-id="6750656594-82">(</span><span class="n">Cols</span><span class="p">,</span><span class="w"> </span><span class="n">Row</span><span class="p" data-group-id="6750656594-82">)</span><span class="p" data-group-id="6750656594-79">]</span><span class="p">;</span><span class="w">
+</span><span class="nf">get_cols</span><span class="p" data-group-id="6750656594-83">(</span><span class="p" data-group-id="6750656594-84">[</span><span class="p" data-group-id="6750656594-84">]</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">Row</span><span class="p" data-group-id="6750656594-83">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="6750656594-85">[</span><span class="p" data-group-id="6750656594-85">]</span><span class="p">.</span><span class="w">
+</span><span class="c1">%%----------------------------------------------------------------</span><span class="w">
+</span><span class="c1">%% As get_cols, but the Cols list may contain invalid column</span><span class="w">
+</span><span class="c1">%% numbers. If it does, we must find the next valid column,</span><span class="w">
+</span><span class="c1">%% or return endOfTable.</span><span class="w">
+</span><span class="c1">%%----------------------------------------------------------------</span><span class="w">
+</span><span class="nf">get_next_cols</span><span class="p" data-group-id="6750656594-86">(</span><span class="p" data-group-id="6750656594-87">[</span><span class="n">Col</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="n">Cols</span><span class="p" data-group-id="6750656594-87">]</span><span class="p">,</span><span class="w"> </span><span class="n">Row</span><span class="p" data-group-id="6750656594-86">)</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="n">Col</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="6750656594-88">[</span><span class="p" data-group-id="6750656594-89">{</span><span class="p" data-group-id="6750656594-90">[</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="nf">element</span><span class="p" data-group-id="6750656594-91">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">Row</span><span class="p" data-group-id="6750656594-91">)</span><span class="p" data-group-id="6750656594-90">]</span><span class="p">,</span><span class="w"> </span><span class="nf">element</span><span class="p" data-group-id="6750656594-92">(</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="n">Row</span><span class="p" data-group-id="6750656594-92">)</span><span class="p" data-group-id="6750656594-89">}</span><span class="w"> </span><span class="p">|</span><span class="w">
+     </span><span class="nf">get_next_cols</span><span class="p" data-group-id="6750656594-93">(</span><span class="n">Cols</span><span class="p">,</span><span class="w"> </span><span class="n">Row</span><span class="p" data-group-id="6750656594-93">)</span><span class="p" data-group-id="6750656594-88">]</span><span class="p">;</span><span class="w">
+</span><span class="nf">get_next_cols</span><span class="p" data-group-id="6750656594-94">(</span><span class="p" data-group-id="6750656594-95">[</span><span class="n">Col</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="n">Cols</span><span class="p" data-group-id="6750656594-95">]</span><span class="p">,</span><span class="w"> </span><span class="n">Row</span><span class="p" data-group-id="6750656594-94">)</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="n">Col</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">4</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="6750656594-96">[</span><span class="ss">endOfTable</span><span class="w"> </span><span class="p">|</span><span class="w">
+     </span><span class="nf">get_next_cols</span><span class="p" data-group-id="6750656594-97">(</span><span class="n">Cols</span><span class="p">,</span><span class="w"> </span><span class="n">Row</span><span class="p" data-group-id="6750656594-97">)</span><span class="p" data-group-id="6750656594-96">]</span><span class="p">;</span><span class="w">
+</span><span class="nf">get_next_cols</span><span class="p" data-group-id="6750656594-98">(</span><span class="p" data-group-id="6750656594-99">[</span><span class="n">Col</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="n">Cols</span><span class="p" data-group-id="6750656594-99">]</span><span class="p">,</span><span class="w"> </span><span class="n">Row</span><span class="p" data-group-id="6750656594-98">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="6750656594-100">[</span><span class="p" data-group-id="6750656594-101">{</span><span class="p" data-group-id="6750656594-102">[</span><span class="n">Col</span><span class="p">,</span><span class="w"> </span><span class="nf">element</span><span class="p" data-group-id="6750656594-103">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">Row</span><span class="p" data-group-id="6750656594-103">)</span><span class="p" data-group-id="6750656594-102">]</span><span class="p">,</span><span class="w"> </span><span class="nf">element</span><span class="p" data-group-id="6750656594-104">(</span><span class="n">Col</span><span class="p">,</span><span class="w"> </span><span class="n">Row</span><span class="p" data-group-id="6750656594-104">)</span><span class="p" data-group-id="6750656594-101">}</span><span class="w"> </span><span class="p">|</span><span class="w">
+     </span><span class="nf">get_next_cols</span><span class="p" data-group-id="6750656594-105">(</span><span class="n">Cols</span><span class="p">,</span><span class="w"> </span><span class="n">Row</span><span class="p" data-group-id="6750656594-105">)</span><span class="p" data-group-id="6750656594-100">]</span><span class="p">;</span><span class="w">
+</span><span class="nf">get_next_cols</span><span class="p" data-group-id="6750656594-106">(</span><span class="p" data-group-id="6750656594-107">[</span><span class="p" data-group-id="6750656594-107">]</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">Row</span><span class="p" data-group-id="6750656594-106">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="6750656594-108">[</span><span class="p" data-group-id="6750656594-108">]</span><span class="p">.</span><span class="w">
+</span><span class="c1">%%----------------------------------------------------------------</span><span class="w">
+</span><span class="c1">%% Make a list of endOfTable with as many elems as Cols list.</span><span class="w">
+</span><span class="c1">%%----------------------------------------------------------------</span><span class="w">
+</span><span class="nf">end_of_table</span><span class="p" data-group-id="6750656594-109">(</span><span class="p" data-group-id="6750656594-110">[</span><span class="n">Col</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="n">Cols</span><span class="p" data-group-id="6750656594-110">]</span><span class="p" data-group-id="6750656594-109">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="6750656594-111">[</span><span class="ss">endOfTable</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="nf">end_of_table</span><span class="p" data-group-id="6750656594-112">(</span><span class="n">Cols</span><span class="p" data-group-id="6750656594-112">)</span><span class="p" data-group-id="6750656594-111">]</span><span class="p">;</span><span class="w">
+</span><span class="nf">end_of_table</span><span class="p" data-group-id="6750656594-113">(</span><span class="p" data-group-id="6750656594-114">[</span><span class="p" data-group-id="6750656594-114">]</span><span class="p" data-group-id="6750656594-113">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="6750656594-115">[</span><span class="p" data-group-id="6750656594-115">]</span><span class="p">.</span><span class="w">
+</span><span class="nf">add_one_to_cols</span><span class="p" data-group-id="6750656594-116">(</span><span class="p" data-group-id="6750656594-117">[</span><span class="n">Col</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="n">Cols</span><span class="p" data-group-id="6750656594-117">]</span><span class="p" data-group-id="6750656594-116">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="6750656594-118">[</span><span class="n">Col</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="nf">add_one_to_cols</span><span class="p" data-group-id="6750656594-119">(</span><span class="n">Cols</span><span class="p" data-group-id="6750656594-119">)</span><span class="p" data-group-id="6750656594-118">]</span><span class="p">;</span><span class="w">
+</span><span class="nf">add_one_to_cols</span><span class="p" data-group-id="6750656594-120">(</span><span class="p" data-group-id="6750656594-121">[</span><span class="p" data-group-id="6750656594-121">]</span><span class="p" data-group-id="6750656594-120">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="6750656594-122">[</span><span class="p" data-group-id="6750656594-122">]</span><span class="p">.</span><span class="w">
+</span><span class="nf">is_row_status_col_changed</span><span class="p" data-group-id="6750656594-123">(</span><span class="n">Cols</span><span class="p" data-group-id="6750656594-123">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="nc">lists</span><span class="p">:</span><span class="nf">keysearch</span><span class="p" data-group-id="6750656594-124">(</span><span class="o">?</span><span class="ss">status_col</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">Cols</span><span class="p" data-group-id="6750656594-124">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+   </span><span class="p" data-group-id="6750656594-125">{</span><span class="ss">value</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6750656594-126">{</span><span class="o">?</span><span class="ss">status_col</span><span class="p">,</span><span class="w"> </span><span class="n">StatusVal</span><span class="p" data-group-id="6750656594-126">}</span><span class="p" data-group-id="6750656594-125">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+        </span><span class="p" data-group-id="6750656594-127">{</span><span class="ss">true</span><span class="p">,</span><span class="w"> </span><span class="n">StatusVal</span><span class="p" data-group-id="6750656594-127">}</span><span class="p">;</span><span class="w">
+   </span><span class="p">_</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="ss">false</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span><span class="w">
+</span><span class="nf">get_row</span><span class="p" data-group-id="6750656594-128">(</span><span class="n">RowIndex</span><span class="p" data-group-id="6750656594-128">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="ss">ex1_server</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="p" data-group-id="6750656594-129">{</span><span class="nf">self</span><span class="p" data-group-id="6750656594-130">(</span><span class="p" data-group-id="6750656594-130">)</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6750656594-131">{</span><span class="ss">get_row</span><span class="p">,</span><span class="w"> </span><span class="n">RowIndex</span><span class="p" data-group-id="6750656594-131">}</span><span class="p" data-group-id="6750656594-129">}</span><span class="p">,</span><span class="w">
+    </span><span class="nf">wait_answer</span><span class="p" data-group-id="6750656594-132">(</span><span class="p" data-group-id="6750656594-132">)</span><span class="p">.</span><span class="w">
+</span><span class="nf">get_next_row</span><span class="p" data-group-id="6750656594-133">(</span><span class="n">RowIndex</span><span class="p" data-group-id="6750656594-133">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="ss">ex1_server</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="p" data-group-id="6750656594-134">{</span><span class="nf">self</span><span class="p" data-group-id="6750656594-135">(</span><span class="p" data-group-id="6750656594-135">)</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6750656594-136">{</span><span class="ss">get_next_row</span><span class="p">,</span><span class="w"> </span><span class="n">RowIndex</span><span class="p" data-group-id="6750656594-136">}</span><span class="p" data-group-id="6750656594-134">}</span><span class="p">,</span><span class="w">
+    </span><span class="nf">wait_answer</span><span class="p" data-group-id="6750656594-137">(</span><span class="p" data-group-id="6750656594-137">)</span><span class="p">.</span><span class="w">
+</span><span class="nf">wait_answer</span><span class="p" data-group-id="6750656594-138">(</span><span class="p" data-group-id="6750656594-138">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">receive</span><span class="w">
+   </span><span class="p" data-group-id="6750656594-139">{</span><span class="ss">ex1_server</span><span class="p">,</span><span class="w"> </span><span class="n">Answer</span><span class="p" data-group-id="6750656594-139">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+     </span><span class="n">Answer</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span><span class="w">
+</span><span class="c1">%%%---------------------------------------------------------------</span><span class="w">
+</span><span class="c1">%%% Server code follows</span><span class="w">
+</span><span class="c1">%%%---------------------------------------------------------------</span><span class="w">
+</span><span class="nf">init</span><span class="p" data-group-id="6750656594-140">(</span><span class="p" data-group-id="6750656594-140">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">register</span><span class="p" data-group-id="6750656594-141">(</span><span class="ss">ex1_server</span><span class="p">,</span><span class="w"> </span><span class="nf">self</span><span class="p" data-group-id="6750656594-142">(</span><span class="p" data-group-id="6750656594-142">)</span><span class="p" data-group-id="6750656594-141">)</span><span class="p">,</span><span class="w">
+    </span><span class="nf">loop</span><span class="p" data-group-id="6750656594-143">(</span><span class="s">&quot;&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6750656594-144">[</span><span class="p" data-group-id="6750656594-144">]</span><span class="p" data-group-id="6750656594-143">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">loop</span><span class="p" data-group-id="6750656594-145">(</span><span class="n">MyName</span><span class="p">,</span><span class="w"> </span><span class="n">Table</span><span class="p" data-group-id="6750656594-145">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">receive</span><span class="w">
+   </span><span class="p" data-group-id="6750656594-146">{</span><span class="n">From</span><span class="p">,</span><span class="w"> </span><span class="ss">get_my_name</span><span class="p" data-group-id="6750656594-146">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+        </span><span class="n">From</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="p" data-group-id="6750656594-147">{</span><span class="ss">ex1_server</span><span class="p">,</span><span class="w"> </span><span class="n">MyName</span><span class="p" data-group-id="6750656594-147">}</span><span class="p">,</span><span class="w">
+       </span><span class="nf">loop</span><span class="p" data-group-id="6750656594-148">(</span><span class="n">MyName</span><span class="p">,</span><span class="w"> </span><span class="n">Table</span><span class="p" data-group-id="6750656594-148">)</span><span class="p">;</span><span class="w">
+   </span><span class="p" data-group-id="6750656594-149">{</span><span class="n">From</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6750656594-150">{</span><span class="ss">set_my_name</span><span class="p">,</span><span class="w"> </span><span class="n">NewName</span><span class="p" data-group-id="6750656594-150">}</span><span class="p" data-group-id="6750656594-149">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+        </span><span class="nf">loop</span><span class="p" data-group-id="6750656594-151">(</span><span class="n">NewName</span><span class="p">,</span><span class="w"> </span><span class="n">Table</span><span class="p" data-group-id="6750656594-151">)</span><span class="p">;</span><span class="w">
+   </span><span class="p" data-group-id="6750656594-152">{</span><span class="n">From</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6750656594-153">{</span><span class="ss">get_row</span><span class="p">,</span><span class="w"> </span><span class="n">RowIndex</span><span class="p" data-group-id="6750656594-153">}</span><span class="p" data-group-id="6750656594-152">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+       </span><span class="n">Res</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">table_get_row</span><span class="p" data-group-id="6750656594-154">(</span><span class="n">Table</span><span class="p">,</span><span class="w"> </span><span class="n">RowIndex</span><span class="p" data-group-id="6750656594-154">)</span><span class="p">,</span><span class="w">
+       </span><span class="n">From</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="p" data-group-id="6750656594-155">{</span><span class="ss">ex1_server</span><span class="p">,</span><span class="w"> </span><span class="n">Res</span><span class="p" data-group-id="6750656594-155">}</span><span class="p">,</span><span class="w">
+       </span><span class="nf">loop</span><span class="p" data-group-id="6750656594-156">(</span><span class="n">MyName</span><span class="p">,</span><span class="w"> </span><span class="n">Table</span><span class="p" data-group-id="6750656594-156">)</span><span class="p">;</span><span class="w">
+   </span><span class="p" data-group-id="6750656594-157">{</span><span class="n">From</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6750656594-158">{</span><span class="ss">get_next_row</span><span class="p">,</span><span class="w"> </span><span class="n">RowIndex</span><span class="p" data-group-id="6750656594-158">}</span><span class="p" data-group-id="6750656594-157">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+       </span><span class="n">Res</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">table_get_next_row</span><span class="p" data-group-id="6750656594-159">(</span><span class="n">Table</span><span class="p">,</span><span class="w"> </span><span class="n">RowIndex</span><span class="p" data-group-id="6750656594-159">)</span><span class="p">,</span><span class="w">
+        </span><span class="n">From</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="p" data-group-id="6750656594-160">{</span><span class="ss">ex1_server</span><span class="p">,</span><span class="w"> </span><span class="n">Res</span><span class="p" data-group-id="6750656594-160">}</span><span class="p">,</span><span class="w">
+       </span><span class="nf">loop</span><span class="p" data-group-id="6750656594-161">(</span><span class="n">MyName</span><span class="p">,</span><span class="w"> </span><span class="n">Table</span><span class="p" data-group-id="6750656594-161">)</span><span class="p">;</span><span class="w">
+   </span><span class="p" data-group-id="6750656594-162">{</span><span class="n">From</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6750656594-163">{</span><span class="ss">delete_row</span><span class="p">,</span><span class="w"> </span><span class="n">RowIndex</span><span class="p" data-group-id="6750656594-163">}</span><span class="p" data-group-id="6750656594-162">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">NewTable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">table_delete_row</span><span class="p" data-group-id="6750656594-164">(</span><span class="n">Table</span><span class="p">,</span><span class="w"> </span><span class="n">RowIndex</span><span class="p" data-group-id="6750656594-164">)</span><span class="p">,</span><span class="w">
+       </span><span class="nf">loop</span><span class="p" data-group-id="6750656594-165">(</span><span class="n">MyName</span><span class="p">,</span><span class="w"> </span><span class="n">NewTable</span><span class="p" data-group-id="6750656594-165">)</span><span class="p">;</span><span class="w">
+   </span><span class="p" data-group-id="6750656594-166">{</span><span class="n">From</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6750656594-167">{</span><span class="ss">add_row</span><span class="p">,</span><span class="w"> </span><span class="n">NewRow</span><span class="p" data-group-id="6750656594-167">}</span><span class="p" data-group-id="6750656594-166">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+       </span><span class="n">NewTable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">table_add_row</span><span class="p" data-group-id="6750656594-168">(</span><span class="n">Table</span><span class="p">,</span><span class="w"> </span><span class="n">NewRow</span><span class="p" data-group-id="6750656594-168">)</span><span class="p">,</span><span class="w">
+       </span><span class="nf">loop</span><span class="p" data-group-id="6750656594-169">(</span><span class="n">MyName</span><span class="p">,</span><span class="w"> </span><span class="n">NewTable</span><span class="p" data-group-id="6750656594-169">)</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span><span class="w">
+</span><span class="c1">%%%---------------------------------------------------------------</span><span class="w">
+</span><span class="c1">%%% Functions for table operations. The table is represented as</span><span class="w">
+</span><span class="c1">%%% a list of rows.</span><span class="w">
+</span><span class="c1">%%%---------------------------------------------------------------</span><span class="w">
+</span><span class="nf">table_get_row</span><span class="p" data-group-id="6750656594-170">(</span><span class="p" data-group-id="6750656594-171">[</span><span class="p" data-group-id="6750656594-172">{</span><span class="n">Index</span><span class="p">,</span><span class="w"> </span><span class="n">Name</span><span class="p">,</span><span class="w"> </span><span class="n">Address</span><span class="p">,</span><span class="w"> </span><span class="n">Status</span><span class="p" data-group-id="6750656594-172">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="p">_</span><span class="p" data-group-id="6750656594-171">]</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6750656594-173">[</span><span class="n">Index</span><span class="p" data-group-id="6750656594-173">]</span><span class="p" data-group-id="6750656594-170">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="6750656594-174">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6750656594-175">{</span><span class="n">Index</span><span class="p">,</span><span class="w"> </span><span class="n">Name</span><span class="p">,</span><span class="w"> </span><span class="n">Address</span><span class="p">,</span><span class="w"> </span><span class="n">Status</span><span class="p" data-group-id="6750656594-175">}</span><span class="p" data-group-id="6750656594-174">}</span><span class="p">;</span><span class="w">
+</span><span class="nf">table_get_row</span><span class="p" data-group-id="6750656594-176">(</span><span class="p" data-group-id="6750656594-177">[</span><span class="n">H</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="n">T</span><span class="p" data-group-id="6750656594-177">]</span><span class="p">,</span><span class="w"> </span><span class="n">RowIndex</span><span class="p" data-group-id="6750656594-176">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">table_get_row</span><span class="p" data-group-id="6750656594-178">(</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">RowIndex</span><span class="p" data-group-id="6750656594-178">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">table_get_row</span><span class="p" data-group-id="6750656594-179">(</span><span class="p" data-group-id="6750656594-180">[</span><span class="p" data-group-id="6750656594-180">]</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">RowIndex</span><span class="p" data-group-id="6750656594-179">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="ss">no_such_row</span><span class="p">.</span><span class="w">
+</span><span class="nf">table_get_next_row</span><span class="p" data-group-id="6750656594-181">(</span><span class="p" data-group-id="6750656594-182">[</span><span class="n">Row</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="n">T</span><span class="p" data-group-id="6750656594-182">]</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6750656594-183">[</span><span class="p" data-group-id="6750656594-183">]</span><span class="p" data-group-id="6750656594-181">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="6750656594-184">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">Row</span><span class="p" data-group-id="6750656594-184">}</span><span class="p">;</span><span class="w">
+</span><span class="nf">table_get_next_row</span><span class="p" data-group-id="6750656594-185">(</span><span class="p" data-group-id="6750656594-186">[</span><span class="n">Row</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="n">T</span><span class="p" data-group-id="6750656594-186">]</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6750656594-187">[</span><span class="n">Index</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="p">_</span><span class="p" data-group-id="6750656594-187">]</span><span class="p" data-group-id="6750656594-185">)</span><span class="w">
+</span><span class="k">when</span><span class="w"> </span><span class="nf">element</span><span class="p" data-group-id="6750656594-188">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">Row</span><span class="p" data-group-id="6750656594-188">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">Index</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="6750656594-189">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">Row</span><span class="p" data-group-id="6750656594-189">}</span><span class="p">;</span><span class="w">
+</span><span class="nf">table_get_next_row</span><span class="p" data-group-id="6750656594-190">(</span><span class="p" data-group-id="6750656594-191">[</span><span class="n">Row</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="n">T</span><span class="p" data-group-id="6750656594-191">]</span><span class="p">,</span><span class="w"> </span><span class="n">RowIndex</span><span class="p" data-group-id="6750656594-190">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">table_get_next_row</span><span class="p" data-group-id="6750656594-192">(</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">RowIndex</span><span class="p" data-group-id="6750656594-192">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">table_get_next_row</span><span class="p" data-group-id="6750656594-193">(</span><span class="p" data-group-id="6750656594-194">[</span><span class="p" data-group-id="6750656594-194">]</span><span class="p">,</span><span class="w"> </span><span class="n">RowIndex</span><span class="p" data-group-id="6750656594-193">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="ss">endOfTable</span><span class="p">.</span><span class="w">
+</span><span class="nf">table_delete_row</span><span class="p" data-group-id="6750656594-195">(</span><span class="p" data-group-id="6750656594-196">[</span><span class="p" data-group-id="6750656594-197">{</span><span class="n">Index</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="p" data-group-id="6750656594-197">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="n">T</span><span class="p" data-group-id="6750656594-196">]</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6750656594-198">[</span><span class="n">Index</span><span class="p" data-group-id="6750656594-198">]</span><span class="p" data-group-id="6750656594-195">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">T</span><span class="p">;</span><span class="w">
+</span><span class="nf">table_delete_row</span><span class="p" data-group-id="6750656594-199">(</span><span class="p" data-group-id="6750656594-200">[</span><span class="n">H</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="n">T</span><span class="p" data-group-id="6750656594-200">]</span><span class="p">,</span><span class="w"> </span><span class="n">RowIndex</span><span class="p" data-group-id="6750656594-199">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="6750656594-201">[</span><span class="n">H</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="nf">table_delete_row</span><span class="p" data-group-id="6750656594-202">(</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">RowIndex</span><span class="p" data-group-id="6750656594-202">)</span><span class="p" data-group-id="6750656594-201">]</span><span class="p">;</span><span class="w">
+</span><span class="nf">table_delete_row</span><span class="p" data-group-id="6750656594-203">(</span><span class="p" data-group-id="6750656594-204">[</span><span class="p" data-group-id="6750656594-204">]</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">RowIndex</span><span class="p" data-group-id="6750656594-203">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="6750656594-205">[</span><span class="p" data-group-id="6750656594-205">]</span><span class="p">.</span><span class="w">
+</span><span class="nf">table_add_row</span><span class="p" data-group-id="6750656594-206">(</span><span class="p" data-group-id="6750656594-207">[</span><span class="n">Row</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="n">T</span><span class="p" data-group-id="6750656594-207">]</span><span class="p">,</span><span class="w"> </span><span class="n">NewRow</span><span class="p" data-group-id="6750656594-206">)</span><span class="w">
+  </span><span class="k">when</span><span class="w"> </span><span class="nf">element</span><span class="p" data-group-id="6750656594-208">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">Row</span><span class="p" data-group-id="6750656594-208">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="nf">element</span><span class="p" data-group-id="6750656594-209">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">NewRow</span><span class="p" data-group-id="6750656594-209">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="6750656594-210">[</span><span class="n">NewRow</span><span class="p">,</span><span class="w"> </span><span class="n">Row</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="n">T</span><span class="p" data-group-id="6750656594-210">]</span><span class="p">;</span><span class="w">
+</span><span class="nf">table_add_row</span><span class="p" data-group-id="6750656594-211">(</span><span class="p" data-group-id="6750656594-212">[</span><span class="n">H</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="n">T</span><span class="p" data-group-id="6750656594-212">]</span><span class="p">,</span><span class="w"> </span><span class="n">NewRow</span><span class="p" data-group-id="6750656594-211">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="6750656594-213">[</span><span class="n">H</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="nf">table_add_row</span><span class="p" data-group-id="6750656594-214">(</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">NewRow</span><span class="p" data-group-id="6750656594-214">)</span><span class="p" data-group-id="6750656594-213">]</span><span class="p">;</span><span class="w">
+</span><span class="nf">table_add_row</span><span class="p" data-group-id="6750656594-215">(</span><span class="p" data-group-id="6750656594-216">[</span><span class="p" data-group-id="6750656594-216">]</span><span class="p">,</span><span class="w"> </span><span class="n">NewRow</span><span class="p" data-group-id="6750656594-215">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="6750656594-217">[</span><span class="n">NewRow</span><span class="p" data-group-id="6750656594-217">]</span><span class="p">.</span><span class="w">
+</span><span class="nf">make_row</span><span class="p" data-group-id="6750656594-218">(</span><span class="p" data-group-id="6750656594-219">[</span><span class="n">Index</span><span class="p" data-group-id="6750656594-219">]</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6750656594-220">[</span><span class="p" data-group-id="6750656594-221">{</span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="n">Name</span><span class="p" data-group-id="6750656594-221">}</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6750656594-222">{</span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="n">Address</span><span class="p" data-group-id="6750656594-222">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="p">_</span><span class="p" data-group-id="6750656594-220">]</span><span class="p" data-group-id="6750656594-218">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="6750656594-223">{</span><span class="n">Index</span><span class="p">,</span><span class="w"> </span><span class="n">Name</span><span class="p">,</span><span class="w"> </span><span class="n">Address</span><span class="p">,</span><span class="w"> </span><span class="o">?</span><span class="ss">active</span><span class="p" data-group-id="6750656594-223">}</span><span class="p">.</span><span class="w">
+</span><span class="nf">merge_rows</span><span class="p" data-group-id="6750656594-224">(</span><span class="n">Row</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6750656594-225">[</span><span class="p" data-group-id="6750656594-226">{</span><span class="n">Col</span><span class="p">,</span><span class="w"> </span><span class="n">NewVal</span><span class="p" data-group-id="6750656594-226">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="n">T</span><span class="p" data-group-id="6750656594-225">]</span><span class="p" data-group-id="6750656594-224">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">merge_rows</span><span class="p" data-group-id="6750656594-227">(</span><span class="nf">setelement</span><span class="p" data-group-id="6750656594-228">(</span><span class="n">Col</span><span class="p">,</span><span class="w"> </span><span class="n">Row</span><span class="p">,</span><span class="w"> </span><span class="n">NewVal</span><span class="p" data-group-id="6750656594-228">)</span><span class="p">,</span><span class="w"> </span><span class="n">T</span><span class="p" data-group-id="6750656594-227">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">merge_rows</span><span class="p" data-group-id="6750656594-229">(</span><span class="n">Row</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6750656594-230">[</span><span class="p" data-group-id="6750656594-230">]</span><span class="p" data-group-id="6750656594-229">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">Row</span><span class="p">.</span></code></pre><h3 id="association-file" class="section-heading">
+  <a href="#association-file" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Association File</span>
+</h3>
+<p>The association file <code class="inline">EX1-MIB.funcs</code> for the real implementation looks as
+follows:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="7209836294-1">{</span><span class="ss">myName</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7209836294-2">{</span><span class="ss">ex1</span><span class="p">,</span><span class="w"> </span><span class="ss">my_name</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7209836294-3">[</span><span class="p" data-group-id="7209836294-3">]</span><span class="p" data-group-id="7209836294-2">}</span><span class="p" data-group-id="7209836294-1">}</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="7209836294-4">{</span><span class="ss">friendsTable</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7209836294-5">{</span><span class="ss">ex1</span><span class="p">,</span><span class="w"> </span><span class="ss">friends_table</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7209836294-6">[</span><span class="p" data-group-id="7209836294-6">]</span><span class="p" data-group-id="7209836294-5">}</span><span class="p" data-group-id="7209836294-4">}</span><span class="p">.</span></code></pre><h3 id="transcript" class="section-heading">
+  <a href="#transcript" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Transcript</span>
+</h3>
+<p>To use the real implementation, we must recompile the MIB and load it into the
+agent.</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">1&gt; </span><span class="nc">application</span><span class="p">:</span><span class="nf">start</span><span class="p" data-group-id="9655871355-1">(</span><span class="ss">snmp</span><span class="p" data-group-id="9655871355-1">)</span><span class="p">.</span><span class="w">
+</span><span class="ss">ok</span><span class="gp unselectable">
+2&gt; </span><span class="nc">snmpc</span><span class="p">:</span><span class="nf">compile</span><span class="p" data-group-id="9655871355-2">(</span><span class="s">&quot;EX1-MIB&quot;</span><span class="p" data-group-id="9655871355-2">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="9655871355-3">{</span><span class="ss">ok</span><span class="p">,</span><span class="s">&quot;EX1-MIB.bin&quot;</span><span class="p" data-group-id="9655871355-3">}</span><span class="gp unselectable">
+3&gt; </span><span class="nc">snmpa</span><span class="p">:</span><span class="nf">load_mibs</span><span class="p" data-group-id="9655871355-4">(</span><span class="ss">snmp_master_agent</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="9655871355-5">[</span><span class="s">&quot;EX1-MIB&quot;</span><span class="p" data-group-id="9655871355-5">]</span><span class="p" data-group-id="9655871355-4">)</span><span class="p">.</span><span class="w">
+</span><span class="ss">ok</span><span class="gp unselectable">
+4&gt; </span><span class="nc">ex1</span><span class="p">:</span><span class="nf">start</span><span class="p" data-group-id="9655871355-6">(</span><span class="p" data-group-id="9655871355-6">)</span><span class="p">.</span><span class="w">
+</span><span class="o">&lt;</span><span class="mf">0.115</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="w">
+</span><span class="c1">%% Now all requests operates on this &quot;real&quot; implementation.</span><span class="w">
+</span><span class="c1">%% The output from the manager requests will *look* exactly the</span><span class="w">
+</span><span class="c1">%% same as for the default implementation.</span></code></pre><h3 id="trap-sending" class="section-heading">
+  <a href="#trap-sending" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Trap Sending</span>
+</h3>
+<p>How to send a trap by sending the <code class="inline">fTrap</code> from the master agent is shown in this
+section. The master agent has the MIB <code class="inline">EX1-MIB</code> loaded, where the trap is
+defined. This trap specifies that two variables should be sent along with the
+trap, <code class="inline">myName</code> and <code class="inline">fIndex</code>. <code class="inline">fIndex</code> is a table column, so we must provide its
+value and the index for the row in the call to <a href="snmpa.html#send_notification2/3"><code class="inline">snmpa:send_notification2/3</code></a>. In the
+example below, we assume that the row in question is indexed by 2 (the row with
+<code class="inline">fIndex</code> 2).</p><p>we use a simple Erlang SNMP manager, which can receive traps.</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="7247555067-1">[</span><span class="n">MANAGER</span><span class="p" data-group-id="7247555067-1">]</span><span class="gp unselectable">
+1&gt; </span><span class="nc">snmp_test_mgr</span><span class="p">:</span><span class="nf">start_link</span><span class="p" data-group-id="7247555067-2">(</span><span class="p" data-group-id="7247555067-3">[</span><span class="p" data-group-id="7247555067-4">{</span><span class="ss">agent</span><span class="p">,</span><span class="s">&quot;dront.ericsson.se&quot;</span><span class="p" data-group-id="7247555067-4">}</span><span class="p">,</span><span class="p" data-group-id="7247555067-5">{</span><span class="ss">community</span><span class="p">,</span><span class="s">&quot;public&quot;</span><span class="p" data-group-id="7247555067-5">}</span><span class="w">
+ </span><span class="c1">%% does not have write-access</span><span class="w">
+</span><span class="mi">1</span><span class="o">&gt;</span><span class="p" data-group-id="7247555067-6">{</span><span class="ss">mibs</span><span class="p">,</span><span class="p" data-group-id="7247555067-7">[</span><span class="s">&quot;EX1-MIB&quot;</span><span class="p">,</span><span class="s">&quot;STANDARD-MIB&quot;</span><span class="p" data-group-id="7247555067-7">]</span><span class="p" data-group-id="7247555067-6">}</span><span class="p" data-group-id="7247555067-3">]</span><span class="p" data-group-id="7247555067-2">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="7247555067-8">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="o">&lt;</span><span class="mf">0.100</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="p" data-group-id="7247555067-8">}</span><span class="gp unselectable">
+2&gt; </span><span class="nc">snmp_test_mgr</span><span class="p">:</span><span class="nf">s</span><span class="p" data-group-id="7247555067-9">(</span><span class="p" data-group-id="7247555067-10">[</span><span class="p" data-group-id="7247555067-11">{</span><span class="p" data-group-id="7247555067-12">[</span><span class="ss">myName</span><span class="p">,</span><span class="mi">0</span><span class="p" data-group-id="7247555067-12">]</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Klas&quot;</span><span class="p" data-group-id="7247555067-11">}</span><span class="p" data-group-id="7247555067-10">]</span><span class="p" data-group-id="7247555067-9">)</span><span class="p">.</span><span class="w">
+</span><span class="ss">ok</span><span class="w">
+</span><span class="gt">* Got PDU:</span><span class="w">
+</span><span class="n">Received</span><span class="w"> </span><span class="ss">a</span><span class="w"> </span><span class="nc">trap</span><span class="p">:</span><span class="w">
+      </span><span class="n">Generic</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="w">       </span><span class="c1">%% authenticationFailure</span><span class="w">
+   </span><span class="n">Enterprise</span><span class="p">:</span><span class="w"> </span><span class="p" data-group-id="7247555067-13">[</span><span class="ss">iso</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p" data-group-id="7247555067-13">]</span><span class="w">
+     </span><span class="n">Specific</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="w">
+   </span><span class="n">Agent</span><span class="w"> </span><span class="nc">addr</span><span class="p">:</span><span class="w"> </span><span class="p" data-group-id="7247555067-14">[</span><span class="mi">123</span><span class="p">,</span><span class="mi">12</span><span class="p">,</span><span class="mi">12</span><span class="p">,</span><span class="mi">21</span><span class="p" data-group-id="7247555067-14">]</span><span class="w">
+    </span><span class="n">TimeStamp</span><span class="p">:</span><span class="w"> </span><span class="mi">42993</span><span class="w">
+</span><span class="mi">2</span><span class="o">&gt;</span><span class="w">
+</span><span class="p" data-group-id="7247555067-15">[</span><span class="n">AGENT</span><span class="p" data-group-id="7247555067-15">]</span><span class="gp unselectable">
+3&gt; </span><span class="n">SendOpts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="7247555067-16">[</span><span class="p" data-group-id="7247555067-17">{</span><span class="ss">receiver</span><span class="p">,</span><span class="w"> </span><span class="ss">no_receiver</span><span class="p" data-group-id="7247555067-17">}</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7247555067-18">{</span><span class="ss">varbinds</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7247555067-19">[</span><span class="p" data-group-id="7247555067-20">{</span><span class="ss">fIndex</span><span class="p">,</span><span class="p" data-group-id="7247555067-21">[</span><span class="mi">2</span><span class="p" data-group-id="7247555067-21">]</span><span class="p">,</span><span class="mi">2</span><span class="p" data-group-id="7247555067-20">}</span><span class="p" data-group-id="7247555067-19">]</span><span class="p" data-group-id="7247555067-18">}</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7247555067-22">{</span><span class="ss">name</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;standard trap&quot;</span><span class="p" data-group-id="7247555067-22">}</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7247555067-23">{</span><span class="ss">context</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="p" data-group-id="7247555067-23">}</span><span class="p" data-group-id="7247555067-16">]</span><span class="p">,</span><span class="gp unselectable">
+4&gt; </span><span class="nc">snmpa</span><span class="p">:</span><span class="nf">send_notification2</span><span class="p" data-group-id="7247555067-24">(</span><span class="ss">snmp_master_agent</span><span class="p">,</span><span class="w"> </span><span class="ss">fTrap</span><span class="p">,</span><span class="w"> </span><span class="n">SendOpts</span><span class="p" data-group-id="7247555067-24">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="7247555067-25">[</span><span class="n">MANAGER</span><span class="p" data-group-id="7247555067-25">]</span><span class="w">
+</span><span class="mi">2</span><span class="o">&gt;</span><span class="w">
+</span><span class="gt">* Got PDU:</span><span class="w">
+</span><span class="n">Received</span><span class="w"> </span><span class="ss">a</span><span class="w"> </span><span class="nc">trap</span><span class="p">:</span><span class="w">
+      </span><span class="n">Generic</span><span class="p">:</span><span class="w"> </span><span class="mi">6</span><span class="w">
+   </span><span class="n">Enterprise</span><span class="p">:</span><span class="w"> </span><span class="p" data-group-id="7247555067-26">[</span><span class="ss">example1</span><span class="p" data-group-id="7247555067-26">]</span><span class="w">
+     </span><span class="n">Specific</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="w">
+   </span><span class="n">Agent</span><span class="w"> </span><span class="nc">addr</span><span class="p">:</span><span class="w"> </span><span class="p" data-group-id="7247555067-27">[</span><span class="mi">123</span><span class="p">,</span><span class="mi">12</span><span class="p">,</span><span class="mi">12</span><span class="p">,</span><span class="mi">21</span><span class="p" data-group-id="7247555067-27">]</span><span class="w">
+    </span><span class="n">TimeStamp</span><span class="p">:</span><span class="w"> </span><span class="mi">69649</span><span class="w">
+</span><span class="p" data-group-id="7247555067-28">[</span><span class="ss">myName</span><span class="p">,</span><span class="mi">0</span><span class="p" data-group-id="7247555067-28">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Martin&quot;</span><span class="w">
+</span><span class="p" data-group-id="7247555067-29">[</span><span class="ss">fIndex</span><span class="p">,</span><span class="mi">2</span><span class="p" data-group-id="7247555067-29">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="w">
+</span><span class="mi">2</span><span class="o">&gt;</span></code></pre>
+</div>
+
+<div class="bottom-actions" id="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="snmp_manager_config_files.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Definition of Manager Configuration Files
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="snmp_impl_example_manager.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+Manager Implementation Example
+        </span>
+      </a>
+
+  </div>
+</div>
+    <footer class="footer">
+      <p>
+
+        <span class="line">
+          <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+            Search HexDocs
+          </button>
+
+            <a href="snmp.epub" title="ePub version">
+              Download ePub version
+            </a>
+
+        </span>
+      </p>
+
+      <p class="built-using">
+        Built using
+        <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.34.1) for the
+
+          <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+      </p>
+<p>Copyright © 1996-2024 <a href="https://www.ericsson.com">Ericsson AB</a></p>
+    </footer>
+  </div>
+</main>
+</div>
+<script>
+  function mermaidLoaded() {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: document.body.className.includes("dark") ? "dark" : "default"
+    });
+    let id = 0;
+    for (const codeEl of document.querySelectorAll("pre code.mermaid")) {
+      const preEl = codeEl.parentElement;
+      const graphDefinition = codeEl.textContent;
+      const graphEl = document.createElement("div");
+      const graphId = "mermaid-graph-" + id++;
+      mermaid.render(graphId, graphDefinition).then(({svg, bindFunctions}) => {
+        graphEl.innerHTML = svg;
+        bindFunctions?.(graphEl);
+        preEl.insertAdjacentElement("afterend", graphEl);
+        preEl.remove();
+      });
+    }
+  }
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mermaid@10.2.3/dist/mermaid.min.js" onload="mermaidLoaded();"></script>
+
+  </body>
+</html>

@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.34.1">
+    <meta name="project" content="tools v4.1">
+
+
+<meta name="exdoc:full-text-search-url" content="/doc/search.html?v=27&q=">
+<meta name="major-vsn" content="27">
+<link rel="canonical" href="https://www.erlang.org/doc/apps/tools/cprof.html" />
+    <title>cprof — tools v4.1</title>
+    <link rel="stylesheet" href="dist/html-erlang-APNLKZCW.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-K7URE6B4.js"></script>
+    <script src="dist/sidebar_items-0E887516.js"></script>
+    <script src="docs_config.js"></script>
+    <script async src="dist/html-7XSQ4GTY.js"></script>
+
+  </head>
+  <body data-type="modules" class="page-module">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="tools" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+tools
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v4.1
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of tools</span>
+            <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+          </label>
+          <button type="submit" class="search-button" aria-label="Submit Search">
+            <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+          </button>
+          <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+            <i class="ri-close-line ri-lg" title="Cancel search"></i>
+          </button>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/cprof.erl#L20" title="View Source" class="icon-action" rel="help">
+        <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        <span class="sr-only">View Source</span>
+      </a>
+
+    <span translate="no">cprof</span> 
+    <small class="app-vsn" translate="no">(tools v4.1)</small>
+
+  </h1>
+
+
+    <section id="moduledoc">
+<p>A simple Call Count Profiling Tool using breakpoints for minimal runtime
+performance impact.</p><p>The <code class="inline">cprof</code> module is used to profile a program to find out how many times
+different functions are called. To minimize runtime performance impact,
+breakpoints containing counters are used.</p><p>Since breakpoints are used there is no need for special compilation of the
+modules to be profiled. These breakpoints can only be set on BEAM code, so
+BIFs cannot be call-count traced.</p><p>The size of the call counters is the host machine word size. One bit is used
+when pausing the counter, so the maximum counter value for a 32-bit host
+is 2,147,483,647.</p><p>The profiling result is delivered as a term containing a sorted list of entries,
+one per module. Each module entry contains a sorted list of functions. The
+sorting order in both cases is of decreasing call count.</p><p>Call count tracing is lightweight compared to other forms of tracing,
+such as <a href="eprof.html"><code class="inline">eprof</code></a> or <a href="fprof.html"><code class="inline">fprof</code></a>, since no trace messages have to be
+generated. Some measurements indicates that the performance degradation is
+about 10 percent.</p><p>For more information and some examples, see the
+<a href="cprof_chapter.html">User's Guide for <code class="inline">cprof</code></a>.</p>
+    </section>
+
+</div>
+
+  <section id="summary" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#summary">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Summary</span>
+    </h1>
+<div class="summary-types summary">
+  <h2>
+    <a href="#types">Types</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:func_analysis_list/0" data-no-tooltip translate="no">func_analysis_list()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:mod_analysis/0" data-no-tooltip translate="no">mod_analysis()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:mod_analysis_list/0" data-no-tooltip translate="no">mod_analysis_list()</a>
+
+      </div>
+
+    </div>
+
+</div>
+<div class="summary-functions summary">
+  <h2>
+    <a href="#functions">Functions</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#analyse/0" data-no-tooltip translate="no">analyse()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#analyse/1"><code class="inline">analyse(1)</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#analyse/1" data-no-tooltip translate="no">analyse(ModLimit)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Collect call counters for one or more modules.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#analyse/2" data-no-tooltip translate="no">analyse(Module, Limit)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Collects and analyses all call counters for module <code class="inline">Module</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#pause/0" data-no-tooltip translate="no">pause()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Pause call count tracing for all functions in all modules and stop it for all
+functions in modules to be loaded.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#pause/1" data-no-tooltip translate="no">pause(FuncSpec)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>If <code class="inline">FuncSpec</code> is an atom, it is assumed to be a module name, and
+this call is equivalent to <a href="#pause/3"><code class="inline">pause(FuncSpec, '_', '_')</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#pause/2" data-no-tooltip translate="no">pause(Mod, Func)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#pause/3"><code class="inline">pause(Mod, Func, '_')</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#pause/3" data-no-tooltip translate="no">pause(Mod, Func, Arity)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Pause call counters for matching functions in matching modules.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#restart/0" data-no-tooltip translate="no">restart()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#restart/3"><code class="inline">restart('_', '_', '_')</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#restart/1" data-no-tooltip translate="no">restart(FuncSpec)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>If <code class="inline">FuncSpec</code> is an atom, it is assumed to be a module name, and
+this call is equivalent to <a href="#restart/3"><code class="inline">restart(FuncSpec, '_', '_')</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#restart/2" data-no-tooltip translate="no">restart(Mod, Func)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#restart/3"><code class="inline">restart(Mod, Func, '_')</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#restart/3" data-no-tooltip translate="no">restart(Mod, Func, Arity)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Restart call counters for the matching functions in matching modules that are
+call-count traced.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#start/0" data-no-tooltip translate="no">start()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Start call count tracing for all functions in all modules, and also for all
+functions in modules to be loaded.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#start/1" data-no-tooltip translate="no">start(FuncSpec)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>If <code class="inline">FuncSpec</code> is an atom, it is assumed to be a module name, and
+this call is equivalent to <a href="#start/3"><code class="inline">start(FuncSpec, '_', '_')</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#start/2" data-no-tooltip translate="no">start(Mod, Func)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#start/3"><code class="inline">start(Mod, Func, '_')</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#start/3" data-no-tooltip translate="no">start(Mod, Func, Arity)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Start call count tracing for matching functions in matching modules.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#stop/0" data-no-tooltip translate="no">stop()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Stop call count tracing for all functions in all modules, and also for all
+functions in modules to be loaded.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#stop/1" data-no-tooltip translate="no">stop(FuncSpec)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>If <code class="inline">FuncSpec</code> is an atom, it is assumed to be a module name, and
+this call is equivalent to <a href="#stop/3"><code class="inline">stop(FuncSpec, '_', '_')</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#stop/2" data-no-tooltip translate="no">stop(Mod, Func)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#stop/3"><code class="inline">stop(Mod, Func, '_')</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#stop/3" data-no-tooltip translate="no">stop(Mod, Func, Arity)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Stop call count tracing for matching functions in matching modules.</p></div>
+
+    </div>
+
+</div>
+
+  </section>
+
+
+  <section id="types" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#types">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Types</span>
+    </h1>
+    <div class="types-list">
+<section class="detail" id="t:func_analysis_list/0">
+
+  <div class="detail-header">
+    <a href="#t:func_analysis_list/0" class="detail-link" data-no-tooltip title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">func_analysis_list()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/cprof.erl#L302" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> func_analysis_list() :: [{<a href="../../apps/erts/erlang.html#t:mfa/0">mfa</a>(), FuncCallCount :: <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()}].</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:mod_analysis/0">
+
+  <div class="detail-header">
+    <a href="#t:mod_analysis/0" class="detail-link" data-no-tooltip title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">mod_analysis()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/cprof.erl#L299" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> mod_analysis() ::
+          {Mod :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>(), ModCallCount :: <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(), FuncAnalysisList :: <a href="#t:func_analysis_list/0">func_analysis_list</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:mod_analysis_list/0">
+
+  <div class="detail-header">
+    <a href="#t:mod_analysis_list/0" class="detail-link" data-no-tooltip title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">mod_analysis_list()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/cprof.erl#L298" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> mod_analysis_list() :: [<a href="#t:mod_analysis/0">mod_analysis</a>()].</pre>
+
+      </div>
+
+
+  </section>
+</section>
+
+    </div>
+  </section>
+
+  <section id="functions" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#functions">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Functions</span>
+    </h1>
+    <div class="functions-list">
+<section class="detail" id="analyse/0">
+
+  <div class="detail-header">
+    <a href="#analyse/0" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">analyse()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/cprof.erl#L308" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> analyse() -> {AllCallCount :: <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(), ModAnalysisList :: <a href="#t:mod_analysis_list/0">mod_analysis_list</a>()}.</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#analyse/1"><code class="inline">analyse(1)</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="analyse/1">
+
+  <div class="detail-header">
+    <a href="#analyse/1" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">analyse(ModLimit)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/cprof.erl#L331" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> analyse(Limit) -> {AllCallCount :: <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(), ModAnalysisList :: <a href="#t:mod_analysis_list/0">mod_analysis_list</a>()}
+                 when Limit :: <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>();
+             (Mod) -> ModAnalysis :: <a href="#t:mod_analysis/0">mod_analysis</a>() when Mod :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>().</pre>
+
+      </div>
+
+<p>Collect call counters for one or more modules.</p><p>If <code class="inline">ModLimit</code> is a module name (an atom), this call is equivalent to
+<a href="#analyse/2"><code class="inline">analyse(ModLimit, 1)</code></a>.</p><p>If <code class="inline">ModLimit</code> is an integer, this function calls
+<a href="#analyse/2"><code class="inline">analyse(Module, ModLimit)</code></a> for each <code class="inline">Module</code> that is
+currently loaded (except the <code class="inline">cprof</code> module itself).
+The result from those calls are returned in a list.</p>
+  </section>
+</section>
+<section class="detail" id="analyse/2">
+
+  <div class="detail-header">
+    <a href="#analyse/2" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">analyse(Module, Limit)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/cprof.erl#L371" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> analyse(Mod, Limit) -> ModAnalysis :: <a href="#t:mod_analysis/0">mod_analysis</a>()
+                 when Mod :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>(), Limit :: <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>().</pre>
+
+      </div>
+
+<p>Collects and analyses all call counters for module <code class="inline">Module</code>.</p><p>This function returns:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="5221545087-1">{</span><span class="n">Module</span><span class="p">,</span><span class="w"> </span><span class="n">ModuleCount</span><span class="p">,</span><span class="w"> </span><span class="n">FuncAnalysisList</span><span class="p" data-group-id="5221545087-1">}</span></code></pre><p>where <code class="inline">FuncAnalysisList</code> is a list of tuples, one for each function:</p><pre><code class="makeup erlang" translate="no"><span class="p" data-group-id="1993610549-1">{</span><span class="p" data-group-id="1993610549-2">{</span><span class="n">Module</span><span class="p">,</span><span class="w"> </span><span class="n">FunctionName</span><span class="p">,</span><span class="w"> </span><span class="n">Arity</span><span class="p" data-group-id="1993610549-2">}</span><span class="p">,</span><span class="w"> </span><span class="n">FuncCallCount</span><span class="p" data-group-id="1993610549-1">}</span></code></pre><p>If call counters are still running while <code class="inline">analyse/0,1,2</code> is executing, the result
+could be inconsistent. This happens if the process executing <code class="inline">analyse/0,1,2</code>
+is scheduled out so some other process can increment the counters that are
+being analysed. Calling <a href="#pause/0"><code class="inline">pause()</code></a> before analysing takes care of
+that problem.</p><p>All functions with a <code class="inline">FuncCallCount</code> lower than <code class="inline">Limit</code> are excluded from
+<code class="inline">FuncAnalysisList</code>. They are still included in <code class="inline">ModCallCount</code>, though.</p>
+  </section>
+</section>
+<section class="detail" id="pause/0">
+
+  <div class="detail-header">
+    <a href="#pause/0" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">pause()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/cprof.erl#L247" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> pause() -> <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>().</pre>
+
+      </div>
+
+<p>Pause call count tracing for all functions in all modules and stop it for all
+functions in modules to be loaded.</p><p>This call is equivalent to
+<a href="#pause/3"><code class="inline">pause('_', '_', '_') + stop({on_load})</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="pause/1">
+
+  <div class="detail-header">
+    <a href="#pause/1" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">pause(FuncSpec)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/cprof.erl#L264" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> pause(FuncSpec) -> <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>() when FuncSpec :: (Mod :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>()) | <a href="../../apps/erts/erlang.html#t:mfa/0">mfa</a>() | {FS :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()}.</pre>
+
+      </div>
+
+<p>If <code class="inline">FuncSpec</code> is an atom, it is assumed to be a module name, and
+this call is equivalent to <a href="#pause/3"><code class="inline">pause(FuncSpec, '_', '_')</code></a>.</p><p>If <code class="inline">FuncSpec</code> is an MFA tuple, <code class="inline">{Module, Name, Arity</code>}, this call
+is equivalent to <a href="#pause/3"><code class="inline">pause(Module, Name, Arity)</code></a>.</p><p>If <code class="inline">FuncSpec</code> is tuple <code class="inline">{FS}</code>, <code class="inline">FS</code> is the first argument to
+<a href="../../apps/erts/erlang.html#trace_pattern/3"><code class="inline">erlang:trace_pattern/3</code></a>. For example, if <code class="inline">FuncSpec</code> is <code class="inline">{on_load}</code>,
+call counters will be paused for all functions in modules to be loaded.</p>
+  </section>
+</section>
+<section class="detail" id="pause/2">
+
+  <div class="detail-header">
+    <a href="#pause/2" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">pause(Mod, Func)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/cprof.erl#L276" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> pause(Mod, Func) -> <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>() when Mod :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>(), Func :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#pause/3"><code class="inline">pause(Mod, Func, '_')</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="pause/3">
+
+  <div class="detail-header">
+    <a href="#pause/3" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">pause(Mod, Func, Arity)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/cprof.erl#L294" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> pause(Mod, Func, Arity) -> <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()
+               when Mod :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>(), Func :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), Arity :: <a href="../../apps/erts/erlang.html#t:arity/0">arity</a>().</pre>
+
+      </div>
+
+<p>Pause call counters for matching functions in matching modules.</p><p>The call counters for all matching functions that have call count breakpoints
+are paused at their current count.</p><p>Return the number of matching functions that can have call count breakpoints,
+the same as <a href="#start/3"><code class="inline">start/*</code></a> with the same arguments would have
+returned.</p>
+  </section>
+</section>
+<section class="detail" id="restart/0">
+
+  <div class="detail-header">
+    <a href="#restart/0" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">restart()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/cprof.erl#L185" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> restart() -> <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#restart/3"><code class="inline">restart('_', '_', '_')</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="restart/1">
+
+  <div class="detail-header">
+    <a href="#restart/1" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">restart(FuncSpec)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/cprof.erl#L203" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> restart(FuncSpec) -> <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>() when FuncSpec :: (Mod :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>()) | <a href="../../apps/erts/erlang.html#t:mfa/0">mfa</a>() | {FS :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()}.</pre>
+
+      </div>
+
+<p>If <code class="inline">FuncSpec</code> is an atom, it is assumed to be a module name, and
+this call is equivalent to <a href="#restart/3"><code class="inline">restart(FuncSpec, '_', '_')</code></a>.</p><p>If <code class="inline">FuncSpec</code> is an MFA tuple, <code class="inline">{Module, Name, Arity</code>}, this call
+is equivalent to <a href="#restart/3"><code class="inline">restart(Module, Name, Arity)</code></a>.</p><p>If <code class="inline">FuncSpec</code> is tuple <code class="inline">{FS}</code>, <code class="inline">FS</code> is the first argument to
+<a href="../../apps/erts/erlang.html#trace_pattern/3"><code class="inline">erlang:trace_pattern/3</code></a>. For example, if <code class="inline">FuncSpec</code> is <code class="inline">{on_load}</code>,
+call counters will be set to zero and running for all functions in
+modules to be loaded.</p>
+  </section>
+</section>
+<section class="detail" id="restart/2">
+
+  <div class="detail-header">
+    <a href="#restart/2" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">restart(Mod, Func)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/cprof.erl#L215" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> restart(Mod, Func) -> <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>() when Mod :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>(), Func :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#restart/3"><code class="inline">restart(Mod, Func, '_')</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="restart/3">
+
+  <div class="detail-header">
+    <a href="#restart/3" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">restart(Mod, Func, Arity)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/cprof.erl#L234" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> restart(Mod, Func, Arity) -> <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()
+                 when Mod :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>(), Func :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), Arity :: <a href="../../apps/erts/erlang.html#t:arity/0">arity</a>().</pre>
+
+      </div>
+
+<p>Restart call counters for the matching functions in matching modules that are
+call-count traced.</p><p>The call counters for all matching functions that has call count breakpoints
+are set to zero and running.</p><p>Return the number of matching functions that can have call count breakpoints,
+the same as <a href="#start/3"><code class="inline">start/*</code></a> with the same arguments would have
+returned.</p>
+  </section>
+</section>
+<section class="detail" id="start/0">
+
+  <div class="detail-header">
+    <a href="#start/0" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">start()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/cprof.erl#L70" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> start() -> <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>().</pre>
+
+      </div>
+
+<p>Start call count tracing for all functions in all modules, and also for all
+functions in modules to be loaded.</p><p>This is equivalent to
+<a href="#start/3"><code class="inline">start('_', '_', '_') + start({on_load})</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="start/1">
+
+  <div class="detail-header">
+    <a href="#start/1" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">start(FuncSpec)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/cprof.erl#L88" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> start(FuncSpec) -> <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>() when FuncSpec :: (Mod :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>()) | <a href="../../apps/erts/erlang.html#t:mfa/0">mfa</a>() | {FS :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()}.</pre>
+
+      </div>
+
+<p>If <code class="inline">FuncSpec</code> is an atom, it is assumed to be a module name, and
+this call is equivalent to <a href="#start/3"><code class="inline">start(FuncSpec, '_', '_')</code></a>.</p><p>If <code class="inline">FuncSpec</code> is an MFA tuple, <code class="inline">{Module, Name, Arity</code>}, this call
+is equivalent to <a href="#start/3"><code class="inline">start(Module, Name, Arity)</code></a>.</p><p>If <code class="inline">FuncSpec</code> is tuple <code class="inline">{FS}</code>, <code class="inline">FS</code> is the first argument to
+<a href="../../apps/erts/erlang.html#trace_pattern/3"><code class="inline">erlang:trace_pattern/3</code></a>. For example, if <code class="inline">FuncSpec</code> is <code class="inline">{on_load}</code>,
+call counters will be set to zero and running for all functions in
+modules to be loaded.</p>
+  </section>
+</section>
+<section class="detail" id="start/2">
+
+  <div class="detail-header">
+    <a href="#start/2" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">start(Mod, Func)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/cprof.erl#L100" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> start(Mod, Func) -> <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>() when Mod :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>(), Func :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#start/3"><code class="inline">start(Mod, Func, '_')</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="start/3">
+
+  <div class="detail-header">
+    <a href="#start/3" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">start(Mod, Func, Arity)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/cprof.erl#L117" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> start(Mod, Func, Arity) -> <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()
+               when Mod :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>(), Func :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), Arity :: <a href="../../apps/erts/erlang.html#t:arity/0">arity</a>().</pre>
+
+      </div>
+
+<p>Start call count tracing for matching functions in matching modules.</p><p>Set call count breakpoints on the matching functions that has no call count
+breakpoints. Call counters are set to zero and running for all matching
+functions.</p><p>Return the number of matching functions that has call count breakpoints.</p>
+  </section>
+</section>
+<section class="detail" id="stop/0">
+
+  <div class="detail-header">
+    <a href="#stop/0" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">stop()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/cprof.erl#L131" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> stop() -> <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>().</pre>
+
+      </div>
+
+<p>Stop call count tracing for all functions in all modules, and also for all
+functions in modules to be loaded.</p><p>This is equivalent to
+<a href="#stop/3"><code class="inline">stop('_', '_', '_') + stop({on_load})</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="stop/1">
+
+  <div class="detail-header">
+    <a href="#stop/1" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">stop(FuncSpec)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/cprof.erl#L148" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> stop(FuncSpec) -> <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>() when FuncSpec :: (Mod :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>()) | <a href="../../apps/erts/erlang.html#t:mfa/0">mfa</a>() | {FS :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()}.</pre>
+
+      </div>
+
+<p>If <code class="inline">FuncSpec</code> is an atom, it is assumed to be a module name, and
+this call is equivalent to <a href="#stop/3"><code class="inline">stop(FuncSpec, '_', '_')</code></a>.</p><p>If <code class="inline">FuncSpec</code> is an MFA tuple, <code class="inline">{Module, Name, Arity</code>}, this call
+is equivalent to <a href="#stop/3"><code class="inline">stop(Module, Name, Arity)</code></a>.</p><p>If <code class="inline">FuncSpec</code> is tuple <code class="inline">{FS}</code>, <code class="inline">FS</code> is the first argument to
+<a href="../../apps/erts/erlang.html#trace_pattern/3"><code class="inline">erlang:trace_pattern/3</code></a>. For example, if <code class="inline">FuncSpec</code> is <code class="inline">{on_load}</code>,
+call counters be disabled for all functions in modules to be loaded.</p>
+  </section>
+</section>
+<section class="detail" id="stop/2">
+
+  <div class="detail-header">
+    <a href="#stop/2" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">stop(Mod, Func)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/cprof.erl#L160" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> stop(Mod, Func) -> <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>() when Mod :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>(), Func :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#stop/3"><code class="inline">stop(Mod, Func, '_')</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="stop/3">
+
+  <div class="detail-header">
+    <a href="#stop/3" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">stop(Mod, Func, Arity)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/cprof.erl#L178" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> stop(Mod, Func, Arity) -> <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>() when Mod :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>(), Func :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), Arity :: <a href="../../apps/erts/erlang.html#t:arity/0">arity</a>().</pre>
+
+      </div>
+
+<p>Stop call count tracing for matching functions in matching modules.</p><p>Remove call count breakpoints from the matching functions that has call count
+breakpoints.</p><p>Return the number of matching functions that can have call count breakpoints,
+which is the same as <a href="#start/3"><code class="inline">start/*</code></a> with the same arguments would have
+returned.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+    <footer class="footer">
+      <p>
+
+        <span class="line">
+          <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+            Search HexDocs
+          </button>
+
+            <a href="tools.epub" title="ePub version">
+              Download ePub version
+            </a>
+
+        </span>
+      </p>
+
+      <p class="built-using">
+        Built using
+        <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.34.1) for the
+
+          <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+      </p>
+<p>Copyright © 1996-2024 <a href="https://www.ericsson.com">Ericsson AB</a></p>
+    </footer>
+  </div>
+</main>
+</div>
+<script>
+  function mermaidLoaded() {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: document.body.className.includes("dark") ? "dark" : "default"
+    });
+    let id = 0;
+    for (const codeEl of document.querySelectorAll("pre code.mermaid")) {
+      const preEl = codeEl.parentElement;
+      const graphDefinition = codeEl.textContent;
+      const graphEl = document.createElement("div");
+      const graphId = "mermaid-graph-" + id++;
+      mermaid.render(graphId, graphDefinition).then(({svg, bindFunctions}) => {
+        graphEl.innerHTML = svg;
+        bindFunctions?.(graphEl);
+        preEl.insertAdjacentElement("afterend", graphEl);
+        preEl.remove();
+      });
+    }
+  }
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mermaid@10.2.3/dist/mermaid.min.js" onload="mermaidLoaded();"></script>
+
+  </body>
+</html>

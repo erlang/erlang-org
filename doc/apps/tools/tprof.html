@@ -1,0 +1,2507 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.34.1">
+    <meta name="project" content="tools v4.1">
+
+
+<meta name="exdoc:full-text-search-url" content="/doc/search.html?v=27&q=">
+<meta name="major-vsn" content="27">
+<link rel="canonical" href="https://www.erlang.org/doc/apps/tools/tprof.html" />
+    <title>tprof — tools v4.1</title>
+    <link rel="stylesheet" href="dist/html-erlang-APNLKZCW.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-K7URE6B4.js"></script>
+    <script src="dist/sidebar_items-0E887516.js"></script>
+    <script src="docs_config.js"></script>
+    <script async src="dist/html-7XSQ4GTY.js"></script>
+
+  </head>
+  <body data-type="modules" class="page-module">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="tools" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+tools
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v4.1
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of tools</span>
+            <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+          </label>
+          <button type="submit" class="search-button" aria-label="Submit Search">
+            <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+          </button>
+          <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+            <i class="ri-close-line ri-lg" title="Cancel search"></i>
+          </button>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L23" title="View Source" class="icon-action" rel="help">
+        <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        <span class="sr-only">View Source</span>
+      </a>
+
+    <span translate="no">tprof</span> 
+    <small class="app-vsn" translate="no">(tools v4.1)</small>
+
+  </h1>
+
+
+    <section id="moduledoc">
+<p>Process Tracing Profiling Tool</p><p><code class="inline">tprof</code> provides convenience helpers for Erlang process profiling using
+the trace BIFs.</p><blockquote><h4 class="warning">Warning</h4><p>This module aims to replace <code class="inline">eprof</code> and <code class="inline">cprof</code> into a unified API for
+measuring call count, time, and allocation. It is experimental in Erlang/OTP
+27.0.</p></blockquote><p>It is possible to analyze the number of calls, the time spent by function, and
+heap allocations by function. Profiling can be done <a href="#module-ad-hoc-profiling">ad-hoc</a>
+ or run in a <a href="#module-server-aided-profiling">server-aided mode</a> for deeper
+introspection of the code running in production. The server-aided mode can be
+run using the default tprof server or an isolated <a href="#t:server/0"><code class="inline">server/0</code></a> started through
+<a href="#start/1"><code class="inline">start(#{ session =&gt; atom() })</code></a>.</p><p>There are <a href="#t:trace_type/0">three kinds of profiling</a> supported by this module:</p><ul><li><code class="inline">call_count</code></li><li><code class="inline">call_time</code></li><li><code class="inline">call_memory</code></li></ul><p>The default is <code class="inline">call_count</code>, which has the smallest peformance impact
+and memory footprint, but it does not support per-process
+profiling. For this reason, all of the examples below uses
+<code class="inline">call_memory</code>, which measures heap allocation, and provide a more complex
+feature set to demonstrate.</p><p>Erlang terms that do not fit in a single machine word are allocated on
+the process heap. For example, a function returning a tuple of two
+elements needs to allocate the tuple on the process heap. The actual
+consumption is three words, because the runtime systems also need an
+extra word to store the tuple size.</p><blockquote><h4 class="info">Note</h4><p>Expect a slowdown in the program execution when profiling is enabled.</p><p>For profiling convenience, measurements are accumulated for functions that are
+not enabled in some trace pattern. Consider this call stack example:</p><pre><code class="text">top_traced_function(...)
+not_traced_function()
+bottom_traced_function()</code></pre><p>Allocations that happened within <code class="inline">not_traced_function</code> will be added to
+the allocations for <code class="inline">top_traced_function</code>. However, allocations that occurred
+within <code class="inline">bottom_traced_function</code> are not included in the <code class="inline">top_traced_function</code>.
+To only keep track of each function own allocations, it is necessary to
+trace all functions.</p></blockquote><blockquote><h4 class="warning">Warning</h4><p>Avoid hot code reloading for modules participating in the tracing.
+Reloading a module disables tracing and discards the accumulated statistics.
+The <code class="inline">tprof</code> results will probably be incorrect when the profiled code was
+reloading during a profiling session.</p></blockquote><h2 id="module-ad-hoc-profiling" class="section-heading">
+  <a href="#module-ad-hoc-profiling" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Ad-hoc profiling</span>
+</h2>
+<p>Ad-hoc profiling is convenient for profiling a single function call.</p><p>For example:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">1&gt; </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">profile</span><span class="p" data-group-id="3827581395-1">(</span><span class="ss">lists</span><span class="p">,</span><span class="w"> </span><span class="ss">seq</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="3827581395-2">[</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">16</span><span class="p" data-group-id="3827581395-2">]</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="3827581395-3">#{</span><span class="ss">type</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">call_memory</span><span class="p" data-group-id="3827581395-3">}</span><span class="p" data-group-id="3827581395-1">)</span><span class="p">.</span><span class="w">
+
+</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="w"> </span><span class="n">Process</span><span class="w"> </span><span class="o">&lt;</span><span class="mf">0.92</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="w">  </span><span class="o">--</span><span class="w">  </span><span class="mf">100.00</span><span class="c1">% of total *** </span><span class="w">
+</span><span class="n">FUNCTION</span><span class="w">          </span><span class="n">CALLS</span><span class="w">  </span><span class="n">WORDS</span><span class="w">  </span><span class="n">PER</span><span class="w"> </span><span class="n">CALL</span><span class="w">  </span><span class="p" data-group-id="3827581395-4">[</span><span class="w">     </span><span class="c1">%]</span><span class="w">
+</span><span class="nc">lists</span><span class="p">:</span><span class="ss">seq_loop</span><span class="p">/</span><span class="mi">3</span><span class="w">      </span><span class="mi">5</span><span class="w">     </span><span class="mi">32</span><span class="w">      </span><span class="mf">6.40</span><span class="w">  </span><span class="p" data-group-id="3827581395-5">[</span><span class="mf">100.00</span><span class="p" data-group-id="3827581395-5">]</span><span class="w">
+                            </span><span class="mi">32</span><span class="w">            </span><span class="p" data-group-id="3827581395-6">[</span><span class="w"> </span><span class="mf">100.0</span><span class="p" data-group-id="3827581395-6">]</span><span class="w">
+</span><span class="ss">ok</span></code></pre><p>By default tracing is enabled for all functions in all modules. When funs
+are created in the interactive shell, parts of shell code are also traced:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">1&gt; </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">profile</span><span class="p" data-group-id="6759726033-1">(</span><span class="nf">fun</span><span class="p" data-group-id="6759726033-2">(</span><span class="p" data-group-id="6759726033-2">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">lists</span><span class="p">:</span><span class="nf">seq</span><span class="p" data-group-id="6759726033-3">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">16</span><span class="p" data-group-id="6759726033-3">)</span><span class="w"> </span><span class="k">end</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="6759726033-4">#{</span><span class="ss">type</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">call_memory</span><span class="p" data-group-id="6759726033-4">}</span><span class="p" data-group-id="6759726033-1">)</span><span class="p">.</span><span class="w">
+
+</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="w"> </span><span class="n">Process</span><span class="w"> </span><span class="o">&lt;</span><span class="mf">0.95</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="w">  </span><span class="o">--</span><span class="w">  </span><span class="mf">100.00</span><span class="c1">% of total *** </span><span class="w">
+</span><span class="n">FUNCTION</span><span class="w">                   </span><span class="n">CALLS</span><span class="w">  </span><span class="n">WORDS</span><span class="w">  </span><span class="n">PER</span><span class="w"> </span><span class="n">CALL</span><span class="w">  </span><span class="p" data-group-id="6759726033-5">[</span><span class="w">    </span><span class="c1">%]</span><span class="w">
+</span><span class="nc">erl_eval</span><span class="p">:</span><span class="ss">do_apply</span><span class="p">/</span><span class="mi">7</span><span class="w">            </span><span class="mi">1</span><span class="w">      </span><span class="mi">3</span><span class="w">      </span><span class="mf">3.00</span><span class="w">  </span><span class="p" data-group-id="6759726033-6">[</span><span class="w"> </span><span class="mf">3.61</span><span class="p" data-group-id="6759726033-6">]</span><span class="w">
+</span><span class="nc">erl_eval</span><span class="p">:</span><span class="ss">match_list</span><span class="p">/</span><span class="mi">6</span><span class="w">          </span><span class="mi">1</span><span class="w">      </span><span class="mi">3</span><span class="w">      </span><span class="mf">3.00</span><span class="w">  </span><span class="p" data-group-id="6759726033-7">[</span><span class="w"> </span><span class="mf">3.61</span><span class="p" data-group-id="6759726033-7">]</span><span class="w">
+</span><span class="nc">lists</span><span class="p">:</span><span class="ss">reverse</span><span class="p">/</span><span class="mi">1</span><span class="w">                </span><span class="mi">1</span><span class="w">      </span><span class="mi">4</span><span class="w">      </span><span class="mf">4.00</span><span class="w">  </span><span class="p" data-group-id="6759726033-8">[</span><span class="w"> </span><span class="mf">4.82</span><span class="p" data-group-id="6759726033-8">]</span><span class="w">
+</span><span class="nc">erl_eval</span><span class="p">:</span><span class="ss">expr_list</span><span class="p">/</span><span class="mi">7</span><span class="w">           </span><span class="mi">3</span><span class="w">      </span><span class="mi">7</span><span class="w">      </span><span class="mf">2.33</span><span class="w">  </span><span class="p" data-group-id="6759726033-9">[</span><span class="w"> </span><span class="mf">8.43</span><span class="p" data-group-id="6759726033-9">]</span><span class="w">
+</span><span class="nc">erl_eval</span><span class="p">:</span><span class="ss">ret_expr</span><span class="p">/</span><span class="mi">3</span><span class="w">            </span><span class="mi">4</span><span class="w">     </span><span class="mi">16</span><span class="w">      </span><span class="mf">4.00</span><span class="w">  </span><span class="p" data-group-id="6759726033-10">[</span><span class="mf">19.28</span><span class="p" data-group-id="6759726033-10">]</span><span class="w">
+</span><span class="nc">erl_eval</span><span class="p">:</span><span class="ss">merge_bindings</span><span class="p">/</span><span class="mi">4</span><span class="w">      </span><span class="mi">3</span><span class="w">     </span><span class="mi">18</span><span class="w">      </span><span class="mf">6.00</span><span class="w">  </span><span class="p" data-group-id="6759726033-11">[</span><span class="mf">21.69</span><span class="p" data-group-id="6759726033-11">]</span><span class="w">
+</span><span class="nc">lists</span><span class="p">:</span><span class="ss">seq_loop</span><span class="p">/</span><span class="mi">3</span><span class="w">               </span><span class="mi">5</span><span class="w">     </span><span class="mi">32</span><span class="w">      </span><span class="mf">6.40</span><span class="w">  </span><span class="p" data-group-id="6759726033-12">[</span><span class="mf">38.55</span><span class="p" data-group-id="6759726033-12">]</span><span class="w">
+                                     </span><span class="mi">83</span><span class="w">            </span><span class="p" data-group-id="6759726033-13">[</span><span class="mf">100.0</span><span class="p" data-group-id="6759726033-13">]</span><span class="w">
+</span><span class="ss">ok</span></code></pre><p>However, it is possible to limit the trace to specific functions or modules:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">2&gt; </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">profile</span><span class="p" data-group-id="1922590924-1">(</span><span class="nf">fun</span><span class="p" data-group-id="1922590924-2">(</span><span class="p" data-group-id="1922590924-2">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">lists</span><span class="p">:</span><span class="nf">seq</span><span class="p" data-group-id="1922590924-3">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">16</span><span class="p" data-group-id="1922590924-3">)</span><span class="w"> </span><span class="k">end</span><span class="p">,</span><span class="w">
+                 </span><span class="p" data-group-id="1922590924-4">#{</span><span class="ss">type</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">call_memory</span><span class="p">,</span><span class="w"> </span><span class="ss">pattern</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p" data-group-id="1922590924-5">[</span><span class="p" data-group-id="1922590924-6">{</span><span class="ss">lists</span><span class="p">,</span><span class="w"> </span><span class="ss">seq_loop</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;_&#39;</span><span class="p" data-group-id="1922590924-6">}</span><span class="p" data-group-id="1922590924-5">]</span><span class="p" data-group-id="1922590924-4">}</span><span class="p" data-group-id="1922590924-1">)</span><span class="p">.</span><span class="w">
+</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="w"> </span><span class="n">Process</span><span class="w"> </span><span class="o">&lt;</span><span class="mf">0.98</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="w">  </span><span class="o">--</span><span class="w">  </span><span class="mf">100.00</span><span class="c1">% of total *** </span><span class="w">
+</span><span class="n">FUNCTION</span><span class="w">          </span><span class="n">CALLS</span><span class="w">  </span><span class="n">WORDS</span><span class="w">  </span><span class="n">PER</span><span class="w"> </span><span class="n">CALL</span><span class="w">  </span><span class="p" data-group-id="1922590924-7">[</span><span class="w">     </span><span class="c1">%]</span><span class="w">
+</span><span class="nc">lists</span><span class="p">:</span><span class="ss">seq_loop</span><span class="p">/</span><span class="mi">3</span><span class="w">      </span><span class="mi">5</span><span class="w">     </span><span class="mi">32</span><span class="w">      </span><span class="mf">6.40</span><span class="w">  </span><span class="p" data-group-id="1922590924-8">[</span><span class="mf">100.00</span><span class="p" data-group-id="1922590924-8">]</span><span class="w">
+                            </span><span class="mi">32</span><span class="w">            </span><span class="p" data-group-id="1922590924-9">[</span><span class="w"> </span><span class="mf">100.0</span><span class="p" data-group-id="1922590924-9">]</span><span class="w">
+
+</span><span class="ss">ok</span></code></pre><p>Ad-hoc profiling results can be printed in a few different ways. The following
+examples use the <code class="inline">test</code> module defined like this:</p><pre><code class="makeup erlang" translate="no"><span class="p">-</span><span class="na">module</span><span class="p" data-group-id="7316503225-1">(</span><span class="ss">test</span><span class="p" data-group-id="7316503225-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="7316503225-2">(</span><span class="p" data-group-id="7316503225-3">[</span><span class="ss">test_spawn</span><span class="p">/</span><span class="mi">0</span><span class="p" data-group-id="7316503225-3">]</span><span class="p" data-group-id="7316503225-2">)</span><span class="p">.</span><span class="w">
+</span><span class="nf">test_spawn</span><span class="p" data-group-id="7316503225-4">(</span><span class="p" data-group-id="7316503225-4">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="7316503225-5">{</span><span class="n">Pid</span><span class="p">,</span><span class="w"> </span><span class="n">MRef</span><span class="p" data-group-id="7316503225-5">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">spawn_monitor</span><span class="p" data-group-id="7316503225-6">(</span><span class="nf">fun</span><span class="w"> </span><span class="p" data-group-id="7316503225-7">(</span><span class="p" data-group-id="7316503225-7">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">lists</span><span class="p">:</span><span class="nf">seq</span><span class="p" data-group-id="7316503225-8">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">32</span><span class="p" data-group-id="7316503225-8">)</span><span class="w"> </span><span class="k">end</span><span class="p" data-group-id="7316503225-6">)</span><span class="p">,</span><span class="w">
+    </span><span class="k">receive</span><span class="w">
+        </span><span class="p" data-group-id="7316503225-9">{</span><span class="ss">&#39;DOWN&#39;</span><span class="p">,</span><span class="w"> </span><span class="n">MRef</span><span class="p">,</span><span class="w"> </span><span class="ss">process</span><span class="p">,</span><span class="w"> </span><span class="n">Pid</span><span class="p">,</span><span class="w"> </span><span class="ss">normal</span><span class="p" data-group-id="7316503225-9">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="ss">done</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span></code></pre><p>By default per-process statistics is shown:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">1&gt; </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">profile</span><span class="p" data-group-id="1527479560-1">(</span><span class="ss">test</span><span class="p">,</span><span class="w"> </span><span class="ss">test_spawn</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1527479560-2">[</span><span class="p" data-group-id="1527479560-2">]</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1527479560-3">#{</span><span class="ss">type</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">call_memory</span><span class="p" data-group-id="1527479560-3">}</span><span class="p" data-group-id="1527479560-1">)</span><span class="p">.</span><span class="w">
+
+</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="w"> </span><span class="n">Process</span><span class="w"> </span><span class="o">&lt;</span><span class="mf">0.176</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="w">    </span><span class="o">--</span><span class="w"> </span><span class="mf">23.66</span><span class="w"> </span><span class="c1">% of total allocations ***</span><span class="w">
+</span><span class="n">FUNCTION</span><span class="w">                </span><span class="n">CALLS</span><span class="w">  </span><span class="n">WORDS</span><span class="w">  </span><span class="n">PER</span><span class="w"> </span><span class="n">CALL</span><span class="w">  </span><span class="p" data-group-id="1527479560-4">[</span><span class="w">    </span><span class="c1">%]</span><span class="w">
+</span><span class="nc">erlang</span><span class="p">:</span><span class="nb">spawn_monitor</span><span class="p">/</span><span class="mi">1</span><span class="w">      </span><span class="mi">1</span><span class="w">      </span><span class="mi">2</span><span class="w">         </span><span class="mi">2</span><span class="w">  </span><span class="p" data-group-id="1527479560-5">[</span><span class="w"> </span><span class="mf">9.09</span><span class="p" data-group-id="1527479560-5">]</span><span class="w">
+</span><span class="nc">erlang</span><span class="p">:</span><span class="nb">spawn_opt</span><span class="p">/</span><span class="mi">4</span><span class="w">          </span><span class="mi">1</span><span class="w">      </span><span class="mi">6</span><span class="w">         </span><span class="mi">6</span><span class="w">  </span><span class="p" data-group-id="1527479560-6">[</span><span class="mf">27.27</span><span class="p" data-group-id="1527479560-6">]</span><span class="w">
+</span><span class="nc">test</span><span class="p">:</span><span class="ss">test_spawn</span><span class="p">/</span><span class="mi">0</span><span class="w">           </span><span class="mi">1</span><span class="w">     </span><span class="mi">14</span><span class="w">        </span><span class="mi">14</span><span class="w">  </span><span class="p" data-group-id="1527479560-7">[</span><span class="mf">63.64</span><span class="p" data-group-id="1527479560-7">]</span><span class="w">
+                                  </span><span class="mi">22</span><span class="w">            </span><span class="p" data-group-id="1527479560-8">[</span><span class="mf">100.0</span><span class="p" data-group-id="1527479560-8">]</span><span class="w">
+
+</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="w"> </span><span class="n">Process</span><span class="w"> </span><span class="o">&lt;</span><span class="mf">0.177</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="w">    </span><span class="o">--</span><span class="w"> </span><span class="mf">76.34</span><span class="w"> </span><span class="c1">% of total allocations ***</span><span class="w">
+</span><span class="n">FUNCTION</span><span class="w">           </span><span class="n">CALLS</span><span class="w">  </span><span class="n">WORDS</span><span class="w">  </span><span class="n">PER</span><span class="w"> </span><span class="n">CALL</span><span class="w">  </span><span class="p" data-group-id="1527479560-9">[</span><span class="w">    </span><span class="c1">%]</span><span class="w">
+</span><span class="nc">erlang</span><span class="p">:</span><span class="nb">apply</span><span class="p">/</span><span class="mi">2</span><span class="w">         </span><span class="mi">1</span><span class="w">      </span><span class="mi">7</span><span class="w">         </span><span class="mi">7</span><span class="w">  </span><span class="p" data-group-id="1527479560-10">[</span><span class="w"> </span><span class="mf">9.86</span><span class="p" data-group-id="1527479560-10">]</span><span class="w">
+</span><span class="nc">lists</span><span class="p">:</span><span class="ss">seq_loop</span><span class="p">/</span><span class="mi">3</span><span class="w">       </span><span class="mi">9</span><span class="w">     </span><span class="mi">64</span><span class="w">         </span><span class="mi">7</span><span class="w">  </span><span class="p" data-group-id="1527479560-11">[</span><span class="mf">90.14</span><span class="p" data-group-id="1527479560-11">]</span><span class="w">
+                             </span><span class="mi">71</span><span class="w">            </span><span class="p" data-group-id="1527479560-12">[</span><span class="mf">100.0</span><span class="p" data-group-id="1527479560-12">]</span></code></pre><p>The following example prints the combined memory allocation of all
+processes, sorted by the total number of allocated words in descending
+order:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">2&gt; </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">profile</span><span class="p" data-group-id="2524549638-1">(</span><span class="ss">test</span><span class="p">,</span><span class="w"> </span><span class="ss">test_spawn</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2524549638-2">[</span><span class="p" data-group-id="2524549638-2">]</span><span class="p">,</span><span class="w">
+                 </span><span class="p" data-group-id="2524549638-3">#{</span><span class="ss">type</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">call_memory</span><span class="p">,</span><span class="w"> </span><span class="ss">report</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p" data-group-id="2524549638-4">{</span><span class="ss">total</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2524549638-5">{</span><span class="ss">measurement</span><span class="p">,</span><span class="w"> </span><span class="ss">descending</span><span class="p" data-group-id="2524549638-5">}</span><span class="p" data-group-id="2524549638-4">}</span><span class="p" data-group-id="2524549638-3">}</span><span class="p" data-group-id="2524549638-1">)</span><span class="p">.</span><span class="w">
+
+</span><span class="n">FUNCTION</span><span class="w">                </span><span class="n">CALLS</span><span class="w">  </span><span class="n">WORDS</span><span class="w">  </span><span class="n">PER</span><span class="w"> </span><span class="n">CALL</span><span class="w">  </span><span class="p" data-group-id="2524549638-6">[</span><span class="w">    </span><span class="c1">%]</span><span class="w">
+</span><span class="nc">lists</span><span class="p">:</span><span class="ss">seq_loop</span><span class="p">/</span><span class="mi">3</span><span class="w">            </span><span class="mi">9</span><span class="w">     </span><span class="mi">64</span><span class="w">         </span><span class="mi">7</span><span class="w">  </span><span class="p" data-group-id="2524549638-7">[</span><span class="mf">68.82</span><span class="p" data-group-id="2524549638-7">]</span><span class="w">
+</span><span class="nc">test</span><span class="p">:</span><span class="ss">test_spawn</span><span class="p">/</span><span class="mi">0</span><span class="w">           </span><span class="mi">1</span><span class="w">     </span><span class="mi">14</span><span class="w">        </span><span class="mi">14</span><span class="w">  </span><span class="p" data-group-id="2524549638-8">[</span><span class="mf">15.05</span><span class="p" data-group-id="2524549638-8">]</span><span class="w">
+</span><span class="nc">erlang</span><span class="p">:</span><span class="nb">apply</span><span class="p">/</span><span class="mi">2</span><span class="w">              </span><span class="mi">1</span><span class="w">      </span><span class="mi">7</span><span class="w">         </span><span class="mi">7</span><span class="w">  </span><span class="p" data-group-id="2524549638-9">[</span><span class="w"> </span><span class="mf">7.53</span><span class="p" data-group-id="2524549638-9">]</span><span class="w">
+</span><span class="nc">erlang</span><span class="p">:</span><span class="nb">spawn_opt</span><span class="p">/</span><span class="mi">4</span><span class="w">          </span><span class="mi">1</span><span class="w">      </span><span class="mi">6</span><span class="w">         </span><span class="mi">6</span><span class="w">  </span><span class="p" data-group-id="2524549638-10">[</span><span class="w"> </span><span class="mf">6.45</span><span class="p" data-group-id="2524549638-10">]</span><span class="w">
+</span><span class="nc">erlang</span><span class="p">:</span><span class="nb">spawn_monitor</span><span class="p">/</span><span class="mi">1</span><span class="w">      </span><span class="mi">1</span><span class="w">      </span><span class="mi">2</span><span class="w">         </span><span class="mi">2</span><span class="w">  </span><span class="p" data-group-id="2524549638-11">[</span><span class="w"> </span><span class="mf">2.15</span><span class="p" data-group-id="2524549638-11">]</span><span class="w">
+                                  </span><span class="mi">93</span><span class="w">            </span><span class="p" data-group-id="2524549638-12">[</span><span class="mf">100.0</span><span class="p" data-group-id="2524549638-12">]</span></code></pre><p>The profiling data can also be collected for further inspection:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">3&gt; </span><span class="p" data-group-id="0645172204-1">{</span><span class="ss">done</span><span class="p">,</span><span class="w"> </span><span class="n">ProfileData</span><span class="p" data-group-id="0645172204-1">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">profile</span><span class="p" data-group-id="0645172204-2">(</span><span class="k">fun</span><span class="w"> </span><span class="nc">test</span><span class="p">:</span><span class="ss">test_spawn</span><span class="p">/</span><span class="mi">0</span><span class="p">,</span><span class="w">
+                                       </span><span class="p" data-group-id="0645172204-3">#{</span><span class="ss">type</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">call_memory</span><span class="p">,</span><span class="w"> </span><span class="ss">report</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">return</span><span class="p" data-group-id="0645172204-3">}</span><span class="p" data-group-id="0645172204-2">)</span><span class="p">.</span><span class="w">
+</span><span class="o">&lt;</span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="o">&gt;</span><span class="gp unselectable">
+4&gt; </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="0645172204-4">(</span><span class="nc">tprof</span><span class="p">:</span><span class="nf">inspect</span><span class="p" data-group-id="0645172204-5">(</span><span class="n">ProfileData</span><span class="p">,</span><span class="w"> </span><span class="ss">process</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0645172204-6">{</span><span class="ss">percent</span><span class="p">,</span><span class="w"> </span><span class="ss">descending</span><span class="p" data-group-id="0645172204-6">}</span><span class="p" data-group-id="0645172204-5">)</span><span class="p" data-group-id="0645172204-4">)</span><span class="p">.</span><span class="w">
+
+</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="w"> </span><span class="n">Process</span><span class="w"> </span><span class="o">&lt;</span><span class="mf">0.223</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="w">    </span><span class="o">--</span><span class="w"> </span><span class="mf">23.66</span><span class="w"> </span><span class="c1">% of total allocations ***</span><span class="w">
+</span><span class="n">FUNCTION</span><span class="w">                </span><span class="n">CALLS</span><span class="w">  </span><span class="n">WORDS</span><span class="w">  </span><span class="n">PER</span><span class="w"> </span><span class="n">CALL</span><span class="w">  </span><span class="p" data-group-id="0645172204-7">[</span><span class="w">    </span><span class="c1">%]</span><span class="w">
+</span><span class="nc">test</span><span class="p">:</span><span class="ss">test_spawn</span><span class="p">/</span><span class="mi">0</span><span class="w">           </span><span class="mi">1</span><span class="w">     </span><span class="mi">14</span><span class="w">        </span><span class="mi">14</span><span class="w">  </span><span class="p" data-group-id="0645172204-8">[</span><span class="mf">63.64</span><span class="p" data-group-id="0645172204-8">]</span><span class="w">
+</span><span class="nc">erlang</span><span class="p">:</span><span class="nb">spawn_opt</span><span class="p">/</span><span class="mi">4</span><span class="w">          </span><span class="mi">1</span><span class="w">      </span><span class="mi">6</span><span class="w">         </span><span class="mi">6</span><span class="w">  </span><span class="p" data-group-id="0645172204-9">[</span><span class="mf">27.27</span><span class="p" data-group-id="0645172204-9">]</span><span class="w">
+</span><span class="nc">erlang</span><span class="p">:</span><span class="nb">spawn_monitor</span><span class="p">/</span><span class="mi">1</span><span class="w">      </span><span class="mi">1</span><span class="w">      </span><span class="mi">2</span><span class="w">         </span><span class="mi">2</span><span class="w">  </span><span class="p" data-group-id="0645172204-10">[</span><span class="w"> </span><span class="mf">9.09</span><span class="p" data-group-id="0645172204-10">]</span><span class="w">
+                                  </span><span class="mi">22</span><span class="w">            </span><span class="p" data-group-id="0645172204-11">[</span><span class="mf">100.0</span><span class="p" data-group-id="0645172204-11">]</span><span class="w">
+
+</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="w"> </span><span class="n">Process</span><span class="w"> </span><span class="o">&lt;</span><span class="mf">0.224</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="w">    </span><span class="o">--</span><span class="w"> </span><span class="mf">76.34</span><span class="w"> </span><span class="c1">% of total allocations ***</span><span class="w">
+</span><span class="n">FUNCTION</span><span class="w">           </span><span class="n">CALLS</span><span class="w">  </span><span class="n">WORDS</span><span class="w">  </span><span class="n">PER</span><span class="w"> </span><span class="n">CALL</span><span class="w">  </span><span class="p" data-group-id="0645172204-12">[</span><span class="w">    </span><span class="c1">%]</span><span class="w">
+</span><span class="nc">lists</span><span class="p">:</span><span class="ss">seq_loop</span><span class="p">/</span><span class="mi">3</span><span class="w">       </span><span class="mi">9</span><span class="w">     </span><span class="mi">64</span><span class="w">         </span><span class="mi">7</span><span class="w">  </span><span class="p" data-group-id="0645172204-13">[</span><span class="mf">90.14</span><span class="p" data-group-id="0645172204-13">]</span><span class="w">
+</span><span class="nc">erlang</span><span class="p">:</span><span class="nb">apply</span><span class="p">/</span><span class="mi">2</span><span class="w">         </span><span class="mi">1</span><span class="w">      </span><span class="mi">7</span><span class="w">         </span><span class="mi">7</span><span class="w">  </span><span class="p" data-group-id="0645172204-14">[</span><span class="w"> </span><span class="mf">9.86</span><span class="p" data-group-id="0645172204-14">]</span><span class="w">
+                             </span><span class="mi">71</span><span class="w">            </span><span class="p" data-group-id="0645172204-15">[</span><span class="mf">100.0</span><span class="p" data-group-id="0645172204-15">]</span></code></pre><p>Which processes that are profiled depends on the profiling type.</p><ul><li><p><code class="inline">call_count</code> (default) counts calls in all processes.</p></li><li><p><code class="inline">call_time</code> and <code class="inline">call_memory</code> limits the profiling to the processes
+spawned from the user-provided function (using the <code class="inline">set_on_spawn</code>
+option for <a href="../../apps/kernel/trace.html#process/4"><code class="inline">trace:process/4</code></a>).</p></li></ul><p><code class="inline">call_time</code> and <code class="inline">call_memory</code> can be restricted to profile a single process:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">2&gt; </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">profile</span><span class="p" data-group-id="3717425371-1">(</span><span class="ss">test</span><span class="p">,</span><span class="w"> </span><span class="ss">test_spawn</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="3717425371-2">[</span><span class="p" data-group-id="3717425371-2">]</span><span class="p">,</span><span class="w">
+                 </span><span class="p" data-group-id="3717425371-3">#{</span><span class="ss">type</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">call_memory</span><span class="p">,</span><span class="w"> </span><span class="ss">set_on_spawn</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">false</span><span class="p" data-group-id="3717425371-3">}</span><span class="p" data-group-id="3717425371-1">)</span><span class="p">.</span><span class="w">
+
+</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="w"> </span><span class="n">Process</span><span class="w"> </span><span class="o">&lt;</span><span class="mf">0.183</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="w">    </span><span class="o">--</span><span class="w"> </span><span class="mf">100.00</span><span class="w"> </span><span class="c1">% of total allocations ***</span><span class="w">
+</span><span class="n">FUNCTION</span><span class="w">                </span><span class="n">CALLS</span><span class="w">  </span><span class="n">WORDS</span><span class="w">  </span><span class="n">PER</span><span class="w"> </span><span class="n">CALL</span><span class="w">  </span><span class="p" data-group-id="3717425371-4">[</span><span class="w">    </span><span class="c1">%]</span><span class="w">
+</span><span class="nc">erlang</span><span class="p">:</span><span class="nb">spawn_monitor</span><span class="p">/</span><span class="mi">1</span><span class="w">      </span><span class="mi">1</span><span class="w">      </span><span class="mi">2</span><span class="w">         </span><span class="mi">2</span><span class="w">  </span><span class="p" data-group-id="3717425371-5">[</span><span class="w"> </span><span class="mf">9.09</span><span class="p" data-group-id="3717425371-5">]</span><span class="w">
+</span><span class="nc">erlang</span><span class="p">:</span><span class="nb">spawn_opt</span><span class="p">/</span><span class="mi">4</span><span class="w">          </span><span class="mi">1</span><span class="w">      </span><span class="mi">6</span><span class="w">         </span><span class="mi">6</span><span class="w">  </span><span class="p" data-group-id="3717425371-6">[</span><span class="mf">27.27</span><span class="p" data-group-id="3717425371-6">]</span><span class="w">
+</span><span class="nc">test</span><span class="p">:</span><span class="ss">test_spawn</span><span class="p">/</span><span class="mi">0</span><span class="w">           </span><span class="mi">1</span><span class="w">     </span><span class="mi">14</span><span class="w">        </span><span class="mi">14</span><span class="w">  </span><span class="p" data-group-id="3717425371-7">[</span><span class="mf">63.64</span><span class="p" data-group-id="3717425371-7">]</span></code></pre><p><a href="" id="pg_example"></a></p><p>Erlang programs can perform expensive operations in other processes
+than the original one. You can include multiple, new, or even all
+processes in the trace when measuring time or memory:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">7&gt; </span><span class="nc">pg</span><span class="p">:</span><span class="nf">start_link</span><span class="p" data-group-id="3509148090-1">(</span><span class="p" data-group-id="3509148090-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="3509148090-2">{</span><span class="ss">ok</span><span class="p">,</span><span class="o">&lt;</span><span class="mf">0.252</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="p" data-group-id="3509148090-2">}</span><span class="gp unselectable">
+8&gt; </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">profile</span><span class="p" data-group-id="3509148090-3">(</span><span class="nf">fun</span><span class="p" data-group-id="3509148090-4">(</span><span class="p" data-group-id="3509148090-4">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">pg</span><span class="p">:</span><span class="nf">join</span><span class="p" data-group-id="3509148090-5">(</span><span class="ss">group</span><span class="p">,</span><span class="w"> </span><span class="nf">self</span><span class="p" data-group-id="3509148090-6">(</span><span class="p" data-group-id="3509148090-6">)</span><span class="p" data-group-id="3509148090-5">)</span><span class="w"> </span><span class="k">end</span><span class="p">,</span><span class="w">
+                 </span><span class="p" data-group-id="3509148090-7">#{</span><span class="ss">type</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">call_memory</span><span class="p">,</span><span class="w"> </span><span class="ss">rootset</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p" data-group-id="3509148090-8">[</span><span class="ss">pg</span><span class="p" data-group-id="3509148090-8">]</span><span class="p" data-group-id="3509148090-7">}</span><span class="p" data-group-id="3509148090-3">)</span><span class="p">.</span><span class="w">
+</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="w"> </span><span class="n">Process</span><span class="w"> </span><span class="o">&lt;</span><span class="mf">0.252</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="w">    </span><span class="o">--</span><span class="w"> </span><span class="mf">52.86</span><span class="w"> </span><span class="c1">% of total allocations ***</span><span class="w">
+</span><span class="n">FUNCTION</span><span class="w">                      </span><span class="n">CALLS</span><span class="w">  </span><span class="n">WORDS</span><span class="w">  </span><span class="n">PER</span><span class="w"> </span><span class="n">CALL</span><span class="w">  </span><span class="p" data-group-id="3509148090-9">[</span><span class="w">    </span><span class="c1">%]</span><span class="w">
+</span><span class="nc">pg</span><span class="p">:</span><span class="ss">leave_local_update_ets</span><span class="p">/</span><span class="mi">5</span><span class="w">       </span><span class="mi">1</span><span class="w">      </span><span class="mi">2</span><span class="w">         </span><span class="mi">2</span><span class="w">  </span><span class="p" data-group-id="3509148090-10">[</span><span class="w"> </span><span class="mf">1.80</span><span class="p" data-group-id="3509148090-10">]</span><span class="w">
+</span><span class="nc">gen</span><span class="p">:</span><span class="ss">reply</span><span class="p">/</span><span class="mi">2</span><span class="w">                       </span><span class="mi">1</span><span class="w">      </span><span class="mi">3</span><span class="w">         </span><span class="mi">3</span><span class="w">  </span><span class="p" data-group-id="3509148090-11">[</span><span class="w"> </span><span class="mf">2.70</span><span class="p" data-group-id="3509148090-11">]</span><span class="w">
+</span><span class="nc">erlang</span><span class="p">:</span><span class="nb">monitor</span><span class="p">/</span><span class="mi">2</span><span class="w">                  </span><span class="mi">1</span><span class="w">      </span><span class="mi">3</span><span class="w">         </span><span class="mi">3</span><span class="w">  </span><span class="p" data-group-id="3509148090-12">[</span><span class="w"> </span><span class="mf">2.70</span><span class="p" data-group-id="3509148090-12">]</span><span class="w">
+</span><span class="nc">gen_server</span><span class="p">:</span><span class="ss">try_handle_call</span><span class="p">/</span><span class="mi">4</span><span class="w">      </span><span class="mi">1</span><span class="w">      </span><span class="mi">3</span><span class="w">         </span><span class="mi">3</span><span class="w">  </span><span class="p" data-group-id="3509148090-13">[</span><span class="w"> </span><span class="mf">2.70</span><span class="p" data-group-id="3509148090-13">]</span><span class="w">
+</span><span class="nc">gen_server</span><span class="p">:</span><span class="ss">try_dispatch</span><span class="p">/</span><span class="mi">4</span><span class="w">         </span><span class="mi">1</span><span class="w">      </span><span class="mi">3</span><span class="w">         </span><span class="mi">3</span><span class="w">  </span><span class="p" data-group-id="3509148090-14">[</span><span class="w"> </span><span class="mf">2.70</span><span class="p" data-group-id="3509148090-14">]</span><span class="w">
+</span><span class="nc">maps</span><span class="p">:</span><span class="ss">iterator</span><span class="p">/</span><span class="mi">1</span><span class="w">                   </span><span class="mi">2</span><span class="w">      </span><span class="mi">4</span><span class="w">         </span><span class="mi">2</span><span class="w">  </span><span class="p" data-group-id="3509148090-15">[</span><span class="w"> </span><span class="mf">3.60</span><span class="p" data-group-id="3509148090-15">]</span><span class="w">
+</span><span class="nc">maps</span><span class="p">:</span><span class="ss">take</span><span class="p">/</span><span class="mi">2</span><span class="w">                       </span><span class="mi">1</span><span class="w">      </span><span class="mi">6</span><span class="w">         </span><span class="mi">6</span><span class="w">  </span><span class="p" data-group-id="3509148090-16">[</span><span class="w"> </span><span class="mf">5.41</span><span class="p" data-group-id="3509148090-16">]</span><span class="w">
+</span><span class="nc">pg</span><span class="p">:</span><span class="ss">join_local_update_ets</span><span class="p">/</span><span class="mi">5</span><span class="w">        </span><span class="mi">1</span><span class="w">      </span><span class="mi">8</span><span class="w">         </span><span class="mi">8</span><span class="w">  </span><span class="p" data-group-id="3509148090-17">[</span><span class="w"> </span><span class="mf">7.21</span><span class="p" data-group-id="3509148090-17">]</span><span class="w">
+</span><span class="nc">pg</span><span class="p">:</span><span class="ss">handle_info</span><span class="p">/</span><span class="mi">2</span><span class="w">                  </span><span class="mi">1</span><span class="w">      </span><span class="mi">8</span><span class="w">         </span><span class="mi">8</span><span class="w">  </span><span class="p" data-group-id="3509148090-18">[</span><span class="w"> </span><span class="mf">7.21</span><span class="p" data-group-id="3509148090-18">]</span><span class="w">
+</span><span class="nc">pg</span><span class="p">:</span><span class="ss">handle_call</span><span class="p">/</span><span class="mi">3</span><span class="w">                  </span><span class="mi">1</span><span class="w">      </span><span class="mi">9</span><span class="w">         </span><span class="mi">9</span><span class="w">  </span><span class="p" data-group-id="3509148090-19">[</span><span class="w"> </span><span class="mf">8.11</span><span class="p" data-group-id="3509148090-19">]</span><span class="w">
+</span><span class="nc">gen_server</span><span class="p">:</span><span class="ss">loop</span><span class="p">/</span><span class="mi">7</span><span class="w">                 </span><span class="mi">2</span><span class="w">      </span><span class="mi">9</span><span class="w">         </span><span class="mi">4</span><span class="w">  </span><span class="p" data-group-id="3509148090-20">[</span><span class="w"> </span><span class="mf">8.11</span><span class="p" data-group-id="3509148090-20">]</span><span class="w">
+</span><span class="nc">ets</span><span class="p">:</span><span class="ss">lookup</span><span class="p">/</span><span class="mi">2</span><span class="w">                      </span><span class="mi">2</span><span class="w">     </span><span class="mi">10</span><span class="w">         </span><span class="mi">5</span><span class="w">  </span><span class="p" data-group-id="3509148090-21">[</span><span class="w"> </span><span class="mf">9.01</span><span class="p" data-group-id="3509148090-21">]</span><span class="w">
+</span><span class="nc">pg</span><span class="p">:</span><span class="ss">join_local</span><span class="p">/</span><span class="mi">3</span><span class="w">                   </span><span class="mi">1</span><span class="w">     </span><span class="mi">11</span><span class="w">        </span><span class="mi">11</span><span class="w">  </span><span class="p" data-group-id="3509148090-22">[</span><span class="w"> </span><span class="mf">9.91</span><span class="p" data-group-id="3509148090-22">]</span><span class="w">
+</span><span class="nc">pg</span><span class="p">:</span><span class="ss">notify_group</span><span class="p">/</span><span class="mi">5</span><span class="w">                 </span><span class="mi">2</span><span class="w">     </span><span class="mi">16</span><span class="w">         </span><span class="mi">8</span><span class="w">  </span><span class="p" data-group-id="3509148090-23">[</span><span class="mf">14.41</span><span class="p" data-group-id="3509148090-23">]</span><span class="w">
+</span><span class="nc">erlang</span><span class="p">:</span><span class="nb">setelement</span><span class="p">/</span><span class="mi">3</span><span class="w">               </span><span class="mi">2</span><span class="w">     </span><span class="mi">16</span><span class="w">         </span><span class="mi">8</span><span class="w">  </span><span class="p" data-group-id="3509148090-24">[</span><span class="mf">14.41</span><span class="p" data-group-id="3509148090-24">]</span><span class="w">
+                                       </span><span class="mi">111</span><span class="w">            </span><span class="p" data-group-id="3509148090-25">[</span><span class="mf">100.0</span><span class="p" data-group-id="3509148090-25">]</span><span class="w">
+
+</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="w"> </span><span class="n">Process</span><span class="w"> </span><span class="o">&lt;</span><span class="mf">0.255</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="w">    </span><span class="o">--</span><span class="w"> </span><span class="mf">47.14</span><span class="w"> </span><span class="c1">% of total allocations ***</span><span class="w">
+</span><span class="n">FUNCTION</span><span class="w">                   </span><span class="n">CALLS</span><span class="w">  </span><span class="n">WORDS</span><span class="w">  </span><span class="n">PER</span><span class="w"> </span><span class="n">CALL</span><span class="w">  </span><span class="p" data-group-id="3509148090-26">[</span><span class="w">    </span><span class="c1">%]</span><span class="w">
+</span><span class="nc">erl_eval</span><span class="p">:</span><span class="ss">match_list</span><span class="p">/</span><span class="mi">6</span><span class="w">          </span><span class="mi">1</span><span class="w">      </span><span class="mi">3</span><span class="w">         </span><span class="mi">3</span><span class="w">  </span><span class="p" data-group-id="3509148090-27">[</span><span class="w"> </span><span class="mf">3.03</span><span class="p" data-group-id="3509148090-27">]</span><span class="w">
+</span><span class="nc">erlang</span><span class="p">:</span><span class="nb">monitor</span><span class="p">/</span><span class="mi">2</span><span class="w">               </span><span class="mi">1</span><span class="w">      </span><span class="mi">3</span><span class="w">         </span><span class="mi">3</span><span class="w">  </span><span class="p" data-group-id="3509148090-28">[</span><span class="w"> </span><span class="mf">3.03</span><span class="p" data-group-id="3509148090-28">]</span><span class="w">
+</span><span class="nc">lists</span><span class="p">:</span><span class="ss">reverse</span><span class="p">/</span><span class="mi">1</span><span class="w">                </span><span class="mi">2</span><span class="w">      </span><span class="mi">4</span><span class="w">         </span><span class="mi">2</span><span class="w">  </span><span class="p" data-group-id="3509148090-29">[</span><span class="w"> </span><span class="mf">4.04</span><span class="p" data-group-id="3509148090-29">]</span><span class="w">
+</span><span class="nc">pg</span><span class="p">:</span><span class="ss">join</span><span class="p">/</span><span class="mi">3</span><span class="w">                      </span><span class="mi">1</span><span class="w">      </span><span class="mi">4</span><span class="w">         </span><span class="mi">4</span><span class="w">  </span><span class="p" data-group-id="3509148090-30">[</span><span class="w"> </span><span class="mf">4.04</span><span class="p" data-group-id="3509148090-30">]</span><span class="w">
+</span><span class="nc">erl_eval</span><span class="p">:</span><span class="ss">add_bindings</span><span class="p">/</span><span class="mi">2</span><span class="w">        </span><span class="mi">1</span><span class="w">      </span><span class="mi">5</span><span class="w">         </span><span class="mi">5</span><span class="w">  </span><span class="p" data-group-id="3509148090-31">[</span><span class="w"> </span><span class="mf">5.05</span><span class="p" data-group-id="3509148090-31">]</span><span class="w">
+</span><span class="nc">erl_eval</span><span class="p">:</span><span class="ss">do_apply</span><span class="p">/</span><span class="mi">7</span><span class="w">            </span><span class="mi">2</span><span class="w">      </span><span class="mi">6</span><span class="w">         </span><span class="mi">3</span><span class="w">  </span><span class="p" data-group-id="3509148090-32">[</span><span class="w"> </span><span class="mf">6.06</span><span class="p" data-group-id="3509148090-32">]</span><span class="w">
+</span><span class="nc">gen</span><span class="p">:</span><span class="ss">call</span><span class="p">/</span><span class="mi">4</span><span class="w">                     </span><span class="mi">1</span><span class="w">      </span><span class="mi">8</span><span class="w">         </span><span class="mi">8</span><span class="w">  </span><span class="p" data-group-id="3509148090-33">[</span><span class="w"> </span><span class="mf">8.08</span><span class="p" data-group-id="3509148090-33">]</span><span class="w">
+</span><span class="nc">erl_eval</span><span class="p">:</span><span class="ss">expr_list</span><span class="p">/</span><span class="mi">7</span><span class="w">           </span><span class="mi">4</span><span class="w">     </span><span class="mi">10</span><span class="w">         </span><span class="mi">2</span><span class="w">  </span><span class="p" data-group-id="3509148090-34">[</span><span class="mf">10.10</span><span class="p" data-group-id="3509148090-34">]</span><span class="w">
+</span><span class="nc">gen</span><span class="p">:</span><span class="ss">do_call</span><span class="p">/</span><span class="mi">4</span><span class="w">                  </span><span class="mi">1</span><span class="w">     </span><span class="mi">16</span><span class="w">        </span><span class="mi">16</span><span class="w">  </span><span class="p" data-group-id="3509148090-35">[</span><span class="mf">16.16</span><span class="p" data-group-id="3509148090-35">]</span><span class="w">
+</span><span class="nc">erl_eval</span><span class="p">:</span><span class="ss">ret_expr</span><span class="p">/</span><span class="mi">3</span><span class="w">            </span><span class="mi">4</span><span class="w">     </span><span class="mi">16</span><span class="w">         </span><span class="mi">4</span><span class="w">  </span><span class="p" data-group-id="3509148090-36">[</span><span class="mf">16.16</span><span class="p" data-group-id="3509148090-36">]</span><span class="w">
+</span><span class="nc">erl_eval</span><span class="p">:</span><span class="ss">merge_bindings</span><span class="p">/</span><span class="mi">4</span><span class="w">      </span><span class="mi">3</span><span class="w">     </span><span class="mi">24</span><span class="w">         </span><span class="mi">8</span><span class="w">  </span><span class="p" data-group-id="3509148090-37">[</span><span class="mf">24.24</span><span class="p" data-group-id="3509148090-37">]</span><span class="w">
+                                     </span><span class="mi">99</span><span class="w">            </span><span class="p" data-group-id="3509148090-38">[</span><span class="mf">100.0</span><span class="p" data-group-id="3509148090-38">]</span></code></pre><p>By default, there is no limit for the profiling time. For ac-hoc
+profiling, is is possible to configure a time limit. If the profiled
+function does not return before that time expires, the process is
+terminated with reason <code class="inline">kill</code>. Any unlinked children processes started
+by the user-supplied function are kept; it is the responsibility of
+the developer to take care of such processes.</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">9&gt; </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">profile</span><span class="p" data-group-id="8911493899-1">(</span><span class="ss">timer</span><span class="p">,</span><span class="w"> </span><span class="ss">sleep</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="8911493899-2">[</span><span class="mi">100000</span><span class="p" data-group-id="8911493899-2">]</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="8911493899-3">#{</span><span class="ss">timeout</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">1000</span><span class="p" data-group-id="8911493899-3">}</span><span class="p" data-group-id="8911493899-1">)</span><span class="p">.</span></code></pre><p>By default, only one ad-hoc or server-aided profiling session is
+allowed at any point in time. It is possible to force multiple ad-hoc
+sessions concurrently, but it is the responsibility of the developer
+to ensure that trace patterns do not overlap:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">1&gt; </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">profile</span><span class="p" data-group-id="8470282910-1">(</span><span class="nf">fun</span><span class="p" data-group-id="8470282910-2">(</span><span class="p" data-group-id="8470282910-2">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">lists</span><span class="p">:</span><span class="nf">seq</span><span class="p" data-group-id="8470282910-3">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">32</span><span class="p" data-group-id="8470282910-3">)</span><span class="w"> </span><span class="k">end</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="8470282910-4">#{</span><span class="ss">registered</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">false</span><span class="p">,</span><span class="w"> </span><span class="ss">pattern</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p" data-group-id="8470282910-5">[</span><span class="p" data-group-id="8470282910-6">{</span><span class="ss">lists</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;_&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;_&#39;</span><span class="p" data-group-id="8470282910-6">}</span><span class="p" data-group-id="8470282910-5">]</span><span class="p" data-group-id="8470282910-4">}</span><span class="p" data-group-id="8470282910-1">)</span><span class="p">.</span></code></pre><h2 id="module-server-aided-profiling" class="section-heading">
+  <a href="#module-server-aided-profiling" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Server-aided profiling</span>
+</h2>
+<p>Server-aided profiling can be done on a system that is up and
+running. To do that, start the <code class="inline">tprof</code> server, and then add trace
+patterns and processes to trace while the system handles actual
+traffic. Data can extracted, inspected, and printed at any time. The
+following example traces activity of all processes supervised by
+the Kernel supervisor:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">1&gt; </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">start</span><span class="p" data-group-id="7414036136-1">(</span><span class="p" data-group-id="7414036136-2">#{</span><span class="ss">type</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">call_memory</span><span class="p" data-group-id="7414036136-2">}</span><span class="p" data-group-id="7414036136-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="7414036136-3">{</span><span class="ss">ok</span><span class="p">,</span><span class="o">&lt;</span><span class="mf">0.200</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="p" data-group-id="7414036136-3">}</span><span class="gp unselectable">
+2&gt; </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">enable_trace</span><span class="p" data-group-id="7414036136-4">(</span><span class="p" data-group-id="7414036136-5">{</span><span class="ss">all_children</span><span class="p">,</span><span class="w"> </span><span class="ss">kernel_sup</span><span class="p" data-group-id="7414036136-5">}</span><span class="p" data-group-id="7414036136-4">)</span><span class="p">.</span><span class="w">
+</span><span class="mi">34</span><span class="gp unselectable">
+3&gt; </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">set_pattern</span><span class="p" data-group-id="7414036136-6">(</span><span class="ss">&#39;_&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;_&#39;</span><span class="w"> </span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;_&#39;</span><span class="p" data-group-id="7414036136-6">)</span><span class="p">.</span><span class="w">
+</span><span class="mi">16728</span><span class="gp unselectable">
+4&gt; </span><span class="n">Sample</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">collect</span><span class="p" data-group-id="7414036136-7">(</span><span class="p" data-group-id="7414036136-7">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="7414036136-8">{</span><span class="ss">call_memory</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="7414036136-9">[</span><span class="p" data-group-id="7414036136-10">{</span><span class="ss">gen_server</span><span class="p">,</span><span class="ss">try_dispatch</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="p" data-group-id="7414036136-11">[</span><span class="p" data-group-id="7414036136-12">{</span><span class="o">&lt;</span><span class="mf">0.154</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">6</span><span class="p" data-group-id="7414036136-12">}</span><span class="p" data-group-id="7414036136-11">]</span><span class="p" data-group-id="7414036136-10">}</span><span class="p">,</span><span class="w">
+     </span><span class="p" data-group-id="7414036136-13">{</span><span class="ss">erlang</span><span class="p">,</span><span class="ss">iolist_to_iovec</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="p" data-group-id="7414036136-14">[</span><span class="p" data-group-id="7414036136-15">{</span><span class="o">&lt;</span><span class="mf">0.161</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">8</span><span class="p" data-group-id="7414036136-15">}</span><span class="p" data-group-id="7414036136-14">]</span><span class="p" data-group-id="7414036136-13">}</span><span class="p">,</span><span class="w">
+</span><span class="o">&lt;</span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="o">&gt;</span><span class="w">
+</span><span class="mi">5</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="7414036136-16">(</span><span class="nc">tprof</span><span class="p">:</span><span class="nf">inspect</span><span class="p" data-group-id="7414036136-17">(</span><span class="n">Sample</span><span class="p" data-group-id="7414036136-17">)</span><span class="p" data-group-id="7414036136-16">)</span><span class="p">.</span><span class="w">
+
+</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="w"> </span><span class="n">Process</span><span class="w"> </span><span class="o">&lt;</span><span class="mf">0.154</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="w">    </span><span class="o">--</span><span class="w"> </span><span class="mf">14.21</span><span class="w"> </span><span class="c1">% of total allocations ***</span><span class="w">
+</span><span class="n">FUNCTION</span><span class="w">                   </span><span class="n">CALLS</span><span class="w">  </span><span class="n">WORDS</span><span class="w">  </span><span class="n">PER</span><span class="w"> </span><span class="n">CALL</span><span class="w">  </span><span class="p" data-group-id="7414036136-18">[</span><span class="w">    </span><span class="c1">%]</span><span class="w">
+</span><span class="nc">maps</span><span class="p">:</span><span class="ss">iterator</span><span class="p">/</span><span class="mi">1</span><span class="w">                </span><span class="mi">2</span><span class="w">      </span><span class="mi">4</span><span class="w">         </span><span class="mi">2</span><span class="w">  </span><span class="p" data-group-id="7414036136-19">[</span><span class="mf">15.38</span><span class="p" data-group-id="7414036136-19">]</span><span class="w">
+</span><span class="nc">gen_server</span><span class="p">:</span><span class="ss">try_dispatch</span><span class="p">/</span><span class="mi">4</span><span class="w">      </span><span class="mi">2</span><span class="w">      </span><span class="mi">6</span><span class="w">         </span><span class="mi">3</span><span class="w">  </span><span class="p" data-group-id="7414036136-20">[</span><span class="mf">23.08</span><span class="p" data-group-id="7414036136-20">]</span><span class="w">
+</span><span class="nc">net_kernel</span><span class="p">:</span><span class="ss">handle_info</span><span class="p">/</span><span class="mi">2</span><span class="w">       </span><span class="mi">2</span><span class="w">     </span><span class="mi">16</span><span class="w">         </span><span class="mi">8</span><span class="w">  </span><span class="p" data-group-id="7414036136-21">[</span><span class="mf">61.54</span><span class="p" data-group-id="7414036136-21">]</span><span class="w">
+                                     </span><span class="mi">26</span><span class="w">            </span><span class="p" data-group-id="7414036136-22">[</span><span class="mf">100.0</span><span class="p" data-group-id="7414036136-22">]</span><span class="w">
+
+</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="o">*</span><span class="w"> </span><span class="n">Process</span><span class="w"> </span><span class="o">&lt;</span><span class="mf">0.161</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="w">    </span><span class="o">--</span><span class="w"> </span><span class="mf">85.79</span><span class="w"> </span><span class="c1">% of total allocations ***</span><span class="w">
+</span><span class="n">FUNCTION</span><span class="w">                        </span><span class="n">CALLS</span><span class="w">  </span><span class="n">WORDS</span><span class="w">  </span><span class="n">PER</span><span class="w"> </span><span class="n">CALL</span><span class="w">  </span><span class="p" data-group-id="7414036136-23">[</span><span class="w">    </span><span class="c1">%]</span><span class="w">
+</span><span class="nc">disk_log</span><span class="p">:</span><span class="ss">handle</span><span class="p">/</span><span class="mi">2</span><span class="w">                   </span><span class="mi">2</span><span class="w">      </span><span class="mi">2</span><span class="w">         </span><span class="mi">1</span><span class="w">  </span><span class="p" data-group-id="7414036136-24">[</span><span class="w"> </span><span class="mf">1.27</span><span class="p" data-group-id="7414036136-24">]</span><span class="w">
+</span><span class="nc">disk_log_1</span><span class="p">:</span><span class="ss">maybe_start_timer</span><span class="p">/</span><span class="mi">1</span><span class="w">      </span><span class="mi">1</span><span class="w">      </span><span class="mi">3</span><span class="w">         </span><span class="mi">3</span><span class="w">  </span><span class="p" data-group-id="7414036136-25">[</span><span class="w"> </span><span class="mf">1.91</span><span class="p" data-group-id="7414036136-25">]</span><span class="w">
+</span><span class="nc">disk_log_1</span><span class="p">:</span><span class="ss">mf_write_cache</span><span class="p">/</span><span class="mi">1</span><span class="w">         </span><span class="mi">1</span><span class="w">      </span><span class="mi">3</span><span class="w">         </span><span class="mi">3</span><span class="w">  </span><span class="p" data-group-id="7414036136-26">[</span><span class="w"> </span><span class="mf">1.91</span><span class="p" data-group-id="7414036136-26">]</span><span class="w">
+</span><span class="o">&lt;</span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="o">&gt;</span></code></pre><p><a href="" id="inspect_example"></a></p><p>It is possible to profile the entire running system, and then examine individual
+processes:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">1&gt; </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">start</span><span class="p" data-group-id="2915082777-1">(</span><span class="p" data-group-id="2915082777-2">#{</span><span class="ss">type</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="ss">call_memory</span><span class="p" data-group-id="2915082777-2">}</span><span class="p" data-group-id="2915082777-1">)</span><span class="p">.</span><span class="gp unselectable">
+2&gt; </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">enable_trace</span><span class="p" data-group-id="2915082777-3">(</span><span class="ss">all</span><span class="p" data-group-id="2915082777-3">)</span><span class="p">,</span><span class="w"> </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">set_pattern</span><span class="p" data-group-id="2915082777-4">(</span><span class="ss">&#39;_&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;_&#39;</span><span class="w"> </span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;_&#39;</span><span class="p" data-group-id="2915082777-4">)</span><span class="p">.</span><span class="w">
+</span><span class="mi">9041</span><span class="gp unselectable">
+3&gt; </span><span class="nc">timer</span><span class="p">:</span><span class="nf">sleep</span><span class="p" data-group-id="2915082777-5">(</span><span class="mi">10000</span><span class="p" data-group-id="2915082777-5">)</span><span class="p">,</span><span class="w"> </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">disable_trace</span><span class="p" data-group-id="2915082777-6">(</span><span class="ss">all</span><span class="p" data-group-id="2915082777-6">)</span><span class="p">,</span><span class="w"> </span><span class="n">Sample</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">collect</span><span class="p" data-group-id="2915082777-7">(</span><span class="p" data-group-id="2915082777-7">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="2915082777-8">{</span><span class="ss">call_memory</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="2915082777-9">[</span><span class="p" data-group-id="2915082777-10">{</span><span class="ss">user_drv</span><span class="p">,</span><span class="ss">server</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="p" data-group-id="2915082777-11">[</span><span class="p" data-group-id="2915082777-12">{</span><span class="o">&lt;</span><span class="mf">0.64</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="p">,</span><span class="mi">12</span><span class="p">,</span><span class="mi">136</span><span class="p" data-group-id="2915082777-12">}</span><span class="p" data-group-id="2915082777-11">]</span><span class="p" data-group-id="2915082777-10">}</span><span class="p">,</span><span class="w">
+     </span><span class="p" data-group-id="2915082777-13">{</span><span class="ss">user_drv</span><span class="p">,</span><span class="ss">contains_ctrl_g_or_ctrl_c</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="p" data-group-id="2915082777-14">[</span><span class="p" data-group-id="2915082777-15">{</span><span class="o">&lt;</span><span class="mf">0.64</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="p">,</span><span class="mi">80</span><span class="p">,</span><span class="mi">10</span><span class="p" data-group-id="2915082777-15">}</span><span class="p" data-group-id="2915082777-14">]</span><span class="p" data-group-id="2915082777-13">}</span><span class="p">,</span><span class="w">
+</span><span class="o">&lt;</span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="o">&gt;</span><span class="gp unselectable">
+4&gt; </span><span class="n">Inspected</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">inspect</span><span class="p" data-group-id="2915082777-16">(</span><span class="n">Sample</span><span class="p">,</span><span class="w"> </span><span class="ss">process</span><span class="p">,</span><span class="w"> </span><span class="ss">measurement</span><span class="p" data-group-id="2915082777-16">)</span><span class="p">,</span><span class="w"> </span><span class="n">Shell</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">maps</span><span class="p">:</span><span class="nf">get</span><span class="p" data-group-id="2915082777-17">(</span><span class="nf">self</span><span class="p" data-group-id="2915082777-18">(</span><span class="p" data-group-id="2915082777-18">)</span><span class="p">,</span><span class="w"> </span><span class="n">Inspected</span><span class="p" data-group-id="2915082777-17">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="2915082777-19">{</span><span class="ss">call_memory</span><span class="p">,</span><span class="w"> </span><span class="mi">2743</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="2915082777-20">[</span><span class="p" data-group-id="2915082777-21">{</span><span class="ss">shell</span><span class="p">,</span><span class="p" data-group-id="2915082777-22">{</span><span class="ss">enc</span><span class="p">,</span><span class="mi">0</span><span class="p" data-group-id="2915082777-22">}</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mf">0.07291286912139992</span><span class="p" data-group-id="2915082777-21">}</span><span class="p">,</span><span class="w">
+</span><span class="o">&lt;</span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="o">&gt;</span><span class="gp unselectable">
+5&gt; </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="2915082777-23">(</span><span class="n">Shell</span><span class="p" data-group-id="2915082777-23">)</span><span class="p">.</span><span class="w">
+
+</span><span class="n">FUNCTION</span><span class="w">                           </span><span class="n">CALLS</span><span class="w">  </span><span class="n">WORDS</span><span class="w">  </span><span class="n">PER</span><span class="w"> </span><span class="n">CALL</span><span class="w">  </span><span class="p" data-group-id="2915082777-24">[</span><span class="w">    </span><span class="c1">%]</span><span class="w">
+</span><span class="o">&lt;</span><span class="p">.</span><span class="p">.</span><span class="p">.</span><span class="o">&gt;</span><span class="w">
+</span><span class="nc">erl_lint</span><span class="p">:</span><span class="ss">start</span><span class="p">/</span><span class="mi">2</span><span class="w">                       </span><span class="mi">2</span><span class="w">    </span><span class="mi">300</span><span class="w">       </span><span class="mi">150</span><span class="w">  </span><span class="p" data-group-id="2915082777-25">[</span><span class="mf">10.94</span><span class="p" data-group-id="2915082777-25">]</span><span class="w">
+</span><span class="nc">shell</span><span class="p">:</span><span class="ss">used_records</span><span class="p">/</span><span class="mi">1</span><span class="w">                 </span><span class="mi">114</span><span class="w">    </span><span class="mi">342</span><span class="w">         </span><span class="mi">3</span><span class="w">  </span><span class="p" data-group-id="2915082777-26">[</span><span class="mf">12.47</span><span class="p" data-group-id="2915082777-26">]</span></code></pre>
+    </section>
+
+</div>
+
+  <section id="summary" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#summary">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Summary</span>
+    </h1>
+<div class="summary-types summary">
+  <h2>
+    <a href="#types">Types</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:column/0" data-no-tooltip translate="no">column()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Column to sort by <a href="#inspect/3"><code class="inline">inspect/3</code></a> or <a href="#profile/4"><code class="inline">profile/4</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:process/0" data-no-tooltip translate="no">process()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>A process identifier (pid) or a registered process name.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:profile_line/0" data-no-tooltip translate="no">profile_line()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Inspected data for a single function of the specified <code class="inline">Module</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:profile_options/0" data-no-tooltip translate="no">profile_options()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Ad-hoc profiler options; see <a href="#profile/4"><code class="inline">profile/4</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:profile_result/0" data-no-tooltip translate="no">profile_result()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Profile of a single process, or combined profile of multiple processes, sorted
+by a selected column.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:rootset/0" data-no-tooltip translate="no">rootset()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:server/0" data-no-tooltip translate="no">server()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>A tprof server.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:sort_by/0" data-no-tooltip translate="no">sort_by()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:start_options/0" data-no-tooltip translate="no">start_options()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:trace_info/0" data-no-tooltip translate="no">trace_info()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Raw data extracted from tracing BIFs.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:trace_map/0" data-no-tooltip translate="no">trace_map()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Traced functions (with their arities) grouped by module name,
+or <code class="inline">all</code> if all code is traced.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:trace_options/0" data-no-tooltip translate="no">trace_options()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Options for enabling profiling of the selected processes; see <a href="#enable_trace/2"><code class="inline">enable_trace/2</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:trace_pattern/0" data-no-tooltip translate="no">trace_pattern()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:trace_type/0" data-no-tooltip translate="no">trace_type()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>The type of profiling that the tprof server will do.</p></div>
+
+    </div>
+
+</div>
+<div class="summary-functions summary">
+  <h2>
+    <a href="#functions">Functions</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#clear_pattern/3" data-no-tooltip translate="no">clear_pattern(Mod, Fun, Arity)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Disables tracing functions matching the supplied pattern.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#clear_pattern/4" data-no-tooltip translate="no">clear_pattern(Server, Mod, Fun, Arity)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#clear_pattern/3"><code class="inline">clear_pattern(Mod, Fun, Arity)</code></a> but uses the provided <code class="inline">Server</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#collect/0" data-no-tooltip translate="no">collect()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns statistics for current trace map.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#collect/1" data-no-tooltip translate="no">collect(Server)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#collect/0"><code class="inline">collect/0</code></a> but uses the provided <code class="inline">Server</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#continue/0" data-no-tooltip translate="no">continue()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Resumes previously paused profiling.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#continue/1" data-no-tooltip translate="no">continue(Server)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#continue/0"><code class="inline">continue/0</code></a> but uses the provided <code class="inline">Server</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#disable_trace/1" data-no-tooltip translate="no">disable_trace(Rootset)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#disable_trace/2"><code class="inline">disable_trace(Spec, #{set_on_spawn =&gt; true})</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#disable_trace/2" data-no-tooltip translate="no">disable_trace(Spec, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Stops accumulating traces for specified processes.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#disable_trace/3" data-no-tooltip translate="no">disable_trace(Server, Spec, Options)</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#enable_trace/1" data-no-tooltip translate="no">enable_trace(Rootset)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#enable_trace/2"><code class="inline">enable_trace(Spec, #{set_on_spawn =&gt; true})</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#enable_trace/2" data-no-tooltip translate="no">enable_trace(Spec, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Similar to <a href="../../apps/kernel/trace.html#process/4"><code class="inline">trace:process/4</code></a>, but supports a few more options for tracing
+convenience.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#enable_trace/3" data-no-tooltip translate="no">enable_trace(Server, Spec, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#enable_trace/2"><code class="inline">enable_trace/2</code></a> but uses the provided <code class="inline">Server</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#format/1" data-no-tooltip translate="no">format(Inspected)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Formats profile data transformed with <a href="#inspect/3"><code class="inline">inspect/3</code></a>, outputting to
+the default output device.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#format/2" data-no-tooltip translate="no">format(IoDevice, Inspected)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Formats profile transformed with <a href="#inspect/3"><code class="inline">inspect/3</code></a>,
+outputting to device <code class="inline">IoDevice</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#get_trace_map/0" data-no-tooltip translate="no">get_trace_map()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Returns a map of module names to functions with their arities.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#get_trace_map/1" data-no-tooltip translate="no">get_trace_map(Server)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#get_trace_map/0"><code class="inline">get_trace_map/0</code></a> but uses the provided <code class="inline">Server</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#inspect/1" data-no-tooltip translate="no">inspect(Profile)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#inspect/3"><code class="inline">inspect(Profile, process, percent)</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#inspect/3" data-no-tooltip translate="no">inspect(Profile, Type, SortBy)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Transforms raw data returned by tracing BIFs into a form convenient for
+subsequent analysis and formatting.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#pause/0" data-no-tooltip translate="no">pause()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Pauses trace collection for all currently traced functions, retaining existing traces.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#pause/1" data-no-tooltip translate="no">pause(Server)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#pause/0"><code class="inline">pause/0</code></a> but uses the provided <code class="inline">Server</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#profile/1" data-no-tooltip translate="no">profile(Fun)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#profile/2"><code class="inline">profile(Fun, #{})</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#profile/2" data-no-tooltip translate="no">profile(Fun, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Does ad-hoc profiling of the call <code class="inline">Fun()</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#profile/3" data-no-tooltip translate="no">profile(Module, Function, Args)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#profile/4"><code class="inline">profile(Module, Function, Args, #{})</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#profile/4" data-no-tooltip translate="no">profile(Module, Function, Args, Options)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Does ad-hoc profiling for the call <code class="inline">apply(Module, Function, Args)</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#restart/0" data-no-tooltip translate="no">restart()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Clears accumulated profiles and starts profiling if it was paused.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#restart/1" data-no-tooltip translate="no">restart(Server)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#restart/0"><code class="inline">restart/0</code></a> but uses the provided <code class="inline">Server</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#set_pattern/3" data-no-tooltip translate="no">set_pattern(Mod, Fun, Arity)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Enables tracing for all functions matching the supplied pattern.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#set_pattern/4" data-no-tooltip translate="no">set_pattern(Server, Mod, Fun, Arity)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#set_pattern/3"><code class="inline">set_pattern/3</code></a> but uses the provided <code class="inline">Server</code>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#start/0" data-no-tooltip translate="no">start()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#start/1"><code class="inline">start(#{})</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#start/1" data-no-tooltip translate="no">start(Config)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Starts the server, not supervised.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#start_link/0" data-no-tooltip translate="no">start_link()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#start_link/1"><code class="inline">start_link(#{})</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#start_link/1" data-no-tooltip translate="no">start_link(Config)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#start/1"><code class="inline">start/1</code></a> but also links the profiling server to the caller.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#stop/0" data-no-tooltip translate="no">stop()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Stops the default <code class="inline">tprof</code> server and disable tracing enabled by the server.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#stop/1" data-no-tooltip translate="no">stop(Server)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="#stop/0"><code class="inline">stop/0</code></a> but uses the provided <code class="inline">Server</code>.</p></div>
+
+    </div>
+
+</div>
+
+  </section>
+
+
+  <section id="types" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#types">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Types</span>
+    </h1>
+    <div class="types-list">
+<section class="detail" id="t:column/0">
+
+  <div class="detail-header">
+    <a href="#t:column/0" class="detail-link" data-no-tooltip title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">column()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L468" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> column() :: module | function | calls | measurement | measurement_per_call | percent.</pre>
+
+      </div>
+
+<p>Column to sort by <a href="#inspect/3"><code class="inline">inspect/3</code></a> or <a href="#profile/4"><code class="inline">profile/4</code></a>.</p><ul><li><p><strong><code class="inline">module</code></strong> - Module name.</p></li><li><p><strong><code class="inline">function</code></strong> - Function name.</p></li><li><p><strong><code class="inline">calls</code></strong> - Number of calls to the function.</p></li><li><p><strong><code class="inline">measurement</code></strong> - Total measurement (call count, time, or heap allocation)
+throughout all calls to the function.</p></li><li><p><strong><code class="inline">measurement_per_call</code></strong> - Measurement (call count, time, or heap
+allocation) on average per function call.</p></li><li><p><strong><code class="inline">percent</code></strong> - Percentage of measurement to total amount during the entire
+profile collection.</p></li></ul>
+  </section>
+</section>
+<section class="detail" id="t:process/0">
+
+  <div class="detail-header">
+    <a href="#t:process/0" class="detail-link" data-no-tooltip title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">process()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L634" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> process() :: <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() | <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>().</pre>
+
+      </div>
+
+<p>A process identifier (pid) or a registered process name.</p>
+  </section>
+</section>
+<section class="detail" id="t:profile_line/0">
+
+  <div class="detail-header">
+    <a href="#t:profile_line/0" class="detail-link" data-no-tooltip title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">profile_line()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L439" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> profile_line() ::
+          {<a href="../../apps/erts/erlang.html#t:module/0">module</a>(),
+           Function :: {<a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), <a href="../../apps/erts/erlang.html#t:arity/0">arity</a>()},
+           Count :: <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer</a>(),
+           Measurement :: <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer</a>(),
+           MeasurementPerCall :: <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(),
+           Percent :: <a href="../../apps/erts/erlang.html#t:float/0">float</a>()}.</pre>
+
+      </div>
+
+<p>Inspected data for a single function of the specified <code class="inline">Module</code>.</p>
+  </section>
+</section>
+<section class="detail" id="t:profile_options/0">
+
+  <div class="detail-header">
+    <a href="#t:profile_options/0" class="detail-link" data-no-tooltip title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">profile_options()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L486" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> profile_options() ::
+          #{type => <a href="#t:trace_type/0">trace_type</a>(),
+            timeout => <a href="../../apps/erts/erlang.html#t:timeout/0">timeout</a>(),
+            pattern => <a href="#t:trace_pattern/0">trace_pattern</a>() | [<a href="#t:trace_pattern/0">trace_pattern</a>()],
+            set_on_spawn => <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>(),
+            rootset => <a href="#t:rootset/0">rootset</a>(),
+            report => return | process | total | {process, <a href="#t:sort_by/0">sort_by</a>()} | {total, <a href="#t:sort_by/0">sort_by</a>()},
+            device => <a href="../../apps/stdlib/io.html#t:device/0">io:device</a>()}.</pre>
+
+      </div>
+
+<p>Ad-hoc profiler options; see <a href="#profile/4"><code class="inline">profile/4</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="t:profile_result/0">
+
+  <div class="detail-header">
+    <a href="#t:profile_result/0" class="detail-link" data-no-tooltip title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">profile_result()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L447" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> profile_result() :: {<a href="#t:trace_type/0">trace_type</a>(), TotalMeasurement :: <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(), [<a href="#t:profile_line/0">profile_line</a>()]}.</pre>
+
+      </div>
+
+<p>Profile of a single process, or combined profile of multiple processes, sorted
+by a selected column.</p>
+  </section>
+</section>
+<section class="detail" id="t:rootset/0">
+
+  <div class="detail-header">
+    <a href="#t:rootset/0" class="detail-link" data-no-tooltip title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">rootset()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L480" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> rootset() :: [<a href="#t:process/0">process</a>()] | all | existing | new.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:server/0">
+
+  <div class="detail-header">
+    <a href="#t:server/0" class="detail-link" data-no-tooltip title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">server()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L406" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> server() :: <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() | tprof.</pre>
+
+      </div>
+
+<p>A tprof server.</p><p>Each server uses a separate <a href="../../apps/kernel/trace.html#t:session/0"><code class="inline">trace:session/0</code></a> in order to
+keep profiling isolated.</p>
+  </section>
+</section>
+<section class="detail" id="t:sort_by/0">
+
+  <div class="detail-header">
+    <a href="#t:sort_by/0" class="detail-link" data-no-tooltip title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">sort_by()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L471" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> sort_by() :: <a href="#t:column/0">column</a>() | {<a href="#t:column/0">column</a>(), ascending} | {<a href="#t:column/0">column</a>(), descending}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:start_options/0">
+
+  <div class="detail-header">
+    <a href="#t:start_options/0" class="detail-link" data-no-tooltip title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">start_options()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L398" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> start_options() :: #{type => <a href="#t:trace_type/0">trace_type</a>(), session => <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>()}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:trace_info/0">
+
+  <div class="detail-header">
+    <a href="#t:trace_info/0" class="detail-link" data-no-tooltip title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">trace_info()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L434" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> trace_info() ::
+          {<a href="../../apps/erts/erlang.html#t:module/0">module</a>(),
+           Fun :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(),
+           Arity :: <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(),
+           [{<a href="../../apps/erts/erlang.html#t:pid/0">pid</a>(), Count :: <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer</a>(), Measurement :: <a href="../../apps/erts/erlang.html#t:pos_integer/0">pos_integer</a>()}]}.</pre>
+
+      </div>
+
+<p>Raw data extracted from tracing BIFs.</p>
+  </section>
+</section>
+<section class="detail" id="t:trace_map/0">
+
+  <div class="detail-header">
+    <a href="#t:trace_map/0" class="detail-link" data-no-tooltip title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">trace_map()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L430" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> trace_map() :: #{<a href="../../apps/erts/erlang.html#t:module/0">module</a>() => [{Fun :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), <a href="../../apps/erts/erlang.html#t:arity/0">arity</a>()}]} | all.</pre>
+
+      </div>
+
+<p>Traced functions (with their arities) grouped by module name,
+or <code class="inline">all</code> if all code is traced.</p>
+  </section>
+</section>
+<section class="detail" id="t:trace_options/0">
+
+  <div class="detail-header">
+    <a href="#t:trace_options/0" class="detail-link" data-no-tooltip title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">trace_options()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L475" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> trace_options() :: #{set_on_spawn => <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>()}.</pre>
+
+      </div>
+
+<p>Options for enabling profiling of the selected processes; see <a href="#enable_trace/2"><code class="inline">enable_trace/2</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="t:trace_pattern/0">
+
+  <div class="detail-header">
+    <a href="#t:trace_pattern/0" class="detail-link" data-no-tooltip title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">trace_pattern()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L423" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> trace_pattern() :: {<a href="../../apps/erts/erlang.html#t:module/0">module</a>(), Fun :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), <a href="../../apps/erts/erlang.html#t:arity/0">arity</a>() | '_'}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:trace_type/0">
+
+  <div class="detail-header">
+    <a href="#t:trace_type/0" class="detail-link" data-no-tooltip title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">trace_type()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L420" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> trace_type() :: call_count | call_time | call_memory.</pre>
+
+      </div>
+
+<p>The type of profiling that the tprof server will do.</p><ul><li><strong>call_count</strong> - Counts the number of calls made to functions. This
+is a global profiling event that cannot be limited to specific processes.
+See <a href="../../apps/kernel/trace.html#call_count">call_count</a> in <a href="../../apps/kernel/trace.html#function/4"><code class="inline">trace:function/4</code></a> for more details.</li><li><strong>call_time</strong> - Counts the accumulated time spent in functions.
+See <a href="../../apps/kernel/trace.html#call_time">call_time</a> in <a href="../../apps/kernel/trace.html#function/4"><code class="inline">trace:function/4</code></a> for more details.</li><li><strong>call_memory</strong> - Counts the accumulated memory allocated in functions.
+See <a href="../../apps/kernel/trace.html#call_memory">call_memory</a> in <a href="../../apps/kernel/trace.html#function/4"><code class="inline">trace:function/4</code></a> for more details.</li></ul>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+  <section id="functions" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#functions">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Functions</span>
+    </h1>
+    <div class="functions-list">
+<section class="detail" id="clear_pattern/3">
+
+  <div class="detail-header">
+    <a href="#clear_pattern/3" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">clear_pattern(Mod, Fun, Arity)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L597" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> clear_pattern(<a href="../../apps/erts/erlang.html#t:module/0">module</a>(), <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), <a href="../../apps/erts/erlang.html#t:arity/0">arity</a>() | '_') -> ok.</pre>
+
+      </div>
+
+<p>Disables tracing functions matching the supplied pattern.</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">1&gt; </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">set_pattern</span><span class="p" data-group-id="9715491407-1">(</span><span class="ss">lists</span><span class="p">,</span><span class="w"> </span><span class="ss">seq</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;_&#39;</span><span class="p" data-group-id="9715491407-1">)</span><span class="p">.</span><span class="w">
+</span><span class="mi">2</span><span class="gp unselectable">
+2&gt; </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">clear_pattern</span><span class="p" data-group-id="9715491407-2">(</span><span class="ss">lists</span><span class="p">,</span><span class="w"> </span><span class="ss">seq</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p" data-group-id="9715491407-2">)</span><span class="p">.</span><span class="w">
+</span><span class="mi">1</span><span class="gp unselectable">
+3&gt; </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">get_trace_map</span><span class="p" data-group-id="9715491407-3">(</span><span class="p" data-group-id="9715491407-3">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="9715491407-4">#{</span><span class="ss">lists</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p" data-group-id="9715491407-5">[</span><span class="p" data-group-id="9715491407-6">{</span><span class="ss">seq</span><span class="p">,</span><span class="mi">2</span><span class="p" data-group-id="9715491407-6">}</span><span class="p" data-group-id="9715491407-5">]</span><span class="p" data-group-id="9715491407-4">}</span></code></pre><p>Requires that the default <code class="inline">tprof</code> server has been <a href="#start/1"><code class="inline">started</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="clear_pattern/4">
+
+  <div class="detail-header">
+    <a href="#clear_pattern/4" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">clear_pattern(Server, Mod, Fun, Arity)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L604" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> clear_pattern(<a href="#t:server/0">server</a>(), <a href="../../apps/erts/erlang.html#t:module/0">module</a>(), <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), <a href="../../apps/erts/erlang.html#t:arity/0">arity</a>() | '_') -> ok.</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#clear_pattern/3"><code class="inline">clear_pattern(Mod, Fun, Arity)</code></a> but uses the provided <code class="inline">Server</code>.</p>
+  </section>
+</section>
+<section class="detail" id="collect/0">
+
+  <div class="detail-header">
+    <a href="#collect/0" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">collect()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L619" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> collect() -> {<a href="#t:trace_type/0">trace_type</a>(), [<a href="#t:trace_info/0">trace_info</a>()]}.</pre>
+
+      </div>
+
+<p>Returns statistics for current trace map.</p>
+  </section>
+</section>
+<section class="detail" id="collect/1">
+
+  <div class="detail-header">
+    <a href="#collect/1" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">collect(Server)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L624" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> collect(<a href="#t:server/0">server</a>()) -> {<a href="#t:trace_type/0">trace_type</a>(), [<a href="#t:trace_info/0">trace_info</a>()]}.</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#collect/0"><code class="inline">collect/0</code></a> but uses the provided <code class="inline">Server</code>.</p>
+  </section>
+</section>
+<section class="detail" id="continue/0">
+
+  <div class="detail-header">
+    <a href="#continue/0" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">continue()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L780" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> continue() -> ok | not_paused.</pre>
+
+      </div>
+
+<p>Resumes previously paused profiling.</p>
+  </section>
+</section>
+<section class="detail" id="continue/1">
+
+  <div class="detail-header">
+    <a href="#continue/1" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">continue(Server)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L785" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> continue(<a href="#t:server/0">server</a>()) -> ok | not_paused.</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#continue/0"><code class="inline">continue/0</code></a> but uses the provided <code class="inline">Server</code>.</p>
+  </section>
+</section>
+<section class="detail" id="disable_trace/1">
+
+  <div class="detail-header">
+    <a href="#disable_trace/1" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">disable_trace(Rootset)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L721" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> disable_trace(Spec) -> <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()
+                       when Spec :: <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() | all | new | existing | {children | all_children, <a href="#t:process/0">process</a>()};
+                   ([<a href="#t:process/0">process</a>()]) -> <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>() | {<a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(), [<a href="#t:process/0">process</a>()]}.</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#disable_trace/2"><code class="inline">disable_trace(Spec, #{set_on_spawn =&gt; true})</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="disable_trace/2">
+
+  <div class="detail-header">
+    <a href="#disable_trace/2" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">disable_trace(Spec, Options)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L738" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> disable_trace(Spec, <a href="#t:trace_options/0">trace_options</a>()) -> <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()
+                       when Spec :: <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() | all | new | existing | {children | all_children, <a href="#t:process/0">process</a>()};
+                   ([<a href="#t:process/0">process</a>()], <a href="#t:trace_options/0">trace_options</a>()) ->
+                       <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>() | {<a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(), [<a href="#t:process/0">process</a>()]}.</pre>
+
+      </div>
+
+<p>Stops accumulating traces for specified processes.</p><p>See <a href="#enable_trace/2"><code class="inline">enable_trace/2</code></a> for a description of the options.</p><p>The profile data accumulated before the process is removed from the
+traced list is retained. This makes it possible to enable tracing for
+many or all processes in the system, sleep for a short period of
+time, then disable tracing for all processes (to avoid system
+overload), but keeping profile data.</p>
+  </section>
+</section>
+<section class="detail" id="disable_trace/3">
+
+  <div class="detail-header">
+    <a href="#disable_trace/3" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">disable_trace(Server, Spec, Options)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L745" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> disable_trace(<a href="#t:server/0">server</a>(), Spec, <a href="#t:trace_options/0">trace_options</a>()) -> <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()
+                       when Spec :: <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() | all | new | existing | {children | all_children, <a href="#t:process/0">process</a>()};
+                   (<a href="#t:server/0">server</a>(), [<a href="#t:process/0">process</a>()], <a href="#t:trace_options/0">trace_options</a>()) ->
+                       <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>() | {<a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(), [<a href="#t:process/0">process</a>()]}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="enable_trace/1">
+
+  <div class="detail-header">
+    <a href="#enable_trace/1" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">enable_trace(Rootset)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L641" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> enable_trace(Spec) -> <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()
+                      when Spec :: <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() | all | new | existing | {children | all_children, <a href="#t:process/0">process</a>()};
+                  ([<a href="#t:process/0">process</a>()]) -> <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>() | {<a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(), [<a href="#t:process/0">process</a>()]}.</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#enable_trace/2"><code class="inline">enable_trace(Spec, #{set_on_spawn =&gt; true})</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="enable_trace/2">
+
+  <div class="detail-header">
+    <a href="#enable_trace/2" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">enable_trace(Spec, Options)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L693" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> enable_trace(Spec, <a href="#t:trace_options/0">trace_options</a>()) -> Traced :: <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()
+                      when Spec :: <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() | all | new | existing;
+                  (Spec, <a href="#t:trace_options/0">trace_options</a>()) ->
+                      Traced :: <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>() | {Traced :: <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(), Failed :: [<a href="#t:process/0">process</a>()]}
+                      when Spec :: [<a href="#t:process/0">process</a>()] | {children | all_children, <a href="#t:process/0">process</a>()}.</pre>
+
+      </div>
+
+<p>Similar to <a href="../../apps/kernel/trace.html#process/4"><code class="inline">trace:process/4</code></a>, but supports a few more options for tracing
+convenience.</p><p>Tracing per process is not supported by <code class="inline">call_count</code> profilers.</p><p><code class="inline">Spec</code> is either a process identifier (pid) for a local process, one of the
+following atoms, or a list of local process identifiers or their registered
+names:</p><ul><li><p><strong><code class="inline">all</code></strong> - All currently existing processes and all that will be
+created in the future.</p></li><li><p><strong><code class="inline">existing</code></strong> - All currently existing processes.</p></li><li><p><strong><code class="inline">new</code></strong> - All processes that will be created in the future.</p></li><li><p><strong><code class="inline">children</code></strong> - All currently running processes that were directly spawned by
+the specified process. This mode is helpful for tracing workers of a single
+supervisor.</p></li><li><p><strong><code class="inline">all_children</code></strong> - All currently running processes that were spawned by the
+specified process, or any recursive descendant of it. This mode is designed to
+facilitate tracing of supervision trees.</p></li></ul><p>Returns the number of processes for which tracing was enabled.</p><p>When a list of pids, <code class="inline">children</code> or <code class="inline">all_children</code> is used, the processes that
+tracing failed to be enabled on will also be returned. Tracing can fail to be
+enabled if the process has terminated before tracing could be enabled.</p><blockquote><h4 class="info">Note</h4><p>The profiling server does not keep track of processes that were added to the
+tracing set. It is permitted to stop the profiling server (wiping out any
+accumulated data), restart the server, set entirely different tracing pattern
+keeping the list of traced processes for future use. Use
+<a href="#disable_trace/2"><code class="inline">disable_trace(Processes)</code></a> to clear the list of traced
+processes.</p></blockquote><p>Specify <code class="inline">Options</code> to modify tracing behavior:</p><ul><li><strong><code class="inline">set_on_spawn</code></strong> - Automatically start tracing for processes spawned by the
+traced process. On by default.</li></ul>
+  </section>
+</section>
+<section class="detail" id="enable_trace/3">
+
+  <div class="detail-header">
+    <a href="#enable_trace/3" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">enable_trace(Server, Spec, Options)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L701" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> enable_trace(<a href="#t:server/0">server</a>(), Spec, <a href="#t:trace_options/0">trace_options</a>()) -> <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()
+                      when Spec :: <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() | all | new | existing | {children | all_children, <a href="#t:process/0">process</a>()};
+                  (<a href="#t:server/0">server</a>(), [<a href="#t:process/0">process</a>()], <a href="#t:trace_options/0">trace_options</a>()) ->
+                      <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>() | {<a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(), [<a href="#t:process/0">process</a>()]}.</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#enable_trace/2"><code class="inline">enable_trace/2</code></a> but uses the provided <code class="inline">Server</code>.</p>
+  </section>
+</section>
+<section class="detail" id="format/1">
+
+  <div class="detail-header">
+    <a href="#format/1" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">format(Inspected)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L846" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> format(<a href="#t:profile_result/0">profile_result</a>() | #{<a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() | all => <a href="#t:profile_result/0">profile_result</a>()}) -> ok.</pre>
+
+      </div>
+
+<p>Formats profile data transformed with <a href="#inspect/3"><code class="inline">inspect/3</code></a>, outputting to
+the default output device.</p>
+  </section>
+</section>
+<section class="detail" id="format/2">
+
+  <div class="detail-header">
+    <a href="#format/2" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">format(IoDevice, Inspected)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L854" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> format(<a href="../../apps/stdlib/io.html#t:device/0">io:device</a>(), <a href="#t:profile_result/0">profile_result</a>() | #{<a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() | all => <a href="#t:profile_result/0">profile_result</a>()}) -> ok.</pre>
+
+      </div>
+
+<p>Formats profile transformed with <a href="#inspect/3"><code class="inline">inspect/3</code></a>,
+outputting to device <code class="inline">IoDevice</code>.</p>
+  </section>
+</section>
+<section class="detail" id="get_trace_map/0">
+
+  <div class="detail-header">
+    <a href="#get_trace_map/0" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">get_trace_map()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L609" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> get_trace_map() -> <a href="#t:trace_map/0">trace_map</a>().</pre>
+
+      </div>
+
+<p>Returns a map of module names to functions with their arities.</p>
+  </section>
+</section>
+<section class="detail" id="get_trace_map/1">
+
+  <div class="detail-header">
+    <a href="#get_trace_map/1" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">get_trace_map(Server)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L614" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> get_trace_map(<a href="#t:server/0">server</a>()) -> <a href="#t:trace_map/0">trace_map</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#get_trace_map/0"><code class="inline">get_trace_map/0</code></a> but uses the provided <code class="inline">Server</code>.</p>
+  </section>
+</section>
+<section class="detail" id="inspect/1">
+
+  <div class="detail-header">
+    <a href="#inspect/1" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">inspect(Profile)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L811" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> inspect({<a href="#t:trace_type/0">trace_type</a>(), [<a href="#t:trace_info/0">trace_info</a>()]}) -> #{all => <a href="#t:profile_result/0">profile_result</a>()}.</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#inspect/3"><code class="inline">inspect(Profile, process, percent)</code></a>.</p><p>Transforms raw profile into a map of process identifiers to a tuple containing total count
+of words allocated, and a list of all traced functions sorted in the ascending
+order by the allocation percentage.</p>
+  </section>
+</section>
+<section class="detail" id="inspect/3">
+
+  <div class="detail-header">
+    <a href="#inspect/3" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">inspect(Profile, Type, SortBy)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L830" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> inspect(Profile :: {<a href="#t:trace_type/0">trace_type</a>(), [<a href="#t:trace_info/0">trace_info</a>()]}, Type :: process | total, SortBy :: <a href="#t:sort_by/0">sort_by</a>()) ->
+                 #{<a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() | all => <a href="#t:profile_result/0">profile_result</a>()}.</pre>
+
+      </div>
+
+<p>Transforms raw data returned by tracing BIFs into a form convenient for
+subsequent analysis and formatting.</p><ul><li><p>When the <code class="inline">Type</code> argument is <code class="inline">process</code>, this function returns a map of process
+identifiers with corresponding profiling results sorted by the selected column.</p></li><li><p>When <code class="inline">Type</code> argument is <code class="inline">total</code> or when profiling by <code class="inline">call_count</code>, this function
+returns a map with a single <code class="inline">all</code> key with profiling results from all processes.</p></li></ul><p>The inspected profile data can be leveraged to
+<a href="tprof.html#inspect_example">print profiling results</a>.</p>
+  </section>
+</section>
+<section class="detail" id="pause/0">
+
+  <div class="detail-header">
+    <a href="#pause/0" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">pause()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L770" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> pause() -> ok | not_running.</pre>
+
+      </div>
+
+<p>Pauses trace collection for all currently traced functions, retaining existing traces.</p><p>Use <a href="#continue/0"><code class="inline">continue/0</code></a> to resume trace collection.</p>
+  </section>
+</section>
+<section class="detail" id="pause/1">
+
+  <div class="detail-header">
+    <a href="#pause/1" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">pause(Server)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L775" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> pause(<a href="#t:server/0">server</a>()) -> ok | not_running.</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#pause/0"><code class="inline">pause/0</code></a> but uses the provided <code class="inline">Server</code>.</p>
+  </section>
+</section>
+<section class="detail" id="profile/1">
+
+  <div class="detail-header">
+    <a href="#profile/1" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">profile(Fun)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L862" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> profile(fun(() -> <a href="../../apps/erts/erlang.html#t:term/0">term</a>())) -> ok | {<a href="../../apps/erts/erlang.html#t:term/0">term</a>(), [<a href="#t:trace_info/0">trace_info</a>()]}.</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#profile/2"><code class="inline">profile(Fun, #{})</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="profile/2">
+
+  <div class="detail-header">
+    <a href="#profile/2" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">profile(Fun, Options)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L877" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> profile(fun(() -> <a href="../../apps/erts/erlang.html#t:term/0">term</a>()), <a href="#t:profile_options/0">profile_options</a>()) -> ok | {<a href="../../apps/erts/erlang.html#t:term/0">term</a>(), {<a href="#t:trace_type/0">trace_type</a>(), [<a href="#t:trace_info/0">trace_info</a>()]}}.</pre>
+
+      </div>
+
+<p>Does ad-hoc profiling of the call <code class="inline">Fun()</code>.</p><p>By default, the result is formatted to the output device; use the <code class="inline">report</code>
+option to change this behavior.</p><p>Ad-hoc profiling starts a new instance of <code class="inline">tprof</code> server, runs the
+profiling routine, extracts results, and shuts down the server.</p><p>See <a href="#profile/4"><code class="inline">profile/4</code></a> for a list of the supported options.</p>
+  </section>
+</section>
+<section class="detail" id="profile/3">
+
+  <div class="detail-header">
+    <a href="#profile/3" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">profile(Module, Function, Args)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L883" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> profile(<a href="../../apps/erts/erlang.html#t:module/0">module</a>(), Fun :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), Args :: [<a href="../../apps/erts/erlang.html#t:term/0">term</a>()]) ->
+                 ok | {<a href="../../apps/erts/erlang.html#t:term/0">term</a>(), {<a href="#t:trace_type/0">trace_type</a>(), [<a href="#t:trace_info/0">trace_info</a>()]}}.</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#profile/4"><code class="inline">profile(Module, Function, Args, #{})</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="profile/4">
+
+  <div class="detail-header">
+    <a href="#profile/4" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">profile(Module, Function, Args, Options)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L922" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> profile(<a href="../../apps/erts/erlang.html#t:module/0">module</a>(), Fun :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), Args :: [<a href="../../apps/erts/erlang.html#t:term/0">term</a>()], <a href="#t:profile_options/0">profile_options</a>()) ->
+                 ok | {<a href="../../apps/erts/erlang.html#t:term/0">term</a>(), {<a href="#t:trace_type/0">trace_type</a>(), [<a href="#t:trace_info/0">trace_info</a>()]}}.</pre>
+
+      </div>
+
+<p>Does ad-hoc profiling for the call <code class="inline">apply(Module, Function, Args)</code>.</p><p>By default, the result is formatted to the output device; use option <code class="inline">report</code>
+to change this behavior.</p><p>Ad-hoc profiling starts a new instance of <code class="inline">tprof</code> server, runs the
+profiling routine, extracts results, and shuts down the server.</p><p>The ad-hoc profiler supports the following <code class="inline">Options</code>:</p><ul><li><p><strong><code class="inline">type</code></strong> - The type of profiling to perform.</p></li><li><p><strong><code class="inline">device</code></strong> - Specifies I/O devices to print the profile to. Useful to
+redirect text output to console or <code class="inline">standard_error</code>.</p></li><li><p><strong><code class="inline">pattern</code></strong> - Specifies a trace pattern, or a list of trace patterns to
+enable. By default, all functions (<code class="inline">{'_', '_', '_'}</code>) are traced.</p></li><li><p><strong><code class="inline">report</code></strong> - Controls output format. The default is <code class="inline">process</code>; printing
+per-process profiling data sorted by percentage of the total allocation.
+Specify <code class="inline">report =&gt; return</code> to suppress printing and get the raw data for
+further evaluation with <a href="#inspect/3"><code class="inline">inspect/3</code></a> and formatting with <a href="#format/2"><code class="inline">format/2</code></a>.</p></li><li><p><strong><code class="inline">rootset</code></strong> - Includes extra processes in the trace list. Useful for
+profiling allocations for <a href="../../apps/stdlib/gen_server.html"><code class="inline">gen_server</code></a>, calls, or other allocations caused
+by inter-process communications. See <a href="tprof.html#pg_example">this example</a>.</p></li><li><p><strong><code class="inline">set_on_spawn</code></strong> - Automatically start tracing for processes spawned by the
+traced process. Enabled by default.</p></li><li><p><strong><code class="inline">timeout</code></strong> - Terminate profiling after the specified amount of time
+(milliseconds).</p></li></ul>
+  </section>
+</section>
+<section class="detail" id="restart/0">
+
+  <div class="detail-header">
+    <a href="#restart/0" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">restart()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L792" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> restart() -> ok.</pre>
+
+      </div>
+
+<p>Clears accumulated profiles and starts profiling if it was paused.</p>
+  </section>
+</section>
+<section class="detail" id="restart/1">
+
+  <div class="detail-header">
+    <a href="#restart/1" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">restart(Server)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L797" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> restart(<a href="#t:server/0">server</a>()) -> ok.</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#restart/0"><code class="inline">restart/0</code></a> but uses the provided <code class="inline">Server</code>.</p>
+  </section>
+</section>
+<section class="detail" id="set_pattern/3">
+
+  <div class="detail-header">
+    <a href="#set_pattern/3" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">set_pattern(Mod, Fun, Arity)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L574" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> set_pattern(<a href="../../apps/erts/erlang.html#t:module/0">module</a>(), <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), <a href="../../apps/erts/erlang.html#t:arity/0">arity</a>() | '_') -> ok | {error, {trace_pattern, <a href="#t:trace_pattern/0">trace_pattern</a>()}}.</pre>
+
+      </div>
+
+<p>Enables tracing for all functions matching the supplied pattern.</p><p>Patterns are additive, following the same rules as <a href="../../apps/kernel/trace.html#function/4"><code class="inline">trace:function/4</code></a>.
+Returns the number of functions matching the supplied pattern.</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">1&gt; </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">set_pattern</span><span class="p" data-group-id="3045402001-1">(</span><span class="ss">lists</span><span class="p">,</span><span class="w"> </span><span class="ss">seq</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;_&#39;</span><span class="p" data-group-id="3045402001-1">)</span><span class="p">.</span><span class="w">
+</span><span class="mi">2</span><span class="gp unselectable">
+2&gt; </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">set_pattern</span><span class="p" data-group-id="3045402001-2">(</span><span class="ss">lists</span><span class="p">,</span><span class="w"> </span><span class="ss">keyfind</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p" data-group-id="3045402001-2">)</span><span class="p">.</span><span class="w">
+</span><span class="mi">1</span><span class="gp unselectable">
+3&gt; </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">get_trace_map</span><span class="p" data-group-id="3045402001-3">(</span><span class="p" data-group-id="3045402001-3">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="3045402001-4">#{</span><span class="ss">lists</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p" data-group-id="3045402001-5">[</span><span class="p" data-group-id="3045402001-6">{</span><span class="ss">keyfind</span><span class="p">,</span><span class="mi">3</span><span class="p" data-group-id="3045402001-6">}</span><span class="p">,</span><span class="p" data-group-id="3045402001-7">{</span><span class="ss">seq</span><span class="p">,</span><span class="mi">2</span><span class="p" data-group-id="3045402001-7">}</span><span class="p">,</span><span class="p" data-group-id="3045402001-8">{</span><span class="ss">seq</span><span class="p">,</span><span class="mi">3</span><span class="p" data-group-id="3045402001-8">}</span><span class="p" data-group-id="3045402001-5">]</span><span class="p" data-group-id="3045402001-4">}</span></code></pre><p>If no functions match the pattern, an <code class="inline">error</code> tuple is returned:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">&gt; </span><span class="nc">tprof</span><span class="p">:</span><span class="nf">set_pattern</span><span class="p" data-group-id="1671250371-1">(</span><span class="ss">no_module</span><span class="p">,</span><span class="w"> </span><span class="ss">func</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;_&#39;</span><span class="p" data-group-id="1671250371-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="1671250371-2">{</span><span class="ss">error</span><span class="p">,</span><span class="p" data-group-id="1671250371-3">{</span><span class="nb">trace_pattern</span><span class="p">,</span><span class="ss">no_module</span><span class="p">,</span><span class="ss">func</span><span class="p">,</span><span class="ss">&#39;_&#39;</span><span class="p" data-group-id="1671250371-3">}</span><span class="p" data-group-id="1671250371-2">}</span></code></pre><p>Requires that the default <code class="inline">tprof</code> server has been <a href="#start/1"><code class="inline">started</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="set_pattern/4">
+
+  <div class="detail-header">
+    <a href="#set_pattern/4" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">set_pattern(Server, Mod, Fun, Arity)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L579" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> set_pattern(<a href="#t:server/0">server</a>(), <a href="../../apps/erts/erlang.html#t:module/0">module</a>(), <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), <a href="../../apps/erts/erlang.html#t:arity/0">arity</a>() | '_') ->
+                     ok | {error, {trace_pattern, <a href="#t:trace_pattern/0">trace_pattern</a>()}}.</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#set_pattern/3"><code class="inline">set_pattern/3</code></a> but uses the provided <code class="inline">Server</code>.</p>
+  </section>
+</section>
+<section class="detail" id="start/0">
+
+  <div class="detail-header">
+    <a href="#start/0" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">start()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L501" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> start() -> {ok, Server} | {error, Reason}
+               when Server :: <a href="#t:server/0">server</a>(), Reason :: {already_started, <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>()}.</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#start/1"><code class="inline">start(#{})</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="start/1">
+
+  <div class="detail-header">
+    <a href="#start/1" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">start(Config)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L520" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> start(Config :: <a href="#t:start_options/0">start_options</a>()) -> {ok, Server} | {error, Reason}
+               when Server :: <a href="#t:server/0">server</a>(), Reason :: {already_started, <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>()}.</pre>
+
+      </div>
+
+<p>Starts the server, not supervised.</p><p>Profiling server stores current trace patterns and owns the <a href="../../apps/kernel/trace.html#t:session/0">trace session</a>
+used for profiling.</p><p>If no <code class="inline">session</code> is provided in <code class="inline">Config</code>, then a default session called <code class="inline">tprof</code> is
+used and the profiling server is <a href="../../apps/erts/erlang.html#register/2">registered</a> as <code class="inline">tprof</code>.</p><p>If <code class="inline">session</code> is provided in <code class="inline">Config</code>, then a session with that name is created
+and all profiling is done within that session. The profiling server is not <a href="../../apps/erts/erlang.html#register/2">registered</a>
+in this case. When using <a href="tprof.html"><code class="inline">tprof</code></a> like this the <a href="../../apps/erts/erlang.html#t:pid/0"><code class="inline">pid/0</code></a> returned from this
+function needs to be provided to the functions in this module.</p>
+  </section>
+</section>
+<section class="detail" id="start_link/0">
+
+  <div class="detail-header">
+    <a href="#start_link/0" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">start_link()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L528" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> start_link() -> {ok, Server} | {error, Reason}
+                    when Server :: <a href="#t:server/0">server</a>(), Reason :: {already_started, <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>()}.</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#start_link/1"><code class="inline">start_link(#{})</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="start_link/1">
+
+  <div class="detail-header">
+    <a href="#start_link/1" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">start_link(Config)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L534" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> start_link(Config :: <a href="#t:start_options/0">start_options</a>()) -> {ok, Server} | {error, Reason}
+                    when Server :: <a href="#t:server/0">server</a>(), Reason :: {already_started, <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>()}.</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#start/1"><code class="inline">start/1</code></a> but also links the profiling server to the caller.</p>
+  </section>
+</section>
+<section class="detail" id="stop/0">
+
+  <div class="detail-header">
+    <a href="#stop/0" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">stop()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L541" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> stop() -> ok.</pre>
+
+      </div>
+
+<p>Stops the default <code class="inline">tprof</code> server and disable tracing enabled by the server.</p>
+  </section>
+</section>
+<section class="detail" id="stop/1">
+
+  <div class="detail-header">
+    <a href="#stop/1" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">stop(Server)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/src/tprof.erl#L546" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> stop(<a href="#t:server/0">server</a>()) -> ok.</pre>
+
+      </div>
+
+<p>Equivalent to <a href="#stop/0"><code class="inline">stop/0</code></a> but uses the provided <code class="inline">Server</code>.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+    <footer class="footer">
+      <p>
+
+        <span class="line">
+          <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+            Search HexDocs
+          </button>
+
+            <a href="tools.epub" title="ePub version">
+              Download ePub version
+            </a>
+
+        </span>
+      </p>
+
+      <p class="built-using">
+        Built using
+        <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.34.1) for the
+
+          <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+      </p>
+<p>Copyright © 1996-2024 <a href="https://www.ericsson.com">Ericsson AB</a></p>
+    </footer>
+  </div>
+</main>
+</div>
+<script>
+  function mermaidLoaded() {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: document.body.className.includes("dark") ? "dark" : "default"
+    });
+    let id = 0;
+    for (const codeEl of document.querySelectorAll("pre code.mermaid")) {
+      const preEl = codeEl.parentElement;
+      const graphDefinition = codeEl.textContent;
+      const graphEl = document.createElement("div");
+      const graphId = "mermaid-graph-" + id++;
+      mermaid.render(graphId, graphDefinition).then(({svg, bindFunctions}) => {
+        graphEl.innerHTML = svg;
+        bindFunctions?.(graphEl);
+        preEl.insertAdjacentElement("afterend", graphEl);
+        preEl.remove();
+      });
+    }
+  }
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mermaid@10.2.3/dist/mermaid.min.js" onload="mermaidLoaded();"></script>
+
+  </body>
+</html>
