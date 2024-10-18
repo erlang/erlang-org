@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.34.1">
+    <meta name="project" content="tools v4.1">
+
+
+<meta name="exdoc:full-text-search-url" content="/doc/search.html?v=27&q=">
+<meta name="major-vsn" content="27">
+<link rel="canonical" href="https://www.erlang.org/doc/apps/tools/lcnt_chapter.html" />
+    <title>lcnt - The Lock Profiler — tools v4.1</title>
+    <link rel="stylesheet" href="dist/html-erlang-APNLKZCW.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-K7URE6B4.js"></script>
+    <script src="dist/sidebar_items-0E887516.js"></script>
+    <script src="docs_config.js"></script>
+    <script async src="dist/html-7XSQ4GTY.js"></script>
+
+  </head>
+  <body data-type="extras" class="page-extra">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="tools" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+tools
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v4.1
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of tools</span>
+            <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+          </label>
+          <button type="submit" class="search-button" aria-label="Submit Search">
+            <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+          </button>
+          <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+            <i class="ri-close-line ri-lg" title="Cancel search"></i>
+          </button>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/tools/doc/guides/lcnt_chapter.md#L1" title="View Source" class="icon-action" rel="help">
+        <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        <span class="sr-only">View Source</span>
+      </a>
+
+
+    <span>lcnt - The Lock Profiler</span>
+  </h1>
+
+<p>Internally in the Erlang runtime system locks are used to protect resources from
+being updated from multiple threads in a fatal way. Locks are necessary to
+ensure that the runtime system works properly, but it also introduces
+limitations, namely <em>lock contention</em> and <em>locking overhead</em>.</p><p>With lock contention we mean when one thread locks a resource, and another
+thread (or threads) tries to acquire the same resource at the same time. The
+lock will deny the other thread access to the resource and the thread will be
+blocked from continuing its execution. The second thread has to wait until the
+first thread has completed its access to the resource and unlocked it. The
+<code class="inline">lcnt</code> tool measures these lock conflicts.</p><p>Locks have an inherent cost in execution time and memory space. It takes time to
+initialize, destroy, acquire, or release locks. To decrease lock contention
+it is sometimes necessary to use finer-grained locking strategies. This
+usually also increases the locking overhead. Hence there is a tradeoff between
+lock contention and overhead. In general, lock contention increases with the
+number of threads running concurrently.</p><p>The <code class="inline">lcnt</code> tool does not measure locking overhead.</p><h2 id="enabling-lock-counting" class="section-heading">
+  <a href="#enabling-lock-counting" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Enabling lock-counting</span>
+</h2>
+<p>For investigation of locks in the emulator we use an internal tool called <code class="inline">lcnt</code>
+(short for lock-count). The VM needs to be compiled with this option enabled. To
+compile a lock-counting VM along with a normal VM, use:</p><pre><code class="text">cd $ERL_TOP
+./configure --enable-lock-counter
+make</code></pre><p>Start the lock-counting VM like this:</p><pre><code class="text">$ERL_TOP/bin/erl -emu_type lcnt</code></pre><p>To verify that lock counting is enabled check that <code class="inline">[lock-counting]</code> appears in
+the status text when the VM is started.</p><pre><code class="text">Erlang/OTP 27 [erts-15.0] [64-bit] [smp:8:8] [ds:8:8:10] [async-threads:1] [jit] [lock-counting]</code></pre><h2 id="getting-started" class="section-heading">
+  <a href="#getting-started" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Getting started</span>
+</h2>
+<p>Once you have a lock counting enabled VM the module <code class="inline">lcnt</code> can be used. The
+module is intended to be used from the current running nodes shell. To access
+remote nodes use <a href="lcnt.html#clear/1"><code class="inline">lcnt:clear(Node)</code></a> and
+<a href="lcnt.html#collect/1"><code class="inline">lcnt:collect(Node)</code></a>.</p><p>All locks are continuously monitored and its statistics updated. Use
+<a href="lcnt.html#clear/1"><code class="inline">lcnt:clear/0</code></a> to initially clear all counters
+before running any specific tests. This command will also reset the
+internal duration timer.</p><p>To retrieve lock statistics information, use
+<a href="lcnt.html#collect/1"><code class="inline">lcnt:collect/0,1</code></a>. The collect operation will
+start a <code class="inline">lcnt</code> server if it not already started. All collected data
+will be stored in an Erlang term and uploaded to the server along with
+the duration time. The duration time is the time between
+<a href="lcnt.html#clear/1"><code class="inline">lcnt:clear/0,1</code></a> and
+<a href="lcnt.html#collect/1"><code class="inline">lcnt:collect/0,1</code></a>.</p><p>Once the data is collected to the server it can be filtered, sorted, and printed
+in multiple ways.</p><h2 id="example-of-usage" class="section-heading">
+  <a href="#example-of-usage" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Example of usage</span>
+</h2>
+<p>Here is an example of running the <a href="#the-big-bang-benchmark">Big Bang Benchmark</a>:</p><pre><code class="text">Erlang/OTP 27 [erts-15.0] [64-bit] [smp:8:8] [ds:8:8:10] [async-threads:1] [jit] [lock-counting]
+
+Eshell V15.0 (press Ctrl+G to abort, type help(). for help)
+1&gt; lcnt:rt_opt({copy_save, true}).
+false
+2&gt; lcnt:clear(), big:bang(1000), lcnt:collect().
+ok
+3&gt; lcnt:conflicts().
+      lock   id  #tries  #collisions  collisions [%]  time [us]  duration [%]
+     -----  --- ------- ------------ --------------- ---------- -------------
+ run_queue   10  590799         8875          1.5022      37906        2.2167
+ proc_msgq 1048 2515180         4667          0.1856      20962        1.2258
+ proc_main 1048 2195317        23775          1.0830       1664        0.0973
+ok</code></pre><p>Another way to to profile a specific function is to use <a href="lcnt.html#apply/3"><code class="inline">lcnt:apply/3</code></a> or
+<a href="lcnt.html#apply/1"><code class="inline">lcnt:apply/1</code></a>, which calls <a href="lcnt.html#clear/0"><code class="inline">lcnt:clear/0</code></a> before calling the function and
+<a href="lcnt.html#collect/0"><code class="inline">lcnt:collect/0</code></a> after its invocation. This method should only be used in
+micro-benchmarks since it sets <code class="inline">copy_save</code> to <code class="inline">true</code> for the duration of the
+function call, which may cause the emulator to run out of memory if attempted
+under load.</p><pre><code class="text">1&gt; lcnt:apply(fun() -&gt; big:bang(1000) end).
+1845411
+2&gt; lcnt:conflicts().
+      lock   id  #tries  #collisions  collisions [%]  time [us]  duration [%]
+     -----  --- ------- ------------ --------------- ---------- -------------
+ run_queue   10  582789         9237          1.5850      41929        2.2633
+ proc_msgq 1047 2494483         4731          0.1897      11173        0.6031
+ proc_main 1047 2192806        23283          1.0618       1500        0.0810
+ok</code></pre><p>The process locks are sorted after its class like all other locks. It is
+convenient to look at specific processes and ports as classes. We can do this by
+swapping class and class identifiers with <a href="lcnt.html#swap_pid_keys/0"><code class="inline">lcnt:swap_pid_keys/0</code></a>.</p><pre><code class="text">3&gt; lcnt:swap_pid_keys().
+ok
+4&gt; lcnt:conflicts([{print, [name, tries, ratio, time]}]).
+                   lock  #tries  collisions [%]  time [us]
+                  ----- ------- --------------- ----------
+              run_queue  582789          1.5850      41929
+ &lt;nonode@nohost.1042.0&gt;    5692          0.5095        484
+  &lt;nonode@nohost.465.0&gt;    4989          0.4410        393
+  &lt;nonode@nohost.347.0&gt;    6319          2.1839        284
+  &lt;nonode@nohost.436.0&gt;    6077          1.9747        198
+  &lt;nonode@nohost.307.0&gt;    5071          1.3015        192
+  &lt;nonode@nohost.455.0&gt;    5846          1.7106        186
+  &lt;nonode@nohost.565.0&gt;    6305          1.2054        179
+  &lt;nonode@nohost.461.0&gt;    5820          1.2715        176
+  &lt;nonode@nohost.173.0&gt;    6329          1.4852        168
+  &lt;nonode@nohost.453.0&gt;    5172          0.8701        167
+  &lt;nonode@nohost.741.0&gt;    5306          0.4146        166
+  &lt;nonode@nohost.403.0&gt;    5838          1.9870        160
+  &lt;nonode@nohost.463.0&gt;    6346          1.5443        143
+  &lt;nonode@nohost.184.0&gt;    5542          0.4331        141
+  &lt;nonode@nohost.289.0&gt;    5260          0.2662        137
+  &lt;nonode@nohost.166.0&gt;    5610          0.9447        127
+  &lt;nonode@nohost.189.0&gt;    5354          0.5230        118
+  &lt;nonode@nohost.121.0&gt;    5845          0.9239        115
+  &lt;nonode@nohost.104.0&gt;    5140          0.7782        108
+ok</code></pre><h2 id="example-with-mnesia-transaction-benchmark" class="section-heading">
+  <a href="#example-with-mnesia-transaction-benchmark" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Example with Mnesia Transaction Benchmark</span>
+</h2>
+<p>From the Erlang shell:</p><pre><code class="makeup erlang" translate="no"><span class="n">Erlang</span><span class="o">/</span><span class="n">OTP</span><span class="w"> </span><span class="mi">27</span><span class="w"> </span><span class="p" data-group-id="7177838696-1">[</span><span class="ss">erts</span><span class="o">-</span><span class="mf">15.0</span><span class="p" data-group-id="7177838696-1">]</span><span class="w"> </span><span class="p" data-group-id="7177838696-2">[</span><span class="mi">64</span><span class="o">-</span><span class="ss">bit</span><span class="p" data-group-id="7177838696-2">]</span><span class="w"> </span><span class="p" data-group-id="7177838696-3">[</span><span class="nc">smp</span><span class="p">:</span><span class="mi">8</span><span class="p">:</span><span class="mi">8</span><span class="p" data-group-id="7177838696-3">]</span><span class="w"> </span><span class="p" data-group-id="7177838696-4">[</span><span class="nc">ds</span><span class="p">:</span><span class="mi">8</span><span class="p">:</span><span class="mi">8</span><span class="p">:</span><span class="mi">10</span><span class="p" data-group-id="7177838696-4">]</span><span class="w"> </span><span class="p" data-group-id="7177838696-5">[</span><span class="ss">async</span><span class="o">-</span><span class="nc">threads</span><span class="p">:</span><span class="mi">1</span><span class="p" data-group-id="7177838696-5">]</span><span class="w"> </span><span class="p" data-group-id="7177838696-6">[</span><span class="ss">jit</span><span class="p" data-group-id="7177838696-6">]</span><span class="w"> </span><span class="p" data-group-id="7177838696-7">[</span><span class="ss">lock</span><span class="o">-</span><span class="ss">counting</span><span class="p" data-group-id="7177838696-7">]</span><span class="w">
+
+</span><span class="n">Eshell</span><span class="w"> </span><span class="n">V15</span><span class="p">.</span><span class="mi">0</span><span class="w"> </span><span class="p" data-group-id="7177838696-8">(</span><span class="ss">press</span><span class="w"> </span><span class="n">Ctrl</span><span class="o">+</span><span class="n">G</span><span class="w"> </span><span class="ss">to</span><span class="w"> </span><span class="ss">abort</span><span class="p">,</span><span class="w"> </span><span class="ss">type</span><span class="w"> </span><span class="nf">help</span><span class="p" data-group-id="7177838696-9">(</span><span class="p" data-group-id="7177838696-9">)</span><span class="p">.</span><span class="w"> </span><span class="ss">for</span><span class="w"> </span><span class="ss">help</span><span class="p" data-group-id="7177838696-8">)</span><span class="gp unselectable">
+1&gt; </span><span class="n">Conf</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p" data-group-id="7177838696-10">[</span><span class="p" data-group-id="7177838696-11">{</span><span class="ss">db_nodes</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7177838696-12">[</span><span class="nf">node</span><span class="p" data-group-id="7177838696-13">(</span><span class="p" data-group-id="7177838696-13">)</span><span class="p" data-group-id="7177838696-12">]</span><span class="p" data-group-id="7177838696-11">}</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7177838696-14">{</span><span class="ss">driver_nodes</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7177838696-15">[</span><span class="nf">node</span><span class="p" data-group-id="7177838696-16">(</span><span class="p" data-group-id="7177838696-16">)</span><span class="p" data-group-id="7177838696-15">]</span><span class="p" data-group-id="7177838696-14">}</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7177838696-17">{</span><span class="ss">replica_nodes</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7177838696-18">[</span><span class="nf">node</span><span class="p" data-group-id="7177838696-19">(</span><span class="p" data-group-id="7177838696-19">)</span><span class="p" data-group-id="7177838696-18">]</span><span class="p" data-group-id="7177838696-17">}</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="7177838696-20">{</span><span class="ss">n_drivers_per_node</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p" data-group-id="7177838696-20">}</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7177838696-21">{</span><span class="ss">n_branches</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p" data-group-id="7177838696-21">}</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7177838696-22">{</span><span class="ss">n_accounts_per_branch</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p" data-group-id="7177838696-22">}</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="7177838696-23">{</span><span class="ss">replica_type</span><span class="p">,</span><span class="w"> </span><span class="ss">ram_copies</span><span class="p" data-group-id="7177838696-23">}</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7177838696-24">{</span><span class="ss">stop_after</span><span class="p">,</span><span class="w"> </span><span class="mi">60000</span><span class="p" data-group-id="7177838696-24">}</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7177838696-25">{</span><span class="ss">reuse_history_id</span><span class="p">,</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="7177838696-25">}</span><span class="p" data-group-id="7177838696-10">]</span><span class="p">,</span><span class="w"> </span><span class="ss">ok</span><span class="p">.</span><span class="w">
+</span><span class="ss">ok</span><span class="gp unselectable">
+2&gt; </span><span class="nc">mnesia_tpcb</span><span class="p">:</span><span class="nf">init</span><span class="p" data-group-id="7177838696-26">(</span><span class="p" data-group-id="7177838696-27">[</span><span class="p" data-group-id="7177838696-28">{</span><span class="ss">use_running_mnesia</span><span class="p">,</span><span class="w"> </span><span class="ss">false</span><span class="p" data-group-id="7177838696-28">}</span><span class="p">|</span><span class="n">Conf</span><span class="p" data-group-id="7177838696-27">]</span><span class="p" data-group-id="7177838696-26">)</span><span class="p">.</span><span class="w">
+    </span><span class="p">.</span><span class="w">
+    </span><span class="p">.</span><span class="w">
+    </span><span class="p">.</span><span class="w">
+</span><span class="ss">ignore</span></code></pre><p>Initial configuring of the benchmark is done. It is time to profile the actual
+Mnesia benchmark:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">3&gt; </span><span class="nc">lcnt</span><span class="p">:</span><span class="nf">apply</span><span class="p" data-group-id="7697404186-1">(</span><span class="nf">fun</span><span class="p" data-group-id="7697404186-2">(</span><span class="p" data-group-id="7697404186-2">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="p" data-group-id="7697404186-3">{</span><span class="ss">ok</span><span class="p">,</span><span class="p" data-group-id="7697404186-4">{</span><span class="ss">time</span><span class="p">,</span><span class="w"> </span><span class="n">Tps</span><span class="p">,</span><span class="p">_</span><span class="p">,</span><span class="p">_</span><span class="p">,</span><span class="p">_</span><span class="p">,</span><span class="p">_</span><span class="p" data-group-id="7697404186-4">}</span><span class="p" data-group-id="7697404186-3">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">mnesia_tpcb</span><span class="p">:</span><span class="nf">run</span><span class="p" data-group-id="7697404186-5">(</span><span class="p" data-group-id="7697404186-6">[</span><span class="p" data-group-id="7697404186-7">{</span><span class="ss">use_running_mnesia</span><span class="p">,</span><span class="w">
+    </span><span class="ss">true</span><span class="p" data-group-id="7697404186-7">}</span><span class="p">|</span><span class="n">Conf</span><span class="p" data-group-id="7697404186-6">]</span><span class="p" data-group-id="7697404186-5">)</span><span class="p">,</span><span class="w"> </span><span class="n">Tps</span><span class="o">/</span><span class="mi">60</span><span class="w"> </span><span class="k">end</span><span class="p" data-group-id="7697404186-1">)</span><span class="p">.</span><span class="w">
+      </span><span class="p">.</span><span class="w">
+      </span><span class="p">.</span><span class="w">
+      </span><span class="p">.</span><span class="w">
+</span><span class="mf">50204.666666666664</span></code></pre><p>The benchmark runs for 60 seconds (followed by verification and
+analysis), and then returns the number of transactions per seconds.</p><pre><code class="text">4&gt; lcnt:swap_pid_keys().
+ok
+5&gt; lcnt:conflicts().
+                   lock      id    #tries  #collisions  collisions [%]  time [us]  duration [%]
+                  -----     ---   ------- ------------ --------------- ---------- -------------
+              run_queue      10  89329288      3227515          3.6131    5018119        8.3606
+          mnesia_locker       5  64793236      8231226         12.7038      98654        0.1644
+                 db_tab 3012324 416847817       140631          0.0337      75308        0.1255
+ &lt;nonode@nohost.1158.0&gt;       5  14499900        36934          0.2547       4878        0.0081
+ &lt;nonode@nohost.1157.0&gt;       5  14157504        35797          0.2528       4727        0.0079
+ &lt;nonode@nohost.1163.0&gt;       5  14194934        34510          0.2431       4403        0.0073
+ &lt;nonode@nohost.1164.0&gt;       5  14149447        35326          0.2497       4150        0.0069
+ &lt;nonode@nohost.1166.0&gt;       5  14316525        35675          0.2492       4116        0.0069
+ &lt;nonode@nohost.1159.0&gt;       5  14241146        35358          0.2483       4101        0.0068
+ &lt;nonode@nohost.1162.0&gt;       5  14224491        35182          0.2473       4094        0.0068
+ &lt;nonode@nohost.1160.0&gt;       5  14190075        35328          0.2490       4075        0.0068
+ &lt;nonode@nohost.1165.0&gt;       5  14308906        35031          0.2448       3896        0.0065
+ &lt;nonode@nohost.1161.0&gt;       5  14457330        36182          0.2503       3856        0.0064
+              mnesia_tm       5  28149333       179294          0.6369       1057        0.0018
+               pix_lock    1024       132            1          0.7576        549        0.0009
+   &lt;nonode@nohost.85.0&gt;       5        17            2         11.7647         87        0.0001
+ &lt;nonode@nohost.1156.0&gt;       5      1335            6          0.4494          1        0.0000
+ok</code></pre><p>The <code class="inline">id</code> header represents the number of unique identifiers under a
+class when the option <code class="inline">{combine, true}</code> is used (which is enabled by
+default). It will otherwise show the specific identifier. The <code class="inline">db_tab</code>
+listing shows 3,012,324 unique locks, which is one for each ETS table
+created. Mnesia creates one ETS table for each transaction.</p><p>The listing shows also shows that the <code class="inline">mnesia_locker</code> process has highly contended locks.
+Using <a href="lcnt.html#inspect/1"><code class="inline">lcnt:inspect/1</code></a> more information can be displayed for that process:</p><pre><code class="text">6&gt; lcnt:inspect(mnesia_locker).
+          lock          id   #tries  #collisions  collisions [%]  time [us]  duration [%] histogram [log2(us)]
+         -----         ---  ------- ------------ --------------- ---------- ------------- ---------------------
+ mnesia_locker   proc_main 19853372      7591248         38.2366      80550        0.1342 |.    ...X........             |
+ mnesia_locker   proc_msgq 30917225       639627          2.0688      17126        0.0285 |.    .X.........              |
+ mnesia_locker proc_status  9348426          351          0.0038        978        0.0016 |        .xxX. .               |
+ mnesia_locker    proc_btm        0            0          0.0000          0        0.0000 |                              |
+ mnesia_locker  proc_trace  4674213            0          0.0000          0        0.0000 |                              |
+ok</code></pre><p>Listing the conflicts without class combiner:</p><pre><code class="text">7&gt; lcnt:conflicts([{combine, false}, {print, [name, id, tries, ratio, time]}]).
+                   lock                        id   #tries  collisions [%]  time [us]
+                  -----                       ---  ------- --------------- ----------
+              run_queue                         2 31075249          3.5676    1728233
+              run_queue                         1 29738521          3.6348    1683219
+              run_queue                         3 27912150          3.6429    1573593
+          mnesia_locker                 proc_main 19853372         38.2366      80550
+                 db_tab mnesia_transient_decision  3012281          2.5675      55104
+              run_queue                         4   512077          3.7041      29486
+          mnesia_locker                 proc_msgq 30917225          2.0688      17126
+                 db_tab                   account  6044562          0.3599       7909
+                 db_tab                    branch  6026659          0.3132       5654
+                 db_tab                    teller  6044659          0.2684       4727
+ &lt;nonode@nohost.1158.0&gt;                 proc_main  3207155          0.7178       3726
+ &lt;nonode@nohost.1163.0&gt;                 proc_main  3138532          0.7485       3593
+ &lt;nonode@nohost.1157.0&gt;                 proc_main  3133180          0.7156       3547
+ &lt;nonode@nohost.1166.0&gt;                 proc_main  3165128          0.7609       3517
+ &lt;nonode@nohost.1164.0&gt;                 proc_main  3128838          0.7525       3477
+ &lt;nonode@nohost.1160.0&gt;                 proc_main  3137627          0.7559       3433
+ &lt;nonode@nohost.1162.0&gt;                 proc_main  3144886          0.7509       3425
+ &lt;nonode@nohost.1159.0&gt;                 proc_main  3149315          0.7487       3372
+ &lt;nonode@nohost.1161.0&gt;                 proc_main  3196546          0.7591       3310
+ &lt;nonode@nohost.1165.0&gt;                 proc_main  3164333          0.7483       3309
+ok</code></pre><p>In this scenario the locks for the scheduler's run queues dominate the time waiting
+for locks. The most contended lock for ETS tables is for the <code class="inline">mnesia_transient_decision</code>
+ETS table.</p><p>Here is how to show the information for the ETS tables.</p><pre><code class="text">8&gt; lcnt:inspect(db_tab, [{print, [name, id, tries, colls, ratio, duration]}]).
+   lock                        id    #tries  #collisions  collisions [%]  duration [%]
+  -----                       ---   ------- ------------ --------------- -------------
+ db_tab mnesia_transient_decision   3012281        77341          2.5675        0.0918
+ db_tab                   account   6044562        21753          0.3599        0.0132
+ db_tab                    branch   6026659        18873          0.3132        0.0094
+ db_tab                    teller   6044659        16221          0.2684        0.0079
+ db_tab                   history   3012281         4005          0.1330        0.0022
+ db_tab              mnesia_stats   3071064         2437          0.0794        0.0010
+ db_tab        mnesia_trans_store        15            0          0.0000        0.0000
+ db_tab           mnesia_decision   3012281            0          0.0000        0.0000
+ db_tab                    schema         0            0          0.0000        0.0000
+ db_tab                      dets         0            0          0.0000        0.0000
+ db_tab               dets_owners         0            0          0.0000        0.0000
+ db_tab             dets_registry         0            0          0.0000        0.0000
+ db_tab         mnesia_lock_queue  36154974            0          0.0000        0.0000
+ db_tab       mnesia_sticky_locks  12108098            0          0.0000        0.0000
+ db_tab          mnesia_tid_locks  27176721            0          0.0000        0.0000
+ db_tab         mnesia_held_locks  48321870            0          0.0000        0.0000
+ db_tab             mnesia_subscr         0            0          0.0000        0.0000
+ db_tab               mnesia_gvar 102680683            1          0.0000        0.0000
+ db_tab            user_functions         0            0          0.0000        0.0000
+ db_tab             shell_records         0            0          0.0000        0.0000
+ok</code></pre><h2 id="deciphering-the-output" class="section-heading">
+  <a href="#deciphering-the-output" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Deciphering the output</span>
+</h2>
+<p>Typically high <code class="inline">time</code> values are bad and this is often the thing to look for.
+However, one should also look for high lock acquisition frequencies (<code class="inline">#tries</code>)
+since locks generate overhead and because high frequency could become
+problematic if they begin to have conflicts even if it is not shown in a
+particular test.</p><h2 id="the-big-bang-benchmark" class="section-heading">
+  <a href="#the-big-bang-benchmark" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">The Big Bang Benchmark</span>
+</h2>
+<pre><code class="makeup erlang" translate="no"><span class="p">-</span><span class="na">module</span><span class="p" data-group-id="2961128105-1">(</span><span class="ss">big</span><span class="p" data-group-id="2961128105-1">)</span><span class="p">.</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="2961128105-2">(</span><span class="p" data-group-id="2961128105-3">[</span><span class="ss">bang</span><span class="p">/</span><span class="mi">1</span><span class="p" data-group-id="2961128105-3">]</span><span class="p" data-group-id="2961128105-2">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">pinger</span><span class="p" data-group-id="2961128105-4">(</span><span class="p" data-group-id="2961128105-5">[</span><span class="p" data-group-id="2961128105-5">]</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2961128105-6">[</span><span class="p" data-group-id="2961128105-6">]</span><span class="p">,</span><span class="w"> </span><span class="ss">true</span><span class="p" data-group-id="2961128105-4">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">receive</span><span class="w">
+</span><span class="err">	</span><span class="p" data-group-id="2961128105-7">{</span><span class="ss">procs</span><span class="p">,</span><span class="w"> </span><span class="n">Procs</span><span class="p">,</span><span class="w"> </span><span class="n">ReportTo</span><span class="p" data-group-id="2961128105-7">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="nf">pinger</span><span class="p" data-group-id="2961128105-8">(</span><span class="n">Procs</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2961128105-9">[</span><span class="p" data-group-id="2961128105-9">]</span><span class="p">,</span><span class="w"> </span><span class="n">ReportTo</span><span class="p" data-group-id="2961128105-8">)</span><span class="w">
+    </span><span class="k">end</span><span class="p">;</span><span class="w">
+</span><span class="nf">pinger</span><span class="p" data-group-id="2961128105-10">(</span><span class="p" data-group-id="2961128105-11">[</span><span class="p" data-group-id="2961128105-11">]</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2961128105-12">[</span><span class="p" data-group-id="2961128105-12">]</span><span class="p">,</span><span class="w"> </span><span class="ss">false</span><span class="p" data-group-id="2961128105-10">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">receive</span><span class="w"> </span><span class="p" data-group-id="2961128105-13">{</span><span class="ss">ping</span><span class="p">,</span><span class="w"> </span><span class="n">From</span><span class="p" data-group-id="2961128105-13">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="n">From</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="p" data-group-id="2961128105-14">{</span><span class="ss">pong</span><span class="p">,</span><span class="w"> </span><span class="nf">self</span><span class="p" data-group-id="2961128105-15">(</span><span class="p" data-group-id="2961128105-15">)</span><span class="p" data-group-id="2961128105-14">}</span><span class="w"> </span><span class="k">end</span><span class="p">,</span><span class="w">
+    </span><span class="nf">pinger</span><span class="p" data-group-id="2961128105-16">(</span><span class="p" data-group-id="2961128105-17">[</span><span class="p" data-group-id="2961128105-17">]</span><span class="p">,</span><span class="p" data-group-id="2961128105-18">[</span><span class="p" data-group-id="2961128105-18">]</span><span class="p">,</span><span class="ss">false</span><span class="p" data-group-id="2961128105-16">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">pinger</span><span class="p" data-group-id="2961128105-19">(</span><span class="p" data-group-id="2961128105-20">[</span><span class="p" data-group-id="2961128105-20">]</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2961128105-21">[</span><span class="p" data-group-id="2961128105-21">]</span><span class="p">,</span><span class="w"> </span><span class="n">ReportTo</span><span class="p" data-group-id="2961128105-19">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">ReportTo</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="p" data-group-id="2961128105-22">{</span><span class="ss">done</span><span class="p">,</span><span class="w"> </span><span class="nf">self</span><span class="p" data-group-id="2961128105-23">(</span><span class="p" data-group-id="2961128105-23">)</span><span class="p" data-group-id="2961128105-22">}</span><span class="p">,</span><span class="w">
+    </span><span class="nf">pinger</span><span class="p" data-group-id="2961128105-24">(</span><span class="p" data-group-id="2961128105-25">[</span><span class="p" data-group-id="2961128105-25">]</span><span class="p">,</span><span class="p" data-group-id="2961128105-26">[</span><span class="p" data-group-id="2961128105-26">]</span><span class="p">,</span><span class="ss">false</span><span class="p" data-group-id="2961128105-24">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">pinger</span><span class="p" data-group-id="2961128105-27">(</span><span class="p" data-group-id="2961128105-28">[</span><span class="p" data-group-id="2961128105-28">]</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2961128105-29">[</span><span class="n">Po</span><span class="p">|</span><span class="n">Pos</span><span class="p" data-group-id="2961128105-29">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Pongers</span><span class="p">,</span><span class="w"> </span><span class="n">ReportTo</span><span class="p" data-group-id="2961128105-27">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">receive</span><span class="w">
+</span><span class="err">	</span><span class="p" data-group-id="2961128105-30">{</span><span class="ss">ping</span><span class="p">,</span><span class="w"> </span><span class="n">From</span><span class="p" data-group-id="2961128105-30">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="n">From</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="p" data-group-id="2961128105-31">{</span><span class="ss">pong</span><span class="p">,</span><span class="w"> </span><span class="nf">self</span><span class="p" data-group-id="2961128105-32">(</span><span class="p" data-group-id="2961128105-32">)</span><span class="p" data-group-id="2961128105-31">}</span><span class="p">,</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="nf">pinger</span><span class="p" data-group-id="2961128105-33">(</span><span class="p" data-group-id="2961128105-34">[</span><span class="p" data-group-id="2961128105-34">]</span><span class="p">,</span><span class="w"> </span><span class="n">Pongers</span><span class="p">,</span><span class="w"> </span><span class="n">ReportTo</span><span class="p" data-group-id="2961128105-33">)</span><span class="p">;</span><span class="w">
+</span><span class="err">	</span><span class="p" data-group-id="2961128105-35">{</span><span class="ss">pong</span><span class="p">,</span><span class="w"> </span><span class="n">Po</span><span class="p" data-group-id="2961128105-35">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="nf">pinger</span><span class="p" data-group-id="2961128105-36">(</span><span class="p" data-group-id="2961128105-37">[</span><span class="p" data-group-id="2961128105-37">]</span><span class="p">,</span><span class="w"> </span><span class="n">Pos</span><span class="p">,</span><span class="w"> </span><span class="n">ReportTo</span><span class="p" data-group-id="2961128105-36">)</span><span class="w">
+    </span><span class="k">end</span><span class="p">;</span><span class="w">
+</span><span class="nf">pinger</span><span class="p" data-group-id="2961128105-38">(</span><span class="p" data-group-id="2961128105-39">[</span><span class="n">Pi</span><span class="p">|</span><span class="n">Pis</span><span class="p" data-group-id="2961128105-39">]</span><span class="p">,</span><span class="w"> </span><span class="n">Pongers</span><span class="p">,</span><span class="w"> </span><span class="n">ReportTo</span><span class="p" data-group-id="2961128105-38">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">receive</span><span class="w"> </span><span class="p" data-group-id="2961128105-40">{</span><span class="ss">ping</span><span class="p">,</span><span class="w"> </span><span class="n">From</span><span class="p" data-group-id="2961128105-40">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="n">From</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="p" data-group-id="2961128105-41">{</span><span class="ss">pong</span><span class="p">,</span><span class="w"> </span><span class="nf">self</span><span class="p" data-group-id="2961128105-42">(</span><span class="p" data-group-id="2961128105-42">)</span><span class="p" data-group-id="2961128105-41">}</span><span class="w">
+    </span><span class="k">after</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="ss">ok</span><span class="w">
+    </span><span class="k">end</span><span class="p">,</span><span class="w">
+    </span><span class="n">Pi</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="p" data-group-id="2961128105-43">{</span><span class="ss">ping</span><span class="p">,</span><span class="w"> </span><span class="nf">self</span><span class="p" data-group-id="2961128105-44">(</span><span class="p" data-group-id="2961128105-44">)</span><span class="p" data-group-id="2961128105-43">}</span><span class="p">,</span><span class="w">
+    </span><span class="nf">pinger</span><span class="p" data-group-id="2961128105-45">(</span><span class="n">Pis</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2961128105-46">[</span><span class="n">Pi</span><span class="p">|</span><span class="n">Pongers</span><span class="p" data-group-id="2961128105-46">]</span><span class="p">,</span><span class="w"> </span><span class="n">ReportTo</span><span class="p" data-group-id="2961128105-45">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">spawn_procs</span><span class="p" data-group-id="2961128105-47">(</span><span class="n">N</span><span class="p" data-group-id="2961128105-47">)</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="n">N</span><span class="w"> </span><span class="o">=&lt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="2961128105-48">[</span><span class="p" data-group-id="2961128105-48">]</span><span class="p">;</span><span class="w">
+</span><span class="nf">spawn_procs</span><span class="p" data-group-id="2961128105-49">(</span><span class="n">N</span><span class="p" data-group-id="2961128105-49">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="2961128105-50">[</span><span class="nf">spawn_link</span><span class="p" data-group-id="2961128105-51">(</span><span class="nf">fun</span><span class="w"> </span><span class="p" data-group-id="2961128105-52">(</span><span class="p" data-group-id="2961128105-52">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nf">pinger</span><span class="p" data-group-id="2961128105-53">(</span><span class="p" data-group-id="2961128105-54">[</span><span class="p" data-group-id="2961128105-54">]</span><span class="p">,</span><span class="p" data-group-id="2961128105-55">[</span><span class="p" data-group-id="2961128105-55">]</span><span class="p">,</span><span class="ss">true</span><span class="p" data-group-id="2961128105-53">)</span><span class="w"> </span><span class="k">end</span><span class="p" data-group-id="2961128105-51">)</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="nf">spawn_procs</span><span class="p" data-group-id="2961128105-56">(</span><span class="n">N</span><span class="o">-</span><span class="mi">1</span><span class="p" data-group-id="2961128105-56">)</span><span class="p" data-group-id="2961128105-50">]</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">send_procs</span><span class="p" data-group-id="2961128105-57">(</span><span class="p" data-group-id="2961128105-58">[</span><span class="p" data-group-id="2961128105-58">]</span><span class="p">,</span><span class="w"> </span><span class="n">Msg</span><span class="p" data-group-id="2961128105-57">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">Msg</span><span class="p">;</span><span class="w">
+</span><span class="nf">send_procs</span><span class="p" data-group-id="2961128105-59">(</span><span class="p" data-group-id="2961128105-60">[</span><span class="n">P</span><span class="p">|</span><span class="n">Ps</span><span class="p" data-group-id="2961128105-60">]</span><span class="p">,</span><span class="w"> </span><span class="n">Msg</span><span class="p" data-group-id="2961128105-59">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">P</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="n">Msg</span><span class="p">,</span><span class="w">
+    </span><span class="nf">send_procs</span><span class="p" data-group-id="2961128105-61">(</span><span class="n">Ps</span><span class="p">,</span><span class="w"> </span><span class="n">Msg</span><span class="p" data-group-id="2961128105-61">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">receive_msgs</span><span class="p" data-group-id="2961128105-62">(</span><span class="p" data-group-id="2961128105-63">[</span><span class="p" data-group-id="2961128105-63">]</span><span class="p" data-group-id="2961128105-62">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="ss">ok</span><span class="p">;</span><span class="w">
+</span><span class="nf">receive_msgs</span><span class="p" data-group-id="2961128105-64">(</span><span class="p" data-group-id="2961128105-65">[</span><span class="n">M</span><span class="p">|</span><span class="n">Ms</span><span class="p" data-group-id="2961128105-65">]</span><span class="p" data-group-id="2961128105-64">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">receive</span><span class="w">
+</span><span class="err">	</span><span class="n">M</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+</span><span class="err">	</span><span class="w">    </span><span class="nf">receive_msgs</span><span class="p" data-group-id="2961128105-66">(</span><span class="n">Ms</span><span class="p" data-group-id="2961128105-66">)</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">bang</span><span class="p" data-group-id="2961128105-67">(</span><span class="n">N</span><span class="p" data-group-id="2961128105-67">)</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="nf">integer</span><span class="p" data-group-id="2961128105-68">(</span><span class="n">N</span><span class="p" data-group-id="2961128105-68">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">Procs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">spawn_procs</span><span class="p" data-group-id="2961128105-69">(</span><span class="n">N</span><span class="p" data-group-id="2961128105-69">)</span><span class="p">,</span><span class="w">
+    </span><span class="n">RMsgs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">lists</span><span class="p">:</span><span class="nf">map</span><span class="p" data-group-id="2961128105-70">(</span><span class="nf">fun</span><span class="w"> </span><span class="p" data-group-id="2961128105-71">(</span><span class="n">P</span><span class="p" data-group-id="2961128105-71">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="p" data-group-id="2961128105-72">{</span><span class="ss">done</span><span class="p">,</span><span class="w"> </span><span class="n">P</span><span class="p" data-group-id="2961128105-72">}</span><span class="w"> </span><span class="k">end</span><span class="p">,</span><span class="w"> </span><span class="n">Procs</span><span class="p" data-group-id="2961128105-70">)</span><span class="p">,</span><span class="w">
+    </span><span class="n">Start</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">now</span><span class="p" data-group-id="2961128105-73">(</span><span class="p" data-group-id="2961128105-73">)</span><span class="p">,</span><span class="w">
+    </span><span class="nf">send_procs</span><span class="p" data-group-id="2961128105-74">(</span><span class="n">Procs</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2961128105-75">{</span><span class="ss">procs</span><span class="p">,</span><span class="w"> </span><span class="n">Procs</span><span class="p">,</span><span class="w"> </span><span class="nf">self</span><span class="p" data-group-id="2961128105-76">(</span><span class="p" data-group-id="2961128105-76">)</span><span class="p" data-group-id="2961128105-75">}</span><span class="p" data-group-id="2961128105-74">)</span><span class="p">,</span><span class="w">
+    </span><span class="nf">receive_msgs</span><span class="p" data-group-id="2961128105-77">(</span><span class="n">RMsgs</span><span class="p" data-group-id="2961128105-77">)</span><span class="p">,</span><span class="w">
+    </span><span class="n">Stop</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">now</span><span class="p" data-group-id="2961128105-78">(</span><span class="p" data-group-id="2961128105-78">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">lists</span><span class="p">:</span><span class="nf">foreach</span><span class="p" data-group-id="2961128105-79">(</span><span class="nf">fun</span><span class="w"> </span><span class="p" data-group-id="2961128105-80">(</span><span class="n">P</span><span class="p" data-group-id="2961128105-80">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nf">exit</span><span class="p" data-group-id="2961128105-81">(</span><span class="n">P</span><span class="p">,</span><span class="w"> </span><span class="ss">normal</span><span class="p" data-group-id="2961128105-81">)</span><span class="w"> </span><span class="k">end</span><span class="p">,</span><span class="w"> </span><span class="n">Procs</span><span class="p" data-group-id="2961128105-79">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">timer</span><span class="p">:</span><span class="nf">now_diff</span><span class="p" data-group-id="2961128105-82">(</span><span class="n">Stop</span><span class="p">,</span><span class="w"> </span><span class="n">Start</span><span class="p" data-group-id="2961128105-82">)</span><span class="p">.</span></code></pre><h2 id="see-also" class="section-heading">
+  <a href="#see-also" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">See Also</span>
+</h2>
+<p><a href="lcnt.html">LCNT Reference Manual</a></p>
+</div>
+
+<div class="bottom-actions" id="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="fprof_chapter.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+fprof - The File Trace Profiler
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="xref_chapter.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+Xref - The Cross Reference Tool
+        </span>
+      </a>
+
+  </div>
+</div>
+    <footer class="footer">
+      <p>
+
+        <span class="line">
+          <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+            Search HexDocs
+          </button>
+
+            <a href="tools.epub" title="ePub version">
+              Download ePub version
+            </a>
+
+        </span>
+      </p>
+
+      <p class="built-using">
+        Built using
+        <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.34.1) for the
+
+          <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+      </p>
+<p>Copyright © 1996-2024 <a href="https://www.ericsson.com">Ericsson AB</a></p>
+    </footer>
+  </div>
+</main>
+</div>
+<script>
+  function mermaidLoaded() {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: document.body.className.includes("dark") ? "dark" : "default"
+    });
+    let id = 0;
+    for (const codeEl of document.querySelectorAll("pre code.mermaid")) {
+      const preEl = codeEl.parentElement;
+      const graphDefinition = codeEl.textContent;
+      const graphEl = document.createElement("div");
+      const graphId = "mermaid-graph-" + id++;
+      mermaid.render(graphId, graphDefinition).then(({svg, bindFunctions}) => {
+        graphEl.innerHTML = svg;
+        bindFunctions?.(graphEl);
+        preEl.insertAdjacentElement("afterend", graphEl);
+        preEl.remove();
+      });
+    }
+  }
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mermaid@10.2.3/dist/mermaid.min.js" onload="mermaidLoaded();"></script>
+
+  </body>
+</html>
