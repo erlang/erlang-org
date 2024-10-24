@@ -1,0 +1,1559 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.34.1">
+    <meta name="project" content="kernel v10.1.1">
+
+
+<meta name="exdoc:full-text-search-url" content="/doc/search.html?v=27&q=">
+<meta name="major-vsn" content="27">
+<link rel="canonical" href="https://www.erlang.org/doc/apps/kernel/trace.html" />
+    <title>trace — kernel v10.1.1</title>
+    <link rel="stylesheet" href="dist/html-erlang-APNLKZCW.css" />
+
+
+    <script src="dist/handlebars.runtime-NWIB6V2M.js"></script>
+    <script src="dist/handlebars.templates-K7URE6B4.js"></script>
+    <script src="dist/sidebar_items-D55D7703.js"></script>
+    <script src="docs_config.js"></script>
+    <script async src="dist/html-7XSQ4GTY.js"></script>
+
+  </head>
+  <body data-type="modules" class="page-module">
+    <script>
+
+      try {
+        var settings = JSON.parse(localStorage.getItem('ex_doc:settings') || '{}');
+
+        if (settings.theme === 'dark' ||
+           ((settings.theme === 'system' || settings.theme == null) &&
+             window.matchMedia('(prefers-color-scheme: dark)').matches)
+           ) {
+          document.body.classList.add('dark')
+        }
+      } catch (error) { }
+    </script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="kernel" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+kernel
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v10.1.1
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-listNav" class="sidebar-listNav" role="tablist">
+      <li>
+        <button id="extras-list-tab-button" role="tab" data-type="extras" aria-controls="extras-tab-panel" aria-selected="true" tabindex="0">
+Pages
+        </button>
+      </li>
+
+        <li>
+          <button id="modules-list-tab-button" role="tab" data-type="modules" aria-controls="modules-tab-panel" aria-selected="false" tabindex="-1">
+            Modules
+          </button>
+        </li>
+
+
+    </ul>
+  </div>
+
+  <div id="extras-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="extras-list-tab-button">
+    <ul id="extras-full-list" class="full-list"></ul>
+  </div>
+
+    <div id="modules-tab-panel" class="sidebar-tabpanel" role="tabpanel" aria-labelledby="modules-list-tab-button" hidden>
+      <ul id="modules-full-list" class="full-list"></ul>
+    </div>
+
+
+</nav>
+
+<main class="content">
+  <output role="status" id="toast"></output>
+
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of kernel</span>
+            <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+          </label>
+          <button type="submit" class="search-button" aria-label="Submit Search">
+            <i class="ri-search-2-line ri-lg" aria-hidden="true" title="Submit search"></i>
+          </button>
+          <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+            <i class="ri-close-line ri-lg" title="Cancel search"></i>
+          </button>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/kernel/src/trace.erl#L21" title="View Source" class="icon-action" rel="help">
+        <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        <span class="sr-only">View Source</span>
+      </a>
+
+    <span translate="no">trace</span> 
+    <small class="app-vsn" translate="no">(kernel v10.1.1)</small>
+
+  </h1>
+
+
+    <section id="moduledoc">
+<p>The Erlang trace interface.</p><p>The Erlang run-time system exposes several trace points that allow users
+to be notified when they are triggered. Trace points are things such as
+function calls, message sending and receiving, garbage collection, and
+process scheduling.</p><p>The functions in this module can be used directly, but can also be
+used as building blocks to build more sophisticated debugging or
+profiling tools. For debugging Erlang code it is recommended to use
+<a href="../../apps/runtime_tools/dbg.html"><code class="inline">dbg</code></a> and for profiling to use <a href="../../apps/tools/tprof.html"><code class="inline">tprof</code></a>.</p><h2 id="module-trace-sessions" class="section-heading">
+  <a href="#module-trace-sessions" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Trace Sessions</span>
+</h2>
+<p>All tracing is done within a trace session. Trace sessions can be
+<a href="#session_create/3">created</a> and <a href="#session_destroy/1">destroyed</a>
+dynamically. Each session has its own tracer that will receive all trace
+messages. Several sessions can exist at the same time without interfering with
+each other. When a trace session is destroyed, all its trace settings are
+automatically cleaned up.</p><p><em>Example</em>:</p><pre><code class="makeup erlang" translate="no"><span class="c1">%% Create a tracer process that will receive the trace events</span><span class="gp unselectable">
+1&gt; </span><span class="n">Tracer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nf">spawn</span><span class="p" data-group-id="7090402276-1">(</span><span class="k">fun</span><span class="w"> </span><span class="n">F</span><span class="p" data-group-id="7090402276-2">(</span><span class="p" data-group-id="7090402276-2">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="k">receive</span><span class="w"> </span><span class="n">M</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nc">io</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="7090402276-3">(</span><span class="s">&quot;</span><span class="si">~p</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="p" data-group-id="7090402276-4">[</span><span class="n">M</span><span class="p" data-group-id="7090402276-4">]</span><span class="p" data-group-id="7090402276-3">)</span><span class="p">,</span><span class="w"> </span><span class="n">F</span><span class="p" data-group-id="7090402276-5">(</span><span class="p" data-group-id="7090402276-5">)</span><span class="w"> </span><span class="k">end</span><span class="w"> </span><span class="k">end</span><span class="p" data-group-id="7090402276-1">)</span><span class="p">.</span><span class="w">
+</span><span class="o">&lt;</span><span class="mf">0.91</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="w">
+</span><span class="c1">%% Create a session using the Tracer</span><span class="gp unselectable">
+2&gt; </span><span class="n">Session</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">trace</span><span class="p">:</span><span class="nf">session_create</span><span class="p" data-group-id="7090402276-6">(</span><span class="ss">my_session</span><span class="p">,</span><span class="w"> </span><span class="n">Tracer</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7090402276-7">[</span><span class="p" data-group-id="7090402276-7">]</span><span class="p" data-group-id="7090402276-6">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="7090402276-8">{</span><span class="p">#</span><span class="n">Ref</span><span class="o">&lt;</span><span class="mf">0.1543805153</span><span class="p">.</span><span class="mf">1548353537.92331</span><span class="o">&gt;</span><span class="p">,</span><span class="p" data-group-id="7090402276-9">{</span><span class="ss">my_session</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p" data-group-id="7090402276-9">}</span><span class="p" data-group-id="7090402276-8">}</span><span class="w">
+</span><span class="c1">%% Setup call tracing on self()</span><span class="gp unselectable">
+3&gt; </span><span class="nc">trace</span><span class="p">:</span><span class="nf">process</span><span class="p" data-group-id="7090402276-10">(</span><span class="n">Session</span><span class="p">,</span><span class="w"> </span><span class="nf">self</span><span class="p" data-group-id="7090402276-11">(</span><span class="p" data-group-id="7090402276-11">)</span><span class="p">,</span><span class="w"> </span><span class="ss">true</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7090402276-12">[</span><span class="ss">call</span><span class="p" data-group-id="7090402276-12">]</span><span class="p" data-group-id="7090402276-10">)</span><span class="p">.</span><span class="w">
+</span><span class="mi">1</span><span class="w">
+</span><span class="c1">%% Setup call tracing on lists:seq/2</span><span class="gp unselectable">
+4&gt; </span><span class="nc">trace</span><span class="p">:</span><span class="nf">function</span><span class="p" data-group-id="7090402276-13">(</span><span class="n">Session</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7090402276-14">{</span><span class="ss">lists</span><span class="p">,</span><span class="ss">seq</span><span class="p">,</span><span class="mi">2</span><span class="p" data-group-id="7090402276-14">}</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7090402276-15">[</span><span class="p" data-group-id="7090402276-15">]</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7090402276-16">[</span><span class="p" data-group-id="7090402276-16">]</span><span class="p" data-group-id="7090402276-13">)</span><span class="p">.</span><span class="w">
+</span><span class="mi">1</span><span class="w">
+</span><span class="c1">%% Call the traced function</span><span class="gp unselectable">
+5&gt; </span><span class="nc">lists</span><span class="p">:</span><span class="nf">seq</span><span class="p" data-group-id="7090402276-17">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p" data-group-id="7090402276-17">)</span><span class="p">.</span><span class="w">
+</span><span class="p" data-group-id="7090402276-18">{</span><span class="nb">trace</span><span class="p">,</span><span class="o">&lt;</span><span class="mf">0.89</span><span class="p">.</span><span class="mi">0</span><span class="o">&gt;</span><span class="p">,</span><span class="ss">call</span><span class="p">,</span><span class="p" data-group-id="7090402276-19">{</span><span class="ss">lists</span><span class="p">,</span><span class="ss">seq</span><span class="p">,</span><span class="p" data-group-id="7090402276-20">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">10</span><span class="p" data-group-id="7090402276-20">]</span><span class="p" data-group-id="7090402276-19">}</span><span class="p" data-group-id="7090402276-18">}</span><span class="w"> </span><span class="c1">% The trace message</span><span class="w">
+</span><span class="p" data-group-id="7090402276-21">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">7</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="mi">9</span><span class="p">,</span><span class="mi">10</span><span class="p" data-group-id="7090402276-21">]</span><span class="w"> </span><span class="c1">% The return value</span><span class="w">
+</span><span class="c1">%% Cleanup the trace session</span><span class="gp unselectable">
+6&gt; </span><span class="nc">trace</span><span class="p">:</span><span class="nf">session_destroy</span><span class="p" data-group-id="7090402276-22">(</span><span class="n">Session</span><span class="p" data-group-id="7090402276-22">)</span><span class="p">.</span><span class="w">
+</span><span class="ss">ok</span></code></pre><h2 id="module-node-local-tracing-only" class="section-heading">
+  <a href="#module-node-local-tracing-only" class="hover-link">
+    <i class="ri-link-m" aria-hidden="true"></i>
+  </a>
+  <span class="text">Node Local Tracing Only</span>
+</h2>
+<p>The functions in this module only operates on the local node. That is, both the
+traced processes/ports as well as the tracer process/port/module must all reside
+on the same local node as the call is made. To trace remote nodes use <a href="../../apps/runtime_tools/dbg.html"><code class="inline">dbg</code></a> or
+<a href="../../apps/observer/ttb.html"><code class="inline">ttb</code></a>.</p><blockquote><h4 class="info">Change</h4><p>This <code class="inline">trace</code> module was introduced in OTP 27.0. The interface and semantics are
+similar to the older functions <a href="../../apps/erts/erlang.html#trace/3"><code class="inline">erlang:trace/3</code></a>, <a href="../../apps/erts/erlang.html#trace_pattern/3"><code class="inline">erlang:trace_pattern/3</code></a>,
+and <a href="../../apps/erts/erlang.html#trace_info/2"><code class="inline">erlang:trace_info/2</code></a>.</p><p>The main difference is the old functions operate on a single static
+trace session per node. That could impose the problem that different
+users and tools would interfere with each other's trace settings. The new trace
+functions in this module all operate on dynamically created trace sesssions
+isolated from each other. Also, this makes it easier to safely disable all trace
+settings when done by a single call to <a href="#session_destroy/1"><code class="inline">session_destroy/1</code></a>.</p><p>To change an existing tool to use the interface the following table can be
+useful:</p><table><thead><tr><th style="text-align: left;">Old function call</th><th style="text-align: left;">corresponds to</th></tr></thead><tbody><tr><td style="text-align: left;"><a href="../../apps/erts/erlang.html#trace/3" title=""><code class="inline">erlang:trace(Pid, ...)</code></a></td><td style="text-align: left;"><a href="#process/4" title=""><code class="inline">process(S, Pid, ...)</code></a></td></tr><tr><td style="text-align: left;"><a href="../../apps/erts/erlang.html#trace/3" title=""><code class="inline">erlang:trace(processes, ...)</code></a></td><td style="text-align: left;"><a href="#process/4" title=""><code class="inline">process(S, all, ...)</code></a></td></tr><tr><td style="text-align: left;"><a href="../../apps/erts/erlang.html#trace/3" title=""><code class="inline">erlang:trace(existing_processes, ...)</code></a></td><td style="text-align: left;"><a href="#process/4" title=""><code class="inline">process(S, existing, ...)</code></a></td></tr><tr><td style="text-align: left;"><a href="../../apps/erts/erlang.html#trace/3" title=""><code class="inline">erlang:trace(new_processes, ...)</code></a></td><td style="text-align: left;"><a href="#process/4" title=""><code class="inline">process(S, new, ...)</code></a></td></tr><tr><td style="text-align: left;"><a href="../../apps/erts/erlang.html#trace/3" title=""><code class="inline">erlang:trace(Port, ...)</code></a></td><td style="text-align: left;"><a href="#port/4" title=""><code class="inline">port(S, Port, ...)</code></a></td></tr><tr><td style="text-align: left;"><a href="../../apps/erts/erlang.html#trace/3" title=""><code class="inline">erlang:trace(ports, ...)</code></a></td><td style="text-align: left;"><a href="#port/4" title=""><code class="inline">port(S, all, ...)</code></a></td></tr><tr><td style="text-align: left;"><a href="../../apps/erts/erlang.html#trace/3" title=""><code class="inline">erlang:trace(existing_ports, ...)</code></a></td><td style="text-align: left;"><a href="#port/4" title=""><code class="inline">port(S, existing, ...)</code></a></td></tr><tr><td style="text-align: left;"><a href="../../apps/erts/erlang.html#trace/3" title=""><code class="inline">erlang:trace(new_ports, ...)</code></a></td><td style="text-align: left;"><a href="#port/4" title=""><code class="inline">port(S, new, ...)</code></a></td></tr><tr><td style="text-align: left;"><a href="../../apps/erts/erlang.html#trace/3" title=""><code class="inline">erlang:trace(all, ...)</code></a></td><td style="text-align: left;"><a href="#process/4" title=""><code class="inline">process(S, all, ...)</code></a> and <a href="#port/4" title=""><code class="inline">port(S, all, ...)</code></a></td></tr><tr><td style="text-align: left;"><a href="../../apps/erts/erlang.html#trace/3" title=""><code class="inline">erlang:trace(existing, ...)</code></a></td><td style="text-align: left;"><a href="#process/4" title=""><code class="inline">process(S, existing, ...)</code></a> and <a href="#port/4" title=""><code class="inline">port(S, existing, ...)</code></a></td></tr><tr><td style="text-align: left;"><a href="../../apps/erts/erlang.html#trace/3" title=""><code class="inline">erlang:trace(new, ...)</code></a></td><td style="text-align: left;"><a href="#process/4" title=""><code class="inline">process(S, new, ...)</code></a> and <a href="#port/4" title=""><code class="inline">port(S, new, ...)</code></a></td></tr><tr><td style="text-align: left;"><a href="../../apps/erts/erlang.html#trace_pattern/3" title=""><code class="inline">erlang:trace_pattern(MFA, ...)</code></a></td><td style="text-align: left;"><a href="#function/4" title=""><code class="inline">function(S, MFA, ...)</code></a></td></tr><tr><td style="text-align: left;"><a href="../../apps/erts/erlang.html#trace_pattern/3" title=""><code class="inline">erlang:trace_pattern(send, ...)</code></a></td><td style="text-align: left;"><a href="#send/3" title=""><code class="inline">send(S, ...)</code></a></td></tr><tr><td style="text-align: left;"><a href="../../apps/erts/erlang.html#trace_pattern/3" title=""><code class="inline">erlang:trace_pattern('receive', ...)</code></a></td><td style="text-align: left;"><a href="#recv/3" title=""><code class="inline">recv(S, ...)</code></a></td></tr><tr><td style="text-align: left;"><a href="../../apps/erts/erlang.html#trace_info/2" title=""><code class="inline">erlang:trace_info(...)</code></a></td><td style="text-align: left;"><a href="#info/3" title=""><code class="inline">info(S, ...)</code></a></td></tr></tbody></table><p>Argument <code class="inline">S</code> is the trace session that must first be created with
+<a href="#session_create/3"><code class="inline">session_create/3</code></a>. The other arguments (implied by <code class="inline">...</code>) are mostly the
+same. The only other difference is that the tracer is always the tracer
+specified when the session was created. Options <code class="inline">{tracer,T}</code>, <code class="inline">{tracer,M,S}</code>,
+<code class="inline">{meta,T}</code>, and <code class="inline">{meta,M,S}</code> are therefore not allowed, and the default tracer is
+never the calling process.</p></blockquote>
+    </section>
+
+</div>
+
+  <section id="summary" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#summary">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Summary</span>
+    </h1>
+<div class="summary-types summary">
+  <h2>
+    <a href="#types">Types</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:match_variable/0" data-no-tooltip translate="no">match_variable()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:session/0" data-no-tooltip translate="no">session()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>A handle to an isolated trace session.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:session_strong_ref/0" data-no-tooltip translate="no">session_strong_ref()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:session_weak_ref/0" data-no-tooltip translate="no">session_weak_ref()</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>A weak session handle as returned by <a href="#session_info/1"><code class="inline">session_info/1</code></a>. A weak session handle can
+be used like a full session handle, but it will not prevent the session from
+being destroyed when the last strong handle is garbage collected.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:trace_flag/0" data-no-tooltip translate="no">trace_flag()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:trace_info_flag/0" data-no-tooltip translate="no">trace_info_flag()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:trace_info_item_result/0" data-no-tooltip translate="no">trace_info_item_result()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:trace_info_return/0" data-no-tooltip translate="no">trace_info_return()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:trace_match_spec/0" data-no-tooltip translate="no">trace_match_spec()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:trace_pattern_flag/0" data-no-tooltip translate="no">trace_pattern_flag()</a>
+
+      </div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#t:trace_pattern_mfa/0" data-no-tooltip translate="no">trace_pattern_mfa()</a>
+
+      </div>
+
+    </div>
+
+</div>
+<div class="summary-functions summary">
+  <h2>
+    <a href="#functions">Functions</a>
+  </h2>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#delivered/2" data-no-tooltip translate="no">delivered(Session, Tracee)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Equivalent to <a href="../../apps/erts/erlang.html#trace_delivered/1"><code class="inline">erlang:trace_delivered(Tracee)</code></a>
+except that it is run within the given <a href="#t:session/0"><code class="inline">session/0</code></a>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#function/4" data-no-tooltip translate="no">function(Session, MFA, MatchSpec, FlagList)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Enable or disable <em>call tracing</em> for one or more functions.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#info/3" data-no-tooltip translate="no">info(Session, PidPortFuncEvent, Item)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Return trace information about a port, process, function, or event.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#port/4" data-no-tooltip translate="no">port(Session, Ports, How, FlagList)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Turn on or off trace flags for one or more ports.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#process/4" data-no-tooltip translate="no">process(Session, Procs, How, FlagList)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Turn on or off trace flags for one or more processes.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#recv/3" data-no-tooltip translate="no">recv(Session, MatchSpec, FlagList)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Set trace pattern for <em>message receiving</em>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#send/3" data-no-tooltip translate="no">send(Session, MatchSpec, FlagList)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Set trace pattern for <em>message sending</em>.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#session_create/3" data-no-tooltip translate="no">session_create(Name, Tracer, Opts)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Create a new trace session.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#session_destroy/1" data-no-tooltip translate="no">session_destroy(Session)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Destroy a trace session and cleanup all its settings on processes, ports, and
+functions.</p></div>
+
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-signature">
+        <a href="#session_info/1" data-no-tooltip translate="no">session_info(PidPortFuncEvent)</a>
+
+      </div>
+
+        <div class="summary-synopsis"><p>Return which trace sessions that affect a port, process, function, or event.</p></div>
+
+    </div>
+
+</div>
+
+  </section>
+
+
+  <section id="types" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#types">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Types</span>
+    </h1>
+    <div class="types-list">
+<section class="detail" id="t:match_variable/0">
+
+  <div class="detail-header">
+    <a href="#t:match_variable/0" class="detail-link" data-no-tooltip title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">match_variable()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/kernel/src/trace.erl#L192" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> match_variable() :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>().</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:session/0">
+
+  <div class="detail-header">
+    <a href="#t:session/0" class="detail-link" data-no-tooltip title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">session()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/kernel/src/trace.erl#L153" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> session() :: {<a href="#t:session_strong_ref/0">session_strong_ref</a>(), <a href="#t:session_weak_ref/0">session_weak_ref</a>()} | <a href="#t:session_weak_ref/0">session_weak_ref</a>().</pre>
+
+      </div>
+
+<p>A handle to an isolated trace session.</p>
+  </section>
+</section>
+<section class="detail" id="t:session_strong_ref/0">
+
+  <div class="detail-header">
+    <a href="#t:session_strong_ref/0" class="detail-link" data-no-tooltip title="Link to this opaque">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this opaque</span>
+    </a>
+    <h1 class="signature" translate="no">session_strong_ref()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/kernel/src/trace.erl#L155" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-opaque</span> session_strong_ref()</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:session_weak_ref/0">
+
+  <div class="detail-header">
+    <a href="#t:session_weak_ref/0" class="detail-link" data-no-tooltip title="Link to this opaque">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this opaque</span>
+    </a>
+    <h1 class="signature" translate="no">session_weak_ref()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/kernel/src/trace.erl#L162" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-opaque</span> session_weak_ref()</pre>
+
+      </div>
+
+<p>A weak session handle as returned by <a href="#session_info/1"><code class="inline">session_info/1</code></a>. A weak session handle can
+be used like a full session handle, but it will not prevent the session from
+being destroyed when the last strong handle is garbage collected.</p>
+  </section>
+</section>
+<section class="detail" id="t:trace_flag/0">
+
+  <div class="detail-header">
+    <a href="#t:trace_flag/0" class="detail-link" data-no-tooltip title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">trace_flag()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/kernel/src/trace.erl#L186" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> trace_flag() :: <a href="#t:trace_info_flag/0">trace_info_flag</a>() | all | cpu_timestamp.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:trace_info_flag/0">
+
+  <div class="detail-header">
+    <a href="#t:trace_info_flag/0" class="detail-link" data-no-tooltip title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">trace_info_flag()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/kernel/src/trace.erl#L164" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> trace_info_flag() ::
+          arity | call | exiting | garbage_collection | monotonic_timestamp | procs | ports |
+          'receive' | return_to | running | running_procs | running_ports | send | set_on_first_link |
+          set_on_first_spawn | set_on_link | set_on_spawn | silent | strict_monotonic_timestamp |
+          timestamp.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:trace_info_item_result/0">
+
+  <div class="detail-header">
+    <a href="#t:trace_info_item_result/0" class="detail-link" data-no-tooltip title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">trace_info_item_result()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/kernel/src/trace.erl#L204" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> trace_info_item_result() ::
+          {traced, global | local | false | undefined} |
+          {match_spec, <a href="#t:trace_match_spec/0">trace_match_spec</a>() | false | undefined} |
+          {meta, <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() | <a href="../../apps/erts/erlang.html#t:port/0">port</a>() | false | undefined | []} |
+          {meta, <a href="../../apps/erts/erlang.html#t:module/0">module</a>(), <a href="../../apps/erts/erlang.html#t:term/0">term</a>()} |
+          {meta_match_spec, <a href="#t:trace_match_spec/0">trace_match_spec</a>() | false | undefined} |
+          {call_count, <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>() | <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>() | undefined} |
+          {call_time | call_memory,
+           [{<a href="../../apps/erts/erlang.html#t:pid/0">pid</a>(), <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(), <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>(), <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()}] | <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>() | undefined}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:trace_info_return/0">
+
+  <div class="detail-header">
+    <a href="#t:trace_info_return/0" class="detail-link" data-no-tooltip title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">trace_info_return()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/kernel/src/trace.erl#L214" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> trace_info_return() ::
+          undefined |
+          {flags, [<a href="#t:trace_info_flag/0">trace_info_flag</a>()]} |
+          {tracer, <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() | <a href="../../apps/erts/erlang.html#t:port/0">port</a>() | []} |
+          {tracer, <a href="../../apps/erts/erlang.html#t:module/0">module</a>(), <a href="../../apps/erts/erlang.html#t:term/0">term</a>()} |
+          <a href="#t:trace_info_item_result/0">trace_info_item_result</a>() |
+          {all, [<a href="#t:trace_info_item_result/0">trace_info_item_result</a>()] | false | undefined}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:trace_match_spec/0">
+
+  <div class="detail-header">
+    <a href="#t:trace_match_spec/0" class="detail-link" data-no-tooltip title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">trace_match_spec()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/kernel/src/trace.erl#L193" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> trace_match_spec() :: [{[<a href="../../apps/erts/erlang.html#t:term/0">term</a>()] | '_' | <a href="#t:match_variable/0">match_variable</a>(), [<a href="../../apps/erts/erlang.html#t:term/0">term</a>()], [<a href="../../apps/erts/erlang.html#t:term/0">term</a>()]}].</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:trace_pattern_flag/0">
+
+  <div class="detail-header">
+    <a href="#t:trace_pattern_flag/0" class="detail-link" data-no-tooltip title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">trace_pattern_flag()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/kernel/src/trace.erl#L196" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> trace_pattern_flag() ::
+          global | local | meta |
+          {meta, Pid :: <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>()} |
+          {meta, TracerModule :: <a href="../../apps/erts/erlang.html#t:module/0">module</a>(), TracerState :: <a href="../../apps/erts/erlang.html#t:term/0">term</a>()} |
+          call_count | call_time | call_memory.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+<section class="detail" id="t:trace_pattern_mfa/0">
+
+  <div class="detail-header">
+    <a href="#t:trace_pattern_mfa/0" class="detail-link" data-no-tooltip title="Link to this type">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this type</span>
+    </a>
+    <h1 class="signature" translate="no">trace_pattern_mfa()</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/kernel/src/trace.erl#L189" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(not exported)</span>
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-type</span> trace_pattern_mfa() :: {<a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), <a href="../../apps/erts/erlang.html#t:arity/0">arity</a>() | '_'}.</pre>
+
+      </div>
+
+
+  </section>
+</section>
+
+    </div>
+  </section>
+
+  <section id="functions" class="details-list">
+    <h1 class="section-heading">
+      <a class="hover-link" href="#functions">
+        <i class="ri-link-m" aria-hidden="true"></i>
+      </a>
+      <span class="text">Functions</span>
+    </h1>
+    <div class="functions-list">
+<section class="detail" id="delivered/2">
+
+  <div class="detail-header">
+    <a href="#delivered/2" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">delivered(Session, Tracee)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/kernel/src/trace.erl#L1225" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> delivered(Session :: <a href="#t:session/0">session</a>(), Tracee :: <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() | all) -> <a href="../../apps/erts/erlang.html#t:reference/0">reference</a>().</pre>
+
+      </div>
+
+<p>Equivalent to <a href="../../apps/erts/erlang.html#trace_delivered/1"><code class="inline">erlang:trace_delivered(Tracee)</code></a>
+except that it is run within the given <a href="#t:session/0"><code class="inline">session/0</code></a>.</p>
+  </section>
+</section>
+<section class="detail" id="function/4">
+
+  <div class="detail-header">
+    <a href="#function/4" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">function(Session, MFA, MatchSpec, FlagList)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/kernel/src/trace.erl#L917" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> function(Session, MFA, MatchSpec, FlagList) -> <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()
+                  when
+                      Session :: <a href="#t:session/0">session</a>(),
+                      MFA :: <a href="#t:trace_pattern_mfa/0">trace_pattern_mfa</a>() | on_load,
+                      MatchSpec :: <a href="#t:trace_match_spec/0">trace_match_spec</a>() | <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>() | restart | pause,
+                      FlagList :: [<a href="#t:trace_pattern_flag/0">trace_pattern_flag</a>()].</pre>
+
+      </div>
+
+<p>Enable or disable <em>call tracing</em> for one or more functions.</p><p>Must be combined with <a href="#process/4"><code class="inline">process/4</code></a> to set the <code class="inline">call</code> trace flag for one or more
+processes.</p><p>Conceptually, call tracing works as follows. In each trace session, a
+set of processes and a set of functions haven been marked for
+tracing. If a traced process calls a traced function, the trace action
+is taken. Otherwise, nothing happens.</p><p>To add or remove one or more processes to the set of traced processes, use
+<a href="#process/4"><code class="inline">process/4</code></a>.</p><p>Use this function to add or remove functions to the set of traced functions
+in a trace session.</p><p>Argument <code class="inline">Session</code> is the trace session to operate on as returned by
+<a href="#session_create/3"><code class="inline">session_create/3</code></a>.</p><p>Argument <strong><code class="inline">MFA</code></strong> is to be a tuple, such as <code class="inline">{Module, Function, Arity}</code>, or the
+atom <code class="inline">on_load</code> (described below). The <code class="inline">MFA</code> tuple specifies the module,
+function, and arity for the functions to be traced. The atom <code class="inline">'_'</code> can be used
+as a wildcard in any of the following ways:</p><ul><li><p><strong><code class="inline">{Module,Function,'_'}</code></strong> - All functions of any arity named <code class="inline">Function</code> in
+module <code class="inline">Module</code>.</p></li><li><p><strong><code class="inline">{Module,'_','_'}</code></strong> - All functions in module <code class="inline">Module</code>.</p></li><li><p><strong><code class="inline">{'_','_','_'}</code></strong> - All functions in all loaded modules.</p></li></ul><p>Other combinations, such as <code class="inline">{Module,'_',Arity}</code>, are not allowed.</p><p>If argument <code class="inline">MFA</code> is the atom <code class="inline">on_load</code>, the match specification and flag list
+are used on all functions in all modules that are newly loaded.</p><p>Argument <strong><code class="inline">MatchSpec</code></strong> can take the following forms:</p><ul><li><p><strong><code class="inline">true</code></strong> - Enable tracing for the matching functions. Any match
+specification is removed.</p></li><li><p><strong><code class="inline">false</code></strong> - Disable tracing for the matching functions. Any match
+specification is removed.</p></li><li><p><strong><code class="inline">MatchExpression</code></strong> - A match specification. An empty list is equivalent to
+<code class="inline">true</code>. For a description of match specifications, see section
+<a href="../../apps/erts/match_spec.html">Match Specifications in Erlang</a> in the User's Guide
+for the ERTS application.</p></li><li><p><strong><code class="inline">restart</code></strong> - For the <code class="inline">FlagList</code> options <code class="inline">call_count</code>, <code class="inline">call_time</code> and
+<code class="inline">call_memory</code>: restarts the existing counters. The behavior is undefined for
+other <code class="inline">FlagList</code> options.</p></li><li><p><strong><code class="inline">pause</code></strong> - For the <code class="inline">FlagList</code> options <code class="inline">call_count</code>, <code class="inline">call_time</code> and
+<code class="inline">call_memory</code>: pauses the existing counters. The behavior is undefined for
+other <code class="inline">FlagList</code> options.</p></li></ul><p>Argument <strong><code class="inline">FlagList</code></strong> is a list of options. The following are the valid options:</p><ul><li><p><strong><code class="inline">global</code></strong> - Turn on or off call tracing for global function calls (that
+is, calls specifying the module explicitly). Only exported functions match and
+only global calls generate trace messages. <strong>This is the default if <code class="inline">FlagList</code>
+is empty</strong>.</p></li><li><p><strong><code class="inline">local</code></strong> - Turn on or off call tracing for all types of function calls.
+Trace messages are sent whenever any of the specified functions are called,
+regardless of how they are called. If flag <code class="inline">return_to</code> is set for the process,
+a <code class="inline">return_to</code> message is also sent when this function returns to its caller.</p></li><li><p><strong><code class="inline">meta</code></strong> - Turn on or off meta-tracing for all types of function
+calls. Trace messages are sent to the tracer whenever any of the specified
+functions are called.</p><p>Meta-tracing traces all processes and does not care about the process trace
+flags set by <a href="#process/4"><code class="inline">process/4</code></a>, the trace flags are instead fixed to
+<code class="inline">[call, timestamp]</code>.</p><p>The match specification function <code class="inline">{return_trace}</code> works with meta-trace.</p></li><li><p><strong id="call_count"><code class="inline">call_count</code></strong> - Start (<code class="inline">MatchSpec == true</code>) or stop
+(<code class="inline">MatchSpec == false</code>) call count tracing for all types of function calls. For
+every function, a counter is incremented when the function is called, in any
+process. No process trace flags need to be activated.</p><p>If call count tracing is started while already running, the count is restarted
+from zero. To pause running counters, use <code class="inline">MatchSpec == pause</code>. Paused and
+running counters can be restarted from zero with <code class="inline">MatchSpec == restart</code>.</p><p>To read the counter value for a function, call
+<a href="#info/3"><code class="inline">trace:info(_, MFA, call_count)</code></a>.</p></li><li><p><strong id="call_time"><code class="inline">call_time</code></strong> - Start (<code class="inline">MatchSpec</code> is <code class="inline">true</code>) or stops (<code class="inline">MatchSpec</code> is <code class="inline">false</code>)
+call time tracing for all types of function calls. For every function, a
+counter is incremented when the function is called and the time spent in the
+function is measured and accumulated in another counter. The counters are
+stored for each call traced process.</p><p>If call time tracing is started while already running, the count and time
+restart from zero. To pause running counters, use <code class="inline">MatchSpec == pause</code>. Paused
+and running counters can be restarted from zero with <code class="inline">MatchSpec == restart</code>.</p><p>To read the counter values, use <a href="#info/3"><code class="inline">info/3</code></a>.</p></li><li><p><strong id="call_memory"><code class="inline">call_memory</code></strong> - Start (<code class="inline">MatchSpec == true</code>) or stop
+(<code class="inline">MatchSpec == false</code>) call memory tracing for all types of function calls.</p><p>If call memory tracing is started while already running, counters and
+allocations restart from zero. To pause running counters, use
+<code class="inline">MatchSpec == pause</code>. Paused and running counters can be restarted from zero
+with <code class="inline">MatchSpec == restart</code>.</p><p>To read the counter value, use <a href="#info/3"><code class="inline">info/3</code></a>.</p></li></ul><p>Option <code class="inline">global</code> cannot be combined with any of the other options, which all
+perform some kind of local tracing. If global tracing is specified for
+a set of functions, then <code class="inline">local</code>, <code class="inline">meta</code>, <code class="inline">call_count</code>, <code class="inline">call_time</code>,
+and <code class="inline">call_memory</code> tracing for the matching set of functions are
+disabled, and vice versa.</p><p>When disabling trace, the option must match the type of trace set on the
+function. That is, local tracing must be disabled with option <code class="inline">local</code> and global
+tracing with option <code class="inline">global</code> (or no option), and so on.</p><p>Part of a match specification cannot be changed directly. If a function has
+a match specification, it can be replaced with a new one. Function <a href="#info/3"><code class="inline">info/3</code></a> can
+be used to retrieve the existing match specification.</p><p>Returns the number of functions matching argument <code class="inline">MFA</code>. Zero is returned if
+none matched or if <code class="inline">on_load</code> was specified.</p><p>Fails by raising an error exception with an error reason of:</p><ul><li><p><strong><code class="inline">badarg</code></strong> - If an argument is invalid.</p></li><li><p><strong><code class="inline">system_limit</code></strong> - If a match specification passed as argument has excessive
+nesting which causes scheduler stack exhaustion for the scheduler that the
+calling process is executing on.
+<a href="../../apps/erts/erl_cmd.html#sched_thread_stack_size">Scheduler stack size</a> can be configured
+when starting the runtime system.</p></li></ul>
+  </section>
+</section>
+<section class="detail" id="info/3">
+
+  <div class="detail-header">
+    <a href="#info/3" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">info(Session, PidPortFuncEvent, Item)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/kernel/src/trace.erl#L1213" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> info(Session, PidPortFuncEvent, Item) -> Res
+              when
+                  Session :: <a href="#t:session/0">session</a>(),
+                  PidPortFuncEvent ::
+                      <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() |
+                      <a href="../../apps/erts/erlang.html#t:port/0">port</a>() |
+                      new | new_processes | new_ports | MFA | on_load | send | 'receive',
+                  MFA :: {<a href="../../apps/erts/erlang.html#t:module/0">module</a>(), <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), <a href="../../apps/erts/erlang.html#t:arity/0">arity</a>()},
+                  Item ::
+                      flags | tracer | traced | match_spec | meta | meta_match_spec | call_count |
+                      call_time | call_memory | all,
+                  Res :: <a href="#t:trace_info_return/0">trace_info_return</a>().</pre>
+
+      </div>
+
+<p>Return trace information about a port, process, function, or event.</p><p>Argument <code class="inline">Session</code> is the trace session to inspect as returned by
+<a href="#session_create/3"><code class="inline">session_create/3</code></a> or <a href="#session_info/1"><code class="inline">session_info/1</code></a>.</p><p><strong>To get information about a port or process</strong>, <code class="inline">PidPortFuncEvent</code> is to be a
+process identifier (pid), port identifier, or one of the atoms <code class="inline">new</code>,
+<code class="inline">new_processes</code>, or <code class="inline">new_ports</code>. The atom <code class="inline">new</code> or <code class="inline">new_processes</code> means that
+the default trace state for processes to be created is returned. The atom
+<code class="inline">new_ports</code> means that the default trace state for ports to be created is
+returned.</p><p>Valid <code class="inline">Item</code> values for ports and processes:</p><ul><li><p><strong><code class="inline">flags</code></strong> - Returns a list of atoms indicating what kind of traces is
+enabled for the process. The list is empty if no traces are enabled, and one
+or more of <a href="#t:trace_info_flag/0"><code class="inline">trace_info_flag()</code></a> if traces are enabled.
+The order is arbitrary.</p></li><li><p><strong><code class="inline">tracer</code></strong> - Returns the identifier for process, port, or a tuple containing
+the tracer module and tracer state tracing this process. If this process is
+not traced, the return value is <code class="inline">[]</code>.</p></li></ul><p><strong>To get information about a function</strong>, <code class="inline">PidPortFuncEvent</code> is to be the
+three-element tuple <code class="inline">{Module, Function, Arity}</code> or the atom <code class="inline">on_load</code>. No
+wildcards are allowed. Returns <code class="inline">undefined</code> if the function does not exist or
+<code class="inline">false</code> if the function is not traced. If <code class="inline">PidPortFuncEvent</code> is <code class="inline">on_load</code>, the
+information returned refers to the default value for code that will be loaded.</p><p>Valid <code class="inline">Item</code> values for functions:</p><ul><li><p><strong><code class="inline">traced</code></strong> - Returns <code class="inline">global</code> if this function is traced on global function
+calls, <code class="inline">local</code> if this function is traced on local function calls (that is,
+local and global function calls), and <code class="inline">false</code> if local or global function
+calls are not traced.</p></li><li><p><strong><code class="inline">match_spec</code></strong> - Returns the match specification for this function, if it
+has one. If the function is locally or globally traced but has no match
+specification defined, the returned value is <code class="inline">[]</code>.</p></li><li><p><strong><code class="inline">meta</code></strong> - Returns the meta-trace tracer process, port, or trace module for
+this function, if it has one. If the function is not meta-traced, the returned
+value is <code class="inline">false</code>. If the function is meta-traced but has once detected that
+the tracer process is invalid, the returned value is <code class="inline">[]</code>.</p></li><li><p><strong><code class="inline">meta_match_spec</code></strong> - Returns the meta-trace match specification for this
+function, if it has one. If the function is meta-traced but has no match
+specification defined, the returned value is <code class="inline">[]</code>.</p></li><li><p><strong><code class="inline">call_count</code></strong> - Returns the call count value for this function or <code class="inline">true</code>
+for the pseudo function <code class="inline">on_load</code> if call count tracing is active. Otherwise
+<code class="inline">false</code> is returned.</p><p>See also <a href="#function/4"><code class="inline">function/4</code></a>.</p></li><li><p><strong><code class="inline">call_time</code></strong> - Returns the call time values for this function or <code class="inline">true</code> for
+the pseudo function <code class="inline">on_load</code> if call time tracing is active. Otherwise
+<code class="inline">false</code> is returned. The call time values returned, <code class="inline">[{Pid, Count, S, Us}]</code>,
+is a list of each process that executed the function and its specific
+counters. <code class="inline">Count</code> is the call count. <code class="inline">S</code> and <code class="inline">Us</code> are the accumulated call
+time expressed in seconds and microseconds.</p><p>See also <a href="#function/4"><code class="inline">function/4</code></a>.</p></li><li><p><strong><code class="inline">call_memory</code></strong> - Returns the accumulated number of words allocated by this
+function. Accumulation stops at the next memory traced function: if there are
+<code class="inline">outer</code>, <code class="inline">middle</code> and <code class="inline">inner</code> functions each allocating 3 words, but only
+<code class="inline">outer</code> is traced, it will report 9 allocated words. If <code class="inline">outer</code> and <code class="inline">inner</code>
+are traced, 6 words are reported for <code class="inline">outer</code> and 3 for <code class="inline">inner</code>. When function
+is not traced, <code class="inline">false</code> is returned. Returned tuple is <code class="inline">[{Pid, Count, Words}]</code>,
+for each process that executed the function.</p><p>See also <a href="#function/4"><code class="inline">function/4</code></a>.</p></li><li><p><strong><code class="inline">all</code></strong> - Returns a list containing the <code class="inline">{Item, Value}</code> tuples for all other
+items, or returns <code class="inline">false</code> if no tracing is active for this function.</p></li></ul><p><strong>To get information about an event</strong>, <code class="inline">PidPortFuncEvent</code> is to be one of the
+atoms <code class="inline">send</code> or <code class="inline">'receive'</code>.</p><p>One valid <code class="inline">Item</code> for events exists:</p><ul><li><strong><code class="inline">match_spec</code></strong> - Returns the match specification for this event, if it has
+one, or <code class="inline">true</code> if no match specification has been set.</li></ul><p>The return value is <code class="inline">{Item, Value}</code>, where <code class="inline">Value</code> is the requested information
+as described earlier. If a pid for a dead process was specified, or the name of
+a non-existing function, <code class="inline">Value</code> is <code class="inline">undefined</code>.</p>
+  </section>
+</section>
+<section class="detail" id="port/4">
+
+  <div class="detail-header">
+    <a href="#port/4" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">port(Session, Ports, How, FlagList)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/kernel/src/trace.erl#L747" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> port(Session, Ports, How, FlagList) -> <a href="../../apps/erts/erlang.html#t:integer/0">integer</a>()
+              when
+                  Session :: <a href="#t:session/0">session</a>(),
+                  Ports :: <a href="../../apps/erts/erlang.html#t:port/0">port</a>() | all | existing | new,
+                  How :: <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>(),
+                  FlagList :: [<a href="#t:trace_flag/0">trace_flag</a>()].</pre>
+
+      </div>
+
+<p>Turn on or off trace flags for one or more ports.</p><p>Argument <code class="inline">Session</code> is the trace session to operate on as returned by
+<a href="#session_create/3"><code class="inline">session_create/3</code></a>.</p><p><code class="inline">Ports</code> is either a port identifier for a local port or one of the following atoms:</p><ul><li><p><strong><code class="inline">all</code></strong> - All currently existing ports and all that will be
+created in the future.</p></li><li><p><strong><code class="inline">existing</code></strong> - All currently existing ports.</p></li><li><p><strong><code class="inline">new</code></strong> - All ports that will be created in the future.</p></li></ul><p><code class="inline">FlagList</code> can contain any number of the following flags (the &quot;message tags&quot;
+refers to the list of <a href="#port_trace_messages"><code class="inline">trace messages</code></a>):</p><ul><li><p><strong><code class="inline">all</code></strong> - Sets all trace flags except <code class="inline">cpu_timestamp</code>, which are in its
+  nature different than the others.</p></li><li><p><strong><code class="inline">send</code></strong> - Traces sending of messages.</p><p>Message tags: <a href="#port_trace_messages_send"><code class="inline">send</code></a> and
+<a href="#port_trace_messages_send_to_non_existing_process"><code class="inline">send_to_non_existing_process</code></a>.</p></li><li><p><strong><code class="inline">'receive'</code></strong> - Traces receiving of messages.</p><p>Message tags: <a href="#port_trace_messages_receive"><code class="inline">'receive'</code></a>.</p></li><li><p><strong><code class="inline">ports</code></strong> - Traces port-related events.</p><p>Message tags: <a href="#port_trace_messages_open"><code class="inline">open</code></a>,
+<a href="#port_trace_messages_closed"><code class="inline">closed</code></a>,
+<a href="#port_trace_messages_register"><code class="inline">register</code></a>,
+<a href="#port_trace_messages_unregister"><code class="inline">unregister</code></a>,
+<a href="#port_trace_messages_getting_linked"><code class="inline">getting_linked</code></a>, and
+<a href="#port_trace_messages_getting_unlinked"><code class="inline">getting_unlinked</code></a>.</p></li><li><p><strong><code class="inline">running_ports</code></strong> - Traces scheduling of ports.</p><p>Message tags: <a href="#port_trace_messages_in_port"><code class="inline">in</code></a> and
+<a href="#port_trace_messages_out_port"><code class="inline">out</code></a>.</p></li><li><p><strong><code class="inline">timestamp</code></strong>, <strong><code class="inline">cpu_timestamp</code></strong>, <strong><code class="inline">monotonic_timestamp</code></strong>,
+<strong><code class="inline">strict_monotonic_timestamp</code></strong> - Same as for timestamps in
+<a href="#timestamp"><code class="inline">process/4</code></a>.</p></li></ul><p>The tracing process receives the <em>trace messages</em> described in the following
+list. <code class="inline">Port</code> is the port identifier of the traced port in which the traced
+event has occurred. The third tuple element is the message tag.</p><p>If flag <code class="inline">timestamp</code>, <code class="inline">strict_monotonic_timestamp</code>, or <code class="inline">monotonic_timestamp</code> is
+specified, the first tuple element is <code class="inline">trace_ts</code> instead, and the time stamp is
+added as an extra element last in the message tuple. If multiple time stamp
+flags are passed, <code class="inline">timestamp</code> has precedence over <code class="inline">strict_monotonic_timestamp</code>,
+which in turn has precedence over <code class="inline">monotonic_timestamp</code>. All time stamp flags
+are remembered, so if two are passed and the one with highest precedence later
+is disabled, the other one becomes active.</p><p>If a match specification (applicable only for <code class="inline">send</code> and <code class="inline">'receive'</code>
+tracing) contains a <code class="inline">{message}</code> action function with a non-boolean value, that
+value is added as an extra element to the message tuple either in the last
+position or before the timestamp (if it is present).</p><p>Trace messages:</p><p><a href="" id="port_trace_messages"></a></p><ul><li><p><strong><code class="inline" id="port_trace_messages_send">{trace, Port, send, Msg, To}</code></strong> - When
+<code class="inline">Port</code> sends message <code class="inline">Msg</code> to process <code class="inline">To</code>.</p></li><li><p><strong><code class="inline" id="port_trace_messages_send_to_non_existing_process">{trace, Port, send_to_non_existing_process, Msg, To}</code></strong> - When <code class="inline">Port</code>
+sends message <code class="inline">Msg</code> to the non-existing process <code class="inline">To</code>.</p></li><li><p><strong><code class="inline" id="port_trace_messages_receive">{trace, Port, 'receive', Msg}</code></strong> -
+When <code class="inline">Port</code> receives message <code class="inline">Msg</code>. If <code class="inline">Msg</code> is set to time-out, a receive
+statement can have timed out, or the process received a message with the
+payload <code class="inline">timeout</code>.</p></li><li><p><strong><code class="inline" id="port_trace_messages_register">{trace, Port, register, RegName}</code></strong> - When <code class="inline">Port</code> gets the name <code class="inline">RegName</code> registered.</p></li><li><p><strong><code class="inline" id="port_trace_messages_unregister">{trace, Port, unregister, RegName}</code></strong> - When <code class="inline">Port</code> gets the name <code class="inline">RegName</code> unregistered. This is done
+automatically when a registered process or port exits.</p></li><li><p><strong><code class="inline" id="port_trace_messages_getting_linked">{trace, Port, getting_linked, Pid2}</code></strong> - When <code class="inline">Port</code> gets linked to a
+process <code class="inline">Pid2</code>.</p></li><li><p><strong><code class="inline" id="port_trace_messages_getting_unlinked">{trace, Port, getting_unlinked, Pid2}</code></strong> - When <code class="inline">Port</code> gets unlinked
+from a process <code class="inline">Pid2</code>.</p></li><li><p><strong><code class="inline" id="port_trace_messages_open">{trace, Port, open, Pid, Driver}</code></strong> - When
+<code class="inline">Pid</code> opens a new port <code class="inline">Port</code> with the running <code class="inline">Driver</code>.</p><p><code class="inline">Driver</code> is the name of the driver as an atom.</p></li><li><p><strong><code class="inline" id="port_trace_messages_closed">{trace, Port, closed, Reason}</code></strong> - When
+<code class="inline">Port</code> closes with <code class="inline">Reason</code>.</p></li><li><p><strong><code class="inline" id="port_trace_messages_in_port">{trace, Port, in, Command | 0}</code></strong> -
+When <code class="inline">Port</code> is scheduled to run. <code class="inline">Command</code> is the first thing the port will
+execute, it can however run several commands before being scheduled out. On
+some rare occasions, the current function cannot be determined, then the last
+element is <code class="inline">0</code>.</p><p>The possible commands are <code class="inline">call</code>, <code class="inline">close</code>, <code class="inline">command</code>, <code class="inline">connect</code>, <code class="inline">control</code>,
+<code class="inline">flush</code>, <code class="inline">info</code>, <code class="inline">link</code>, <code class="inline">open</code>, and <code class="inline">unlink</code>.</p></li><li><p><strong><code class="inline" id="port_trace_messages_out_port">{trace, Port, out, Command | 0}</code></strong> -
+When <code class="inline">Port</code> is scheduled out. The last command run was <code class="inline">Command</code>. On some rare
+occasions, the current function cannot be determined, then the last element is
+<code class="inline">0</code>. <code class="inline">Command</code> can contain the same commands as <code class="inline">in</code></p></li></ul><p>If the tracing process/port dies or the tracer module returns <code class="inline">remove</code>, the
+flags are silently removed.</p><p>Returns a number indicating the number of ports that matched <code class="inline">Ports</code>.
+If <code class="inline">Ports</code> is a port identifier, the return value is <code class="inline">1</code>. If
+<code class="inline">Ports</code> is <code class="inline">all</code> or <code class="inline">existing</code>, the return value is the number of
+existing ports. If <code class="inline">Ports</code> is <code class="inline">new</code>, the return value is <code class="inline">0</code>.</p><p>Failure: <code class="inline">badarg</code> if the specified arguments are not supported. For example,
+<code class="inline">cpu_timestamp</code> is not supported on all platforms.</p>
+  </section>
+</section>
+<section class="detail" id="process/4">
+
+  <div class="detail-header">
+    <a href="#process/4" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">process(Session, Procs, How, FlagList)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/kernel/src/trace.erl#L592" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> process(Session, Procs, How, FlagList) -> <a href="../../apps/erts/erlang.html#t:integer/0">integer</a>()
+                 when
+                     Session :: <a href="#t:session/0">session</a>(),
+                     Procs :: <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() | all | existing | new,
+                     How :: <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>(),
+                     FlagList :: [<a href="#t:trace_flag/0">trace_flag</a>()].</pre>
+
+      </div>
+
+<p>Turn on or off trace flags for one or more processes.</p><p>Argument <code class="inline">Session</code> is the trace session to operate on as returned by
+<a href="#session_create/3"><code class="inline">session_create/3</code></a>.</p><p>Argument <code class="inline">Procs</code> is either a process identifier (pid) for a local process or
+one of the following atoms:</p><ul><li><p><strong><code class="inline">all</code></strong> - All currently existing processes and all that will be
+created in the future.</p></li><li><p><strong><code class="inline">existing</code></strong> - All currently existing processes.</p></li><li><p><strong><code class="inline">new</code></strong> - All processes that will be created in the future.</p></li></ul><p>Argument <code class="inline">How</code> is either <code class="inline">true</code> to turn on trace flags or <code class="inline">false</code> to turn them off.</p><p>Argument <code class="inline">FlagList</code> can contain any number of the following flags (the &quot;message
+tags&quot; refers to the list of <a href="#process_trace_messages"><code class="inline">trace messages</code></a>):</p><ul><li><p><strong><code class="inline">all</code></strong> - Sets all trace flags except <code class="inline">cpu_timestamp</code>, which
+is in its nature different than the others.</p></li><li><p><strong><code class="inline">send</code></strong> - Traces sending of messages. Limit which sent messages to trace by
+  calling <a href="#send/3"><code class="inline">send/3</code></a>.</p><p>Message tags: <a href="#process_trace_messages_send"><code class="inline">send</code></a> and
+<a href="#process_trace_messages_send_to_non_existing_process"><code class="inline">send_to_non_existing_process</code></a>.</p></li><li><p><strong><code class="inline">'receive'</code></strong> - Traces receiving of messages. Limit which received messages
+  to trace by calling <a href="#recv/3"><code class="inline">recv/3</code></a>.</p><p>Message tags: <a href="#process_trace_messages_receive"><code class="inline">'receive'</code></a>.</p></li><li><p><strong><code class="inline">call</code></strong> - Traces certain function calls. Specify which function calls to
+trace by calling <a href="#function/4"><code class="inline">function/4</code></a>.</p><p>Message tags: <a href="#process_trace_messages_call"><code class="inline">call</code></a> and
+<a href="#process_trace_messages_return_from"><code class="inline">return_from</code></a>.</p></li><li><p><strong><code class="inline">silent</code></strong> - Used with the <code class="inline">call</code> trace flag. The <code class="inline">call</code>, <code class="inline">return_from</code>, and
+<code class="inline">return_to</code> trace messages are inhibited if this flag is set, but they are
+executed as normal if there are match specifications.</p><p>Silent mode is inhibited by executing <code class="inline">trace:process(_, _, false, [silent|_])</code>, or
+by a match specification executing the function <code class="inline">{silent, false}</code>.</p><p>The <code class="inline">silent</code> trace flag facilitates setting up a trace on many or even all
+processes in the system. The trace can then be activated and deactivated using
+the match specification function <code class="inline">{silent,Bool}</code>, giving a high degree of
+control of which functions with which arguments that trigger the trace.</p><p>Message tags: <a href="#process_trace_messages_call"><code class="inline">call</code></a>,
+<a href="#process_trace_messages_return_from"><code class="inline">return_from</code></a>, and
+<a href="#process_trace_messages_return_to"><code class="inline">return_to</code></a>. Or rather, the
+absence of.</p></li><li><p><strong><code class="inline">return_to</code></strong> - Used with the <code class="inline">call</code> trace flag. Traces the exit from
+call traced functions back to where the execution resumes. Only works for
+functions traced with option <code class="inline">local</code> to <a href="#function/4"><code class="inline">function/4</code></a>.</p><p>The semantics is that a <code class="inline">return_to</code> trace message is sent when a call traced
+function returns or throws and exception that is caught. For tail calls, only
+one trace message is sent per chain of tail calls, so the properties of tail
+recursiveness for function calls are kept while tracing with this
+flag. Similar for exceptions, only one <code class="inline">return_to</code> trace message is sent, even
+if the exception passed more than one call traced function before it was
+caught.</p><p>Using <code class="inline">call</code> and <code class="inline">return_to</code> trace together makes it possible to know exactly
+in which function a process executes at any time.</p><p>To get trace messages containing return values from functions, use the
+<code class="inline">{return_trace}</code> match specification action instead.</p><p>Message tags: <a href="#process_trace_messages_return_to"><code class="inline">return_to</code></a>.</p></li><li><p><strong><code class="inline">procs</code></strong> - Traces process-related events.</p><p>Message tags: <a href="#process_trace_messages_spawn"><code class="inline">spawn</code></a>,
+<a href="#process_trace_messages_spawned"><code class="inline">spawned</code></a>,
+<a href="#process_trace_messages_exit"><code class="inline">exit</code></a>,
+<a href="#process_trace_messages_register"><code class="inline">register</code></a>,
+<a href="#process_trace_messages_unregister"><code class="inline">unregister</code></a>,
+<a href="#process_trace_messages_link"><code class="inline">link</code></a>,
+<a href="#process_trace_messages_unlink"><code class="inline">unlink</code></a>,
+<a href="#process_trace_messages_getting_linked"><code class="inline">getting_linked</code></a>, and
+<a href="#process_trace_messages_getting_unlinked"><code class="inline">getting_unlinked</code></a>.</p></li><li><p><strong><code class="inline">running</code></strong> - Traces scheduling of processes.</p><p>Message tags: <a href="#process_trace_messages_in_proc"><code class="inline">in</code></a> and
+<a href="#process_trace_messages_out_proc"><code class="inline">out</code></a>.</p></li><li><p><strong><code class="inline">exiting</code></strong> - Traces scheduling of exiting processes.</p><p>Message tags:
+<a href="#process_trace_messages_in_exiting_proc"><code class="inline">in_exiting</code></a>,
+<a href="#process_trace_messages_out_exiting_proc"><code class="inline">out_exiting</code></a>, and
+<a href="#process_trace_messages_out_exited_proc"><code class="inline">out_exited</code></a>.</p></li><li><p><strong><code class="inline">running_procs</code></strong> - Traces scheduling of processes just like <code class="inline">running</code>.
+However, this option also includes schedule events when the process executes
+within the context of a port without being scheduled out itself.</p><p>Message tags: <a href="#process_trace_messages_in_proc"><code class="inline">in</code></a> and
+<a href="#process_trace_messages_out_proc"><code class="inline">out</code></a>.</p></li><li><p><strong><code class="inline">garbage_collection</code></strong> - Traces garbage collections of processes.</p><p>Message tags:
+<a href="#process_trace_messages_gc_minor_start"><code class="inline">gc_minor_start</code></a>,
+<a href="#process_trace_messages_gc_max_heap_size"><code class="inline">gc_max_heap_size</code></a>, and
+<a href="#process_trace_messages_gc_minor_end"><code class="inline">gc_minor_end</code></a>.</p></li><li><p><strong><code class="inline" id="timestamp">timestamp</code></strong> - Includes a time stamp in all trace
+messages. The time stamp (Ts) has the same form as returned by
+<a href="../../apps/erts/erlang.html#now/0"><code class="inline">erlang:now/0</code></a>.</p></li><li><p><strong><code class="inline">cpu_timestamp</code></strong> - A global trace flag for the Erlang node that makes all
+trace time stamps using flag <code class="inline">timestamp</code> to be in CPU time, not wall clock
+time. That is, <code class="inline">cpu_timestamp</code> is not be used if <code class="inline">monotonic_timestamp</code> or
+<code class="inline">strict_monotonic_timestamp</code> is enabled. Only allowed with <code class="inline">Procs==all</code>.
+If the host machine OS does not support high-resolution CPU time measurements,
+<a href="#process/4"><code class="inline">process/4</code></a> exits with <code class="inline">badarg</code>. Notice that most OS do not
+synchronize this value across cores, so be prepared that time can seem to go
+backwards when using this option.</p></li><li><p><strong><code class="inline">monotonic_timestamp</code></strong> - Includes an
+<a href="../../apps/erts/time_correction.html#erlang-monotonic-time">Erlang monotonic time</a> time stamp
+in all trace messages. The time stamp (Ts) has the same format and value as
+produced by <a href="../../apps/erts/erlang.html#monotonic_time/1"><code class="inline">erlang:monotonic_time(nanosecond)</code></a>. This
+flag overrides flag <code class="inline">cpu_timestamp</code>.</p></li><li><p><strong><code class="inline">strict_monotonic_timestamp</code></strong> - Includes an time stamp consisting of
+<a href="../../apps/erts/time_correction.html#erlang-monotonic-time">Erlang monotonic time</a> and a
+monotonically increasing integer in all trace messages. The time stamp (Ts)
+has the same format and value as produced by <code class="inline">{</code>
+<a href="../../apps/erts/erlang.html#monotonic_time/1"><code class="inline">erlang:monotonic_time(nanosecond)</code></a><code class="inline">,</code>
+<a href="../../apps/erts/erlang.html#unique_integer/1"><code class="inline">erlang:unique_integer([monotonic])</code></a><code class="inline">}</code>. This flag
+overrides flag <code class="inline">cpu_timestamp</code>.</p><p>If multiple time stamp flags are passed, <code class="inline">timestamp</code> has precedence over
+<code class="inline">strict_monotonic_timestamp</code>, which in turn has precedence over
+<code class="inline">monotonic_timestamp</code>. All time stamp flags are remembered, so if two are
+passed and the one with highest precedence later is disabled, the other one
+becomes active.</p></li><li><p><strong><code class="inline">arity</code></strong> - Used with the <code class="inline">call</code> trace flag. <code class="inline">{M, F, Arity}</code> is specified
+instead of <code class="inline">{M, F, Args}</code> in call trace messages.</p></li><li><p><strong><code class="inline">set_on_spawn</code></strong> - Makes any process created by a traced process inherit all
+its trace flags, including flag <code class="inline">set_on_spawn</code> itself.</p></li><li><p><strong><code class="inline">set_on_first_spawn</code></strong> - Makes the first process created by a traced process
+inherit all its trace flags, excluding flag <code class="inline">set_on_first_spawn</code> itself. That
+is, after the first spawn is done, <code class="inline">set_on_first_spawn</code> will be cleared in
+both the spawned process and the spawning process.</p><p>If both are set, <code class="inline">set_on_first_spawn</code> will supersede <code class="inline">set_on_spawn</code>.</p></li><li><p><strong><code class="inline">set_on_link</code></strong> - Makes any process linked by a traced process inherit all
+its trace flags, including flag <code class="inline">set_on_link</code> itself.</p></li><li><p><strong><code class="inline">set_on_first_link</code></strong> - Makes the first process linked to by a traced
+process inherit all its trace flags, excluding flag <code class="inline">set_on_first_link</code>
+itself. That is, after the first link is done, <code class="inline">set_on_first_link</code> will be
+cleared in both the linked process and the linking process.</p><p>If both are set, <code class="inline">set_on_first_link</code> will supersede <code class="inline">set_on_link</code>.</p></li></ul><p>The tracing process receives the <em>trace messages</em> described in the following
+list. <code class="inline">Pid</code> is the process identifier of the traced process in which the traced
+event has occurred. The third tuple element is the message tag.</p><p>If flag <code class="inline">timestamp</code>, <code class="inline">strict_monotonic_timestamp</code>, or <code class="inline">monotonic_timestamp</code> is
+specified, the first tuple element is <code class="inline">trace_ts</code> instead, and the time stamp is
+added as an extra element last in the message tuple.</p><p>If a match specification (applicable only for <code class="inline">call</code>, <code class="inline">send</code>, and <code class="inline">'receive'</code>
+tracing) contains a <code class="inline">{message}</code> action function with a non-boolean value, that
+value is added as an extra element to the message tuple either in the last
+position or before the timestamp (if it is present).</p><p>Trace messages:</p><p><a href="" id="process_trace_messages"></a></p><ul><li><p><strong><code class="inline" id="process_trace_messages_send">{trace, Pid, send, Msg, To}</code></strong> - When
+process <code class="inline">Pid</code> sends message <code class="inline">Msg</code> to process <code class="inline">To</code>.</p></li><li><p><strong><code class="inline" id="process_trace_messages_send_to_non_existing_process">{trace, Pid, send_to_non_existing_process, Msg, To}</code></strong> - When process <code class="inline">Pid</code>
+sends message <code class="inline">Msg</code> to the non-existing process <code class="inline">To</code>.</p></li><li><p><strong><code class="inline" id="process_trace_messages_receive">{trace, Pid, 'receive', Msg}</code></strong> -
+When process <code class="inline">Pid</code> receives message <code class="inline">Msg</code>. If <code class="inline">Msg</code> is set to time-out, a receive
+statement can have timed out, or the process received a message with the
+payload <code class="inline">timeout</code>.</p></li><li><p><strong><code class="inline" id="process_trace_messages_call">{trace, Pid, call, {M, F, Args}}</code></strong> - When
+process <code class="inline">Pid</code> calls a traced function. The return values of calls are never
+supplied, only the call and its arguments.</p><p>Trace flag <code class="inline">arity</code> can be used to change the contents of this message, so that
+<code class="inline">Arity</code> is specified instead of <code class="inline">Args</code>.</p></li><li><p><strong><code class="inline" id="process_trace_messages_return_to">{trace, Pid, return_to, {M, F, Arity}}</code></strong> - When process <code class="inline">Pid</code> returns <em>to</em> the specified function. This trace
+message is sent if both the flags <code class="inline">call</code> and <code class="inline">return_to</code> are set, and the
+function is set to be traced on <em>local</em> function calls. The message is only
+sent when returning from a chain of tail recursive function calls, where at
+least one call generated a <code class="inline">call</code> trace message (that is, the functions match
+specification matched, and <code class="inline">{message, false}</code> was not an action).</p></li><li><p><strong><code class="inline" id="process_trace_messages_return_from">{trace, Pid, return_from, {M, F, Arity}, ReturnValue}</code></strong> - When <code class="inline">Pid</code> returns <em>from</em> the
+specified function. This trace message is sent if flag <code class="inline">call</code> is set, and the
+function has a match specification with a <code class="inline">return_trace</code> or <code class="inline">exception_trace</code>
+action.</p></li><li><p><strong><code class="inline" id="process_trace_messages_exception_from">{trace, Pid, exception_from, {M, F, Arity}, {Class, Value}}</code></strong> - When <code class="inline">Pid</code> exits <em>from</em> the
+specified function because of an exception. This trace message is sent if flag
+<code class="inline">call</code> is set, and the function has a match specification with an
+<code class="inline">exception_trace</code> action.</p></li><li><p><strong><code class="inline" id="process_trace_messages_spawn">{trace, Pid, spawn, Pid2, {M, F, Args}}</code></strong> - When <code class="inline">Pid</code> spawns a new process <code class="inline">Pid2</code> with the specified function call
+as entry point.</p><p><code class="inline">Args</code> is supposed to be the argument list, but can be any term if the spawn
+is erroneous.</p></li><li><p><strong><code class="inline" id="process_trace_messages_spawned">{trace, Pid, spawned, Pid2, {M, F, Args}}</code></strong> - When <code class="inline">Pid</code> is spawned by process <code class="inline">Pid2</code>
+with the specified function call as entry point.</p><p><code class="inline">Args</code> is supposed to be the argument list, but can be any term if the spawn
+is erroneous.</p></li><li><p><strong><code class="inline" id="process_trace_messages_exit">{trace, Pid, exit, Reason}</code></strong> - When <code class="inline">Pid</code>
+exits with reason <code class="inline">Reason</code>.</p></li><li><p><strong><code class="inline" id="process_trace_messages_register">{trace, Pid, register, RegName}</code></strong> - When process <code class="inline">Pid</code> gets the name <code class="inline">RegName</code> registered.</p></li><li><p><strong><code class="inline" id="process_trace_messages_unregister">{trace, Pid, unregister, RegName}</code></strong> - When process <code class="inline">Pid</code> gets the name <code class="inline">RegName</code> unregistered. This is done
+automatically when a registered process or port exits.</p></li><li><p><strong><code class="inline" id="process_trace_messages_link">{trace, Pid, link, Pid2}</code></strong> - When <code class="inline">Pid</code>
+links to a process <code class="inline">Pid2</code>.</p></li><li><p><strong><code class="inline" id="process_trace_messages_unlink">{trace, Pid, unlink, Pid2}</code></strong> - When
+<code class="inline">Pid</code> removes the link from a process <code class="inline">Pid2</code>.</p></li><li><p><strong><code class="inline" id="process_trace_messages_getting_linked">{trace, Pid, getting_linked, Pid2}</code></strong> - When <code class="inline">Pid</code> gets linked to a
+process <code class="inline">Pid2</code>.</p></li><li><p><strong><code class="inline" id="process_trace_messages_getting_unlinked">{trace, Pid, getting_unlinked, Pid2}</code></strong> - When <code class="inline">Pid</code> gets unlinked
+from a process <code class="inline">Pid2</code>.</p></li><li><p><strong><code class="inline" id="process_trace_messages_open">{trace, Port, open, Pid, Driver}</code></strong> - When
+<code class="inline">Pid</code> opens a new port <code class="inline">Port</code> with the running <code class="inline">Driver</code>.</p><p><code class="inline">Driver</code> is the name of the driver as an atom.</p></li><li><p><strong><a href="" id="process_trace_messages_in_proc"></a>
+<code class="inline" id="process_trace_messages_in_exiting_proc">{trace, Pid, in | in_exiting, {M, F, Arity} | 0}</code></strong>
+When <code class="inline">Pid</code> is scheduled to run. The process runs in function <code class="inline">{M, F, Arity}</code>.
+On some rare occasions, the current function cannot be determined, then the
+last element is <code class="inline">0</code>.</p></li><li><p><strong><a href="" id="process_trace_messages_out_proc"></a> <a href="" id="process_trace_messages_out_exiting_proc"></a>
+<code class="inline" id="process_trace_messages_out_exited_proc">{trace, Pid, out | out_exiting | out_exited, {M, F, Arity} | 0}</code></strong>
+When <code class="inline">Pid</code> is scheduled out. The process was running in function <code class="inline">{M, F, Arity}</code>. On some rare occasions, the current function cannot be determined,
+then the last element is <code class="inline">0</code>.</p></li><li><p><strong><code class="inline" id="process_trace_messages_gc_minor_start">{trace, Pid, gc_minor_start, Info}</code></strong> - <a href="" id="gc_minor_start"></a> Sent
+when a garbage collection of the young generation is about to be started.
+<code class="inline">Info</code> is a list of two-element tuples, where the first element is a key,
+and the second is the value. Do not depend on any order of the tuples.
+The following keys are defined:</p><ul><li><p><strong><code class="inline">heap_size</code></strong> - The size of the used part of the heap.</p></li><li><p><strong><code class="inline">heap_block_size</code></strong> - The size of the memory block used for storing the
+heap and the stack.</p></li><li><p><strong><code class="inline">old_heap_size</code></strong> - The size of the used part of the old heap.</p></li><li><p><strong><code class="inline">old_heap_block_size</code></strong> - The size of the memory block used for storing
+the old heap.</p></li><li><p><strong><code class="inline">stack_size</code></strong> - The size of the stack.</p></li><li><p><strong><code class="inline">recent_size</code></strong> - The size of the data that survived the previous garbage
+collection.</p></li><li><p><strong><code class="inline">mbuf_size</code></strong> - The combined size of message buffers associated with the
+process.</p></li><li><p><strong><code class="inline">bin_vheap_size</code></strong> - The total size of unique off-heap binaries referenced
+from the process heap.</p></li><li><p><strong><code class="inline">bin_vheap_block_size</code></strong> - The total size of binaries allowed in the
+virtual heap in the process before doing a garbage collection.</p></li><li><p><strong><code class="inline">bin_old_vheap_size</code></strong> - The total size of unique off-heap binaries
+referenced from the process old heap.</p></li><li><p><strong><code class="inline">bin_old_vheap_block_size</code></strong> - The total size of binaries allowed in the
+virtual old heap in the process before doing a garbage collection.</p></li><li><p><strong><code class="inline">wordsize</code></strong> - For the <code class="inline">gc_minor_start</code> event it is the size of the need
+that triggered the GC. For the corresponding <code class="inline">gc_minor_end</code> event it is the
+size of reclaimed memory = start <code class="inline">heap_size</code> - end <code class="inline">heap_size</code>.</p></li></ul><p>All sizes are in words.</p></li><li><p><strong><code class="inline" id="process_trace_messages_gc_max_heap_size">{trace, Pid, gc_max_heap_size, Info}</code></strong> - Sent when the
+<a href="../../apps/erts/erlang.html#process_flag_max_heap_size"><code class="inline">max_heap_size</code></a> is reached during
+garbage collection. <code class="inline">Info</code> contains the same kind of list as in message
+<code class="inline">gc_start</code>, but the sizes reflect the sizes that triggered <code class="inline">max_heap_size</code> to
+be reached.</p></li><li><p><strong><code class="inline" id="process_trace_messages_gc_minor_end">{trace, Pid, gc_minor_end, Info}</code></strong> - Sent when young garbage collection is finished. <code class="inline">Info</code> contains the same
+kind of list as in message <code class="inline">gc_minor_start</code>, but the sizes reflect the new
+sizes after garbage collection.</p></li><li><p><strong><code class="inline" id="process_trace_messages_gc_major_start">{trace, Pid, gc_major_start, Info}</code></strong> - Sent when fullsweep garbage
+collection is about to be started. <code class="inline">Info</code> contains the same kind of list as in
+message <code class="inline">gc_minor_start</code>.</p></li><li><p><strong><code class="inline" id="process_trace_messages_gc_major_end">{trace, Pid, gc_major_end, Info}</code></strong> - Sent when fullsweep garbage collection is finished. <code class="inline">Info</code> contains the
+same kind of list as in message <code class="inline">gc_minor_start</code>, but the sizes reflect the
+new sizes after a fullsweep garbage collection.</p></li></ul><p>If the tracing process dies or the tracer module returns <code class="inline">remove</code>, the
+flags are silently removed.</p><p>Returns a number indicating the number of processes that matched <code class="inline">Procs</code>.
+If <code class="inline">Procs</code> is a process identifier, the return value is <code class="inline">1</code>. If
+<code class="inline">Procs</code> is <code class="inline">all</code> or <code class="inline">existing</code>, the return value is the number of
+processes running. If <code class="inline">Procs</code> is <code class="inline">new</code>, the return value is <code class="inline">0</code>.</p><p>Failure: <code class="inline">badarg</code> if the specified arguments are not supported. For example,
+<code class="inline">cpu_timestamp</code> is not supported on all platforms.</p>
+  </section>
+</section>
+<section class="detail" id="recv/3">
+
+  <div class="detail-header">
+    <a href="#recv/3" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">recv(Session, MatchSpec, FlagList)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/kernel/src/trace.erl#L1103" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> recv(Session, MatchSpec, FlagList) -> <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()
+              when Session :: <a href="#t:session/0">session</a>(), MatchSpec :: <a href="#t:trace_match_spec/0">trace_match_spec</a>() | <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>(), FlagList :: [].</pre>
+
+      </div>
+
+<p>Set trace pattern for <em>message receiving</em>.</p><p>Must be combined with <a href="#process/4"><code class="inline">process/4</code></a> or <a href="#port/4"><code class="inline">port/4</code></a> to set the <code class="inline">'receive'</code> trace flag
+for one or more processes or ports.</p><p>Argument <code class="inline">Session</code> is the trace session to operate on as returned by
+<a href="#session_create/3"><code class="inline">session_create/3</code></a>.</p><p>The default value for the <code class="inline">receive</code> trace pattern in each session is
+<code class="inline">true</code>. That is, all messages received by processes having <code class="inline">'receive'</code>
+trace enabled will be traced. Use this function to limit traced
+<code class="inline">'receive'</code> events based on the message content, the sender, and/or the
+receiver.</p><p>Argument <code class="inline">MatchSpec</code> can take the following forms:</p><ul><li><p><strong><code class="inline">MatchExpression</code></strong> - A match specification. The matching is done on
+the list <code class="inline">[Node, Sender, Msg]</code>. <code class="inline">Node</code> is the node name of the sender.
+<code class="inline">Sender</code> is the process or port identity of the sender, or the atom
+<code class="inline">undefined</code> if the sender is not known (which can be the case for remote
+senders). <code class="inline">Msg</code> is the message term. The pid of the receiving process can be
+accessed with the guard function <a href="../../apps/erts/erlang.html#self/0"><code class="inline">self/0</code></a>. An empty list is the same as
+<code class="inline">true</code>. For more information, see section
+<a href="../../apps/erts/match_spec.html">Match Specifications in Erlang</a> in the User's Guide
+for the ERTS application.</p></li><li><p><strong><code class="inline">true</code></strong> - Enable tracing for all received messages (to <code class="inline">'receive'</code> traced
+processes). Any match specification is removed. <em>This is the default</em>.</p></li><li><p><strong><code class="inline">false</code></strong> - Disable tracing for all received messages. Any match
+specification is removed.</p></li></ul><p>Argument <code class="inline">FlagList</code> must be <code class="inline">[]</code> for receive tracing.</p><p>The return value is always <code class="inline">1</code>.</p><p><em>Examples:</em></p><p>Only trace messages from a specific process <code class="inline">Pid</code>:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">&gt; </span><span class="nc">trace</span><span class="p">:</span><span class="nf">recv</span><span class="p" data-group-id="0815808530-1">(</span><span class="n">Session</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0815808530-2">[</span><span class="p" data-group-id="0815808530-3">{</span><span class="p" data-group-id="0815808530-4">[</span><span class="ss">&#39;_&#39;</span><span class="p">,</span><span class="n">Pid</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;_&#39;</span><span class="p" data-group-id="0815808530-4">]</span><span class="p">,</span><span class="p" data-group-id="0815808530-5">[</span><span class="p" data-group-id="0815808530-5">]</span><span class="p">,</span><span class="p" data-group-id="0815808530-6">[</span><span class="p" data-group-id="0815808530-6">]</span><span class="p" data-group-id="0815808530-3">}</span><span class="p" data-group-id="0815808530-2">]</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0815808530-7">[</span><span class="p" data-group-id="0815808530-7">]</span><span class="p" data-group-id="0815808530-1">)</span><span class="p">.</span><span class="w">
+</span><span class="mi">1</span></code></pre><p>Only trace messages matching <code class="inline">{reply, _}</code>:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">&gt; </span><span class="nc">trace</span><span class="p">:</span><span class="nf">recv</span><span class="p" data-group-id="2516892836-1">(</span><span class="n">Session</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2516892836-2">[</span><span class="p" data-group-id="2516892836-3">{</span><span class="p" data-group-id="2516892836-4">[</span><span class="ss">&#39;_&#39;</span><span class="p">,</span><span class="ss">&#39;_&#39;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2516892836-5">{</span><span class="ss">reply</span><span class="p">,</span><span class="ss">&#39;_&#39;</span><span class="p" data-group-id="2516892836-5">}</span><span class="p" data-group-id="2516892836-4">]</span><span class="p">,</span><span class="p" data-group-id="2516892836-6">[</span><span class="p" data-group-id="2516892836-6">]</span><span class="p">,</span><span class="p" data-group-id="2516892836-7">[</span><span class="p" data-group-id="2516892836-7">]</span><span class="p" data-group-id="2516892836-3">}</span><span class="p" data-group-id="2516892836-2">]</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2516892836-8">[</span><span class="p" data-group-id="2516892836-8">]</span><span class="p" data-group-id="2516892836-1">)</span><span class="p">.</span><span class="w">
+</span><span class="mi">1</span></code></pre><p>Only trace messages from other nodes:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">&gt; </span><span class="nc">trace</span><span class="p">:</span><span class="nf">recv</span><span class="p" data-group-id="8220915018-1">(</span><span class="n">Session</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="8220915018-2">[</span><span class="p" data-group-id="8220915018-3">{</span><span class="p" data-group-id="8220915018-4">[</span><span class="ss">&#39;$1&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;_&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;_&#39;</span><span class="p" data-group-id="8220915018-4">]</span><span class="p">,</span><span class="p" data-group-id="8220915018-5">[</span><span class="p" data-group-id="8220915018-6">{</span><span class="ss">&#39;=/=&#39;</span><span class="p">,</span><span class="ss">&#39;$1&#39;</span><span class="p">,</span><span class="p" data-group-id="8220915018-7">{</span><span class="nb">node</span><span class="p" data-group-id="8220915018-7">}</span><span class="p" data-group-id="8220915018-6">}</span><span class="p" data-group-id="8220915018-5">]</span><span class="p">,</span><span class="p" data-group-id="8220915018-8">[</span><span class="p" data-group-id="8220915018-8">]</span><span class="p" data-group-id="8220915018-3">}</span><span class="p" data-group-id="8220915018-2">]</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="8220915018-9">[</span><span class="p" data-group-id="8220915018-9">]</span><span class="p" data-group-id="8220915018-1">)</span><span class="p">.</span><span class="w">
+</span><span class="mi">1</span></code></pre><blockquote><h4 class="info">Note</h4><p>A match specification for <code class="inline">'receive'</code> trace can use all guard and body
+functions except <code class="inline">caller</code>, <code class="inline">is_seq_trace</code>, <code class="inline">get_seq_token</code>, <code class="inline">set_seq_token</code>,
+<code class="inline">enable_trace</code>, <code class="inline">disable_trace</code>, <code class="inline">trace</code>, <code class="inline">silent</code>, and <code class="inline">process_dump</code>.</p></blockquote><p>Fails by raising an error exception with an error reason of:</p><ul><li><p><strong><code class="inline">badarg</code></strong> - If an argument is invalid.</p></li><li><p><strong><code class="inline">system_limit</code></strong> - If a match specification passed as argument has excessive
+nesting which causes scheduler stack exhaustion for the scheduler that the
+calling process is executing on.
+<a href="../../apps/erts/erl_cmd.html#sched_thread_stack_size">Scheduler stack size</a> can be configured
+when starting the runtime system.</p></li></ul>
+  </section>
+</section>
+<section class="detail" id="send/3">
+
+  <div class="detail-header">
+    <a href="#send/3" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">send(Session, MatchSpec, FlagList)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/kernel/src/trace.erl#L1012" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> send(Session, MatchSpec, FlagList) -> <a href="../../apps/erts/erlang.html#t:non_neg_integer/0">non_neg_integer</a>()
+              when Session :: <a href="#t:session/0">session</a>(), MatchSpec :: <a href="#t:trace_match_spec/0">trace_match_spec</a>() | <a href="../../apps/erts/erlang.html#t:boolean/0">boolean</a>(), FlagList :: [].</pre>
+
+      </div>
+
+<p>Set trace pattern for <em>message sending</em>.</p><p>Must be combined with <a href="#process/4"><code class="inline">process/4</code></a> or <a href="#port/4"><code class="inline">port/4</code></a> to set the <code class="inline">send</code> trace flag for
+one or more processes or ports.</p><p>Argument <code class="inline">Session</code> is the trace session to operate on as returned by
+<a href="#session_create/3"><code class="inline">session_create/3</code></a>.</p><p>The default value for the <code class="inline">send</code> trace pattern in each session is
+<code class="inline">true</code>. That is, all messages sent from processes having <code class="inline">send</code> trace
+enabled will be traced. Use this function to limit traced <code class="inline">send</code>
+events based on the message content, the sender, and/or the receiver.</p><p>Argument <code class="inline">MatchSpec</code> can take the following forms:</p><ul><li><p><strong><code class="inline">MatchExpression</code></strong> - A match specification. The matching is done on
+the list <code class="inline">[Receiver, Msg]</code>. <code class="inline">Receiver</code> is the process or port identity of the
+receiver and <code class="inline">Msg</code> is the message term. The pid of the sending process can be
+accessed with the guard function <a href="../../apps/erts/erlang.html#self/0"><code class="inline">self/0</code></a>. An empty list is the same as
+<code class="inline">true</code>. For more information, see section
+<a href="../../apps/erts/match_spec.html">Match Specifications in Erlang</a> in the User's Guide
+for the ERTS application.</p></li><li><p><strong><code class="inline">true</code></strong> - Enable tracing for all sent messages (from <code class="inline">send</code> traced
+processes). Any match specification is removed.</p></li><li><p><strong><code class="inline">false</code></strong> - Disable tracing for all sent messages. Any match specification
+is removed.</p></li></ul><p>Argument <code class="inline">FlagList</code> must be <code class="inline">[]</code>.</p><p>The return value is always <code class="inline">1</code>.</p><p><em>Examples:</em></p><p>Only trace messages to a specific process <code class="inline">Pid</code>:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">&gt; </span><span class="nc">trace</span><span class="p">:</span><span class="nf">send</span><span class="p" data-group-id="0139155594-1">(</span><span class="n">Session</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0139155594-2">[</span><span class="p" data-group-id="0139155594-3">{</span><span class="p" data-group-id="0139155594-4">[</span><span class="n">Pid</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;_&#39;</span><span class="p" data-group-id="0139155594-4">]</span><span class="p">,</span><span class="p" data-group-id="0139155594-5">[</span><span class="p" data-group-id="0139155594-5">]</span><span class="p">,</span><span class="p" data-group-id="0139155594-6">[</span><span class="p" data-group-id="0139155594-6">]</span><span class="p" data-group-id="0139155594-3">}</span><span class="p" data-group-id="0139155594-2">]</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0139155594-7">[</span><span class="p" data-group-id="0139155594-7">]</span><span class="p" data-group-id="0139155594-1">)</span><span class="p">.</span><span class="w">
+</span><span class="mi">1</span></code></pre><p>Only trace messages matching <code class="inline">{reply, _}</code>:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">&gt; </span><span class="nc">trace</span><span class="p">:</span><span class="nf">send</span><span class="p" data-group-id="0128231318-1">(</span><span class="n">Session</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0128231318-2">[</span><span class="p" data-group-id="0128231318-3">{</span><span class="p" data-group-id="0128231318-4">[</span><span class="ss">&#39;_&#39;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0128231318-5">{</span><span class="ss">reply</span><span class="p">,</span><span class="ss">&#39;_&#39;</span><span class="p" data-group-id="0128231318-5">}</span><span class="p" data-group-id="0128231318-4">]</span><span class="p">,</span><span class="p" data-group-id="0128231318-6">[</span><span class="p" data-group-id="0128231318-6">]</span><span class="p">,</span><span class="p" data-group-id="0128231318-7">[</span><span class="p" data-group-id="0128231318-7">]</span><span class="p" data-group-id="0128231318-3">}</span><span class="p" data-group-id="0128231318-2">]</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0128231318-8">[</span><span class="p" data-group-id="0128231318-8">]</span><span class="p" data-group-id="0128231318-1">)</span><span class="p">.</span><span class="w">
+</span><span class="mi">1</span></code></pre><p>Only trace messages sent to the sender itself:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">&gt; </span><span class="nc">trace</span><span class="p">:</span><span class="nf">send</span><span class="p" data-group-id="1015405432-1">(</span><span class="n">Session</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1015405432-2">[</span><span class="p" data-group-id="1015405432-3">{</span><span class="p" data-group-id="1015405432-4">[</span><span class="ss">&#39;$1&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;_&#39;</span><span class="p" data-group-id="1015405432-4">]</span><span class="p">,</span><span class="p" data-group-id="1015405432-5">[</span><span class="p" data-group-id="1015405432-6">{</span><span class="ss">&#39;=:=&#39;</span><span class="p">,</span><span class="ss">&#39;$1&#39;</span><span class="p">,</span><span class="p" data-group-id="1015405432-7">{</span><span class="ss">self</span><span class="p" data-group-id="1015405432-7">}</span><span class="p" data-group-id="1015405432-6">}</span><span class="p" data-group-id="1015405432-5">]</span><span class="p">,</span><span class="p" data-group-id="1015405432-8">[</span><span class="p" data-group-id="1015405432-8">]</span><span class="p" data-group-id="1015405432-3">}</span><span class="p" data-group-id="1015405432-2">]</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1015405432-9">[</span><span class="p" data-group-id="1015405432-9">]</span><span class="p" data-group-id="1015405432-1">)</span><span class="p">.</span><span class="w">
+</span><span class="mi">1</span></code></pre><p>Only trace messages sent to other nodes:</p><pre><code class="makeup erlang" translate="no"><span class="gp unselectable">&gt; </span><span class="nc">trace</span><span class="p">:</span><span class="nf">send</span><span class="p" data-group-id="0632298799-1">(</span><span class="n">Session</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0632298799-2">[</span><span class="p" data-group-id="0632298799-3">{</span><span class="p" data-group-id="0632298799-4">[</span><span class="ss">&#39;$1&#39;</span><span class="p">,</span><span class="w"> </span><span class="ss">&#39;_&#39;</span><span class="p" data-group-id="0632298799-4">]</span><span class="p">,</span><span class="p" data-group-id="0632298799-5">[</span><span class="p" data-group-id="0632298799-6">{</span><span class="ss">&#39;=/=&#39;</span><span class="p">,</span><span class="p" data-group-id="0632298799-7">{</span><span class="nb">node</span><span class="p">,</span><span class="ss">&#39;$1&#39;</span><span class="p" data-group-id="0632298799-7">}</span><span class="p">,</span><span class="p" data-group-id="0632298799-8">{</span><span class="nb">node</span><span class="p" data-group-id="0632298799-8">}</span><span class="p" data-group-id="0632298799-6">}</span><span class="p" data-group-id="0632298799-5">]</span><span class="p">,</span><span class="p" data-group-id="0632298799-9">[</span><span class="p" data-group-id="0632298799-9">]</span><span class="p" data-group-id="0632298799-3">}</span><span class="p" data-group-id="0632298799-2">]</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="0632298799-10">[</span><span class="p" data-group-id="0632298799-10">]</span><span class="p" data-group-id="0632298799-1">)</span><span class="p">.</span><span class="w">
+</span><span class="mi">1</span></code></pre><blockquote><h4 class="info">Note</h4><p>A match specification for <code class="inline">send</code> trace can use all guard and body functions
+except <code class="inline">caller</code>.</p></blockquote><p>Fails by raising an error exception with an error reason of:</p><ul><li><p><strong><code class="inline">badarg</code></strong> - If an argument is invalid.</p></li><li><p><strong><code class="inline">system_limit</code></strong> - If a match specification passed as argument has excessive
+nesting which causes scheduler stack exhaustion for the scheduler that the
+calling process is executing on.
+<a href="../../apps/erts/erl_cmd.html#sched_thread_stack_size">Scheduler stack size</a> can be configured
+when starting the runtime system.</p></li></ul>
+  </section>
+</section>
+<section class="detail" id="session_create/3">
+
+  <div class="detail-header">
+    <a href="#session_create/3" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">session_create(Name, Tracer, Opts)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/kernel/src/trace.erl#L1256" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> session_create(Name, Tracer, Opts) -> <a href="#t:session/0">session</a>()
+                        when Name :: <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), Tracer :: <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() | <a href="../../apps/erts/erlang.html#t:port/0">port</a>() | {<a href="../../apps/erts/erlang.html#t:module/0">module</a>(), <a href="../../apps/erts/erlang.html#t:term/0">term</a>()}, Opts :: [].</pre>
+
+      </div>
+
+<p>Create a new trace session.</p><p>Argument <code class="inline">Name</code> is an atom name for the session. It will be returned when
+inspecting with <a href="#session_info/1"><code class="inline">session_info/1</code></a>.</p><p>Argument <code class="inline">Tracer</code> specifies the consumer of all trace events for the session. It
+can be an identifier of a local process or port to receive all trace
+messages.</p><p><code class="inline">Tracer</code> can also be a tuple <code class="inline">{TracerModule, TracerState}</code> for a tracer module
+to be called instead of sending a trace message. The tracer module can then
+ignore or change the trace message. For more details on how to write a tracer
+module, see module <a href="../../apps/erts/erl_tracer.html"><code class="inline">erl_tracer</code></a>.</p><p>Argument <code class="inline">Opts</code> must be <code class="inline">[]</code>.</p><p>Returns an opaque handle to the trace session. The handle will keep the session
+alive. If the handle is dropped and garbage collected, the session will be
+destroyed and cleaned up as if <a href="#session_destroy/1"><code class="inline">session_destroy/1</code></a> was called.</p>
+  </section>
+</section>
+<section class="detail" id="session_destroy/1">
+
+  <div class="detail-header">
+    <a href="#session_destroy/1" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">session_destroy(Session)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/kernel/src/trace.erl#L1277" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> session_destroy(Session) -> true | false when Session :: <a href="#t:session/0">session</a>().</pre>
+
+      </div>
+
+<p>Destroy a trace session and cleanup all its settings on processes, ports, and
+functions.</p><p>The only things not cleaned up are trace messages that have already been sent.</p><p>Returns <code class="inline">true</code> if the session was active. Returns <code class="inline">false</code> if the session had
+already been destroyed by either an earler call to this function or the garbage
+collector.</p>
+  </section>
+</section>
+<section class="detail" id="session_info/1">
+
+  <div class="detail-header">
+    <a href="#session_info/1" class="detail-link" data-no-tooltip title="Link to this function">
+      <i class="ri-link-m" aria-hidden="true"></i>
+      <span class="sr-only">Link to this function</span>
+    </a>
+    <h1 class="signature" translate="no">session_info(PidPortFuncEvent)</h1>
+
+      <a href="https://github.com/erlang/otp/blob/OTP-27.1.2/lib/kernel/src/trace.erl#L1301" class="icon-action" rel="help" title="View Source">
+       <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+       <span class="sr-only">View Source</span>
+     </a>
+
+
+      <span class="note">(since OTP 27.0)</span>
+
+  </div>
+
+  <section class="docstring">
+
+      <div class="specs">
+
+          <pre translate="no"><span class="attribute">-spec</span> session_info(PidPortFuncEvent) -> Res
+                      when
+                          PidPortFuncEvent ::
+                              all |
+                              <a href="../../apps/erts/erlang.html#t:pid/0">pid</a>() |
+                              <a href="../../apps/erts/erlang.html#t:port/0">port</a>() |
+                              new | new_processes | new_ports | MFA | on_load | send | 'receive',
+                          MFA :: {<a href="../../apps/erts/erlang.html#t:module/0">module</a>(), <a href="../../apps/erts/erlang.html#t:atom/0">atom</a>(), <a href="../../apps/erts/erlang.html#t:arity/0">arity</a>()},
+                          Res :: undefined | [<a href="#t:session_weak_ref/0">session_weak_ref</a>()].</pre>
+
+      </div>
+
+<p>Return which trace sessions that affect a port, process, function, or event.</p><p>Argument <code class="inline">all</code> returns all active trace sessions that exists on the node.</p><p>Returns a list of <a href="#t:session_weak_ref/0">weak session handles</a> or <code class="inline">undefined</code> if the
+process/port/function does not exists.</p>
+  </section>
+</section>
+
+    </div>
+  </section>
+
+    <footer class="footer">
+      <p>
+
+        <span class="line">
+          <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+            Search HexDocs
+          </button>
+
+            <a href="kernel.epub" title="ePub version">
+              Download ePub version
+            </a>
+
+        </span>
+      </p>
+
+      <p class="built-using">
+        Built using
+        <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.34.1) for the
+
+          <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+      </p>
+<p>Copyright © 1996-2024 <a href="https://www.ericsson.com">Ericsson AB</a></p>
+    </footer>
+  </div>
+</main>
+</div>
+<script>
+  function mermaidLoaded() {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: document.body.className.includes("dark") ? "dark" : "default"
+    });
+    let id = 0;
+    for (const codeEl of document.querySelectorAll("pre code.mermaid")) {
+      const preEl = codeEl.parentElement;
+      const graphDefinition = codeEl.textContent;
+      const graphEl = document.createElement("div");
+      const graphId = "mermaid-graph-" + id++;
+      mermaid.render(graphId, graphDefinition).then(({svg, bindFunctions}) => {
+        graphEl.innerHTML = svg;
+        bindFunctions?.(graphEl);
+        preEl.insertAdjacentElement("afterend", graphEl);
+        preEl.remove();
+      });
+    }
+  }
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mermaid@10.2.3/dist/mermaid.min.js" onload="mermaidLoaded();"></script>
+
+  </body>
+</html>
