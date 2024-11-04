@@ -9,7 +9,7 @@ Best Practice: Reporting a Security Issue in Erlang/OTP
 
 **Do not create a public github issue**.
 
-Please create a new [Security Advisory](https://github.com/erlang/otp/security/security) for security issues. 
+Please create a new [Security Advisory](https://github.com/erlang/otp/security) for security issues. 
 Alternatively send an email to erlang-security [at] erlang [dot] org.
 
 Please follow this document in order to report security vulnerabilities in Erlang/OTP. 
