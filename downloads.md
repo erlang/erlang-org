@@ -33,7 +33,7 @@ Most OS package managers provide pre-built binary packages.
 * For Homebrew on macOS: `brew install erlang`
 * For MacPorts on macOS: `port install erlang`
 * For Ubuntu and Debian: `apt-get install erlang`
-* For Fedora: `yum install erlang`
+* For Fedora: `dnf install erlang`
 * For ArchLinux and Manjaro: `pacman -S erlang`
 * For FreeBSD: `pkg install erlang`
 
