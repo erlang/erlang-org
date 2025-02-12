@@ -133,6 +133,7 @@ You need to have the following tools installed to build the erlang.org site:
 * nodejs 20.11.1 or later
 * erlang 26 or later
 * xsltproc
+* jq 1.6 or later
 
 Most likely earlier versions of these tools will work, but they have not been tested.
 
