@@ -36,9 +36,7 @@ Most OS package managers provide pre-built binary packages.
 * For Fedora: `dnf install erlang`
 * For ArchLinux and Manjaro: `pacman -S erlang`
 * For FreeBSD: `pkg install erlang`
-
-The OS provided packages tend to not contain the latest version of Erlang/OTP.
-So [Erlang Solutions](https://www.erlang-solutions.com/downloads/) provides up to date pre-built packages for the latest stable releases. Erlang Solutions provides pre-built binary packages for Ubuntu, Debian, Fedora, CentOS and other operating systems.
+* For Github Actions: [setup-beam](https://github.com/erlef/setup-beam)
 
 ### License
 
