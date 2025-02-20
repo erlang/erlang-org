@@ -139,13 +139,12 @@ fetch_assets(Assets) ->
         end, maps:to_list(Matches))).
 
 create_release_json(Releases) ->
-    jsone:encode(
+    json:encode(
       lists:map(
         fun({_Key, Release}) ->
                 Release#{ latest => strip_ids(maps:get(latest,Release)),
                           patches => [strip_ids(Patch) || Patch <- maps:get(patches,Release)] }
-        end, maps:to_list(Releases)),
-     [native_forward_slash,{indent,2}]).
+        end, maps:to_list(Releases))).
 
 strip_ids(Patch) ->
     maps:map(fun(_Key, #{ id := _, url := Url }) ->
@@ -201,14 +200,5 @@ pmap(Fun, List) ->
              Value
      end || Ref <- Refs].
 
-    ssl_opts(Url) ->
-        #{ host := Hostname } = uri_string:parse(Url),
-        VerifyFun = {fun ssl_verify_hostname:verify_fun/3,
-                      [{check_hostname, Hostname}]},
-    CACerts = public_key:cacerts_get(),
-    [{ssl,[{verify, verify_peer},
-           {cacerts, CACerts},
-           {verify_fun, VerifyFun},
-           {customize_hostname_check,
-            [{match_fun, public_key:pkix_verify_hostname_match_fun(https)}]}
-          ]}].
+ssl_opts(_Url) ->
+    [{ssl, httpc:ssl_verify_host_options(true)}].
