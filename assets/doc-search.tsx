@@ -4,7 +4,7 @@ import {
   DocSearchProps as DocSearchComponentProps,
   version,
 } from '@docsearch/react';
-import type { InternalDocSearchHit, StoredDocSearchHit } from "@docsearch/react/dist/esm/types/";
+import type { InternalDocSearchHit, StoredDocSearchHit } from "@docsearch/react/dist/esm/";
 import React from 'react';
 import ReactDOM from 'react-dom';
 

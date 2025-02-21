@@ -127,15 +127,16 @@ have to do for now.
 
 You need to have the following tools installed to build the erlang.org site:
 
-* GNU make 4.1 or later
-* ruby 3.3.0 or later
-* bundler 2.5.6 or later
-* nodejs 20.11.1 or later
-* erlang 26 or later
+* GNU make 4.1
+* ruby 3.3.0
+* bundler 2.5.6
+* nodejs 22.14.0
+* erlang 26 and 27
 * xsltproc
-* jq 1.6 or later
+* jq 1.6
+* asdf 0.15
 
-Most likely earlier versions of these tools will work, but they have not been tested.
+Most likely others versions of these tools will work, but they have not been tested.
 
 If you want to be sure that you use the correct version of the dependencies you can either
 use the [devcontainer](#devcontainer--gitpodio) or [asdf](https://asdf-vm.com/).
@@ -145,7 +146,7 @@ use the [devcontainer](#devcontainer--gitpodio) or [asdf](https://asdf-vm.com/).
 To install and use asdf follow their [Getting started guide](https://asdf-vm.com/guide/getting-started.html). On Linux using bash in a nutshell you do this:
 
 ```shell
-git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.10.2
+git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.15.0
 echo ". $HOME/.asdf/asdf.sh" >> ~/.bashrc
 echo ". $HOME/.asdf/completions/asdf.bash" >> ~/.bashrc
 . ~/.bashrc

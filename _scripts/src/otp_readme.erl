@@ -86,11 +86,11 @@ gulp(_) ->
 
 gulp_metadata(Readme, Current, MD) ->
     [Line,Rest] = string:split(Readme, "\n"),
-    case re:run(Line, "^([A-Z][^:]+):\\s+(.*)$",[{capture,all_but_first,binary}]) of
+    case re:run(Line, "^([A-Z][^:]+):\\s+(.*)$",[{capture,all_but_first,binary}, unicode]) of
         {match,[Name,Value]} ->
             gulp_metadata(Rest, Name, MD#{ Name => Value });
         nomatch ->
-            case re:run(Line,"^\\s+(.*)$",[{capture,all_but_first,binary}]) of
+            case re:run(Line,"^\\s+(.*)$",[{capture,all_but_first,binary}, unicode]) of
                 {match, [Value]} ->
                     gulp_metadata(Rest, Current, MD#{ Current := [maps:get(Current, MD),Value]});
                 nomatch ->
@@ -121,20 +121,30 @@ parse_metadata(MD) ->
 
 -spec gulp_application_markdown(unicode:chardata(), term()) -> [application()].
 gulp_applications_markdown(Readme) ->
-    {match, [{LinksStart, _}]} = re:run(Readme, "^\\[", [multiline]),
+    LinksStart =
+        case re:run(Readme, "^\\[", [multiline, unicode]) of
+            {match, [{Start, _}]} -> Start;
+            nomatch -> byte_size(Readme)
+        end,
+
     AppsReadme = binary:part(Readme, 0, LinksStart),
     LinksReadme = binary:part(Readme, LinksStart - 1, byte_size(Readme) - LinksStart + 1),
 
     Apps =
-        case re:run(AppsReadme, "\n(.+)\n=+\n", [global]) of
+        case re:run(AppsReadme, "\n(.+)\n=+\n", [global, unicode]) of
             {match, Applications} ->
                 Applications;
             nomatch ->
-                {match, Applications} = re:run(AppsReadme, "\n#\\s(.+)", [global]),
+                {match, Applications} = re:run(AppsReadme, "\n#\\s(.+)", [global, unicode]),
                 Applications
         end,
 
-    {match, Links} = re:run(LinksReadme, "\\[([^]]+)\\]:(?: |\n).*", [global, {capture, all, binary}]),
+    Links =
+        case re:run(LinksReadme, "\\[([^]]+)\\]:(?: |\n).*", [global, {capture, all, binary}, unicode]) of
+            {match, LS} -> LS;
+            nomatch -> []
+        end,
+
 %    throw({LinksReadme, Links}),
 
     split_applications(Readme, fun gulp_application_markdown/2, Links, Apps).
@@ -165,7 +175,7 @@ gulp_ticket_markdown(T, Type, Links) when not is_map(Type) ->
     gulp_ticket_markdown(T,#{ type => Type }, Links);
 gulp_ticket_markdown(T, Ticket, Links) ->
     case re:run(T, "((?:\n|.)+)\n\nOwn Id: (OTP-[0-9]+)\\s*((?:\n|.)*)",
-                [{capture,all_but_first,binary}]) of
+                [{capture,all_but_first,binary}, unicode]) of
         nomatch -> throw({invalid, T});
         {match,[ReleaseNote,Id, MDStr]} ->
             MD = maps:merge(Ticket, gulp_ticket_metadata_markdown(string:trim(MDStr),undefined,#{})),
@@ -177,11 +187,11 @@ fix_markdown_refs(MD, Links) ->
     maps:map(
       fun(_Key, Value) ->
               Refs =
-                  case re:run(Value, "\\[([^]]+)\\]", [{capture, all_but_first, binary}, global]) of
+                  case re:run(Value, "\\[([^]]+)\\]", [unicode, {capture, all_but_first, binary}, global]) of
                       nomatch ->
                           "";
                       {match, References} ->
-                          Rs = [ re:replace(Ref,"\n\\s*"," ") ||
+                          Rs = [ re:replace(Ref,"\n\\s*"," ", [unicode]) ||
                                    [Ref, Key] <- Links, lists:member([Key], References)],
                           ["\n\n", lists:join("\n",Rs)]
                   end,
@@ -191,12 +201,12 @@ fix_markdown_refs(MD, Links) ->
 gulp_ticket_metadata_markdown(<<>>, _Current, MD) ->
     MD;
 gulp_ticket_metadata_markdown(Ticket, Current, MD) ->
-    case re:run(Ticket, "^([A-Z][^:]+):(.*)",[{capture,all_but_first,binary},dotall]) of
+    case re:run(Ticket, "^([A-Z][^:]+):(.*)",[{capture,all_but_first,binary},dotall, unicode]) of
         {match,[Label,Rest]} ->
             gulp_ticket_metadata_markdown(Rest,Label,MD);
         nomatch ->
             case re:run(Ticket, "\n(?:\\\\\\*){3} (.*) (?:\\\\\\*){3}(.*)$",
-                        [{capture, all_but_first, binary}, dotall, ungreedy]) of
+                        [{capture, all_but_first, binary}, dotall, ungreedy, unicode]) of
                 {match,[Tag, Rest]} ->
                     NewMD =
                         case maps:find(<<"Tags">>, MD) of
@@ -234,7 +244,7 @@ gulp_ticket_metadata_markdown(Ticket, Current, MD) ->
 -spec gulp_application(unicode:chardata(), term()) -> [application()].
 gulp_applications(Readme) ->
     %% This regexp matches the ---- headers in the readme and extracts the app-vsn
-    {match,Applications} = re:run(Readme," [-]{69}\n [-]{3}(?: (.+) )?[-]+\n [-]{69}",[global]),
+    {match,Applications} = re:run(Readme," [-]{69}\n [-]{3}(?: (.+) )?[-]+\n [-]{69}",[global, unicode]),
     split_applications(Readme, fun gulp_application/2, undefined, Applications).
 
 %% We extract the app-vsn and the content in between each header
@@ -250,7 +260,7 @@ split_applications(Readme, Fun, State, [[{Start, Len}, AppVsn]]) ->
     [{binary:part(Readme, AppVsn),
       case re:run(Rest,"^\\[",[multiline]) of
           nomatch ->
-              Fun(Rest);
+              Fun(Rest, State);
           {match, [{RefStart,_}]} ->
               Fun(binary:part(Rest, Len, RefStart - Len), State)
       end}].
@@ -280,13 +290,13 @@ gulp_ticket(T, Type) when not is_map(Type) ->
     gulp_ticket(T,#{ type => Type });
 gulp_ticket(T, Ticket) ->
     {match,[Id,Body]} = re:run(T, "\s+(OTP-[0-9]+)(.*)",
-                               [{capture,all_but_first,binary},dotall]),
+                               [{capture,all_but_first,binary},dotall, unicode]),
     [MDStr, ReleaseNote] = string:split(Body,"\n\n"),
     MD = maps:merge(Ticket, gulp_ticket_metadata(MDStr,undefined,#{})),
     MD#{ id => Id, release_note => format_release_note(ReleaseNote) }.
 
 gulp_ticket_metadata(Ticket, Current, MD) ->
-    case re:run(Ticket, "^\s\s+([A-Z][^:]+):(.*)",[{capture,all_but_first,binary},dotall]) of
+    case re:run(Ticket, "^\s\s+([A-Z][^:]+):(.*)",[{capture,all_but_first,binary},dotall, unicode]) of
         {match,[Label,Rest]} ->
             gulp_ticket_metadata(Rest,Label,MD);
         nomatch when Current =/= undefined ->
@@ -333,7 +343,7 @@ gulp_until(Str,Patterns,Acc) ->
         [Line, Rest] ->
             case lists:any(
                    fun(Pattern) ->
-                           re:run(Line, Pattern) =/= nomatch
+                           re:run(Line, Pattern, [unicode]) =/= nomatch
                    end, Patterns) of
                 true ->
                     {iolist_to_binary(lists:join($\n,lists:reverse(Acc))), Str};

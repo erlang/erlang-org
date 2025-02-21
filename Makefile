@@ -92,7 +92,11 @@ _patches: $(PATCHES_DEPS)
 	if [ ! -d $@ ]; then git clone --single-branch -b $@ https://github.com/erlang/erlang-org $@; fi
 	if [ ! -f _patches/$(PATCHES_HASH) ]; then $(MAKE) patches; fi
 
-assets/js assets/webfonts _clones:
+_clones:
+	mkdir -p $@
+	echo "erlang 26.2.5.9" > _clones/.tool-versions
+
+assets/js assets/webfonts:
 	mkdir -p $@
 
 patches: _scripts/_build/default/bin/erlang-org otp_versions.table

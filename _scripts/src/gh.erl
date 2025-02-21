@@ -34,16 +34,16 @@ get(Url, GetHdrs) ->
         {ok,{{_,200,_},Hdrs,Body}} when Accept =:= "application/vnd.github.v3+json" ->
             case lists:keyfind("link",1,Hdrs) of
                 false ->
-                    {ok, jsone:decode(Body)};
+                    {ok, json:decode(Body)};
                 {"link",Link} ->
                     %% If there is a link header, the results are paginated, so
                     %% we follow the pages until the end.
                     case re:run(Link,"<([^>]+)>; rel=\"next\"",[{capture,all_but_first,binary}]) of
                         nomatch ->
-                            {ok, jsone:decode(Body)};
+                            {ok, json:decode(Body)};
                         {match,[NextLink]} ->
                             {ok, NextJson} = get(NextLink),
-                            {ok, jsone:decode(Body) ++ NextJson}
+                            {ok, json:decode(Body) ++ NextJson}
                     end
             end;
         {ok,{{_,200,_},_Hdrs,Body}} ->
@@ -52,53 +52,5 @@ get(Url, GetHdrs) ->
             {error, Else}
     end.
 
-
-ssl_opts(Url) ->
-    #{ host := Hostname } = uri_string:parse(Url),
-    VerifyFun = {fun ssl_verify_hostname:verify_fun/3,
-                 [{check_hostname, Hostname}]},
-    CACerts = public_key:cacerts_get(),
-    [{ssl,[{verify, verify_peer},
-           {cacerts, CACerts},
-           {verify_fun, VerifyFun},
-           {customize_hostname_check,
-            [{match_fun, public_key:pkix_verify_hostname_match_fun(https)}]}
-          ]}].
-
-%% This code is gratefully copied from rebar3_util.erl
-%% It is currently not used as we try to use the OSs bundled certificates instead
-%% but I leave it down here in case it is needed in the future.
--ifdef(USE_CERTIFI).
-ssl_opts_certify(Url) ->
-    #{ host := Hostname } = uri_string:parse(Url),
-    VerifyFun = {fun ssl_verify_hostname:verify_fun/3,
-                 [{check_hostname, Hostname}]},
-    CACerts = certifi:cacerts(),
-    [{ssl,[{verify, verify_peer},
-           {cacerts, CACerts},
-           {partial_chain, fun partial_chain/1},
-           {verify_fun, VerifyFun},
-           {customize_hostname_check,
-            [{match_fun, public_key:pkix_verify_hostname_match_fun(https)}]}]
-     }].
-partial_chain(Certs) ->
-    Certs1 = [{Cert, public_key:pkix_decode_cert(Cert, otp)} || Cert <- Certs],
-    CACerts = certifi:cacerts(),
-    CACerts1 = [public_key:pkix_decode_cert(Cert, otp) || Cert <- CACerts],
-    case lists:search(fun({_, Cert}) ->
-                              check_cert(CACerts1, Cert)
-                      end, Certs1) of
-        {value, Trusted} ->
-            {trusted_ca, element(1, Trusted)};
-        false ->
-            unknown_ca
-    end.
-
-extract_public_key_info(Cert) ->
-    ((Cert#'OTPCertificate'.tbsCertificate)#'OTPTBSCertificate'.subjectPublicKeyInfo).
-
-check_cert(CACerts, Cert) ->
-    lists:any(fun(CACert) ->
-                      extract_public_key_info(CACert) == extract_public_key_info(Cert)
-              end, CACerts).
--endif.
+ssl_opts(_Url) ->
+    [{ssl, httpc:ssl_verify_host_options(true)}].
