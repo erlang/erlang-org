@@ -4,6 +4,10 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-24.04
     steps:
+      - name: Fetch ImageOS
+        id: image-os
+        run: echo "ImageOS=${ImageOS}" >> $GITHUB_OUTPUT
+
       - name: Checkout 🛎️
         uses: actions/checkout@v2.3.1
 
@@ -17,9 +21,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.asdf/installs
-          key: ${{ runner.os }}-${{ hashFiles('**/.tool-versions') }}
+          key: ${{ steps.image-os.outputs.ImageOs }}-${{ hashFiles('**/.tool-versions') }}
           restore-keys: |
-            ${{ runner.os }}-asdf-
+            ${{ steps.image-os.outputs.ImageOs }}-asdf-
       - name: asdf install
         run: asdf install && asdf install erlang 26.2.5.9 && asdf reshim
 
@@ -28,7 +32,7 @@ jobs:
         with:
           # npm caches files in `~/.npm`
           path: ~/.npm
-          key: ${{ runner.OS }}-${{ hashFiles('package-lock.json') }}
+          key: ${{ steps.image-os.outputs.ImageOs }}-${{ hashFiles('package-lock.json') }}
       - name: Setup NPM
         run: sudo npm i -g npm && make setup_npm
 
@@ -37,9 +41,9 @@ jobs:
         with:
           # bundler caches files in `vendor`
           path: vendor/bundle
-          key: ${{ runner.OS }}-${{ hashFiles('Gemfile.lock') }}
+          key: ${{ steps.image-os.outputs.ImageOs }}-${{ hashFiles('Gemfile.lock') }}
           restore-keys: |
-            ${{ runner.os }}-gems-
+            ${{ steps.image-os.outputs.ImageOs }}-gems-
 
       - name: Setup ruby gems
         run: |
