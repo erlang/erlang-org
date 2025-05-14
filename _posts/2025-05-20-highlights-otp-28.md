@@ -11,7 +11,7 @@ features that we are most excited about.
 A list of all changes is found in [Erlang/OTP 28 Readme](https://erlang.org/patches/OTP-28.0).
 Or, as always, look at the release notes of the application you are interested in.
 For instance:
-[Erlang/OTP 28 - Erts Release Notes - Version 15.0](https://www.erlang.org/doc/apps/erts/notes.html#erts-16.0).
+[Erlang/OTP 28 - Erts Release Notes - Version 16.0](https://www.erlang.org/doc/apps/erts/notes.html#erts-16.0).
 
 This year's highlights mentioned in this blog post are:
 
@@ -19,7 +19,7 @@ This year's highlights mentioned in this blog post are:
 * [Improvements of Comprehensions](#improvements-of-comprehensions)
 * [Smarter Error Suggestions](#smarter-error-suggestions)
 * [Improvements to the Shell](#improvements-to-the-shell)
-* [New `hibernate/0`](#new-hibernate0)
+* [New `erlang:hibernate/0`](#new-erlanghibernate0)
 * [Warnings for Use of Old-style Catch](#warnings-for-use-of-old-style-catch)
 * [PCRE2](#pcre2)
 * [Based Floating Point Literals](#based-floating-point-literals)
@@ -37,24 +37,31 @@ By default, all messages are inserted to the end of the message queue of
 a process. This can become cumbersome when the queue is long. An urgent
 message may need to be read as soon as possible.
 
+For example, the current message overload protection mechanism for [`logger`](https://www.erlang.org/doc/apps/kernel/logger.html)
+polls its message queue length in order to know when it should start shedding
+messages. It would have benefitted from using the [`long_message_queue`](https://www.erlang.org/doc/apps/erts/erlang.html#system_monitor/2)
+monitoring functionality introduced in Erlang/OTP 27, but the only way to
+get information like that is via a message, which would be inserted at the
+end of the very long queue.
+
 Priority message solves this problem by letting selected messages be inserted
 before all ordinary messages, but still in the order they are received.
 
 A receiver process can allow other processes to send priority message
 to itself in two simple steps. The first step is to create a process alias
-using `alias/1`:
+using [`alias/1`](https://erlang.org/doc/apps/erts/erlang.html#alias/1):
 
-````
+````erlang
 PrioAlias = alias([priority])
 ````
 
 This alias can then be distributed to other processes that should be able
 to send priority messages to the receiver process. A sender process can
-send a priority message by using `erlang:send/3`, passing the `PrioAlias`
-as the first argument, and the option `priority` in the option list as
-the third argument:
+send a priority message by using [`erlang:send/3`](https://erlang.org/doc/apps/erts/erlang.html#send/3),
+passing the `PrioAlias` as the first argument, and the option `priority` in
+the option list as the third argument:
 
-````
+````erlang
 erlang:send(PrioAlias, Message, [priority])
 ````
 
@@ -67,15 +74,15 @@ the `priority` flag, it will be treated as an ordinary message.
 It is also possible to send an exit or monitor signal as a priority signal,
 like this:
 
-````
+````erlang
 exit(PrioAlias, Message, [priority])
 ````
 
 If the receiver process wants to stop receiving priority messages, it
 can do so by deactivating its priority alias:
 
-````
-_ = unalias(PrioAlias)
+````erlang
+true = unalias(PrioAlias)
 ````
 
 After this, no priority message can be sent to the receiver process, because
@@ -95,7 +102,9 @@ Erlang/OTP 28 introduces many useful updates in its comprehensions. All
 of them are new language features that have been suggested as [EEPs](https://www.erlang.org/eeps).
 Between the release of Erlang/OTP 27 and 28, there were 4 accepted EEPs related
 to comprehensions. Features described by two of them are included in Erlang/OTP
-28. The other two are postponed to a later release. 
+28. The other two are postponed to a later release. The [documentation for
+comprehensions](https://www.erlang.org/doc/system/expressions.html#comprehensions)
+contains an up-to-date overview of all relevant features.
 
 ## Strict Generators
 
@@ -107,7 +116,7 @@ the left-hand side pattern in a comprehension generator, the term is ignored
 and the evaluation continues on. In the following example, the element
 `error` is silently skipped in the comprehension.
 
-````
+````erlang
 1> [X ||{ok, X} <- [{ok, 1}, error, {ok, 3}]].
 [1,3]
 ````
@@ -118,7 +127,7 @@ other than 2-tuples with the first element being `ok`? By using a strict
 generator, the comprehension crashes when the pattern-matching fails with
 the element `error`.
 
-````
+````erlang
 2> [X ||{ok, X} <:- [{ok, 1}, error, {ok, 3}]].
 ** exception error: no match of right hand side value error
 ````
@@ -133,12 +142,12 @@ the Erlang linter. It finds all nifs from an abstract form, and output them.
 Obviously, not all forms are nifs. We want to ignore all forms that are not
 nifs here. Using a relaxed generator here is correct.
 
-````
+````erlang
 Nifs = [Args || {attribute, _Anno, nifs, Args} <- Forms].
 ````
 
 More examples about strict and relaxed generators can be found in
-[List Comprehensions]((system/doc/programming_examples/list_comprehensions.md)).
+[List Comprehensions](https://www.erlang.org/doc/system/list_comprehensions.html).
 
 Sometimes, using either strict or relaxed generators is fine. When the
 left-hand side pattern is a fresh variable, pattern matching cannot fail.
@@ -150,7 +159,7 @@ it crash" philosophy.
 Now you can pick a more fitting tool for the job, without losing the brevity
 of comprehensions. It is also a good time to review old code, and see if
 strict generators are more fitting in certain places. The compiler team in
-OTP has done (that)[https://github.com/erlang/otp/pull/9004]. Take a look
+OTP has done [that](https://github.com/erlang/otp/pull/9004). Take a look
 if you are curious. 
 
 
@@ -162,24 +171,25 @@ makes it easier to iterate over multiple lists, binaries, or maps in parallel.
 Erlang's list comprehension extract elements in a nested or cartesian way
 by default:
 
-````
+````erlang
 1> [{X, Y} || X <- [1, 2], Y <- [a, b]].
 [{1,a},{1,b},{2,a},{2,b}]
 ````
 
 Using zip generators `&&`, we can change the default behavior and "zip"
-generators together as if using `lists:zip/2`:
+generators together as if using [`lists:zip/2`](https://erlang.org/doc/apps/stdlib/lists.html#zip/2):
 
-````
+````erlang
 2> [{X, Y} || X <- [1, 2] && Y <- [a, b]].
 [{1,a},{2,b}]
 ````
 
 Zip generators can be used with lists, binaries, and maps, and can be
-mixed freely with all existing generators and filters. Unlike `lists:zip/2`
-and `lists:zip/3`, you can zip any number of generators together using
-`&&`s. The compiler avoids creating intermediate tuples, yet preserving
-the same error behaviors as these helper functions. 
+mixed freely with all existing generators and filters. Unlike [`lists:zip/2`](https://erlang.org/doc/apps/stdlib/lists.html#zip/2)
+and [`lists:zip/3`](https://erlang.org/doc/apps/stdlib/lists.html#zip/3), you
+can zip any number of generators together using `&&`s. The compiler avoids
+creating intermediate tuples, yet preserving the same error behaviors as
+these helper functions. 
 
 # Smarter Error Suggestions
 
@@ -188,23 +198,23 @@ Now it gives you suggestions on how to fix them, whenever possible.
 
 For example, the following code exports an undefined function `bar/1`.
 
-````
+````erlang
 -export([bar/1]).
 baz(X) -> X.
 ````
 
 The Erlang/OTP 27 compiler correctly points out the undefined function.
 
-````
+````erlang
 t.erl:3:2: function bar/1 undefined
 %   3| -export([bar/1]).
 %    |  ^
 ````
 
-The Erlang/OTP 28 compiler goes one more step. It suggests a possible
+The Erlang/OTP 28 compiler goes one step further. It suggests a possible
 correction, according to all the defined functions in the module.
 
-````
+````erlang
 t.erl:3:2: function bar/1 undefined, did you mean baz/1?
 %   3| -export([bar/1]).
 %    |  ^
@@ -216,19 +226,12 @@ This applies to common error types, like `undefined_nif`, `unbound_var`,
 It also works for wrong arity. If you call a function with the wrong number
 of arguments, the compiler will suggest available arities, like the following:
 
-````
+````erlang
 t.erl:6:12: function bar/2 undefined, did you mean bar/1,3,4?
 ````
 
 This makes compilation errors easier to understand, and small mistakes
 faster to fix. Try it out and you'll notice the change!
-
-## Incoming: Erlang Error Index
-
-In the future, the compiler will also support error codes, as described
-in [EEP-74](https://www.erlang.org/eeps/eep-0074). Errors from the Erlang
-compiler and other tools will be more user-friendly and informative.
-
 
 # Improvements to the Shell
 
@@ -240,8 +243,9 @@ it more flexible, interactive and powerful than before.
 Previously, Erlang's `stdin` greedily read all input data, which could cause
 problems with special characters. This is changed by [PR-8962](https://github.com/erlang/otp/pull/8962).
 Now in Erlang/OTP 28, all reads from `stdin` are done upon request, like
-only when an `io:get_line/2` or equivalent is called. This removes the
-need to use the `-noinput` flag, and resolves issue like [Issue-8113](https://github.com/erlang/otp/issues/8113).
+only when an [`io:get_line/2`](https://www.erlang.org/doc/apps/stdlib/io.html#get_line/2)
+or equivalent is called. This removes the need to use the `-noinput` flag, and
+ resolves issues like [Issue-8113](https://github.com/erlang/otp/issues/8113).
 
 ## Raw and Cooked Modes for `noshell`
 
@@ -256,7 +260,7 @@ while disabling the line editing support and the echoing to `stdout`. The
 following example is an escript that can read raw input (and immediately
 prints it back out) without requiring the user to press Enter:
 
-````
+````erlang
 #!/usr/bin/env escript
 %% t.es
 
@@ -280,8 +284,8 @@ loop() ->
 
 With this, Erlang's shell becomes a platform for building interactive
 terminal applications.
-The [custom shell](stdlib/doc/guides/custom_shell.md) documentation shows
-how to create a custom shell. The [terminal interface](stdlib/doc/guides/terminal_interface.md)
+The [custom shell](https://www.erlang.org/doc/apps/stdlib/custom_shell.html)
+documentation shows how to create a custom shell. The [terminal interface](https://www.erlang.org/doc/apps/stdlib/terminal_interface.html)
 documentation shows how to implement a tic-tac-toe game.
 
 Try it out. We look forward to see more interactive applications created
@@ -289,11 +293,11 @@ using this feature.
 
 ## Using `fun Name/Arity` to create funs in shell
 
-Because of [PR-8987](https://github.com/erlang/otp/pull/8987), you can
+Thanks to [PR-8987](https://github.com/erlang/otp/pull/8987), you can
 now use `fun Name/Arity` to create funs in shell. The fun can be created
-from an auto-imported BIF, such as `is_atom/1`, as in the example below.
+from an auto-imported BIF, such as [`is_atom/1`](https://www.erlang.org/doc/apps/erts/erlang.html#is_atom/1), as in the example below.
 
-````
+````erlang
 1> F = fun is_atom/1.
 fun erlang:is_atom/1
 2> F(a).
@@ -304,7 +308,7 @@ false
 
 Or from a local function defined in shell, as in the following example.
 
-````
+````erlang
 1> I = fun id/1.
 #Fun<erl_eval.42.18682967>
 2> I(42).
@@ -316,27 +320,29 @@ ok
 ````
 
 
-# New `hibernate/0`
+# New `erlang:hibernate/0`
 
-Erlang/OTP 28 introduces a new `hibernate/0` function. This built-in function
-puts the calling process into a wait state where its memory footprint is
-reduced as much as possible. When the process receives its next message, it
-will wake up. Unlike the existing `erlang:hibernate/3`, it does not discard
-the call stack.
+Erlang/OTP 28 introduces a new [`erlang:hibernate/0`](https://www.erlang.org/doc/apps/erts/erlang.html#hibernate/0)
+function. This built-in function puts the calling process into a wait state
+where its memory footprint is reduced as much as possible. When the process
+receives its next message, it will wake up. Unlike the existing [`erlang:hibernate/3`](https://www.erlang.org/doc/apps/erts/erlang.html#hibernate/3),
+it does not discard the call stack.
 
-This makes `hibernate/0` useful for processes that expect long idle time,
-but want to have a simpler hibernation.
+This makes [`erlang:hibernate/0`](https://www.erlang.org/doc/apps/erts/erlang.html#hibernate/0)
+useful for processes that expect long idle time, but want to have a simpler
+hibernation.
 
 ## Memory Usage Experiment
 
-To demonstrate how effective `hibernate/0` is, we can make a benchmark
-that can spawn different number of processes (starting from 1, going up
-to 1 million), let them either waiting for a message using `receive` or
-using `hibernate/0`, and then compare memory usage.
+To demonstrate how efficient [`erlang:hibernate/0`](https://www.erlang.org/doc/apps/erts/erlang.html#hibernate/0)
+is, we can make a benchmark that can spawn different number of processes
+(starting from 1, going up to 1 million), let them either waiting for a
+message using `receive` or using [`erlang:hibernate/0`](https://www.erlang.org/doc/apps/erts/erlang.html#hibernate/0),
+and then compare memory usage.
 
-Here's the test code for the first scenario, which uses `hibernate/0`:
+Here's the test code for the first scenario, which uses [`erlang:hibernate/0`](https://www.erlang.org/doc/apps/erts/erlang.html#hibernate/0):
 
-````
+````erlang
 -module(benchmark_hibernate).
 -export([worker/0, spawn_all/1]).
 
@@ -357,7 +363,7 @@ spawn_all(N) ->
 Here's the test code for the second scenario. Processes stay idle but they
 do not hibernate:
 
-````
+````erlang
 -module(benchmark_receive).
 -export([worker2/0, spawn_all/1]).
 
@@ -377,8 +383,9 @@ spawn_all(N) ->
     spawn_all(N-1).
 ````
 
-Memory usage is measured by `erlang:memory()` after 1 million processes have
-been spawned. For the final result, we take the average of two measurements.
+Memory usage is measured by [`erlang:memory()`](https://www.erlang.org/doc/apps/erts/erlang.html#memory/0)
+after 1 million processes have been spawned. For the final result, we take
+the average of two measurements.
 
 We spawn 1, 10 thousand, 100 thousand, and 1 million processes for both
 scenarios. Results are summarized in the following table:
@@ -396,7 +403,7 @@ scenarios. Results are summarized in the following table:
 
 When there is only 1 process, the memory usage reduction is not obvious
 yet. When there are 1 million mostly idle processes, that's more than 75%
-reduction in memory usage if you use `hibernate/0`!
+reduction in memory usage if you use [`erlang:hibernate/0`](https://www.erlang.org/doc/apps/erts/erlang.html#hibernate/0)!
 
 
 # Warnings for Use of Old-Style Catch
@@ -406,8 +413,8 @@ instead of `try ... catch ... end`.
 
 The more simplistic `catch Expr` is problematic in that it catches
 _all_ exceptions and can therefore hide bugs. For example, if the
-intention is to catch exceptions raised by `throw/1`, the old-style
-`catch` will also catch runtime errors. Using its alternative 
+intention is to catch exceptions raised by [`throw/1`](https://www.erlang.org/doc/apps/erts/erlang.html#throw/1),
+the old-style `catch` will also catch runtime errors. Using its alternative
 `try ... catch ... end` can offer better clarity.
 
 In a future release, the use of the old `catch` construct will by
@@ -426,17 +433,18 @@ a better solution.
 
 _Example 1_: Using `catch Expr` to handle a possible `throw`
 
-`throw/1` is often used to quickly return from a deep recursion. If
-`tree_walker/1` is a function that traverses a tree and sometimes throws
-a value, the old-style catch could be used like this:
+[`throw/1`](https://www.erlang.org/doc/apps/erts/erlang.html#throw/1) is
+often used to quickly return from a deep recursion. If `tree_walker/1` is
+a function that traverses a tree and sometimes throws a value, the old-style
+catch could be used like this:
 
-````
+````erlang
 Result = catch maybe_throw().
 ````
 
 It can be refactored to the following code:
 
-````
+````erlang
 Result = try tree_walker(Tree) of
              Value -> Value
          catch
@@ -453,7 +461,7 @@ To have the same ensurance that crashes are not hidden when using the
 old-style `catch`, you would have to write, which is as much code as the
 new `try/catch`:
 
-````
+````erlang
 Result = case catch tree_walker(Tree) of
             {'EXIT',Error} ->
                  error(Error);
@@ -465,14 +473,14 @@ Result = case catch tree_walker(Tree) of
 _Example 2_: Using `catch Expr` to match a specific error in a test case
 
 
-````
+````erlang
 test_bad_argument(Term) ->
     {'EXIT',{badarg,_}} = catch list_to_atom(Term).
 ````
 
 It can be refactored to the following code:
 
-````
+````erlang
 test_bad_argument(Term) ->
     try list_to_atom(Term) of
         _Value -> error(not_supposed_to_succeed)
@@ -483,13 +491,13 @@ test_bad_argument(Term) ->
 
 An easier way is to include the following header file:
 
-````
+````erlang
 -include_lib("stdlib/include/assert.hrl").
 ````
 
 With that in place, you can simply write:
 
-````
+````erlang
 test_bad_argument(Term) ->
     ?assertError(badarg, list_to_atom(Term)).
 ````
@@ -497,7 +505,7 @@ test_bad_argument(Term) ->
 That will also result in more information being given if the test case
 fails:
 
-````
+````erlang
 1> t:test_bad_argument("ok").
 ** exception error: {assertException,[{module,t},
                                       {line,6},
@@ -521,7 +529,7 @@ literals using any bases, similar to Ada and C99/C++17. This is based on
 
 In Erlang, you can already write integers in different bases:
 
-````
+````erlang
 1> 2#100.
 4
 2> 3#100.
@@ -530,7 +538,7 @@ In Erlang, you can already write integers in different bases:
 
 Now, you can do the same with floating point numbers:
 
-````
+````erlang
 1> 2#0.011.
 0.375
 2> 3#0.011.
@@ -548,12 +556,13 @@ based literals, you can even preserve bit level precision. For example,
 
 # PCRE2
 
-Erlang/OTP 28 uplifts the `re` module to use PCRE2, instead of the PCRE
-library. This change is mostly backward compatible with PCRE with respect
-to regular expression syntax, but it also introduces some different behaviors.
+Erlang/OTP 28 uplifts the [`re`](https://www.erlang.org/doc/apps/stdlib/re.html)
+module to use PCRE2, instead of the PCRE library. This change is mostly
+backward compatible with PCRE with respect to regular expression syntax, but
+it also introduces some different behaviors.
 
 The full documentation about breaking changes and incompatibilities can
-be found in [PCRE2 Migration](stdlib/doc/guides/re_incompat.md).
+be found in [PCRE2 Migration](https://www.erlang.org/doc/apps/stdlib/re_incompat.html).
 
 ## Why PCRE2 instead of PCRE?
 
@@ -566,16 +575,16 @@ makes your regex code safer, at the cost of breaking some old regex patterns.
 - Stricter Syntax Validation: For example, `\i`, `\B`, `\8` all result
 in errors.
 
-````
+````erlang
 % Erlang/OTP 27
-1> re:run("AMM", "\\M").
+1> re:run("AMM", ~S"\M").
 {match,[{1,1}]}
 
 % Erlang/OTP 28
-1> re:run("AMM", "\\M").
+1> re:run("AMM", ~S"\M").
 ** exception error: bad argument
      in function  re:run/2
-        called as re:run("AMM","\\M")
+        called as re:run("AMM",~S"\M")
         *** argument 2: could not parse regular expression
                         unrecognized character follows \ on character 1
 
@@ -584,16 +593,17 @@ in errors.
 - Unicode Property Updates: Characters matched by properties using `\p{...}`
 may have changed, according to the updated Unicode character property data.
 
-- `re:split/3` with Branch Reset Groups (`(?|...)`): The following example
-may evaluate to `[[],"abc",[],[]]` in some interpretations of PCRE and Perl
-versions, differing from PCRE2's result.
+- [`re:split/3`](https://www.erlang.org/doc/apps/stdlib/re.html#split/3)
+with Branch Reset Groups (`(?|...)`): The following example may evaluate to
+`[[],"abc",[],[]]` in some interpretations of PCRE and Perl versions,
+differing from PCRE2's result.
 
-````
-1> re:split("abcabc", "(?|(abc)|(xyz))\\1", [{return, list}]).
+````erlang
+1> re:split("abcabc", ~S"(?|(abc)|(xyz))\1", [{return, list}]).
 [[],"abc",[]]
 ````
 
-It is worth noting that the internal format produced by `re:compile/2`
+It is worth noting that the internal format produced by [`re:compile/2`](https://www.erlang.org/doc/apps/stdlib/re.html#compile/2)
 has changed in Erlang/OTP 28. It cannot be reused across nodes or OTP versions.
 
 This upgrade offers better long-term maintainability, but you may need to
@@ -610,7 +620,7 @@ accidental misuse of types with the same structure.
 To start with, we can declare two nominal types `meter/0` and `foot/0`
 like the following: 
 
-````
+````erlang
 -nominal meter() :: integer().
 -nominal foot() :: integer().
 ````
@@ -620,7 +630,7 @@ types, they are not compatible. Dialyzer performs nominal type-checking
 on input and output types of functions and specifications. For example,
 we can define functions `int_to_meter/1` and `foo/0` like the following:
 
-````
+````erlang
 -spec int_to_meter(integer()) -> meter().
 int_to_meter(X) -> X.
 
@@ -634,7 +644,7 @@ However, the specification of `foo/0` declares the function's return type
 to be `foot()`. The two nominal types are not compatible. Therefore, Dialyzer
 raises the following warning for our example:
 
-````
+````erlang
 Invalid type specification for function foo/0.
 The success typing is foo() -> (meter() :: integer())
 But the spec is foo() -> foot()
@@ -645,7 +655,7 @@ On the other hand, a nominal type is compatible with a non-opaque, non-nominal
 type with the same structure. We can define the function `return_integer/0`
 like this:
 
-````
+````erlang
 -spec return_integer() -> integer().
 return_integer() -> int_to_meter(24).
 ````
@@ -658,5 +668,5 @@ The structure of `meter()` is compatible with `integer()`. Dialyzer can
 analyze the function above without raising a warning.
 
 There are exceptions to the nominal type-checking rules shown above. For more
-details, see [Nominals](system/doc/reference_manual/nominals.md) in the
+details, see [Nominals](https://www.erlang.org/doc/system/nominals.html) in the
 reference manual.
