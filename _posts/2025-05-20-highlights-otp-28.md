@@ -113,8 +113,8 @@ and [EEP-76](https://www.erlang.org/eeps/eep-0076).
 Erlang/OTP 28 introduces many useful updates in its comprehensions. All
 of them are new language features that have been suggested as [EEPs](https://www.erlang.org/eeps).
 Between the release of Erlang/OTP 27 and 28, there were 4 accepted EEPs related
-to comprehensions. Features described by two of them are included in Erlang/OTP
-28. The other two are postponed to a later release. The [documentation for
+to comprehensions. Features described by two of them are included in
+Erlang/OTP 28. The other two are postponed to a later release. The [documentation for
 comprehensions](https://www.erlang.org/doc/system/expressions.html#comprehensions)
 contains an up-to-date overview of all relevant features.
 
