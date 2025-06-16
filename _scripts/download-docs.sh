@@ -13,7 +13,7 @@ TOKEN=${2:-"token ${GITHUB_TOKEN}"}
 HDR=(--silent --location --fail --show-error -H "Authorization: ${TOKEN}" -H "X-GitHub-Api-Version: 2022-11-28")
 
 # The files that are involved when generating docs
-SCRIPT_FILES="_scripts/download-docs.sh _scripts/otp_flatten_docs _scripts/otp_flatten_ex_docs _scripts/otp_doc_sitemap.sh"
+SCRIPT_FILES="_scripts/download-docs.sh _scripts/otp_flatten_docs _scripts/otp_flatten_ex_docs _scripts/otp_doc_sitemap.sh LATEST_MAJOR_VSN _scripts/otp_add_headers.sh"
 
 _get_vsns() {
     grep "${1}" "${OTP_VERSIONS_TABLE}" | awk '{print $1}' | sed 's/OTP-\(.*\)/\1/g'
@@ -24,6 +24,7 @@ _get_latest_vsn() {
 }
 
 _get_doc_hash() {
+    # _scripts/_get_doc_hash.sh ${OTP_VERSIONS_TABLE} "$1"
     # shellcheck disable=SC2086
     (echo "${1}" && echo "${LATEST_MAJOR_VERSION}" && cat ${SCRIPT_FILES}) | sha256sum | awk '{print $1}'
 }
@@ -37,7 +38,7 @@ _flatten_docs() {
 }
 
 MAJOR_VSNs=$(_get_vsns "OTP-[0-9]\+\.0 " | sed 's/^\([0-9]\+\).*/\1/g')
-LATEST_MAJOR_VSN=$(echo "$MAJOR_VSNs" | tr ' ' '\n' | sort -n | tail -1)
+LATEST_MAJOR_VSN=$(cat "LATEST_MAJOR_VSN")
 RINCLUDE=()
 
 for VSN in ${MAJOR_VSNs}; do
