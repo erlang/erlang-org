@@ -28,11 +28,6 @@ MASTER_MAJOR_VSN="$6"
 
 APP_VSNS=$(cd "${SOURCE_DIR}/lib/" && ls -d -1 * && cd .. && ls -d -1 erts-*)
 
-if [ "${MAJOR_VSN}" = "${LATEST_MAJOR_VSN}" ]; then
-    CANONICAL_URL="https://www.erlang.org/doc/";
-else
-    CANONICAL_URL="https://www.erlang.org/docs/${MAJOR_VSN}/";
-fi
 
 
 _app_name() {
@@ -67,24 +62,6 @@ _fixup_doc_links() {
     sed $FIXUP -i -- "$@"
 }
 
-_fixup_search_link() {
-    sed 's@\s*<title>@<meta name="exdoc:full-text-search-url" content="/doc/search.html?v='"${MAJOR_VSN}"'\&q=">\n&@g' -i -- "$@"
-}
-
-_fixup_major_version() {
-    sed 's@\s*<title>@<meta name="major-vsn" content="'"${MAJOR_VSN}"'">\n&@g' -i -- "$@"
-}
-
-_disable_autocomplete() {
-    sed 's@\s*<title>@<meta name="exdoc:autocomplete" content="off">\n&@g' -i -- "$@"
-}
-
-_add_canonical() {
-    for file in "$@"; do
-        canonical=${file/#"${TARGET_DIR}/"}
-        sed 's@\s*<title>@<link rel="canonical" href="'"${CANONICAL_URL}""${canonical}"'" />\n&@g' -i -- "${file}"
-    done
-}
 
 _get_vsns() {
     grep "${1}" "${OTP_VERSIONS_TABLE}" | awk '{print $1}' | sed 's/OTP-\(.*\)/\1/g'
@@ -140,21 +117,16 @@ _add_versions() {
 
 _flatten_and_update_docs() {
     _fixup_doc_links "$@"
-    _fixup_search_link "$@"
-    _fixup_major_version "$@"
-    _add_canonical "$@"
 }
 
 mkdir "${TARGET_DIR}"
 
 ( GLOBIGNORE="${SOURCE_DIR}/doc/system"; cp -r "${SOURCE_DIR}/doc/"* "${TARGET_DIR}/" )
 _flatten_and_update_docs "${TARGET_DIR}/"*.html
-_disable_autocomplete "${TARGET_DIR}/"*.html
 _add_versions "${TARGET_DIR}" "" "OTP"
 cp -r "${SOURCE_DIR}/doc/system" "${TARGET_DIR}/system"
-_flatten_and_update_docs "${TARGET_DIR}/system/"*.html
-_disable_autocomplete "${TARGET_DIR}/system/"*.html
 _add_versions "${TARGET_DIR}/system" "/system" "OTP"
+_flatten_and_update_docs "${TARGET_DIR}/system/"*.html
 
 mkdir "${TARGET_DIR}/apps"
 

@@ -1,4 +1,4 @@
-.PHONY: setup clean build update serve test algolia setup_gems setup_npm format-eeps patches assets/img/favicon.ico
+.PHONY: setup clean build update serve test algolia setup_gems setup_npm format-eeps patches assets/img/favicon.ico build-docs otp-headers
 
 ## For netlify the BUNDLE_PATH is different so we need to check it
 BUNDLE_PATH?=vendor/bundle
@@ -11,7 +11,7 @@ netlify: clean
 	$(MAKE) -j $(shell nproc) --debug=basic BUNDLE_PATH=/opt/build/cache/bundle JEKYLL_ENV=production
 
 clean:
-	rm -rf _patches docs _eeps faq _clones eeps assets/js
+	rm -rf _patches docs _eeps faq _clones eeps assets/js LATEST_MAJOR_VSN
 
 $(BUNDLE_PATH):
 	bundler install --jobs 4 --retry 3 --path $(BUNDLE_PATH)
@@ -81,7 +81,17 @@ format-eeps: _scripts/_build/default/bin/erlang-org _clones/eep
 	$< format-eeps _eeps _clones/eep/eeps/eep-0000.html _clones/eep/eeps/*.md
 	touch _eeps/$(shell cd _clones/eep && git rev-parse --short HEAD)-$(EEPS_HASH)
 
-docs: otp_versions.table _scripts/download-docs.sh _scripts/otp_flatten_docs _scripts/otp_flatten_ex_docs _scripts/otp_doc_sitemap.sh
+LATEST_MAJOR_VSN: otp_versions.table
+	@set -e ;\
+	MAJOR_VSNs=$$(grep "OTP-[0-9]\+\.0 " $< \
+	| awk '{print $1}' \
+	| sed 's/OTP-\(.*\)/\1/g' \
+	| sed 's/^\([0-9]\+\).*/\1/g') ;\
+	LATEST_MAJOR_VSN=$$(echo "$$MAJOR_VSNs" | tr ' ' '\n' | sort -n | tail -1) ;\
+	echo $$LATEST_MAJOR_VSN > $@
+	
+
+docs: otp_versions.table _scripts/download-docs.sh _scripts/otp_flatten_docs _scripts/otp_flatten_ex_docs _scripts/otp_doc_sitemap.sh LATEST_MAJOR_VSN _scripts/otp_add_headers.sh
 	if [ ! -d $@ ]; then git clone --single-branch -b $@ https://github.com/erlang/erlang-org $@; fi
 	if [ "$(JEKYLL_ENV)" != "production" ]; then _scripts/download-docs.sh $<; fi
 	@touch docs
@@ -108,11 +118,19 @@ patches: _scripts/_build/default/bin/erlang-org otp_versions.table
 update:
 	npm update
 
+otp-headers: docs _redirects _scripts/otp_add_headers.sh LATEST_MAJOR_VSN
+	if [ ! -f "$@" ] || [ ! $$(cat "$@") = $$(tar c "$<" | md5sum | awk '{print $$1}') ]; then \
+		_scripts/otp_add_headers.sh "$<"; \
+	fi;
+	tar c $< | md5sum | awk '{print $$1}' > $@
+
+build-docs: docs otp-headers
+
 _redirects: _redirects.in _scripts/redirects.sh docs
 	cp _redirects.in "$@"
 	_scripts/redirects.sh >> "$@"
 
-setup: setup_gems setup_npm _patches docs _eeps eeps faq _redirects
+setup: setup_gems setup_npm _patches docs _eeps eeps faq _redirects otp-headers
 
 serve: setup
 	bundle exec jekyll serve --future --incremental --trace --livereload --host 0.0.0.0
