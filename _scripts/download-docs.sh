@@ -13,7 +13,7 @@ TOKEN=${2:-"token ${GITHUB_TOKEN}"}
 HDR=(--silent --location --fail --show-error -H "Authorization: ${TOKEN}" -H "X-GitHub-Api-Version: 2022-11-28")
 
 # The files that are involved when generating docs
-SCRIPT_FILES="_scripts/download-docs.sh _scripts/otp_flatten_docs _scripts/otp_flatten_ex_docs _scripts/otp_doc_sitemap.sh"
+SCRIPT_FILES="${OTP_VERSIONS_TABLE} _scripts/download-docs.sh _scripts/otp_flatten_docs _scripts/otp_flatten_ex_docs _scripts/otp_doc_sitemap.sh"
 
 _get_vsns() {
     grep "${1}" "${OTP_VERSIONS_TABLE}" | awk '{print $1}' | sed 's/OTP-\(.*\)/\1/g'
@@ -30,7 +30,7 @@ _get_doc_hash() {
 
 _flatten_docs() {
     if [ -f "docs/doc-$1/doc/readme.html" ]; then
-        (cd docs && ../_scripts/otp_flatten_ex_docs "doc-$1" "$2" "$3")
+        (cd docs && ../_scripts/otp_flatten_ex_docs "doc-$1" "$2" "$3" "../${OTP_VERSIONS_TABLE}" "${MAJOR_VSNs}" "${MASTER_MAJOR_VSN}")
     else
         (cd docs && ../_scripts/otp_flatten_docs "doc-$1" "$2")
     fi
@@ -65,10 +65,10 @@ MASTER_MAJOR_VSN=$(( LATEST_MAJOR_VSN + 1 ))
 MASTER_VSN="${MASTER_MAJOR_VSN}.0"
 MASTER_SHA=$(curl "${HDR[@]}" https://api.github.com/repos/erlang/otp/commits/master | jq ".sha")
 ARCHIVE="docs/otp_doc_html_${MASTER_VSN}.tar.gz"
+MAJOR_VSNs="${MASTER_MAJOR_VSN} ${MAJOR_VSNs}"
 if [ ! -f "${ARCHIVE}" ] && [ ! -f "docs/${MASTER_MAJOR_VSN}/$(_get_doc_hash "${MASTER_SHA}")" ]; then
     echo "Checking for ${MASTER_VSN} on github"
     if curl "${HDR[@]}" "https://api.github.com/repos/erlang/otp/actions/artifacts?name=otp_doc_html" | jq '[.artifacts[] | select(.workflow_run.head_branch == "master")][0] | .archive_download_url' | xargs curl "${HDR[@]}" > "${ARCHIVE}.zip"; then
-        MAJOR_VSNs="${MASTER_MAJOR_VSN} ${MAJOR_VSNs}"
         unzip "${ARCHIVE}.zip"
         mv otp_doc_html.tar.gz "${ARCHIVE}"
         rm -f "${ARCHIVE}.zip"

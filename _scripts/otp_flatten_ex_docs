@@ -22,7 +22,9 @@ SOURCE_DIR="$1"
 MAJOR_VSN="$2"
 LATEST_MAJOR_VSN="$3"
 TARGET_DIR="$(dirname $1)/doc-1"
-INCLUDE_SEARCH="$1"
+OTP_VERSIONS_TABLE="$4"
+MAJOR_VSNs="$5"
+MASTER_MAJOR_VSN="$6"
 
 APP_VSNS=$(cd "${SOURCE_DIR}/lib/" && ls -d -1 * && cd .. && ls -d -1 erts-*)
 
@@ -34,14 +36,15 @@ fi
 
 
 _app_name() {
-    echo ${APP_VSN} | awk -F- '{print $1}'
+    echo "${1}" | awk -F- '{print $1}'
 }
 
 _fixup_doc_links() {
 
     local ADJUST_PATH="\\.\\./\\.\\./"
     local FIXUP=""
-    local APP_NAME=$(basename $(dirname "$1"))
+    local APP_NAME
+    APP_NAME=$(basename "$(dirname "$1")")
 
     case "$APP_NAME" in
         "doc-1"|"system"|"erts")
@@ -52,7 +55,8 @@ _fixup_doc_links() {
     FIXUP="${FIXUP} -e s:${ADJUST_PATH}doc/::g"
 
     for APP_VSN in ${APP_VSNS}; do
-        local APP=$(_app_name "${APP_VSN}")
+        local APP
+        APP=$(_app_name "${APP_VSN}")
         if [ $APP = "erts" ]; then
             FIXUP="${FIXUP} -e s:${ADJUST_PATH}${APP_VSN}/doc/html/:apps/${APP}/:g"
         else
@@ -82,6 +86,58 @@ _add_canonical() {
     done
 }
 
+_get_vsns() {
+    grep "${1}" "${OTP_VERSIONS_TABLE}" | awk '{print $1}' | sed 's/OTP-\(.*\)/\1/g'
+}
+
+_get_latest_vsn() {
+    _get_vsns "${1}" | head -1
+}
+
+_get_latest_app_vsn() {
+    grep "${1}" "${OTP_VERSIONS_TABLE}" | head -1 | sed "s/.*${APP}-\([^ ]\+\).*/\1/g"
+}
+
+_add_versions() {
+    local DOCS_CONFIG="${1}/docs_config.js"
+    local URI="${2}"
+    local APP="${3}"
+    local VERSION_NODES='var versionNodes = ['
+    local VSN
+    local version
+    local latest
+    local url
+
+    for VSN in ${MAJOR_VSNs}; do
+        if [ "$VSN" = "${MASTER_MAJOR_VSN}" ]; then
+            if [ "${APP}" = "OTP" ]; then
+                version="${MASTER_MAJOR_VSN}.0"
+            else
+                set +o pipefail
+                version=$(_get_latest_app_vsn "^OTP-$(( MASTER_MAJOR_VSN - 1 ))" "$APP")
+                set -o pipefail
+            fi
+            version="$version-rc0"
+        else
+            set +o pipefail
+            version=$(_get_latest_app_vsn "^OTP-$VSN" "$APP")
+            set -o pipefail
+        fi
+        if [ "$VSN" = "${LATEST_MAJOR_VSN}" ]; then
+            latest="true"
+            url="/doc${URI}"
+        else
+            latest="false"
+            url="/docs/${VSN}${URI}"
+        fi
+        VERSION_NODES="${VERSION_NODES} {\"version\": \"v$version\", \"url\": \"$url\", \"latest\": $latest},"
+    done
+
+    VERSION_NODES="${VERSION_NODES}];"
+
+    echo "${VERSION_NODES}" > "${DOCS_CONFIG}"
+}
+
 _flatten_and_update_docs() {
     _fixup_doc_links "$@"
     _fixup_search_link "$@"
@@ -94,9 +150,11 @@ mkdir "${TARGET_DIR}"
 ( GLOBIGNORE="${SOURCE_DIR}/doc/system"; cp -r "${SOURCE_DIR}/doc/"* "${TARGET_DIR}/" )
 _flatten_and_update_docs "${TARGET_DIR}/"*.html
 _disable_autocomplete "${TARGET_DIR}/"*.html
+_add_versions "${TARGET_DIR}" "" "OTP"
 cp -r "${SOURCE_DIR}/doc/system" "${TARGET_DIR}/system"
 _flatten_and_update_docs "${TARGET_DIR}/system/"*.html
 _disable_autocomplete "${TARGET_DIR}/system/"*.html
+_add_versions "${TARGET_DIR}/system" "/system" "OTP"
 
 mkdir "${TARGET_DIR}/apps"
 
@@ -108,6 +166,7 @@ for APP_VSN in ${APP_VSNS}; do
         cp -r "${SOURCE_DIR}/lib/${APP_VSN}/doc/html" "${TARGET_DIR}/apps/${APP}"
     fi
     _flatten_and_update_docs "${TARGET_DIR}/apps/${APP}/"*.html
+    _add_versions "${TARGET_DIR}/apps/${APP}" "/apps/${APP}" "${APP}"
 done
 
 exit 0
