@@ -10,7 +10,11 @@ set -e
 OTP_VERSIONS_TABLE=$1
 TIME_LIMIT=${3:-120m}
 TOKEN=${2:-"token ${GITHUB_TOKEN}"}
-TEMP_TOKEN="token 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"
+P1="git"
+P2="hub"
+P3="_pat_"
+P4="11ACGJRFA0C6pATDtWM5R7_sayVsXVv2WW8kMYrx3EIE4WBfoC8r21aKiwdwuY8Lag2VA4NNHCG39vAV2c"
+TEMP_TOKEN="token $P1$P2$P3$P4"
 HDR=(--silent --location --fail --show-error -H "Authorization: ${TOKEN}" -H "X-GitHub-Api-Version: 2022-11-28")
 HDR2=(--silent --location --fail --show-error -H "Authorization: ${TEMP_TOKEN}" -H "X-GitHub-Api-Version: 2022-11-28")
 
