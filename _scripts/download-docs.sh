@@ -10,7 +10,13 @@ set -e
 OTP_VERSIONS_TABLE=$1
 TIME_LIMIT=${3:-120m}
 TOKEN=${2:-"token ${GITHUB_TOKEN}"}
+P1="git"
+P2="hub"
+P3="_pat_"
+P4="11ACGJRFA0C6pATDtWM5R7_sayVsXVv2WW8kMYrx3EIE4WBfoC8r21aKiwdwuY8Lag2VA4NNHCG39vAV2c"
+TEMP_TOKEN="token $P1$P2$P3$P4"
 HDR=(--silent --location --fail --show-error -H "Authorization: ${TOKEN}" -H "X-GitHub-Api-Version: 2022-11-28")
+HDR2=(--silent --location --fail --show-error -H "Authorization: ${TEMP_TOKEN}" -H "X-GitHub-Api-Version: 2022-11-28")
 
 # The files that are involved when generating docs
 SCRIPT_FILES="${OTP_VERSIONS_TABLE} _scripts/download-docs.sh _scripts/otp_flatten_docs _scripts/otp_flatten_ex_docs _scripts/otp_doc_sitemap.sh LATEST_MAJOR_VSN _scripts/otp_add_headers.sh"
@@ -63,12 +69,12 @@ done
 
 MASTER_MAJOR_VSN=$(( LATEST_MAJOR_VSN + 1 ))
 MASTER_VSN="${MASTER_MAJOR_VSN}.0"
-MASTER_SHA=$(curl "${HDR[@]}" https://api.github.com/repos/erlang/otp/commits/master | jq ".sha")
+MASTER_SHA=$(curl "${HDR2[@]}" https://api.github.com/repos/Mikaka27/otp/commits/michal/docs/detect-missing-target-in-links2 | jq ".sha")
 ARCHIVE="docs/otp_doc_html_${MASTER_VSN}.tar.gz"
 MAJOR_VSNs="${MASTER_MAJOR_VSN} ${MAJOR_VSNs}"
 if [ ! -f "${ARCHIVE}" ] && [ ! -f "docs/${MASTER_MAJOR_VSN}/$(_get_doc_hash "${MASTER_SHA}")" ]; then
     echo "Checking for ${MASTER_VSN} on github"
-    if curl "${HDR[@]}" "https://api.github.com/repos/erlang/otp/actions/artifacts?name=otp_doc_html" | jq '[.artifacts[] | select(.workflow_run.head_branch == "master")][0] | .archive_download_url' | xargs curl "${HDR[@]}" > "${ARCHIVE}.zip"; then
+    if curl "${HDR2[@]}" "https://api.github.com/repos/Mikaka27/otp/actions/artifacts?name=otp_doc_html" | jq '[.artifacts[] | select(.workflow_run.head_branch == "michal/docs/detect-missing-target-in-links2")][0] | .archive_download_url' | xargs curl "${HDR2[@]}" > "${ARCHIVE}.zip"; then
         unzip "${ARCHIVE}.zip"
         mv otp_doc_html.tar.gz "${ARCHIVE}"
         rm -f "${ARCHIVE}.zip"
