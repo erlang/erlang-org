@@ -69,12 +69,12 @@ done
 
 MASTER_MAJOR_VSN=$(( LATEST_MAJOR_VSN + 1 ))
 MASTER_VSN="${MASTER_MAJOR_VSN}.0"
-MASTER_SHA=$(curl "${HDR2[@]}" https://api.github.com/repos/Mikaka27/otp/commits/michal/docs/detect-missing-target-in-links | jq ".sha")
+MASTER_SHA=$(curl "${HDR2[@]}" https://api.github.com/repos/Mikaka27/otp/commits/michal/docs/detect-missing-target-in-links2 | jq ".sha")
 ARCHIVE="docs/otp_doc_html_${MASTER_VSN}.tar.gz"
 MAJOR_VSNs="${MASTER_MAJOR_VSN} ${MAJOR_VSNs}"
 if [ ! -f "${ARCHIVE}" ] && [ ! -f "docs/${MASTER_MAJOR_VSN}/$(_get_doc_hash "${MASTER_SHA}")" ]; then
     echo "Checking for ${MASTER_VSN} on github"
-    if curl "${HDR2[@]}" "https://api.github.com/repos/Mikaka27/otp/actions/artifacts?name=otp_doc_html" | jq '[.artifacts[] | select(.workflow_run.head_branch == "michal/docs/detect-missing-target-in-links")][0] | .archive_download_url' | xargs curl "${HDR2[@]}" > "${ARCHIVE}.zip"; then
+    if curl "${HDR2[@]}" "https://api.github.com/repos/Mikaka27/otp/actions/artifacts?name=otp_doc_html" | jq '[.artifacts[] | select(.workflow_run.head_branch == "michal/docs/detect-missing-target-in-links2")][0] | .archive_download_url' | xargs curl "${HDR2[@]}" > "${ARCHIVE}.zip"; then
         unzip "${ARCHIVE}.zip"
         mv otp_doc_html.tar.gz "${ARCHIVE}"
         rm -f "${ARCHIVE}.zip"
