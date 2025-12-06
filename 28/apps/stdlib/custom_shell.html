@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.38.1">
+    <meta name="project" content="stdlib v7.1">
+
+
+<meta name="major-vsn" content="28">
+<meta name="exdoc:full-text-search-url" content="/doc/search.html?v=28&q=">
+<link rel="canonical" href="https://www.erlang.org/doc/apps/stdlib/custom_shell.html" />
+    <title>Creating a custom shell — stdlib v7.1</title>
+
+    <link rel="stylesheet" href="dist/html-erlang-ZK43ZOAC.css" />
+
+    <script defer src="dist/sidebar_items-296BF65E.js"></script>
+    <script defer src="docs_config.js"></script>
+    <script defer src="dist/html-DPJLHKSM.js"></script>
+
+  </head>
+  <body>
+    <script>(()=>{var t="ex_doc:settings",e="dark";var o="dark",s="light";var E="sidebar_state",n="closed";var r="sidebar_width";var a="sidebar-open";var i=new URLSearchParams(window.location.search),S=i.get("theme")||JSON.parse(localStorage.getItem(t)||"{}").theme;(S===o||S!==s&&window.matchMedia("(prefers-color-scheme: dark)").matches)&&document.body.classList.add(e);var d=sessionStorage.getItem(E),A=d!==n&&!window.matchMedia(`screen and (max-width: ${768}px)`).matches;document.body.classList.toggle(a,A);var c=sessionStorage.getItem(r);c&&document.body.style.setProperty("--sidebarWidth",`${c}px`);var p=/(Macintosh|iPhone|iPad|iPod)/.test(window.navigator.userAgent);document.documentElement.classList.toggle("apple-os",p);})();
+</script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="stdlib" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+stdlib
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v7.1
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-list-nav" class="sidebar-list-nav" role="tablist" data-extras=""></ul>
+  </div>
+</nav>
+
+<output role="status" id="toast"></output>
+
+<main class="content page-extra" id="main" data-type="extras">
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of stdlib</span>
+            <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+          </label>
+          <button type="submit" class="search-button" aria-label="Submit Search" tabindex="-1">
+            <i class="ri-search-2-line ri-lg" aria-hidden="true"></i>
+          </button>
+          <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+            <i class="ri-close-line ri-lg" title="Cancel search"></i>
+          </button>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <div class="heading-with-actions top-heading">
+    <h1>Creating a custom shell</h1>
+
+
+      <a href="https://github.com/erlang/otp/blob/OTP-28.2/lib/stdlib/doc/guides/custom_shell.md#L1" title="View Source" class="icon-action" rel="help">
+        <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        <span class="sr-only">View Source</span>
+      </a>
+
+  </div>
+
+
+<p>This guide will show how to create a custom shell. The most common
+use case for this is to support other languages running on the Erlang VM,
+but it can also be used to create specialized debugging shells a system.</p><p>This guide will build on top of the built-in <a href="edlin.html">Erlang line editor</a>,
+which means that the keybindings described in <a href="../../apps/erts/tty.html">tty - A Command-Line Interface</a>
+can be used edit the input before it is passed to the custom shell. This
+somewhat limits what the custom shell can do, but it also means that we do not
+have to implement line editing ourselves. If you need more control over the
+shell, then use <a href="terminal_interface.html">Creating a terminal application</a> as
+a starting-point to build your own line editor and shell.</p><h2 id="a-process-inspection-shell" class="section-heading"><a href="#a-process-inspection-shell" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">A process inspection shell</span></h2><p>The custom shell that we are going to build is a process inspection shell
+that supports the following commands:</p><ul><li><code class="inline">list</code> - lists all processes</li><li><code class="inline">inspect pid()</code> - inspect a process</li><li><code class="inline">suspend pid()</code> - suspend a process</li><li><code class="inline">resume pid()</code> - resume a process</li></ul><p>Lets get started!</p><h2 id="starting-with-a-custom-shell" class="section-heading"><a href="#starting-with-a-custom-shell" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Starting with a custom shell</span></h2><p>The custom shell will be implemented in an <a href="escript.html"><code class="inline">escript</code></a>, but it could just
+as well be in a regular system or as a remote shell. To start a custom shell
+we first need to start Erlang in <code class="inline">-noinput</code> or <code class="inline">-noshell</code> mode. <a href="escript.html"><code class="inline">escript</code></a> are
+started by default in <code class="inline">-noshell</code> mode, so we don't have to do anything special here.
+To start the custom shell we then call <a href="shell.html#start_interactive/1"><code class="inline">shell:start_interactive/1</code></a>.</p><pre><code class="makeup erlang" translate="no"><span class="ch">#!/usr/bin/env escript
+</span><span class="c1">%% pshell.es</span><span class="w">
+</span><span class="p">-</span><span class="na">export</span><span class="p" data-group-id="2371860303-1">(</span><span class="p" data-group-id="2371860303-2">[</span><span class="ss">start</span><span class="p">/</span><span class="mi">0</span><span class="p" data-group-id="2371860303-2">]</span><span class="p" data-group-id="2371860303-1">)</span><span class="p">.</span><span class="w">
+</span><span class="nf">main</span><span class="p" data-group-id="2371860303-3">(</span><span class="p">_</span><span class="n">Args</span><span class="p" data-group-id="2371860303-3">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">shell</span><span class="p">:</span><span class="nf">start_interactive</span><span class="p" data-group-id="2371860303-4">(</span><span class="p" data-group-id="2371860303-5">{</span><span class="o">?</span><span class="n">MODULE</span><span class="p">,</span><span class="w"> </span><span class="ss">start</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2371860303-6">[</span><span class="p" data-group-id="2371860303-6">]</span><span class="p" data-group-id="2371860303-5">}</span><span class="p" data-group-id="2371860303-4">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">timer</span><span class="p">:</span><span class="nf">sleep</span><span class="p" data-group-id="2371860303-7">(</span><span class="ss">infinity</span><span class="p" data-group-id="2371860303-7">)</span><span class="p">.</span><span class="w"> </span><span class="c1">%% Make sure the escript does not exit</span><span class="w">
+</span><span class="w">
+</span><span class="p">-</span><span class="na">spec</span><span class="w"> </span><span class="nf">start</span><span class="p" data-group-id="2371860303-8">(</span><span class="p" data-group-id="2371860303-8">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nf">pid</span><span class="p" data-group-id="2371860303-9">(</span><span class="p" data-group-id="2371860303-9">)</span><span class="p">.</span><span class="w">
+</span><span class="nf">start</span><span class="p" data-group-id="2371860303-10">(</span><span class="p" data-group-id="2371860303-10">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">spawn</span><span class="p" data-group-id="2371860303-11">(</span><span class="nf">fun</span><span class="p" data-group-id="2371860303-12">(</span><span class="p" data-group-id="2371860303-12">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                  </span><span class="nc">io</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="2371860303-13">(</span><span class="s">~&quot;Starting process inspection shell</span><span class="si">~n</span><span class="s">&quot;</span><span class="p" data-group-id="2371860303-13">)</span><span class="p">,</span><span class="w">
+                  </span><span class="nf">loop</span><span class="p" data-group-id="2371860303-14">(</span><span class="p" data-group-id="2371860303-14">)</span><span class="w">
+          </span><span class="k">end</span><span class="p" data-group-id="2371860303-11">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">loop</span><span class="p" data-group-id="2371860303-15">(</span><span class="p" data-group-id="2371860303-15">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">receive</span><span class="w"> </span><span class="p">_</span><span class="n">M</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nf">loop</span><span class="p" data-group-id="2371860303-16">(</span><span class="p" data-group-id="2371860303-16">)</span><span class="w"> </span><span class="k">end</span><span class="p">.</span></code></pre><p>If we run the above we will get this:</p><pre><code class="makeup shell" translate="no"><span class="gp unselectable">$ </span><span class="">./pshell.es
+</span><span class="">Erlang/OTP 28 [DEVELOPMENT] [erts-15.0.1] [source-b395339a02] [64-bit] [smp:8:8] [ds:8:8:10] [async-threads:1] [jit:ns]
+</span><span class="">
+</span><span class="">Starting process inspection shell
+</span><span class="">
+</span></code></pre><p>The <a href="io.html#t:standard_io/0"><code class="inline">io:standard_io/0</code></a> of the created shell process will be set to the
+Erlang line editor, which means that we can use the normal <a href="io.html"><code class="inline">io</code></a> functions
+to read and write data to the terminal.</p><h2 id="adding-our-first-command" class="section-heading"><a href="#adding-our-first-command" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Adding our first command</span></h2><p>Let's start adding the shell interface. We will use <a href="io.html#get_line/1"><code class="inline">io:get_line/1</code></a> to read from
+<a href="io.html#t:standard_io/0"><code class="inline">io:standard_io/0</code></a> as this shell will be line based. However, for a more complex
+shell it is better to send <a href="io_protocol.html#input-requests"><code class="inline">get_until</code> I/O requests</a>
+as commands read that way can span multiple lines. So we expand our <code class="inline">loop/0</code> with
+a <a href="io.html#get_line/1"><code class="inline">io:get_line/1</code></a> and pass the results to our parser.</p><pre><code class="makeup erlang" translate="no"><span class="nf">loop</span><span class="p" data-group-id="1919220977-1">(</span><span class="p" data-group-id="1919220977-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="nc">io</span><span class="p">:</span><span class="nf">get_line</span><span class="p" data-group-id="1919220977-2">(</span><span class="s">&quot;&gt; &quot;</span><span class="p" data-group-id="1919220977-2">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+        </span><span class="ss">eof</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="ss">ok</span><span class="p">;</span><span class="w">
+        </span><span class="p" data-group-id="1919220977-3">{</span><span class="ss">error</span><span class="p">,</span><span class="w"> </span><span class="n">Reason</span><span class="p" data-group-id="1919220977-3">}</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nf">exit</span><span class="p" data-group-id="1919220977-4">(</span><span class="n">Reason</span><span class="p" data-group-id="1919220977-4">)</span><span class="p">;</span><span class="w">
+        </span><span class="n">Data</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nf">eval</span><span class="p" data-group-id="1919220977-5">(</span><span class="nc">string</span><span class="p">:</span><span class="nf">trim</span><span class="p" data-group-id="1919220977-6">(</span><span class="n">Data</span><span class="p" data-group-id="1919220977-6">)</span><span class="p" data-group-id="1919220977-5">)</span><span class="w">
+    </span><span class="k">end</span><span class="p">,</span><span class="w">
+    </span><span class="nf">loop</span><span class="p" data-group-id="1919220977-7">(</span><span class="p" data-group-id="1919220977-7">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">eval</span><span class="p" data-group-id="1919220977-8">(</span><span class="s">&quot;list&quot;</span><span class="p" data-group-id="1919220977-8">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">Format</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot; ~.10ts | ~.10ts | ~.10ts</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w">
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="1919220977-9">(</span><span class="n">Format</span><span class="p">,</span><span class="p" data-group-id="1919220977-10">[</span><span class="s">&quot;Pid&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Name&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;MsgQ Len&quot;</span><span class="p" data-group-id="1919220977-10">]</span><span class="p" data-group-id="1919220977-9">)</span><span class="p">,</span><span class="w">
+    </span><span class="p" data-group-id="1919220977-11">[</span><span class="k">begin</span><span class="w">
+         </span><span class="p" data-group-id="1919220977-12">[</span><span class="p" data-group-id="1919220977-13">{</span><span class="ss">registered_name</span><span class="p">,</span><span class="n">Name</span><span class="p" data-group-id="1919220977-13">}</span><span class="p">,</span><span class="p" data-group-id="1919220977-14">{</span><span class="ss">message_queue_len</span><span class="p">,</span><span class="n">Len</span><span class="p" data-group-id="1919220977-14">}</span><span class="p" data-group-id="1919220977-12">]</span><span class="w">
+             </span><span class="o">=</span><span class="w"> </span><span class="nc">erlang</span><span class="p">:</span><span class="nf">process_info</span><span class="p" data-group-id="1919220977-15">(</span><span class="n">Pid</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="1919220977-16">[</span><span class="ss">registered_name</span><span class="p">,</span><span class="w"> </span><span class="ss">message_queue_len</span><span class="p" data-group-id="1919220977-16">]</span><span class="p" data-group-id="1919220977-15">)</span><span class="p">,</span><span class="w">
+         </span><span class="nc">io</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="1919220977-17">(</span><span class="n">Format</span><span class="p">,</span><span class="p" data-group-id="1919220977-18">[</span><span class="nf">to_list</span><span class="p" data-group-id="1919220977-19">(</span><span class="n">Pid</span><span class="p" data-group-id="1919220977-19">)</span><span class="p">,</span><span class="w"> </span><span class="nf">to_list</span><span class="p" data-group-id="1919220977-20">(</span><span class="n">Name</span><span class="p" data-group-id="1919220977-20">)</span><span class="p">,</span><span class="w"> </span><span class="nf">to_list</span><span class="p" data-group-id="1919220977-21">(</span><span class="n">Len</span><span class="p" data-group-id="1919220977-21">)</span><span class="p" data-group-id="1919220977-18">]</span><span class="p" data-group-id="1919220977-17">)</span><span class="w">
+     </span><span class="k">end</span><span class="w"> </span><span class="p">||</span><span class="w"> </span><span class="n">Pid</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="nf">processes</span><span class="p" data-group-id="1919220977-22">(</span><span class="p" data-group-id="1919220977-22">)</span><span class="p" data-group-id="1919220977-11">]</span><span class="p">;</span><span class="w">
+</span><span class="nf">eval</span><span class="p" data-group-id="1919220977-23">(</span><span class="n">Unknown</span><span class="p" data-group-id="1919220977-23">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="1919220977-24">(</span><span class="s">&quot;Unknown command: &#39;~ts&#39;</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="p" data-group-id="1919220977-25">[</span><span class="n">Unknown</span><span class="p" data-group-id="1919220977-25">]</span><span class="p" data-group-id="1919220977-24">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">to_list</span><span class="p" data-group-id="1919220977-26">(</span><span class="n">Pid</span><span class="p" data-group-id="1919220977-26">)</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="nf">is_pid</span><span class="p" data-group-id="1919220977-27">(</span><span class="n">Pid</span><span class="p" data-group-id="1919220977-27">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">pid_to_list</span><span class="p" data-group-id="1919220977-28">(</span><span class="n">Pid</span><span class="p" data-group-id="1919220977-28">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">to_list</span><span class="p" data-group-id="1919220977-29">(</span><span class="n">Atom</span><span class="p" data-group-id="1919220977-29">)</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="nf">is_atom</span><span class="p" data-group-id="1919220977-30">(</span><span class="n">Atom</span><span class="p" data-group-id="1919220977-30">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">atom_to_list</span><span class="p" data-group-id="1919220977-31">(</span><span class="n">Atom</span><span class="p" data-group-id="1919220977-31">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">to_list</span><span class="p" data-group-id="1919220977-32">(</span><span class="n">Int</span><span class="p" data-group-id="1919220977-32">)</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="nf">is_integer</span><span class="p" data-group-id="1919220977-33">(</span><span class="n">Int</span><span class="p" data-group-id="1919220977-33">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">integer_to_list</span><span class="p" data-group-id="1919220977-34">(</span><span class="n">Int</span><span class="p" data-group-id="1919220977-34">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">to_list</span><span class="p" data-group-id="1919220977-35">(</span><span class="n">List</span><span class="p" data-group-id="1919220977-35">)</span><span class="w"> </span><span class="k">when</span><span class="w"> </span><span class="nf">is_list</span><span class="p" data-group-id="1919220977-36">(</span><span class="n">List</span><span class="p" data-group-id="1919220977-36">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">List</span><span class="p">.</span></code></pre><p>If we run the above we will get this:</p><pre><code class="txt">$ ./pshell.es
+Erlang/OTP 28 [DEVELOPMENT] [erts-15.0.1] [source-b395339a02] [64-bit] [smp:8:8] [ds:8:8:10] [async-threads:1] [jit:ns]
+
+Starting process inspection shell
+&gt; list
+ Pid        | Name       | MsgQ Len  
+ &lt;0.0.0&gt;    | init       | 0         
+ &lt;0.1.0&gt;    | erts_code_ | 0         
+ &lt;0.2.0&gt;    |            | 0         
+ &lt;0.3.0&gt;    |            | 0         
+ &lt;0.4.0&gt;    |            | 0         
+ &lt;0.5.0&gt;    |            | 0         
+ &lt;0.6.0&gt;    |            | 0         
+ &lt;0.7.0&gt;    |            | 0         
+ &lt;0.8.0&gt;    | socket_reg | 0         
+ &lt;0.10.0&gt;   |            | 0         
+ &lt;0.11.0&gt;   | erl_prim_l | 0         
+ &lt;0.43.0&gt;   | logger     | 0         
+ &lt;0.45.0&gt;   | applicatio | 0
+...</code></pre><p>With this all in place we can now easily add <code class="inline">inspect</code>, <code class="inline">suspend</code> and <code class="inline">resume</code> as well.</p><pre><code class="makeup erlang" translate="no"><span class="nf">eval</span><span class="p" data-group-id="7258457672-1">(</span><span class="s">&quot;inspect &quot;</span><span class="w"> </span><span class="o">++</span><span class="w"> </span><span class="n">PidStr</span><span class="p" data-group-id="7258457672-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="nf">parse_pid</span><span class="p" data-group-id="7258457672-2">(</span><span class="n">PidStr</span><span class="p" data-group-id="7258457672-2">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+        </span><span class="ss">invalid</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="ss">ok</span><span class="p">;</span><span class="w">
+        </span><span class="n">Pid</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="p" data-group-id="7258457672-3">[</span><span class="p" data-group-id="7258457672-4">{</span><span class="ss">registered_name</span><span class="p">,</span><span class="w"> </span><span class="n">Name</span><span class="p" data-group-id="7258457672-4">}</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7258457672-5">{</span><span class="nb">memory</span><span class="p">,</span><span class="w"> </span><span class="n">Memory</span><span class="p" data-group-id="7258457672-5">}</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7258457672-6">{</span><span class="ss">messages</span><span class="p">,</span><span class="w"> </span><span class="n">Messages</span><span class="p" data-group-id="7258457672-6">}</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7258457672-7">{</span><span class="ss">status</span><span class="p">,</span><span class="w"> </span><span class="n">Status</span><span class="p" data-group-id="7258457672-7">}</span><span class="p" data-group-id="7258457672-3">]</span><span class="w"> </span><span class="o">=</span><span class="w">
+                </span><span class="nc">erlang</span><span class="p">:</span><span class="nf">process_info</span><span class="p" data-group-id="7258457672-8">(</span><span class="n">Pid</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="7258457672-9">[</span><span class="ss">registered_name</span><span class="p">,</span><span class="w"> </span><span class="nb">memory</span><span class="p">,</span><span class="w"> </span><span class="ss">messages</span><span class="p">,</span><span class="w"> </span><span class="ss">status</span><span class="p" data-group-id="7258457672-9">]</span><span class="p" data-group-id="7258457672-8">)</span><span class="p">,</span><span class="w">
+            </span><span class="nc">io</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="7258457672-10">(</span><span class="s">&quot;Pid: </span><span class="si">~p</span><span class="si">~n</span><span class="s">Name: ~ts</span><span class="si">~n</span><span class="s">Status: </span><span class="si">~p</span><span class="si">~n</span><span class="s">Memory: </span><span class="si">~p</span><span class="si">~n</span><span class="s">Messages: </span><span class="si">~p</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w">
+                      </span><span class="p" data-group-id="7258457672-11">[</span><span class="n">Pid</span><span class="p">,</span><span class="w"> </span><span class="nf">to_list</span><span class="p" data-group-id="7258457672-12">(</span><span class="n">Name</span><span class="p" data-group-id="7258457672-12">)</span><span class="p">,</span><span class="w"> </span><span class="n">Status</span><span class="p">,</span><span class="w"> </span><span class="n">Memory</span><span class="p">,</span><span class="w"> </span><span class="n">Messages</span><span class="p" data-group-id="7258457672-11">]</span><span class="p" data-group-id="7258457672-10">)</span><span class="w">
+    </span><span class="k">end</span><span class="p">;</span><span class="w">
+</span><span class="nf">eval</span><span class="p" data-group-id="7258457672-13">(</span><span class="s">&quot;suspend &quot;</span><span class="w"> </span><span class="o">++</span><span class="w"> </span><span class="n">PidStr</span><span class="p" data-group-id="7258457672-13">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="nf">parse_pid</span><span class="p" data-group-id="7258457672-14">(</span><span class="n">PidStr</span><span class="p" data-group-id="7258457672-14">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+        </span><span class="ss">invalid</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="ss">ok</span><span class="p">;</span><span class="w">
+        </span><span class="n">Pid</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="nc">erlang</span><span class="p">:</span><span class="nf">suspend_process</span><span class="p" data-group-id="7258457672-15">(</span><span class="n">Pid</span><span class="p" data-group-id="7258457672-15">)</span><span class="p">,</span><span class="w">
+            </span><span class="nc">io</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="7258457672-16">(</span><span class="s">&quot;Suspeneded ~ts</span><span class="si">~n</span><span class="s">&quot;</span><span class="p" data-group-id="7258457672-16">)</span><span class="w">
+    </span><span class="k">end</span><span class="p">;</span><span class="w">
+</span><span class="nf">eval</span><span class="p" data-group-id="7258457672-17">(</span><span class="s">&quot;resume &quot;</span><span class="w"> </span><span class="o">++</span><span class="w"> </span><span class="n">PidStr</span><span class="p" data-group-id="7258457672-17">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="nf">parse_pid</span><span class="p" data-group-id="7258457672-18">(</span><span class="n">PidStr</span><span class="p" data-group-id="7258457672-18">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+        </span><span class="ss">invalid</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="ss">ok</span><span class="p">;</span><span class="w">
+        </span><span class="n">Pid</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="nc">erlang</span><span class="p">:</span><span class="nf">resumne_process</span><span class="p" data-group-id="7258457672-19">(</span><span class="n">Pid</span><span class="p" data-group-id="7258457672-19">)</span><span class="p">,</span><span class="w">
+            </span><span class="nc">io</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="7258457672-20">(</span><span class="s">&quot;Resumed ~ts</span><span class="si">~n</span><span class="s">&quot;</span><span class="p" data-group-id="7258457672-20">)</span><span class="w">
+    </span><span class="k">end</span><span class="p">;</span></code></pre><h2 id="adding-autocompletion" class="section-heading"><a href="#adding-autocompletion" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Adding autocompletion</span></h2><p>Wouldn't it be great if we could add some simple auto-completion for our shell? We can do that
+by setting a <a href="edlin_expand.html"><code class="inline">edlin_expand</code></a> fun for our shell. This is done by calling <a href="io.html#setopts/2"><code class="inline">io:setopts([{expand_fun, Fun}])</code></a>. The fun that we provide is will receive the reversed current line from
+<a href="edlin.html"><code class="inline">edlin</code></a> and is expected to return possible expansions. Let's start by adding a simple fun to
+expand our commands.</p><pre><code class="makeup erlang" translate="no"><span class="p">-</span><span class="na">spec</span><span class="w"> </span><span class="nf">start</span><span class="p" data-group-id="2850153937-1">(</span><span class="p" data-group-id="2850153937-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="nf">pid</span><span class="p" data-group-id="2850153937-2">(</span><span class="p" data-group-id="2850153937-2">)</span><span class="p">.</span><span class="w">
+</span><span class="nf">start</span><span class="p" data-group-id="2850153937-3">(</span><span class="p" data-group-id="2850153937-3">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">spawn</span><span class="p" data-group-id="2850153937-4">(</span><span class="nf">fun</span><span class="p" data-group-id="2850153937-5">(</span><span class="p" data-group-id="2850153937-5">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+                  </span><span class="nc">io</span><span class="p">:</span><span class="nf">setopts</span><span class="p" data-group-id="2850153937-6">(</span><span class="p" data-group-id="2850153937-7">[</span><span class="p" data-group-id="2850153937-8">{</span><span class="ss">expand_fun</span><span class="p">,</span><span class="w"> </span><span class="k">fun</span><span class="w"> </span><span class="ss">expand_fun</span><span class="p">/</span><span class="mi">1</span><span class="p" data-group-id="2850153937-8">}</span><span class="p" data-group-id="2850153937-7">]</span><span class="p" data-group-id="2850153937-6">)</span><span class="p">,</span><span class="w">
+                  </span><span class="nc">io</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="2850153937-9">(</span><span class="s">~&quot;Starting process inspection shell</span><span class="si">~n</span><span class="s">&quot;</span><span class="p" data-group-id="2850153937-9">)</span><span class="p">,</span><span class="w">
+                  </span><span class="nf">loop</span><span class="p" data-group-id="2850153937-10">(</span><span class="p" data-group-id="2850153937-10">)</span><span class="w">
+          </span><span class="k">end</span><span class="p" data-group-id="2850153937-4">)</span><span class="p">.</span><span class="w">
+</span><span class="w">
+</span><span class="p">-</span><span class="na">spec</span><span class="w"> </span><span class="nf">expand_fun</span><span class="p" data-group-id="2850153937-11">(</span><span class="n">ReverseLine</span><span class="w"> </span><span class="p">:</span><span class="p">:</span><span class="w"> </span><span class="nf">string</span><span class="p" data-group-id="2850153937-12">(</span><span class="p" data-group-id="2850153937-12">)</span><span class="p" data-group-id="2850153937-11">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="p" data-group-id="2850153937-13">{</span><span class="ss">yes</span><span class="p">,</span><span class="w"> </span><span class="nf">string</span><span class="p" data-group-id="2850153937-14">(</span><span class="p" data-group-id="2850153937-14">)</span><span class="p">,</span><span class="w"> </span><span class="nf">list</span><span class="p" data-group-id="2850153937-15">(</span><span class="nf">string</span><span class="p" data-group-id="2850153937-16">(</span><span class="p" data-group-id="2850153937-16">)</span><span class="p" data-group-id="2850153937-15">)</span><span class="p" data-group-id="2850153937-13">}</span><span class="w"> </span><span class="p">|</span><span class="w">
+          </span><span class="p" data-group-id="2850153937-17">{</span><span class="ss">no</span><span class="p">,</span><span class="w"> </span><span class="nf">nil</span><span class="p" data-group-id="2850153937-18">(</span><span class="p" data-group-id="2850153937-18">)</span><span class="p">,</span><span class="w"> </span><span class="nf">nil</span><span class="p" data-group-id="2850153937-19">(</span><span class="p" data-group-id="2850153937-19">)</span><span class="p" data-group-id="2850153937-17">}</span><span class="p">.</span><span class="w">
+</span><span class="nf">expand_fun</span><span class="p" data-group-id="2850153937-20">(</span><span class="s">&quot;&quot;</span><span class="p" data-group-id="2850153937-20">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="c1">%% If line is empty, we list all available commands</span><span class="w">
+    </span><span class="p" data-group-id="2850153937-21">{</span><span class="ss">yes</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2850153937-22">[</span><span class="s">&quot;list&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;inspect&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;suspend&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;resume&quot;</span><span class="p" data-group-id="2850153937-22">]</span><span class="p" data-group-id="2850153937-21">}</span><span class="p">;</span><span class="w">
+</span><span class="nf">expand_fun</span><span class="p" data-group-id="2850153937-23">(</span><span class="n">Curr</span><span class="p" data-group-id="2850153937-23">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">expand_fun</span><span class="p" data-group-id="2850153937-24">(</span><span class="nc">lists</span><span class="p">:</span><span class="nf">reverse</span><span class="p" data-group-id="2850153937-25">(</span><span class="n">Curr</span><span class="p" data-group-id="2850153937-25">)</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2850153937-26">[</span><span class="s">&quot;list&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;inspect&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;suspend&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;resume&quot;</span><span class="p" data-group-id="2850153937-26">]</span><span class="p" data-group-id="2850153937-24">)</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">expand_fun</span><span class="p" data-group-id="2850153937-27">(</span><span class="p">_</span><span class="n">Curr</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2850153937-28">[</span><span class="p" data-group-id="2850153937-28">]</span><span class="p" data-group-id="2850153937-27">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="2850153937-29">{</span><span class="ss">no</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2850153937-30">[</span><span class="p" data-group-id="2850153937-30">]</span><span class="p" data-group-id="2850153937-29">}</span><span class="p">;</span><span class="w">
+</span><span class="nf">expand_fun</span><span class="p" data-group-id="2850153937-31">(</span><span class="n">Curr</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2850153937-32">[</span><span class="n">Cmd</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="n">T</span><span class="p" data-group-id="2850153937-32">]</span><span class="p" data-group-id="2850153937-31">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="nc">lists</span><span class="p">:</span><span class="nf">prefix</span><span class="p" data-group-id="2850153937-33">(</span><span class="n">Curr</span><span class="p">,</span><span class="w"> </span><span class="n">Cmd</span><span class="p" data-group-id="2850153937-33">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+        </span><span class="ss">true</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="c1">%% If Curr is a prefix of Cmd we subtract Curr from Cmd to get the</span><span class="w">
+            </span><span class="c1">%% characters we need to complete with.</span><span class="w">
+            </span><span class="p" data-group-id="2850153937-34">{</span><span class="ss">yes</span><span class="p">,</span><span class="w"> </span><span class="nc">lists</span><span class="p">:</span><span class="nf">reverse</span><span class="p" data-group-id="2850153937-35">(</span><span class="nc">lists</span><span class="p">:</span><span class="nf">reverse</span><span class="p" data-group-id="2850153937-36">(</span><span class="n">Cmd</span><span class="p" data-group-id="2850153937-36">)</span><span class="w"> </span><span class="o">--</span><span class="w"> </span><span class="nc">lists</span><span class="p">:</span><span class="nf">reverse</span><span class="p" data-group-id="2850153937-37">(</span><span class="n">Curr</span><span class="p" data-group-id="2850153937-37">)</span><span class="p" data-group-id="2850153937-35">)</span><span class="p">,</span><span class="w"> </span><span class="p" data-group-id="2850153937-38">[</span><span class="p" data-group-id="2850153937-38">]</span><span class="p" data-group-id="2850153937-34">}</span><span class="p">;</span><span class="w">
+        </span><span class="ss">false</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="nf">expand_fun</span><span class="p" data-group-id="2850153937-39">(</span><span class="n">Curr</span><span class="p">,</span><span class="w"> </span><span class="n">T</span><span class="p" data-group-id="2850153937-39">)</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span></code></pre><p>With the above code we will get expansions of our commands if we hit <code class="inline">&lt;TAB&gt;</code> in the shell.
+Its possible to make very complex completion algorithms, for example the Erlang shell
+has completions based on the function specifications of your code. It is important though that
+the shell still feels responsive, so calling out to a LLM model for completion may or may not
+be a good idea.</p><p>The complete source code for this example can be found <a href="assets/pshell.es">here</a>.</p>
+
+</div>
+
+<div class="bottom-actions" id="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="io_protocol.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+The Erlang I/O Protocol
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="terminal_interface.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+Creating a terminal application
+        </span>
+      </a>
+
+  </div>
+</div>
+    <footer class="footer">
+      <p>
+
+        <span class="line">
+          <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+            Search HexDocs
+          </button>
+
+            <a href="stdlib.epub" title="ePub version">
+              Download ePub version
+            </a>
+
+        </span>
+      </p>
+
+      <p class="built-using">
+        Built using
+        <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.38.1) for the
+
+          <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+      </p>
+<p>Copyright © 1996-2025 <a href="https://www.ericsson.com">Ericsson AB</a></p>
+    </footer>
+  </div>
+</main>
+</div>
+  <script defer src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+  <script>
+  let initialized = false;
+
+  window.addEventListener("exdoc:loaded", () => {
+      if (!initialized) {
+      mermaid.initialize({
+          startOnLoad: false,
+          theme: document.body.className.includes("dark") ? "dark" : "default"
+      });
+      initialized = true;
+      }
+
+      let id = 0;
+      for (const codeEl of document.querySelectorAll("pre code.mermaid")) {
+      const preEl = codeEl.parentElement;
+      const graphDefinition = codeEl.textContent;
+      const graphEl = document.createElement("div");
+      const graphId = "mermaid-graph-" + id++;
+      mermaid.render(graphId, graphDefinition).then(({svg, bindFunctions}) => {
+          graphEl.innerHTML = svg;
+          bindFunctions?.(graphEl);
+          preEl.insertAdjacentElement("afterend", graphEl);
+          preEl.remove();
+      });
+      }
+  });
+  </script>
+
+  </body>
+</html>

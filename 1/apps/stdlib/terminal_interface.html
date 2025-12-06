@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.38.1">
+    <meta name="project" content="stdlib v7.0">
+
+
+<meta name="exdoc:full-text-search-url" content="/doc/search.html?v=1&q=">
+<meta name="major-vsn" content="1">
+<link rel="canonical" href="https://www.erlang.org/doc/apps/stdlib/terminal_interface.html" />
+    <title>Creating a terminal application — stdlib v7.0</title>
+
+    <link rel="stylesheet" href="dist/html-erlang-ZK43ZOAC.css" />
+
+    <script defer src="dist/sidebar_items-AA1EE98A.js"></script>
+    <script defer src="docs_config.js"></script>
+    <script defer src="dist/html-DPJLHKSM.js"></script>
+
+  </head>
+  <body>
+    <script>(()=>{var t="ex_doc:settings",e="dark";var o="dark",s="light";var E="sidebar_state",n="closed";var r="sidebar_width";var a="sidebar-open";var i=new URLSearchParams(window.location.search),S=i.get("theme")||JSON.parse(localStorage.getItem(t)||"{}").theme;(S===o||S!==s&&window.matchMedia("(prefers-color-scheme: dark)").matches)&&document.body.classList.add(e);var d=sessionStorage.getItem(E),A=d!==n&&!window.matchMedia(`screen and (max-width: ${768}px)`).matches;document.body.classList.toggle(a,A);var c=sessionStorage.getItem(r);c&&document.body.style.setProperty("--sidebarWidth",`${c}px`);var p=/(Macintosh|iPhone|iPad|iPod)/.test(window.navigator.userAgent);document.documentElement.classList.toggle("apple-os",p);})();
+</script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="stdlib" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+stdlib
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v7.0
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-list-nav" class="sidebar-list-nav" role="tablist" data-extras=""></ul>
+  </div>
+</nav>
+
+<output role="status" id="toast"></output>
+
+<main class="content page-extra" id="main" data-type="extras">
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of stdlib</span>
+            <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+          </label>
+          <button type="submit" class="search-button" aria-label="Submit Search" tabindex="-1">
+            <i class="ri-search-2-line ri-lg" aria-hidden="true"></i>
+          </button>
+          <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+            <i class="ri-close-line ri-lg" title="Cancel search"></i>
+          </button>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <div class="heading-with-actions top-heading">
+    <h1>Creating a terminal application</h1>
+
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/doc/guides/terminal_interface.md#L1" title="View Source" class="icon-action" rel="help">
+        <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        <span class="sr-only">View Source</span>
+      </a>
+
+  </div>
+
+
+<p>This guide will show how to create a very simple tic-tac-toe game in
+the shell. We will go through how to read key-strokes and how to update
+the screen to show the tic-tac-toe board. The game will be implemented as an
+<a href="escript.html"><code class="inline">escript</code></a>, but it can just as well be implemented in a regular system.</p><p>Let us start by drawing the board which will look like this:</p><pre><code class="txt">╔═══════╤═══════╤═══════╗
+║┌─────┐│       │       ║
+║│     ││       │       ║     Place an X by pressing Enter
+║└─────┘│       │       ║
+╟───────┼───────┼───────╢
+║       │       │       ║
+║       │       │       ║
+║       │       │       ║
+╟───────┼───────┼───────╢
+║       │       │       ║
+║       │       │       ║
+║       │       │       ║
+╚═══════╧═══════╧═══════╝</code></pre><p>We will use the alternate screen buffer for our game so first we need to set that up:</p><pre><code class="makeup erlang" translate="no"><span class="ch">#!/usr/bin/env escript
+</span><span class="nf">main</span><span class="p" data-group-id="4207781713-1">(</span><span class="p">_</span><span class="n">Args</span><span class="p" data-group-id="4207781713-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">put_chars</span><span class="p" data-group-id="4207781713-2">(</span><span class="s">&quot;\e[?1049h&quot;</span><span class="p" data-group-id="4207781713-2">)</span><span class="p">,</span><span class="w"> </span><span class="c1">%% Enable alternate screen buffer</span><span class="w">
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">put_chars</span><span class="p" data-group-id="4207781713-3">(</span><span class="s">&quot;\e[?25l&quot;</span><span class="p" data-group-id="4207781713-3">)</span><span class="p">,</span><span class="w"> </span><span class="c1">%% Hide the cursor</span><span class="w">
+    </span><span class="nf">draw_board</span><span class="p" data-group-id="4207781713-4">(</span><span class="p" data-group-id="4207781713-4">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">timer</span><span class="p">:</span><span class="nf">sleep</span><span class="p" data-group-id="4207781713-5">(</span><span class="mi">5000</span><span class="p" data-group-id="4207781713-5">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">put_chars</span><span class="p" data-group-id="4207781713-6">(</span><span class="s">&quot;\e[?25h&quot;</span><span class="p" data-group-id="4207781713-6">)</span><span class="p">,</span><span class="w"> </span><span class="c1">%% Show the cursor</span><span class="w">
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">put_chars</span><span class="p" data-group-id="4207781713-7">(</span><span class="s">&quot;\e[?1049l&quot;</span><span class="p" data-group-id="4207781713-7">)</span><span class="p">,</span><span class="w"> </span><span class="c1">%% Disable alternate screen buffer</span><span class="w">
+    </span><span class="ss">ok</span><span class="p">.</span></code></pre><p>We then use the box drawing parts of Unicode to draw our board:</p><pre><code class="makeup erlang" translate="no"><span class="nf">draw_board</span><span class="p" data-group-id="1447468376-1">(</span><span class="p" data-group-id="1447468376-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">put_chars</span><span class="p" data-group-id="1447468376-2">(</span><span class="s">&quot;\e[5;0H&quot;</span><span class="p" data-group-id="1447468376-2">)</span><span class="p">,</span><span class="w"> </span><span class="c1">%% Move cursor to top left</span><span class="w">
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">put_chars</span><span class="p" data-group-id="1447468376-3">(</span><span class="w">
+      </span><span class="p" data-group-id="1447468376-4">[</span><span class="s">&quot;     ╔═══════╤═══════╤═══════╗\r\n&quot;</span><span class="p">,</span><span class="w">
+       </span><span class="s">&quot;     ║       │       │       ║\r\n&quot;</span><span class="p">,</span><span class="w">
+       </span><span class="s">&quot;     ║       │       │       ║     Place an X by pressing Enter\r\n&quot;</span><span class="p">,</span><span class="w">
+       </span><span class="s">&quot;     ║       │       │       ║\r\n&quot;</span><span class="p">,</span><span class="w">
+       </span><span class="s">&quot;     ╟───────┼───────┼───────╢\r\n&quot;</span><span class="p">,</span><span class="w">
+       </span><span class="s">&quot;     ║       │       │       ║\r\n&quot;</span><span class="p">,</span><span class="w">
+       </span><span class="s">&quot;     ║       │       │       ║\r\n&quot;</span><span class="p">,</span><span class="w">
+       </span><span class="s">&quot;     ║       │       │       ║\r\n&quot;</span><span class="p">,</span><span class="w">
+       </span><span class="s">&quot;     ╟───────┼───────┼───────╢\r\n&quot;</span><span class="p">,</span><span class="w">
+       </span><span class="s">&quot;     ║       │       │       ║\r\n&quot;</span><span class="p">,</span><span class="w">
+       </span><span class="s">&quot;     ║       │       │       ║\r\n&quot;</span><span class="p">,</span><span class="w">
+       </span><span class="s">&quot;     ║       │       │       ║\r\n&quot;</span><span class="p">,</span><span class="w">
+       </span><span class="s">&quot;     ╚═══════╧═══════╧═══════╝\r\n&quot;</span><span class="p" data-group-id="1447468376-4">]</span><span class="p" data-group-id="1447468376-3">)</span><span class="p">,</span><span class="w">
+    </span><span class="ss">ok</span><span class="p">.</span></code></pre><p>Let us add some interactivity to our game! To do that we need to change the
+shell from running in <code class="inline">cooked</code> to <code class="inline">raw</code> mode. This is done by calling
+<a href="shell.html#start_interactive/1"><code class="inline">shell:start_interactive({noshell, raw})</code></a>.
+We can then use <a href="io.html#get_chars/2"><code class="inline">io:get_chars/2</code></a> to read key strokes from the user. The key
+strokes will be returned as <a href="https://en.wikipedia.org/wiki/ANSI_escape_code">ANSI escape codes</a>, 
+so we will have need to handle the codes for up, down, left, right and enter.</p><p>It could look something like this:</p><pre><code class="makeup erlang" translate="no"><span class="nf">main</span><span class="p" data-group-id="5374088342-1">(</span><span class="p">_</span><span class="n">Args</span><span class="p" data-group-id="5374088342-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="ss">ok</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">shell</span><span class="p">:</span><span class="nf">start_interactive</span><span class="p" data-group-id="5374088342-2">(</span><span class="p" data-group-id="5374088342-3">{</span><span class="ss">noshell</span><span class="p">,</span><span class="w"> </span><span class="ss">raw</span><span class="p" data-group-id="5374088342-3">}</span><span class="p" data-group-id="5374088342-2">)</span><span class="p">,</span><span class="w">
+    
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">put_chars</span><span class="p" data-group-id="5374088342-4">(</span><span class="s">&quot;\e[?1049h&quot;</span><span class="p" data-group-id="5374088342-4">)</span><span class="p">,</span><span class="w"> </span><span class="c1">%% Enable alternate screen buffer</span><span class="w">
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">put_chars</span><span class="p" data-group-id="5374088342-5">(</span><span class="s">&quot;\e[?25l&quot;</span><span class="p" data-group-id="5374088342-5">)</span><span class="p">,</span><span class="w"> </span><span class="c1">%% Hide the cursor</span><span class="w">
+    </span><span class="nf">draw_board</span><span class="p" data-group-id="5374088342-6">(</span><span class="p" data-group-id="5374088342-6">)</span><span class="p">,</span><span class="w">
+    </span><span class="nf">loop</span><span class="p" data-group-id="5374088342-7">(</span><span class="mi">0</span><span class="p" data-group-id="5374088342-7">)</span><span class="p">,</span><span class="w">
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">put_chars</span><span class="p" data-group-id="5374088342-8">(</span><span class="s">&quot;\e[?25h&quot;</span><span class="p" data-group-id="5374088342-8">)</span><span class="p">,</span><span class="w"> </span><span class="c1">%% Show the cursor</span><span class="w">
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">put_chars</span><span class="p" data-group-id="5374088342-9">(</span><span class="s">&quot;\e[?1049l&quot;</span><span class="p" data-group-id="5374088342-9">)</span><span class="p">,</span><span class="w"> </span><span class="c1">%% Disable alternate screen buffer</span><span class="w">
+    </span><span class="ss">ok</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">loop</span><span class="p" data-group-id="5374088342-10">(</span><span class="n">Pos</span><span class="p" data-group-id="5374088342-10">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nc">io</span><span class="p">:</span><span class="nf">put_chars</span><span class="p" data-group-id="5374088342-11">(</span><span class="nf">draw_selection</span><span class="p" data-group-id="5374088342-12">(</span><span class="n">Pos</span><span class="p" data-group-id="5374088342-12">)</span><span class="p" data-group-id="5374088342-11">)</span><span class="p">,</span><span class="w">
+    </span><span class="c1">%% Read at most 1024 characters from stdin.</span><span class="w">
+    </span><span class="p" data-group-id="5374088342-13">{</span><span class="ss">ok</span><span class="p">,</span><span class="w"> </span><span class="n">Chars</span><span class="p" data-group-id="5374088342-13">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nc">io</span><span class="p">:</span><span class="nf">get_chars</span><span class="p" data-group-id="5374088342-14">(</span><span class="s">&quot;&quot;</span><span class="p">,</span><span class="w"> </span><span class="mi">1024</span><span class="p" data-group-id="5374088342-14">)</span><span class="p">,</span><span class="w">
+    </span><span class="k">case</span><span class="w"> </span><span class="nf">handle_input</span><span class="p" data-group-id="5374088342-15">(</span><span class="n">Chars</span><span class="p">,</span><span class="w"> </span><span class="n">Pos</span><span class="p" data-group-id="5374088342-15">)</span><span class="w"> </span><span class="k">of</span><span class="w">
+        </span><span class="ss">stop</span><span class="w"> </span><span class="p">-&gt;</span><span class="w"> </span><span class="ss">stop</span><span class="p">;</span><span class="w">
+        </span><span class="n">NewPos</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+            </span><span class="nc">io</span><span class="p">:</span><span class="nf">put_chars</span><span class="p" data-group-id="5374088342-16">(</span><span class="nf">clear_selection</span><span class="p" data-group-id="5374088342-17">(</span><span class="n">Pos</span><span class="p" data-group-id="5374088342-17">)</span><span class="p" data-group-id="5374088342-16">)</span><span class="p">,</span><span class="w">
+            </span><span class="nf">loop</span><span class="p" data-group-id="5374088342-18">(</span><span class="n">NewPos</span><span class="p" data-group-id="5374088342-18">)</span><span class="w">
+    </span><span class="k">end</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">handle_input</span><span class="p" data-group-id="5374088342-19">(</span><span class="s">&quot;\e[A&quot;</span><span class="w"> </span><span class="o">++</span><span class="w"> </span><span class="n">Rest</span><span class="p">,</span><span class="w"> </span><span class="n">Pos</span><span class="p" data-group-id="5374088342-19">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="c1">%% Up key</span><span class="w">
+    </span><span class="nf">handle_input</span><span class="p" data-group-id="5374088342-20">(</span><span class="n">Rest</span><span class="p">,</span><span class="w"> </span><span class="nf">max</span><span class="p" data-group-id="5374088342-21">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">Pos</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">3</span><span class="p" data-group-id="5374088342-21">)</span><span class="p" data-group-id="5374088342-20">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">handle_input</span><span class="p" data-group-id="5374088342-22">(</span><span class="s">&quot;\e[B&quot;</span><span class="w"> </span><span class="o">++</span><span class="w"> </span><span class="n">Rest</span><span class="p">,</span><span class="w"> </span><span class="n">Pos</span><span class="p" data-group-id="5374088342-22">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="c1">%% Down key</span><span class="w">
+    </span><span class="nf">handle_input</span><span class="p" data-group-id="5374088342-23">(</span><span class="n">Rest</span><span class="p">,</span><span class="w"> </span><span class="nf">min</span><span class="p" data-group-id="5374088342-24">(</span><span class="mi">8</span><span class="p">,</span><span class="w"> </span><span class="n">Pos</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">3</span><span class="p" data-group-id="5374088342-24">)</span><span class="p" data-group-id="5374088342-23">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">handle_input</span><span class="p" data-group-id="5374088342-25">(</span><span class="s">&quot;\e[C&quot;</span><span class="w"> </span><span class="o">++</span><span class="w"> </span><span class="n">Rest</span><span class="p">,</span><span class="w"> </span><span class="n">Pos</span><span class="p" data-group-id="5374088342-25">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="c1">%% right key</span><span class="w">
+    </span><span class="nf">handle_input</span><span class="p" data-group-id="5374088342-26">(</span><span class="n">Rest</span><span class="p">,</span><span class="w"> </span><span class="nf">min</span><span class="p" data-group-id="5374088342-27">(</span><span class="mi">8</span><span class="p">,</span><span class="w"> </span><span class="n">Pos</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p" data-group-id="5374088342-27">)</span><span class="p" data-group-id="5374088342-26">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">handle_input</span><span class="p" data-group-id="5374088342-28">(</span><span class="s">&quot;\e[D&quot;</span><span class="w"> </span><span class="o">++</span><span class="w"> </span><span class="n">Rest</span><span class="p">,</span><span class="w"> </span><span class="n">Pos</span><span class="p" data-group-id="5374088342-28">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="c1">%% left key</span><span class="w">
+    </span><span class="nf">handle_input</span><span class="p" data-group-id="5374088342-29">(</span><span class="n">Rest</span><span class="p">,</span><span class="w"> </span><span class="nf">max</span><span class="p" data-group-id="5374088342-30">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">Pos</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="p" data-group-id="5374088342-30">)</span><span class="p" data-group-id="5374088342-29">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">handle_input</span><span class="p" data-group-id="5374088342-31">(</span><span class="s">&quot;q&quot;</span><span class="w"> </span><span class="o">++</span><span class="w"> </span><span class="p">_</span><span class="p">,</span><span class="w"> </span><span class="p">_</span><span class="n">State</span><span class="p" data-group-id="5374088342-31">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="ss">stop</span><span class="p">;</span><span class="w">
+</span><span class="nf">handle_input</span><span class="p" data-group-id="5374088342-32">(</span><span class="p" data-group-id="5374088342-33">[</span><span class="p">_</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="n">T</span><span class="p" data-group-id="5374088342-33">]</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="5374088342-32">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="nf">handle_input</span><span class="p" data-group-id="5374088342-34">(</span><span class="n">T</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="5374088342-34">)</span><span class="p">;</span><span class="w">
+</span><span class="nf">handle_input</span><span class="p" data-group-id="5374088342-35">(</span><span class="p" data-group-id="5374088342-36">[</span><span class="p" data-group-id="5374088342-36">]</span><span class="p">,</span><span class="w"> </span><span class="n">State</span><span class="p" data-group-id="5374088342-35">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">State</span><span class="p">.</span></code></pre><p>Note that when using <a href="io.html#get_chars/2"><code class="inline">io:get_chars/2</code></a> with the shell set in <code class="inline">{noshell, raw}</code> mode
+it will return as soon as any data is available. The number of characters
+is the maximum number that will be returned. We use 1024 here to make sure that
+we always get all the data in one read.</p><p>We also need to draw the selection marker, we do this using some simple drawing
+routines.</p><pre id="monospace-font"><code class="makeup erlang" translate="no"><span class="c1">%% Clear/draw the selection markers, making sure</span><span class="w">
+</span><span class="c1">%% not to overwrite if a X or O exists.</span><span class="w">
+</span><span class="c1">%%   \b = Move cursor left</span><span class="w">
+</span><span class="c1">%%   \e[C = Move cursor right</span><span class="w">
+</span><span class="c1">%%   \n = Move cursor down</span><span class="w">
+</span><span class="nf">clear_selection</span><span class="p" data-group-id="9928761950-1">(</span><span class="n">Pos</span><span class="p" data-group-id="9928761950-1">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="9928761950-2">[</span><span class="nf">set_position</span><span class="p" data-group-id="9928761950-3">(</span><span class="n">Pos</span><span class="p" data-group-id="9928761950-3">)</span><span class="p">,</span><span class="w">
+     </span><span class="s">&quot;       &quot;</span><span class="p">,</span><span class="s">&quot;\b\b\b\b\b\b\b\n&quot;</span><span class="p">,</span><span class="w">
+     </span><span class="s">&quot; \e[C\e[C\e[C\e[C\e[C &quot;</span><span class="p">,</span><span class="w">
+     </span><span class="s">&quot;\b\b\b\b\b\b\b\n&quot;</span><span class="p">,</span><span class="s">&quot;       &quot;</span><span class="p" data-group-id="9928761950-2">]</span><span class="p">.</span><span class="w">
+
+</span><span class="nf">draw_selection</span><span class="p" data-group-id="9928761950-4">(</span><span class="n">Pos</span><span class="p" data-group-id="9928761950-4">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="p" data-group-id="9928761950-5">[</span><span class="nf">set_position</span><span class="p" data-group-id="9928761950-6">(</span><span class="n">Pos</span><span class="p" data-group-id="9928761950-6">)</span><span class="p">,</span><span class="w">
+     </span><span class="s">&quot;┌─────┐&quot;</span><span class="p">,</span><span class="s">&quot;\b\b\b\b\b\b\b\n&quot;</span><span class="p">,</span><span class="w">
+     </span><span class="s">&quot;│\e[C\e[C\e[C\e[C\e[C│&quot;</span><span class="p">,</span><span class="w">
+     </span><span class="s">&quot;\b\b\b\b\b\b\b\n&quot;</span><span class="p">,</span><span class="s">&quot;└─────┘&quot;</span><span class="p" data-group-id="9928761950-5">]</span><span class="p">.</span><span class="w">
+
+</span><span class="c1">%% Set the cursor position to be at the top</span><span class="w">
+</span><span class="c1">%% left of the field of the given position</span><span class="w">
+</span><span class="nf">set_position</span><span class="p" data-group-id="9928761950-7">(</span><span class="n">Pos</span><span class="p" data-group-id="9928761950-7">)</span><span class="w"> </span><span class="p">-&gt;</span><span class="w">
+    </span><span class="n">Row</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">6</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p" data-group-id="9928761950-8">(</span><span class="n">Pos</span><span class="w"> </span><span class="ow">div</span><span class="w"> </span><span class="mi">3</span><span class="p" data-group-id="9928761950-8">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span><span class="w">
+    </span><span class="n">Col</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">7</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p" data-group-id="9928761950-9">(</span><span class="n">Pos</span><span class="w"> </span><span class="ow">rem</span><span class="w"> </span><span class="mi">3</span><span class="p" data-group-id="9928761950-9">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">8</span><span class="p">,</span><span class="w">
+    </span><span class="nc">io_lib</span><span class="p">:</span><span class="nf">format</span><span class="p" data-group-id="9928761950-10">(</span><span class="s">&quot;\e[</span><span class="si">~p</span><span class="s">;</span><span class="si">~p</span><span class="s">H&quot;</span><span class="p">,</span><span class="p" data-group-id="9928761950-11">[</span><span class="n">Row</span><span class="p">,</span><span class="w"> </span><span class="n">Col</span><span class="p" data-group-id="9928761950-11">]</span><span class="p" data-group-id="9928761950-10">)</span><span class="p">.</span></code></pre><p>Now we have a program where we can move the marker around the board.
+To complete the game we need to add some state so that we know which
+squares are marked and whos turn it is. You can find the final solution
+in <a href="assets/tic-tac-toe.es">tic-tac-toe.es</a>.</p>
+
+</div>
+
+<div class="bottom-actions" id="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="custom_shell.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Creating a custom shell
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="unicode_usage.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+Using Unicode in Erlang
+        </span>
+      </a>
+
+  </div>
+</div>
+    <footer class="footer">
+      <p>
+
+        <span class="line">
+          <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+            Search HexDocs
+          </button>
+
+            <a href="stdlib.epub" title="ePub version">
+              Download ePub version
+            </a>
+
+        </span>
+      </p>
+
+      <p class="built-using">
+        Built using
+        <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.38.1) for the
+
+          <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+      </p>
+<p>Copyright © 1996-2025 <a href="https://www.ericsson.com">Ericsson AB</a></p>
+    </footer>
+  </div>
+</main>
+</div>
+  <script defer src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+  <script>
+  let initialized = false;
+
+  window.addEventListener("exdoc:loaded", () => {
+      if (!initialized) {
+      mermaid.initialize({
+          startOnLoad: false,
+          theme: document.body.className.includes("dark") ? "dark" : "default"
+      });
+      initialized = true;
+      }
+
+      let id = 0;
+      for (const codeEl of document.querySelectorAll("pre code.mermaid")) {
+      const preEl = codeEl.parentElement;
+      const graphDefinition = codeEl.textContent;
+      const graphEl = document.createElement("div");
+      const graphId = "mermaid-graph-" + id++;
+      mermaid.render(graphId, graphDefinition).then(({svg, bindFunctions}) => {
+          graphEl.innerHTML = svg;
+          bindFunctions?.(graphEl);
+          preEl.insertAdjacentElement("afterend", graphEl);
+          preEl.remove();
+      });
+      }
+  });
+  </script>
+
+  </body>
+</html>

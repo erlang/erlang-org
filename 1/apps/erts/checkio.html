@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.38.1">
+    <meta name="project" content="erts v16.0">
+
+
+<meta name="exdoc:full-text-search-url" content="/doc/search.html?v=1&q=">
+<meta name="major-vsn" content="1">
+<link rel="canonical" href="https://www.erlang.org/doc/apps/erts/checkio.html" />
+    <title>Checking for I/O events — erts v16.0</title>
+
+    <link rel="stylesheet" href="dist/html-erlang-ZK43ZOAC.css" />
+
+    <script defer src="dist/sidebar_items-40F65B05.js"></script>
+    <script defer src="docs_config.js"></script>
+    <script defer src="dist/html-DPJLHKSM.js"></script>
+
+  </head>
+  <body>
+    <script>(()=>{var t="ex_doc:settings",e="dark";var o="dark",s="light";var E="sidebar_state",n="closed";var r="sidebar_width";var a="sidebar-open";var i=new URLSearchParams(window.location.search),S=i.get("theme")||JSON.parse(localStorage.getItem(t)||"{}").theme;(S===o||S!==s&&window.matchMedia("(prefers-color-scheme: dark)").matches)&&document.body.classList.add(e);var d=sessionStorage.getItem(E),A=d!==n&&!window.matchMedia(`screen and (max-width: ${768}px)`).matches;document.body.classList.toggle(a,A);var c=sessionStorage.getItem(r);c&&document.body.style.setProperty("--sidebarWidth",`${c}px`);var p=/(Macintosh|iPhone|iPad|iPod)/.test(window.navigator.userAgent);document.documentElement.classList.toggle("apple-os",p);})();
+</script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="erts" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+erts
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          v16.0
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-list-nav" class="sidebar-list-nav" role="tablist" data-extras=""></ul>
+  </div>
+</nav>
+
+<output role="status" id="toast"></output>
+
+<main class="content page-extra" id="main" data-type="extras">
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of erts</span>
+            <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+          </label>
+          <button type="submit" class="search-button" aria-label="Submit Search" tabindex="-1">
+            <i class="ri-search-2-line ri-lg" aria-hidden="true"></i>
+          </button>
+          <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+            <i class="ri-close-line ri-lg" title="Cancel search"></i>
+          </button>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <div class="heading-with-actions top-heading">
+    <h1>Checking for I/O events</h1>
+
+
+      <a href="https://github.com/erlang/otp/blob/master/erts/emulator/internal_doc/CheckIO.md#L1" title="View Source" class="icon-action" rel="help">
+        <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        <span class="sr-only">View Source</span>
+      </a>
+
+  </div>
+
+
+<p>An I/O event in ERTS is any event triggered by a <a href="https://en.wikipedia.org/wiki/File_descriptor" title="">file descriptor</a>
+on Unix or any OBJECT HANDLE that can be passed to <a href="https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitformultipleobjects" title="">WaitForMultipleObjects</a> on Windows.
+The check I/O infrastructure is used by linked-in drivers through <a href="erl_driver.html#driver_select">driver_select</a>
+and by NIFs through <a href="erl_nif.html#enif_select">enif_select</a>.</p><p>The main user of the check I/O subsystem is network communication through
+<a href="../../apps/kernel/gen_tcp.html"><code class="inline">gen_tcp</code></a>, <a href="../../apps/kernel/gen_udp.html"><code class="inline">gen_udp</code></a>, <a href="../../apps/kernel/gen_sctp.html"><code class="inline">gen_sctp</code></a> and <a href="../../apps/kernel/socket.html"><code class="inline">socket</code></a> on Unix (on Windows
+<a href="../../apps/kernel/socket.html"><code class="inline">socket</code></a> used its own internal check I/O implementation based on completion ports).
+It is also used by various other parts, such as when doing <a href="../../apps/kernel/os.html#cmd/1"><code class="inline">os:cmd/1</code></a> or
+reading from the terminal.</p><p>This document gives an overview of how the check I/O subsystem works.</p><p>The check I/O subsystem consists of a platform specific (<a href="#polling">erl_poll</a>)
+and platform agnostic part (<a href="#check-i-o">check_io</a>).</p><p><a href="#polling" title="">erl_poll</a> is the basic mechanisms for checking if any events have been signalled
+and allows waiting for a timeout if needed. The implementation of polling is very
+platform specific and lives in <a href="https://github.com/erlang/otp/blob/master/erts/emulator/sys/common/erl_poll.c" title="">erts/emulator/sys/common/erl_poll.c</a> for Unix and
+<a href="https://github.com/erlang/otp/blob/master/erts/emulator/sys/win32/erl_poll.c" title="">erts/emulator/sys/win32/erl_poll.c</a> for Windows.</p><p><a href="#check-i-o">check_io</a> is the cross-platform part of the check I/O subsystem
+that makes sure that <a href="#polling" title="">erl_poll</a> has the correct state and dispatches events to
+the correct entity. The implementation can be found in <a href="https://github.com/erlang/otp/blob/master/erts/emulator/sys/common/erl_check_io.c" title="">erts/emulator/sys/common/erl_check_io.c</a>.</p><p>check_io is then used by ports and NIFs to listen to events. Ports are
+communicated to through <a href="portsignals.html">port signals</a> and are delivered through
+the <a href="driver_entry.html#ready_input">ready_input</a> and <a href="driver_entry.html#ready_output">ready_output</a> callbacks.
+<a href="erl_nif.html">NIFs</a> get an Erlang message whenever an event is triggered.</p><h2 id="polling" class="section-heading"><a href="#polling" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Polling</span></h2><p>The polling subsystem basically has two API functions; erts_poll_control and
+erts_poll_wait. erts_poll_control is used to update a ErtsPollSet and
+erts_poll_wait is used to wait for an event in the pollset to be triggered or a
+timeout to happen (the timeout can be 0 if just checking). Only a single thread
+usually calls erts_poll_wait at the same time, but multiple threads calls
+erts_poll_control at any time.</p><p>The implementation of Unix and Windows are completely different as Windows does
+not really have a concept of &quot;polling&quot; for an event.</p><h3 id="polling-on-unix" class="section-heading"><a href="#polling-on-unix" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Polling on Unix</span></h3><p>The poll implemention on Unix support a variety of different polling mechanisms.
+At the writing of this document they are: <a href="https://man7.org/linux/man-pages/man7/epoll.7.html" title="">epoll</a> (Linux), <a href="https://man.freebsd.org/cgi/man.cgi?kqueue" title="">kqueue</a> (MacOS + *Bsd),
+<a href="https://docs.oracle.com/cd/E88353_01/html/E37851/poll-4d.html" title="">/dev/poll</a> (Solaris), <a href="https://man7.org/linux/man-pages/man2/poll.2.html" title="">poll</a> and <a href="https://man7.org/linux/man-pages/man2/select.2.html" title="">select</a>. <a href="https://man7.org/linux/man-pages/man7/epoll.7.html" title="">epoll</a>+<a href="https://man.freebsd.org/cgi/man.cgi?kqueue" title="">kqueue</a>+<a href="https://docs.oracle.com/cd/E88353_01/html/E37851/poll-4d.html" title="">/dev/poll</a> are
+referred to as &quot;kernel polling&quot; methods, as the information about which FDs are currently monitored
+lives in the OS kernel, while <a href="https://man7.org/linux/man-pages/man2/poll.2.html" title="">poll</a>+<a href="https://man7.org/linux/man-pages/man2/select.2.html" title="">select</a> are &quot;user polling&quot; methods as the
+caller needs to supply all FDs of interest to the kernel everything erts_poll_wait
+is called.</p><p>By default all Unix'es use a &quot;kernel polling&quot; method, but has a fallback pollset that
+uses &quot;user polling&quot; for FDs that the &quot;kernel polling&quot; mechanism does not
+support (for example the stdin FD on Linux cannot be monitored by <a href="https://man7.org/linux/man-pages/man7/epoll.7.html" title="">epoll</a>).</p><p>As the kernel polling methods have their monitoring information in the kernel
+it is possible to update these in parallel and without waking the thread that
+is currently waiting for events. For user polling a queue of needed updates
+is managed by each pollset and whenever an update is done to that queue the
+thread waiting on events is woken up to update the set of file descriptors it
+is waiting on.</p><p>When using kernel polling it is possible to have multiple poll threads
+(using the <a href="erl_cmd.html#+IOt">+IOt</a> flag) that read events from the same pollset.
+This can be useful for very busy systems with many many FDs that become active alot.
+If the kernel you are using is not very good at allowing multiple threads to
+check in the same pollset (this primarily applied to old versions of Linux),
+then it is also possible to configure erts to use separate
+pollsets for each pollthread ((using the <a href="erl_cmd.html#+IOp">+IOp</a> flag)).</p><p>When an event is triggered it is removed from the pollset and needs to be
+re-enabled before any new events are triggered. If <a href="https://man7.org/linux/man-pages/man2/epoll_ctl.2.html#:~:text=EPOLLONESHOT" title="">ONESHOT</a> or equivalent is
+available then kernel polling uses that flag, otherwise erl_poll will update
+the pollset as the event is triggered.</p><h3 id="polling-on-windows" class="section-heading"><a href="#polling-on-windows" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Polling on Windows</span></h3><p>Polling on Windows uses similar mechanism to &quot;user polling&quot; on Unix, except
+that because WaitForMultipleObjects is limited to wait for 64 handles it
+also needs to manage a thread pool. New threads are created as needed, so
+if the system only ever listens for events on less then 64 handles only 1
+thread will be created, but as the number of concurrent handles grow more
+and more threads will be created.</p><p>The thread pool is never shrunk, so if the system at any point uses 1000
+handles, there will forever be 16 threads in the thread pool.</p><h2 id="check-i-o" class="section-heading"><a href="#check-i-o" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Check I/O</span></h2><p>Checking for I/O is done by dedicated polling threads. By default, one
+thread will always be waiting for I/O events using default polling method
+and the &quot;aux&quot; thread will be waiting in the fallback pollset if such exists.</p><p>When an event is triggered it is dispatched to the correct port or process
+depending on whether it is a driver or nif that has requested the event.
+As the pollsets use <a href="https://man7.org/linux/man-pages/man2/epoll_ctl.2.html#:~:text=EPOLLONESHOT" title="">ONESHOT</a>, the event is disabled until the port/NIF
+registers a new interest in the event.</p><p>When you do a driver_select in a linked-in driver, that select will
+be active until it is disabled. Because of this we need to insert the
+FD back into the pollset when a driver_select event has been handled.
+This is done by the port re-inserting the FD in the pollset after
+a ready_input/ready_output event is called. For NIFs you need to call
+enif_select for each event that you want, so no such mechanism needs
+to exist for NIFs.</p><h3 id="scheduler-pollset" class="section-heading"><a href="#scheduler-pollset" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Scheduler pollset</span></h3><p>For very active FDs the fact that we need to re-insert events each time
+they trigger can lead to quite a lot of overhead. Because of this there
+is an optimization that places FDs that are never deselected into a
+special pollset managed that is not checked by the poll threads, but
+instead checked by the normal schedulers. In this pollset, the FDs no
+longer use the <a href="https://man7.org/linux/man-pages/man2/epoll_ctl.2.html#:~:text=EPOLLONESHOT" title="">ONESHOT</a> mechanism, instead they trigger as soon as there
+is data. For this to work, and not re-trigger on FDs before the port/nif has
+handled the event, there is a global counter called erts_port_task_outstanding_io_tasks
+that is incremented for each FD that is dispatched from the scheduler pollset.
+That counter is then decremented as the FDs are handled by the ports/processes
+that have subscribed to the event. When it reaches 0, we know that it is
+safe to check for new events. This increases the latency for how quickly
+we check for new events by a bit, but drastically reduces the CPU usage
+for very active FDs.</p>
+
+</div>
+
+<div class="bottom-actions" id="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="carriermigration.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Carrier Migration
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="codeloading.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+Non-blocking code loading
+        </span>
+      </a>
+
+  </div>
+</div>
+    <footer class="footer">
+      <p>
+
+        <span class="line">
+          <button class="a-main footer-button display-quick-switch" title="Search HexDocs packages">
+            Search HexDocs
+          </button>
+
+        </span>
+      </p>
+
+      <p class="built-using">
+        Built using
+        <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.38.1) for the
+
+          <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+      </p>
+<p>Copyright © 1996-2025 <a href="https://www.ericsson.com">Ericsson AB</a></p>
+    </footer>
+  </div>
+</main>
+</div>
+  <script defer src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+  <script>
+  let initialized = false;
+
+  window.addEventListener("exdoc:loaded", () => {
+      if (!initialized) {
+      mermaid.initialize({
+          startOnLoad: false,
+          theme: document.body.className.includes("dark") ? "dark" : "default"
+      });
+      initialized = true;
+      }
+
+      let id = 0;
+      for (const codeEl of document.querySelectorAll("pre code.mermaid")) {
+      const preEl = codeEl.parentElement;
+      const graphDefinition = codeEl.textContent;
+      const graphEl = document.createElement("div");
+      const graphId = "mermaid-graph-" + id++;
+      mermaid.render(graphId, graphDefinition).then(({svg, bindFunctions}) => {
+          graphEl.innerHTML = svg;
+          bindFunctions?.(graphEl);
+          preEl.insertAdjacentElement("afterend", graphEl);
+          preEl.remove();
+      });
+      }
+  });
+  </script>
+
+  </body>
+</html>
