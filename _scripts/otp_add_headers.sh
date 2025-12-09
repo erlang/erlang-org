@@ -26,9 +26,13 @@ CANONICAL_URL="https://www.erlang.org/doc/"
 
 
 _fixup_search_link() {
-    local file=$(cat "$1" || echo "")
-    local ex_doc_version_regex='<meta name="generator" content="ExDoc v([0-9]+)\.([0-9]+)\.([0-9]+)">'
-    local ex_doc_major ex_doc_minor
+    local file
+    local ex_doc_version_regex
+    local ex_doc_major
+    local ex_doc_minor
+
+    file=$(cat "$1" || echo "")
+    ex_doc_version_regex='<meta name="generator" content="ExDoc v([0-9]+)\.([0-9]+)\.([0-9]+)">'
     
     if [[ "$file" =~ $ex_doc_version_regex ]]; then
         ex_doc_major=${BASH_REMATCH[1]}
