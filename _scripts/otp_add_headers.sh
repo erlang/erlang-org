@@ -6,7 +6,7 @@
 # List of html tags added:
 #
 #    - <meta name="exdoc:full-text-search-url" \\
-#        content="/doc/search.html?v=${MAJOR_VSN}&q=">
+#        content="/doc/search.html?v=${MAJOR_VSN}&q="> (only if ex_doc was older than v0.39.0)
 #
 #    - <meta name="major-vsn" content="${MAJOR_VSN}">
 #
@@ -26,10 +26,21 @@ CANONICAL_URL="https://www.erlang.org/doc/"
 
 
 _fixup_search_link() {
-    META_FULL_TEXT_SEARCH="<meta name=\"exdoc:full-text-search-url\""
-    EXDOC_SEARCH=$(grep "${META_FULL_TEXT_SEARCH}" "$1" || echo "")
-    if [ ! "$(echo "$EXDOC_SEARCH" | wc -w)" -gt "0" ]; then
-        sed 's@\s*<title>@'"${META_FULL_TEXT_SEARCH}"' content="/doc/search.html?v='"${MAJOR_VSN}"'\&q=">\n&@g' -i -- "$1"
+    local file=$(cat "$1" || echo "")
+    local ex_doc_version_regex='<meta name="generator" content="ExDoc v([0-9]+)\.([0-9]+)\.([0-9]+)">'
+    local ex_doc_major ex_doc_minor
+    
+    if [[ "$file" =~ $ex_doc_version_regex ]]; then
+        ex_doc_major=${BASH_REMATCH[1]}
+        ex_doc_minor=${BASH_REMATCH[2]}
+    fi
+    
+    if [[ -n "$ex_doc_major" && "$ex_doc_major" -eq 0 && "$ex_doc_minor" -lt 39 ]]; then
+        META_FULL_TEXT_SEARCH="<meta name=\"exdoc:full-text-search-url\""
+        EXDOC_SEARCH=$(grep "${META_FULL_TEXT_SEARCH}" "$1" || echo "")
+        if [ ! "$(echo "$EXDOC_SEARCH" | wc -w)" -gt "0" ]; then
+            sed 's@\s*<title>@'"${META_FULL_TEXT_SEARCH}"' content="/doc/search.html?v='"${MAJOR_VSN}"'\&q=">\n&@g' -i -- "$1"
+        fi
     fi
 }
 
