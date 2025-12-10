@@ -130,7 +130,7 @@ _redirects: _redirects.in _scripts/redirects.sh docs
 	cp _redirects.in "$@"
 	_scripts/redirects.sh >> "$@"
 
-setup: setup_gems setup_npm _patches docs _eeps eeps faq _redirects otp-headers
+setup: setup_gems .WAIT setup_npm .WAIT _patches docs _eeps eeps faq _redirects otp-headers
 
 serve: setup
 	bundle exec jekyll serve --future --incremental --trace --livereload --host 0.0.0.0

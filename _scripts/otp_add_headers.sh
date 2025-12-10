@@ -6,13 +6,16 @@
 # List of html tags added:
 #
 #    - <meta name="exdoc:full-text-search-url" \\
-#        content="/doc/search.html?v=${MAJOR_VSN}&q="> (only if ex_doc was older than v0.39.0)
+#        content="/doc/search.html?v=${MAJOR_VSN}&q="> (ex_doc < v0.39.0)
 #
 #    - <meta name="major-vsn" content="${MAJOR_VSN}">
 #
 #    - <meta name="exdoc:autocomplete" content="off">
 #
 #    - <link rel="canonical" href="https://www.erlang.org/doc/(...)"/>
+#
+# List of modified tags:
+#    - data-engine-url="search.html?q=" to data-engine-url="/doc/search.html?v=${MAJOR_VSN}&q=" (ex_doc >= v0.39.0)
 #
 
 set -e
@@ -38,8 +41,14 @@ _fixup_search_link() {
         ex_doc_major=${BASH_REMATCH[1]}
         ex_doc_minor=${BASH_REMATCH[2]}
     fi
-    
-    if [[ -n "$ex_doc_major" && "$ex_doc_major" -eq 0 && "$ex_doc_minor" -lt 39 ]]; then
+
+    if [[ -n "$ex_doc_major" ]] && [[ "$ex_doc_major" -gt 0 || "$ex_doc_minor" -ge 39 ]]; then
+        DATA_ENGINE_URL_SEARCH='data-engine-url="search.html?q="'
+        EXDOC_SEARCH=$(grep "${DATA_ENGINE_URL_SEARCH}" "$1" || echo "")
+        if [ "$(echo "$EXDOC_SEARCH" | wc -w)" -gt "0" ]; then
+            sed 's@data-engine-url="search.html?q="@data-engine-url="/doc/search.html?v='"${MAJOR_VSN}"'\&q="@g' -i -- "$1"
+        fi
+    else
         META_FULL_TEXT_SEARCH="<meta name=\"exdoc:full-text-search-url\""
         EXDOC_SEARCH=$(grep "${META_FULL_TEXT_SEARCH}" "$1" || echo "")
         if [ ! "$(echo "$EXDOC_SEARCH" | wc -w)" -gt "0" ]; then
