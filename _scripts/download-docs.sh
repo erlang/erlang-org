@@ -117,3 +117,14 @@ make _redirects
 _scripts/otp_doc_sitemap.sh "${MAJOR_VSNs}" "${LATEST_MAJOR_VSN}" "${URL}${BASEURL}" > docs/sitemap_algolia.xml
 _scripts/otp_add_headers.sh docs
 _scripts/otp_extensionless_redirects.sh docs
+
+## Clean up leftover artifacts from downloads and flattening
+rm -rf docs/tmp docs/doc-* docs/*.tar.gz docs/*.zip
+## Remove any directories that aren't valid version dirs or "doc"
+for dir in docs/*/; do
+    name=$(basename "$dir")
+    case "$name" in
+        doc) continue ;;
+        *) echo "${MAJOR_VSNs}" | tr ' ' '\n' | grep "^${name}$" > /dev/null 2>&1 || rm -rf "$dir" ;;
+    esac
+done
