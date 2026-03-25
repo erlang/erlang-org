@@ -43,6 +43,8 @@ if [ ! -f doc/readme.html ]; then
     exit 0
 fi
 
+echo ""
+
 echo "## Pre 27 system docs redirects"
 for guide in ${SYSTEM_GUIDES}; do
     _redirect "$guide/users_guide.html" "system/$guide.html"
@@ -112,3 +114,8 @@ _redirect "man/driver_entry.html" "apps/erts/driver_entry.html"
 _redirect "man/erl_driver.html" "apps/erts/erl_driver.html"
 _redirect "man/erl_nif.html" "apps/erts/erl_nif.html"
 _redirect "man/erts_alloc.html" "apps/erts/erts_alloc.html"
+
+echo
+echo "## Extensionless URL catch-all (200 rewrite, no redirect loops)"
+echo "/*                  /:splat.html  200"
+
