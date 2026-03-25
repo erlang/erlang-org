@@ -8,10 +8,10 @@ build: setup
 	npx purgecss --css _site/assets/css/*.css --content `find _site -name "*.html" -o -name "*.js" | grep -v _site/doc/ | grep -v _site/docs/`  -o _site/assets/css/
 
 netlify: clean
-	$(MAKE) -j $(shell nproc) --debug=basic BUNDLE_PATH=/opt/build/cache/bundle JEKYLL_ENV=production
+	$(MAKE) -j $(shell nproc 2>/dev/null || sysctl -n hw.ncpu) --debug=basic BUNDLE_PATH=/opt/build/cache/bundle JEKYLL_ENV=production
 
 clean:
-	rm -rf _patches docs _eeps faq _clones eeps assets/js LATEST_MAJOR_VSN
+	rm -rf _patches docs _eeps faq _clones eeps assets/js _redirects LATEST_MAJOR_VSN
 
 $(BUNDLE_PATH):
 	bundler install --jobs 4 --retry 3 --path $(BUNDLE_PATH)
@@ -56,7 +56,7 @@ _clones/faq: | _clones
 faq: _clones/faq
 	if [ ! -d $@ ]; then git clone --single-branch -b $@ https://github.com/erlang/erlang-org $@; fi
 	ls -la $@
-	FAQ_HASH=$(shell (cat .tool-versions && cd $< && git rev-parse --short HEAD) | sha256sum | awk '{print $$1}') && \
+	FAQ_HASH=$(shell (cat .tool-versions && cd $< && git rev-parse --short HEAD) | shasum -a 256 | awk '{print $$1}') && \
 	if [ ! -f $@/$${FAQ_HASH} ]; then \
 	  rm -rf $@/* && \
 	  (cd $< && LC_ALL="en_US-UTF8" make && make install FAQ_ROOT=../../$@) && \
@@ -69,7 +69,7 @@ eeps: _clones/eep
 	cp -r $(wildcard _clones/eep/eeps/*.md) $(wildcard _clones/eep/eeps/*.png) $(wildcard _clones/eep/eeps/*.diff) $@/
 
 EEPS_DEPS=_scripts/src/format-eeps.erl _scripts/src/gh.erl
-EEPS_HASH=$(shell cat $(EEPS_DEPS) | sha256sum - | awk '{print $$1}')
+EEPS_HASH=$(shell cat $(EEPS_DEPS) | shasum -a 256 | awk '{print $$1}')
 _eeps: _clones/eep $(EEPS_DEPS)
 	if [ ! -d $@ ]; then git clone --single-branch -b $@ https://github.com/erlang/erlang-org $@; fi
 	if [ ! -f $@/$(shell cd $< && git rev-parse --short HEAD)-$(EEPS_HASH) ]; then \
@@ -83,10 +83,10 @@ format-eeps: _scripts/_build/default/bin/erlang-org _clones/eep
 
 LATEST_MAJOR_VSN: otp_versions.table
 	@set -e ;\
-	MAJOR_VSNs=$$(grep "OTP-[0-9]\+\.0 " $< \
+	MAJOR_VSNs=$$(grep "OTP-[0-9][0-9]*\.0 " $< \
 	| awk '{print $1}' \
 	| sed 's/OTP-\(.*\)/\1/g' \
-	| sed 's/^\([0-9]\+\).*/\1/g') ;\
+	| sed 's/^\([0-9][0-9]*\).*/\1/g') ;\
 	LATEST_MAJOR_VSN=$$(echo "$$MAJOR_VSNs" | tr ' ' '\n' | sort -n | tail -1) ;\
 	echo $$LATEST_MAJOR_VSN > $@
 	
@@ -97,7 +97,7 @@ docs: otp_versions.table _scripts/download-docs.sh _scripts/otp_flatten_docs _sc
 	@touch docs
 
 PATCHES_DEPS=otp_versions.table _scripts/src/create-releases.erl _scripts/src/otp_readme.erl _scripts/src/gh.erl
-PATCHES_HASH=$(shell cat $(PATCHES_DEPS) | sha256sum - | awk '{print $$1}')
+PATCHES_HASH=$(shell cat $(PATCHES_DEPS) | shasum -a 256 | awk '{print $$1}')
 _patches: $(PATCHES_DEPS)
 	if [ ! -d $@ ]; then git clone --single-branch -b $@ https://github.com/erlang/erlang-org $@; fi
 	if [ ! -f _patches/$(PATCHES_HASH) ]; then $(MAKE) patches; fi

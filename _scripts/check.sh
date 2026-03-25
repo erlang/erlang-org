@@ -7,7 +7,7 @@ bundle exec jekyll serve --trace &
 SERVER=$!
 
 ## Wait for server to come up
-timeout 5m bash -c "while ! echo exit | nc localhost 4000; do sleep 1; done"
+perl -e 'alarm 300; exec @ARGV' -- bash -c "while ! echo exit | nc localhost 4000; do sleep 1; done"
 
 ## Wait a bit more for site to be available
 sleep 5

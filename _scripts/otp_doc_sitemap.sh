@@ -3,7 +3,7 @@
 VSNs="${1}"
 LATEST="${2}"
 BASEURL="${3}"
-DATE=$(date -Iseconds)
+DATE=$(date -u +%Y-%m-%dT%H:%M:%S+00:00)
 
 cat <<EOF
 <?xml version="1.0" encoding="UTF-8"?>

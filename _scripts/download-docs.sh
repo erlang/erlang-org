@@ -8,8 +8,8 @@
 set -e
 
 OTP_VERSIONS_TABLE=$1
-TIME_LIMIT=${3:-120m}
-TOKEN=${2:-"token ${GITHUB_TOKEN}"}
+TIME_LIMIT=600 # 10 minutes
+TOKEN="token ${GITHUB_TOKEN}"
 HDR=(--silent --location --fail --show-error -H "Authorization: ${TOKEN}" -H "X-GitHub-Api-Version: 2022-11-28")
 
 # The files that are involved when generating docs
@@ -25,7 +25,7 @@ _get_latest_vsn() {
 
 _get_doc_hash() {
     # shellcheck disable=SC2086
-    (echo "${1}" && echo "${LATEST_MAJOR_VERSION}" && cat ${SCRIPT_FILES}) | sha256sum | awk '{print $1}'
+    (echo "${1}" && echo "${LATEST_MAJOR_VERSION}" && cat ${SCRIPT_FILES}) | shasum -a 256 | awk '{print $1}'
 }
 
 _flatten_docs() {
@@ -36,7 +36,7 @@ _flatten_docs() {
     fi
 }
 
-MAJOR_VSNs=$(_get_vsns "OTP-[0-9]\+\.0 " | sed 's/^\([0-9]\+\).*/\1/g')
+MAJOR_VSNs=$(_get_vsns "OTP-[0-9][0-9]*\.0 " | sed 's/^\([0-9][0-9]*\).*/\1/g')
 LATEST_MAJOR_VSN=$(cat "LATEST_MAJOR_VSN")
 RINCLUDE=()
 
@@ -77,7 +77,7 @@ fi
 
 if [ ! "${RINCLUDE[0]}" = "" ]; then
     set -x
-    timeout "${TIME_LIMIT}" rsync --archive --verbose --compress "${RINCLUDE[@]}" --exclude='*' \
+    perl -e "alarm ${TIME_LIMIT}; exec @ARGV" -- rsync --archive --verbose --compress "${RINCLUDE[@]}" --exclude='*' \
       erlang.org::erlang-download docs/ || true
     set +x
 fi
