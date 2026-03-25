@@ -91,9 +91,11 @@ LATEST_MAJOR_VSN: otp_versions.table
 	echo $$LATEST_MAJOR_VSN > $@
 	
 
-docs: otp_versions.table _scripts/download-docs.sh _scripts/otp_flatten_docs _scripts/otp_flatten_ex_docs _scripts/otp_doc_sitemap.sh LATEST_MAJOR_VSN _scripts/otp_add_headers.sh
+docs: otp_versions.table _scripts/download-docs.sh _scripts/otp_flatten_docs \
+	_scripts/otp_flatten_ex_docs _scripts/otp_doc_sitemap.sh _scripts/otp_add_headers.sh \
+	_scripts/otp_extensionless_redirects.sh _redirects.in _scripts/redirects.sh LATEST_MAJOR_VSN
 	if [ ! -d $@ ]; then git clone --single-branch -b $@ https://github.com/erlang/erlang-org $@; fi
-	if [ "$(JEKYLL_ENV)" != "production" ]; then _scripts/download-docs.sh $<; fi
+	if [ "$(JEKYLL_ENV)" != "production" ]; then _scripts/download-docs.sh $^; fi
 	@touch docs
 
 PATCHES_DEPS=otp_versions.table _scripts/src/create-releases.erl _scripts/src/otp_readme.erl _scripts/src/gh.erl
@@ -117,14 +119,6 @@ patches: _scripts/_build/default/bin/erlang-org otp_versions.table
 
 update:
 	npm update
-
-otp-headers: docs _redirects _scripts/otp_add_headers.sh LATEST_MAJOR_VSN
-	if [ ! -f "$@" ] || [ ! $$(cat "$@") = $$(tar c "$<" | md5sum | awk '{print $$1}') ]; then \
-		_scripts/otp_add_headers.sh "$<"; \
-	fi;
-	tar c $< | md5sum | awk '{print $$1}' > $@
-
-build-docs: docs otp-headers
 
 _redirects: _redirects.in _scripts/redirects.sh docs
 	cp _redirects.in "$@"
