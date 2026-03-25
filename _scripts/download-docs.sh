@@ -20,7 +20,7 @@ _get_vsns() {
 }
 
 _get_latest_vsn() {
-    _get_vsns "${1}" | head -1
+    grep "${1}" "${OTP_VERSIONS_TABLE}" | awk 'NR==1{sub(/OTP-/,"",$1); print $1}'
 }
 
 _get_doc_hash() {
