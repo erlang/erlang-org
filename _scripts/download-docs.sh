@@ -8,24 +8,24 @@
 set -e
 
 OTP_VERSIONS_TABLE=$1
-TIME_LIMIT=${3:-120m}
-TOKEN=${2:-"token ${GITHUB_TOKEN}"}
+TIME_LIMIT=600 # 10 minutes
+TOKEN="token ${GITHUB_TOKEN}"
 HDR=(--silent --location --fail --show-error -H "Authorization: ${TOKEN}" -H "X-GitHub-Api-Version: 2022-11-28")
 
 # The files that are involved when generating docs
-SCRIPT_FILES="${OTP_VERSIONS_TABLE} _scripts/download-docs.sh _scripts/otp_flatten_docs _scripts/otp_flatten_ex_docs _scripts/otp_doc_sitemap.sh LATEST_MAJOR_VSN _scripts/otp_add_headers.sh"
+SCRIPT_FILES="$*"
 
 _get_vsns() {
     grep "${1}" "${OTP_VERSIONS_TABLE}" | awk '{print $1}' | sed 's/OTP-\(.*\)/\1/g'
 }
 
 _get_latest_vsn() {
-    _get_vsns "${1}" | head -1
+    grep "${1}" "${OTP_VERSIONS_TABLE}" | awk 'NR==1{sub(/OTP-/,"",$1); print $1}'
 }
 
 _get_doc_hash() {
     # shellcheck disable=SC2086
-    (echo "${1}" && echo "${LATEST_MAJOR_VERSION}" && cat ${SCRIPT_FILES}) | sha256sum | awk '{print $1}'
+    (echo "${1}" && echo "${LATEST_MAJOR_VERSION}" && cat ${SCRIPT_FILES}) | shasum -a 256 | awk '{print $1}'
 }
 
 _flatten_docs() {
@@ -36,7 +36,7 @@ _flatten_docs() {
     fi
 }
 
-MAJOR_VSNs=$(_get_vsns "OTP-[0-9]\+\.0 " | sed 's/^\([0-9]\+\).*/\1/g')
+MAJOR_VSNs=$(_get_vsns "OTP-[0-9][0-9]*\.0 " | sed 's/^\([0-9][0-9]*\).*/\1/g')
 LATEST_MAJOR_VSN=$(cat "LATEST_MAJOR_VSN")
 RINCLUDE=()
 
@@ -77,7 +77,7 @@ fi
 
 if [ ! "${RINCLUDE[0]}" = "" ]; then
     set -x
-    timeout "${TIME_LIMIT}" rsync --archive --verbose --compress "${RINCLUDE[@]}" --exclude='*' \
+    perl -e "alarm ${TIME_LIMIT}; exec @ARGV" -- rsync --archive --verbose --compress "${RINCLUDE[@]}" --exclude='*' \
       erlang.org::erlang-download docs/ || true
     set +x
 fi
@@ -109,4 +109,22 @@ done
 URL=$(grep "^url: " _config.yml | sed 's@url: "\([^"]*\)".*@\1@')
 BASEURL=$(grep "^baseurl: " _config.yml | sed 's@baseurl: "\([^"]*\)".*@\1@')
 MAJOR_VSNs=$(echo "${MAJOR_VSNs}" | tr '\n' ' ')
+
+
+## otp_add_header.sh needs _redirects
+make _redirects
+
 _scripts/otp_doc_sitemap.sh "${MAJOR_VSNs}" "${LATEST_MAJOR_VSN}" "${URL}${BASEURL}" > docs/sitemap_algolia.xml
+_scripts/otp_add_headers.sh docs
+_scripts/otp_extensionless_redirects.sh docs
+
+## Clean up leftover artifacts from downloads and flattening
+rm -rf docs/tmp docs/doc-* docs/*.tar.gz docs/*.zip
+## Remove any directories that aren't valid version dirs or "doc"
+for dir in docs/*/; do
+    name=$(basename "$dir")
+    case "$name" in
+        doc) continue ;;
+        *) echo "${MAJOR_VSNs}" | tr ' ' '\n' | grep "^${name}$" > /dev/null 2>&1 || rm -rf "$dir" ;;
+    esac
+done
