@@ -93,7 +93,7 @@ LATEST_MAJOR_VSN: otp_versions.table
 
 docs: otp_versions.table _scripts/download-docs.sh _scripts/otp_flatten_docs \
 	_scripts/otp_flatten_ex_docs _scripts/otp_doc_sitemap.sh _scripts/otp_add_headers.sh \
-	_scripts/otp_extensionless_redirects.sh _redirects.in _scripts/redirects.sh LATEST_MAJOR_VSN
+	_redirects.in _scripts/redirects.sh LATEST_MAJOR_VSN
 	if [ ! -d $@ ]; then git clone --single-branch -b $@ https://github.com/erlang/erlang-org $@; fi
 	if [ "$(JEKYLL_ENV)" != "production" ]; then _scripts/download-docs.sh $^; fi
 	@touch docs

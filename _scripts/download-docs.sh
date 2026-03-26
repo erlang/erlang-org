@@ -116,7 +116,6 @@ make _redirects
 
 _scripts/otp_doc_sitemap.sh "${MAJOR_VSNs}" "${LATEST_MAJOR_VSN}" "${URL}${BASEURL}" > docs/sitemap_algolia.xml
 _scripts/otp_add_headers.sh docs
-_scripts/otp_extensionless_redirects.sh docs
 
 ## Clean up leftover artifacts from downloads and flattening
 rm -rf docs/tmp docs/doc-* docs/*.tar.gz docs/*.zip
