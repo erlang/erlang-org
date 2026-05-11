@@ -1,5 +1,5 @@
 ---
-layout: markdown
+layout: eep-process
 title: Erlang Enhancement Process
 ---
 # Erlang Enhancement Process

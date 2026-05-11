@@ -15,7 +15,8 @@ fix_eep(Target, EEP0, EEP) ->
     Basename = filename:basename(EEP),
     "eep-" ++ Num = filename:rootname(Basename),
     {FrontMatterStr, Matter} = gulp_frontmatter(Content),
-    FrontMatter = parse_frontmatter(Num, iolist_to_binary(FrontMatterStr)),
+    FrontMatter0 = parse_frontmatter(Num, iolist_to_binary(FrontMatterStr)),
+    FrontMatter = maybe_add_title(FrontMatter0, Matter),
     NewContent =
         case list_to_integer(Num) =/= 0 of
             true ->
@@ -201,6 +202,28 @@ is_md_reference(Line) ->
             false
     end.
 
+%% Extract the EEP title from the body's first heading and add it to
+%% the frontmatter if not already present. Most upstream EEPs put the
+%% title in the body as `EEP N: Title\n----` (setext) and leave the
+%% `Title:` frontmatter field unset; EEPs 2 and 3 carry an explicit
+%% `Title:` because they are PEP-template-derived. Synthesize the
+%% missing field so `page.Title` works uniformly across all EEPs.
+maybe_add_title(#{ <<"Title">> := _ } = FrontMatter, _Matter) ->
+    FrontMatter;
+maybe_add_title(FrontMatter, Matter) ->
+    MatterBin = iolist_to_binary(Matter),
+    %% Skip a possible leading `****` separator (the upstream EEP frontmatter
+    %% terminator) and any leading ATX heading marks. Capture the rest of the
+    %% title line.
+    case re:run(MatterBin,
+                "^\\s*(?:\\*+\\s*\\n\\s*)?(?:#+\\s+)?EEP\\s+[0-9]+\\s*:\\s*([^\\n]+?)\\s*(?:\\n|$)",
+                [{capture, all_but_first, binary}]) of
+        {match, [Title]} ->
+            FrontMatter#{ <<"Title">> => Title };
+        nomatch ->
+            FrontMatter
+    end.
+
 parse_frontmatter(NumStr, FrontMatterStr) ->
 
     %% Strip any leading 0s from NumStr
@@ -272,6 +295,13 @@ short_type(Type) ->
              #{ <<"Standards Track">> => "S",
                 <<"Process">> => "P" }).
 
+%% Wrap a YAML string in double quotes, escaping `\` and `"`.
+yaml_quote(Value) ->
+    Bin = iolist_to_binary(Value),
+    Escaped0 = re:replace(Bin, <<"\\\\">>, <<"\\\\\\\\">>, [global, {return, binary}]),
+    Escaped = re:replace(Escaped0, <<"\"">>, <<"\\\\\"">>, [global, {return, binary}]),
+    <<$", Escaped/binary, $">>.
+
 render_frontmatter(FrontMatter) ->
     FM =
         ["---"] ++
@@ -289,6 +319,11 @@ render_frontmatter(FrontMatter) ->
                                 ["  - ",Name," <",Email,">"]
                         end,Value))
                     ];
+              ({<<"Title">> = Key, Value}) ->
+                   %% Always emit Title as a double-quoted YAML string —
+                   %% titles can contain ': ' (e.g. "B-trees: balanced...")
+                   %% which would otherwise be parsed as a nested mapping.
+                   [Key, ": ", yaml_quote(Value)];
               ({Key,Value}) ->
                    [Key,": ",Value]
            end, maps:to_list(FrontMatter)) ++
