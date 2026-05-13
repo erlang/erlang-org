@@ -130,6 +130,7 @@ test:
 	yamllint -f standard .
 	npm run shellcheck
 	_scripts/check.sh
+	_scripts/check_algolia_search.sh
 
 algolia:
 	_scripts/run_algolia_scraper.sh
