@@ -50,12 +50,24 @@ new Crawler({
 
             // @ts-ignore
             const removeHtml = (elem) => {
+              let html = elem
+                .toString()
+                .replace(/<span class="sr-only">View Source<\/span>/g, "")
+                .replace(/<span class="sr-only">Copy Markdown<\/span>/g, "");
+              // ExDoc wraps each code token in its own <span> for
+              // syntax highlighting. The generic space-replacement
+              // below would otherwise turn `lists:foreach(Fun, List)`
+              // into `lists : foreach ( Fun, List )` in the indexed
+              // content and snippets. Strip tags inside <code> and
+              // <pre> without inserting whitespace first.
+              html = html.replace(
+                /<(code|pre)([^>]*)>([\s\S]*?)<\/\1>/g,
+                (_, tag, attrs, inner) =>
+                  `<${tag}${attrs}>${inner.replace(/<\/?[^>]+>/g, "")}</${tag}>`,
+              );
               return $("<div />")
                 .html(
-                  elem
-                    .toString()
-                    .replace(/<span class="sr-only">View Source<\/span>/g, "")
-                    .replace(/<span class="sr-only">Copy Markdown<\/span>/g, "")
+                  html
                     .replace(/<\/?[^>]+>/g, " ")
                     .replace(/\s\s+/g, " ")
                     .replace(/ ([.,])/g, "$1")
@@ -98,7 +110,13 @@ new Crawler({
               docType = "Module";
             }
             const isUsersGuide = docType != "Module";
-            const mod = $("h1 > span").first().text();
+            // Module pages emit `<h1><span>name</span> <small>vsn</small></h1>`
+            // so `h1 > span` is the right selector. User guides,
+            // command pages and system docs emit a plain `<h1>Title</h1>`
+            // with no inner span — fall through to the bare h1 text.
+            const mod = isUsersGuide
+              ? collapseAndTrim($("h1").first().text())
+              : $("h1 > span").first().text();
 
             console.log("docType:" + docType);
 
@@ -109,6 +127,14 @@ new Crawler({
                 0,
                 90000,
               );
+
+              // Skip section/anchor records that ended up with no
+              // narrative text. They show up in results as
+              // no-excerpt hits that just jump to a heading. The
+              // module-overview record (anchor === "") is kept even
+              // with empty content because the page itself is the
+              // landing target.
+              if (props.anchor !== "" && props.content === "") return null;
 
               console.log(props.content);
 
@@ -148,6 +174,20 @@ new Crawler({
                 props.modNamePrefixes = null;
               }
 
+              // Derive what the record points at, from the URL
+              // anchor: `t:foo/0` -> type, `c:foo/2` -> callback,
+              // anything else inside a module page -> function.
+              // null for module-overview records and for sections in
+              // guides/commands/system docs.
+              let kind = null;
+              if (props.isModule && props.anchor) {
+                if (props.anchor.startsWith("t:")) kind = "type";
+                else if (props.anchor.startsWith("c:")) kind = "callback";
+                else kind = "function";
+              }
+
+              const anchorSuffix = props.anchor ? "#" + props.anchor : "";
+
               return {
                 objectID: ++cnt + "-" + url + "#" + props.anchor,
                 version: vsn,
@@ -155,8 +195,9 @@ new Crawler({
                 docEngine: "ex_doc",
                 docType,
                 app,
-                url: url + "#" + props.anchor,
-                url_without_variables: url + "#" + props.anchor,
+                kind,
+                url: url + anchorSuffix,
+                url_without_variables: url + anchorSuffix,
                 url_without_anchor: url,
                 lang: "en",
                 type: "content", // Must be content
@@ -179,14 +220,27 @@ new Crawler({
             };
 
             // push the module description
+            let overviewContent = removeHtml(
+              isUsersGuide
+                ? $("h1").nextUntil("h1, h2, h3, h4, h5")
+                : $("#moduledoc").children().first().nextUntil("h2"),
+            );
+            // Reference-manual chapter pages and similar user-guide
+            // pages put their h1 immediately before an h2, so the
+            // gap above contains only ExDoc's action links
+            // (Copy Markdown / View Source) which `removeHtml`
+            // strips to nothing. Fall back to the first paragraph
+            // of the first h2 section so the overview record has a
+            // useful excerpt instead of just the title.
+            if (isUsersGuide && !overviewContent) {
+              overviewContent = removeHtml(
+                $("#top-content").find("h2").first().next("p"),
+              );
+            }
             recs.push(
               createRecord({
                 anchor: "",
-                content: removeHtml(
-                  isUsersGuide
-                    ? $("h1").nextUntil("h1, h2, h3, h4, h5")
-                    : $("#moduledoc").children().first().nextUntil("h2"), // $("#moduledoc"),
-                ),
+                content: overviewContent,
                 hierarchy: {
                   lvl0: app,
                   lvl1: mod,
@@ -295,10 +349,19 @@ new Crawler({
                     const dt = removeHtml(
                       $("p:first-child > strong:first-child", li),
                     );
+                    // Drop the dt+separator from the indexed
+                    // content so it isn't duplicated with
+                    // hierarchy.lvl3. Clone first to leave the
+                    // original DOM intact for downstream
+                    // extractors.
+                    const $body = $(li).clone();
+                    $body.find("p:first-child > strong:first-child").remove();
+                    const content = removeHtml($body)
+                      .replace(/^[\s\-–—:]+/, "");
                     recs.push(
                       createRecord({
                         anchor: anchor,
-                        content: removeHtml($(li)),
+                        content: content,
                         hierarchy: { [level]: dt, ...hierarchy },
                         hierarchy_radio: { [level]: dt },
                       }),
@@ -367,7 +430,9 @@ new Crawler({
                 );
               });
             });
-            return recs;
+            // createRecord returns null for empty-content section
+            // records; drop them here so callers don't have to.
+            return recs.filter((r) => r !== null);
           } else {
             /* Crawl erl_docgen starts here */
             const collapseAndTrim = (str) => str.replace(/[\s]+/g, " ").trim();
@@ -652,7 +717,11 @@ new Crawler({
   ],
   initialIndexSettings: {
     erlang: {
-      attributesForFaceting: ["type", "lang"],
+      // `kind` ('function' | 'type' | 'callback') is derived per
+      // record from the URL anchor — facetable so /doc/search.html
+      // can offer it as a filter. `type` is dead-weight (every
+      // record hardcodes "content").
+      attributesForFaceting: ["kind", "lang"],
       attributesToRetrieve: ["hierarchy", "content", "anchor", "url"],
       attributesToHighlight: ["hierarchy", "hierarchy_camel", "content"],
       attributesToSnippet: ["content:10"],
