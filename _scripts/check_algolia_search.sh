@@ -305,12 +305,12 @@ _check_overview_content() {
 }
 _check_overview_content "/system/typespec.html" \
     "Erlang is a dynamically typed language" \
-    "Erlang System Documentation" "typespec types"
+    "Erlang System Documentation" "types function specifications"
 _check_overview_content "/system/modules.html" \
     "Erlang code is divided into" \
     "Erlang System Documentation" "modules"
 _check_overview_content "/system/ref_man_functions.html" \
-    "A function clause consists of" \
+    "A function declaration is a sequence of function clauses" \
     "Erlang System Documentation" "function declaration"
 
 # 5. Searching "reference manual" must surface multiple chapter
