@@ -3,7 +3,8 @@ module.exports = {
     mode: 'production',
     //mode: 'development',
     entry: {
-        "doc-search": './assets/doc-search.tsx'
+        "doc-search": './assets/doc-search.tsx',
+        "algolia-typeahead": './assets/algolia-typeahead.ts'
     },
     devtool: 'source-map',
     output: {

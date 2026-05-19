@@ -94,10 +94,10 @@ _inject_algolia_typeahead() {
     # an idempotency guard on its own). Disable ExDoc's Lunr
     # autocomplete on the same pages so it doesn't render alongside
     # the Algolia dropdown.
-    if ! grep -q "algolia-typeahead.js" "$1"; then
+    if ! grep -q "algolia-typeahead" "$1"; then
         _disable_autocomplete "$1"
         _insert_before_title '<link rel="stylesheet" href="/assets/css/algolia-typeahead.css">' "$1"
-        _insert_before_title '<script src="/assets/js/algolia-typeahead.js" defer></script>' "$1"
+        _insert_before_title '<script src="/assets/js/algolia-typeahead.bundle.js" defer></script>' "$1"
     fi
 }
 
