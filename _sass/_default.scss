@@ -2,6 +2,83 @@
 @import "bootstrap/scss/bootstrap";
 @import "bootstrap-mixins";
 
+/* Theme palette. Light is the default; html.dark overrides the same
+   variables. Components reference these via var(--site-*), so adding
+   a new themed colour means touching this file and (optionally) the
+   component's own selectors. Brand red stays consistent in both
+   themes; on dark we lighten it for AA contrast against the dark
+   background. */
+:root {
+  --site-bg: #ffffff;
+  --site-text: #{$erlang-grey};
+  --site-text-muted: #6c757d;
+  --site-link: #{$erlang-red};
+  --site-link-hover: #{$erlang-grey};
+  --site-border: rgba(0, 0, 0, 0.1);
+  --site-card-bg: transparent;
+  --site-code-bg: rgba(0, 0, 0, 0.05);
+  --site-code-text: #{$erlang-grey};
+  --site-pre-bg: #f6f6f4;
+  --site-pre-border: #{$erlang-red};
+  --site-bg-accent: #{$erlang-grey};
+  --site-bg-accent-text: #ffffff;
+  --site-blockquote-border: #{$erlang-grey};
+  --site-anchor-faint: rgba(0, 0, 0, 0.15);
+}
+
+html.dark {
+  --site-bg: #1a1a1a;
+  --site-text: #e0e0e0;
+  --site-text-muted: #9ca3af;
+  --site-link: #ff7aa5;
+  --site-link-hover: #ffffff;
+  /* Track Bootstrap's themed border colour so our custom borders
+     match Bootstrap's utility classes (.border, .border-top, …).
+     In dark mode that's a solid medium grey (#495057ish), which
+     reads better against the dark wash than a low-alpha white. */
+  --site-border: var(--bs-border-color);
+  --site-card-bg: rgba(255, 255, 255, 0.02);
+  --site-code-bg: rgba(255, 255, 255, 0.08);
+  --site-code-text: #f0f0f0;
+  --site-pre-bg: #232323;
+  --site-pre-border: #ff7aa5;
+  --site-bg-accent: #0d0d0d;
+  --site-bg-accent-text: #e0e0e0;
+  --site-blockquote-border: #ff7aa5;
+  --site-anchor-faint: rgba(255, 255, 255, 0.25);
+}
+
+body {
+  background-color: var(--site-bg);
+  color: var(--site-text);
+}
+
+a {
+  color: var(--site-link);
+}
+a:hover {
+  color: var(--site-link-hover);
+}
+
+/* In dark mode the navbar's bg-body becomes #212529 and the brand
+   red ($erlang-red, #a2003e) used for nav links / .btn-outline-primary
+   only reaches 1.91:1 contrast against it — below WCAG AA (4.5:1).
+   Route the navbar's Bootstrap CSS variables through the lighter
+   --site-link variant (#ff7aa5 ≈ 6.3:1, AA pass). */
+html.dark .navbar {
+  --bs-nav-link-color: var(--site-link);
+  --bs-nav-link-hover-color: var(--site-link-hover);
+
+  .btn-outline-primary {
+    --bs-btn-color: var(--site-link);
+    --bs-btn-border-color: var(--site-link);
+    --bs-btn-hover-color: var(--site-bg);
+    --bs-btn-hover-bg: var(--site-link);
+    --bs-btn-hover-border-color: var(--site-link);
+  }
+}
+
+
 h1, .h1, h2, .h2, h3, .h3, h4, .h4, h5, .h5, h6, .h6 {
   margin-bottom: 1.5rem;
 }
@@ -19,7 +96,7 @@ h1, .h1, h2, .h2, h3, .h3, h4, .h4, h5, .h5, h6, .h6 {
    so post-card titles (which are real heading links) are unaffected. */
 h1 > a[href^="#"], h2 > a[href^="#"], h3 > a[href^="#"],
 h4 > a[href^="#"], h5 > a[href^="#"], h6 > a[href^="#"] {
-  color: rgba(0, 0, 0, 0.15);
+  color: var(--site-anchor-faint);
   text-decoration: none;
   font-weight: normal;
   margin-left: 0.3em;
@@ -27,7 +104,7 @@ h4 > a[href^="#"], h5 > a[href^="#"], h6 > a[href^="#"] {
 }
 h1 > a[href^="#"]:hover, h2 > a[href^="#"]:hover, h3 > a[href^="#"]:hover,
 h4 > a[href^="#"]:hover, h5 > a[href^="#"]:hover, h6 > a[href^="#"]:hover {
-  color: $erlang-red;
+  color: var(--site-link);
   text-decoration: none;
 }
 
@@ -41,7 +118,8 @@ p {
 }
 
 .bg-erlang-grey {
-  background-color: $erlang-grey;
+  background-color: var(--site-bg-accent);
+  color: var(--site-bg-accent-text);
   padding-top: 2rem;
   padding-bottom: 1.75rem;
   margin-bottom: 2rem;
@@ -54,7 +132,7 @@ p {
 }
 
 blockquote.blockquote {
-    border-left: 5px solid $erlang-grey;
+    border-left: 5px solid var(--site-blockquote-border);
     padding-left: 15px;
 }
 
@@ -119,4 +197,35 @@ blockquote.blockquote {
   grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
   align-items: center;
   justify-items: center;
+
+  /* Footer icons (download cloud, github mark) draw with
+     `currentColor`. Anchor them to a single tone so they read
+     in both themes — black on white in light, near-white in dark. */
+  a, a:hover { color: var(--site-text); }
+}
+
+/* Theme toggle in the footer. The button hosts three icons (light /
+   dark / auto); the JS sets data-theme on the button and CSS picks
+   the matching icon to show. */
+.theme-toggle {
+  appearance: none;
+  background: transparent;
+  border: none;
+  padding: 0.25rem 0.5rem;
+  color: var(--site-text-muted);
+  cursor: pointer;
+  border-radius: 4px;
+}
+.theme-toggle:hover {
+  color: var(--site-link);
+  background: var(--site-code-bg);
+}
+.theme-toggle svg {
+  display: none;
+  vertical-align: middle;
+}
+.theme-toggle[data-theme="light"] svg.icon-theme-light,
+.theme-toggle[data-theme="dark"]  svg.icon-theme-dark,
+.theme-toggle[data-theme="auto"]  svg.icon-theme-auto {
+  display: inline-block;
 }
