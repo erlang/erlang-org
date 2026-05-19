@@ -4,9 +4,9 @@ import {
   DocSearchProps as DocSearchComponentProps,
   version,
 } from '@docsearch/react';
-import type { InternalDocSearchHit, StoredDocSearchHit } from "@docsearch/react/dist/esm/";
+import type { InternalDocSearchHit, StoredDocSearchHit } from "@docsearch/react";
 import React from 'react';
-import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 
 import '@docsearch/css';
 
@@ -30,7 +30,7 @@ interface DocSearchProps extends DocSearchComponentProps {
 
 function Footer({ state }: {
   state: AutocompleteState<InternalDocSearchHit>;
-}): JSX.Element {
+}): React.JSX.Element {
   return <>
     <footer>
       <a href={"/doc/search?v="+_docsearch_version+"&q=" + state.query}>
@@ -45,7 +45,7 @@ interface HitProps {
   children: React.ReactNode;
 }
 
-function Hit({ hit }: HitProps): JSX.Element {
+function Hit({ hit }: HitProps): React.JSX.Element {
   let myHit = hit as InternalDocSearchHit & { isModule: boolean} | StoredDocSearchHit & { isModule: boolean};
   let path = hit.hierarchy.lvl1;
   if (hit.hierarchy.lvl2) {
@@ -101,7 +101,7 @@ const docsearch = <DocSearch
 />;
 
 const button = getHTMLElement('#docsearch')
-ReactDOM.render(docsearch, button);
+createRoot(button).render(docsearch);
 
 const mobile = getHTMLElement('#docsearch-mobile');
 if (mobile) {
