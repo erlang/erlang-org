@@ -68,7 +68,7 @@ eeps: _clones/eep
 	-mkdir $@
 	cp -r $(wildcard _clones/eep/eeps/*.md) $(wildcard _clones/eep/eeps/*.png) $(wildcard _clones/eep/eeps/*.diff) $@/
 
-EEPS_DEPS=_scripts/src/format-eeps.erl _scripts/src/gh.erl
+EEPS_DEPS=_scripts/src/format-eeps.erl _scripts/src/eep-news.erl _scripts/src/gh.erl
 EEPS_HASH=$(shell cat $(EEPS_DEPS) | shasum -a 256 | awk '{print $$1}')
 _eeps: _clones/eep $(EEPS_DEPS)
 	if [ ! -d $@ ]; then git clone --single-branch -b $@ https://github.com/erlang/erlang-org $@; fi
@@ -79,6 +79,8 @@ _eeps: _clones/eep $(EEPS_DEPS)
 format-eeps: _scripts/_build/default/bin/erlang-org _clones/eep
 	rm -rf _eeps/*
 	$< format-eeps _eeps _clones/eep/eeps/eep-0000.html _clones/eep/eeps/*.md
+	rm -f _news/eep-*.md
+	$< eep-news _news _clones/eep
 	touch _eeps/$(shell cd _clones/eep && git rev-parse --short HEAD)-$(EEPS_HASH)
 
 LATEST_MAJOR_VSN: otp_versions.table

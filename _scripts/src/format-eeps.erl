@@ -16,7 +16,8 @@ fix_eep(Target, EEP0, EEP) ->
     "eep-" ++ Num = filename:rootname(Basename),
     {FrontMatterStr, Matter} = gulp_frontmatter(Content),
     FrontMatter0 = parse_frontmatter(Num, iolist_to_binary(FrontMatterStr)),
-    FrontMatter = maybe_add_title(FrontMatter0, Matter),
+    FrontMatter1 = maybe_add_title(FrontMatter0, Matter),
+    FrontMatter = maybe_add_date(FrontMatter1),
     NewContent =
         case list_to_integer(Num) =/= 0 of
             true ->
@@ -223,6 +224,60 @@ maybe_add_title(FrontMatter, Matter) ->
         nomatch ->
             FrontMatter
     end.
+
+%% Parse the upstream `Created:` field (formats like `01-Jul-2024`,
+%% `1-Jun-2023`, `01-Sept-2019`, `07-may-2008`, or `DD-MM-YYYY` numeric)
+%% into a Jekyll-friendly ISO `date:` field. Used to slot EEPs into the
+%% index news reel alongside posts/news, which sort by `date`.
+maybe_add_date(#{ <<"Created">> := Created } = FrontMatter) ->
+    case parse_created_date(Created) of
+        undefined -> FrontMatter;
+        Iso -> FrontMatter#{ <<"date">> => Iso }
+    end;
+maybe_add_date(FrontMatter) ->
+    FrontMatter.
+
+parse_created_date(Created) ->
+    Trimmed = string:trim(iolist_to_binary(Created)),
+    %% Try DD-Mon-YYYY (alphabetic month, case-insensitive)
+    case re:run(Trimmed, "^([0-9]{1,2})-([A-Za-z]+)-([0-9]{4})$",
+                [{capture, all_but_first, binary}]) of
+        {match, [DayB, MonB, YearB]} ->
+            case month_to_num(string:lowercase(MonB)) of
+                undefined -> undefined;
+                Mon ->
+                    Day = binary_to_integer(DayB),
+                    iolist_to_binary(io_lib:format("~s-~2..0w-~2..0w",
+                                                   [YearB, Mon, Day]))
+            end;
+        nomatch ->
+            %% Fall back to DD-MM-YYYY numeric
+            case re:run(Trimmed, "^([0-9]{1,2})-([0-9]{1,2})-([0-9]{4})$",
+                        [{capture, all_but_first, binary}]) of
+                {match, [DayB, MonB, YearB]} ->
+                    Day = binary_to_integer(DayB),
+                    Mon = binary_to_integer(MonB),
+                    iolist_to_binary(io_lib:format("~s-~2..0w-~2..0w",
+                                                   [YearB, Mon, Day]));
+                nomatch ->
+                    undefined
+            end
+    end.
+
+month_to_num(<<"jan">>) -> 1;
+month_to_num(<<"feb">>) -> 2;
+month_to_num(<<"mar">>) -> 3;
+month_to_num(<<"apr">>) -> 4;
+month_to_num(<<"may">>) -> 5;
+month_to_num(<<"jun">>) -> 6;
+month_to_num(<<"jul">>) -> 7;
+month_to_num(<<"aug">>) -> 8;
+month_to_num(<<"sep">>) -> 9;
+month_to_num(<<"sept">>) -> 9;
+month_to_num(<<"oct">>) -> 10;
+month_to_num(<<"nov">>) -> 11;
+month_to_num(<<"dec">>) -> 12;
+month_to_num(_) -> undefined.
 
 parse_frontmatter(NumStr, FrontMatterStr) ->
 
