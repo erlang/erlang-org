@@ -11,7 +11,7 @@ netlify: clean
 	$(MAKE) -j $(shell nproc 2>/dev/null || sysctl -n hw.ncpu) --debug=basic BUNDLE_PATH=/opt/build/cache/bundle JEKYLL_ENV=production
 
 clean:
-	rm -rf _patches docs _eeps faq _clones eeps assets/js _redirects LATEST_MAJOR_VSN
+	rm -rf _patches docs _eeps faq _clones/eep _clones/faq eeps assets/js _redirects LATEST_MAJOR_VSN
 
 $(BUNDLE_PATH):
 	bundler install --jobs 4 --retry 3 --path $(BUNDLE_PATH)
@@ -46,11 +46,11 @@ otp_versions.table:
 _scripts/_build/default/bin/erlang-org: $(wildcard _scripts/src/*.erl) _scripts/rebar.config
 	$(MAKE) -C _scripts
 
-_clones/eep: | _clones
+_clones/eep:
 	git clone https://github.com/erlang/eep $@
 	cd $@ && ./build.pl
 
-_clones/faq: | _clones
+_clones/faq:
 	git clone https://github.com/matthiasl/Erlang-FAQ $@
 
 faq: _clones/faq
@@ -103,10 +103,6 @@ PATCHES_HASH=$(shell cat $(PATCHES_DEPS) | shasum -a 256 | awk '{print $$1}')
 _patches: $(PATCHES_DEPS)
 	if [ ! -d $@ ]; then git clone --single-branch -b $@ https://github.com/erlang/erlang-org $@; fi
 	if [ ! -f _patches/$(PATCHES_HASH) ]; then $(MAKE) patches; fi
-
-_clones:
-	mkdir -p $@
-	echo "erlang 26.2.5.9" > _clones/.tool-versions
 
 assets/js assets/webfonts:
 	mkdir -p $@
