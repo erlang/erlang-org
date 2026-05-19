@@ -5,7 +5,7 @@ BUNDLE_PATH?=vendor/bundle
 
 build: setup
 	bundler exec jekyll build
-	npx purgecss --css _site/assets/css/*.css --content `find _site -name "*.html" -o -name "*.js" | grep -v _site/doc/ | grep -v _site/docs/`  -o _site/assets/css/
+	npx purgecss --css _site/assets/css/*.css --content `find _site -name "*.html" -o -name "*.js" | grep -v _site/doc/ | grep -v _site/docs/` --safelist '/^alg-/' -o _site/assets/css/
 
 netlify: clean
 	$(MAKE) -j $(shell nproc 2>/dev/null || sysctl -n hw.ncpu) --debug=basic BUNDLE_PATH=/opt/build/cache/bundle JEKYLL_ENV=production
@@ -132,6 +132,7 @@ test:
 	yamllint -f standard .
 	npm run shellcheck
 	_scripts/check.sh
+	_scripts/check_algolia_search.sh
 
 algolia:
 	_scripts/run_algolia_scraper.sh

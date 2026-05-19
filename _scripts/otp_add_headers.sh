@@ -38,6 +38,14 @@ _insert_before_title() {
 $tag" "$file" > "$file.tmp" && mv "$file.tmp" "$file"
 }
 
+# Insert `tag` before <title> only if `marker` isn't already in the file.
+_insert_before_title_once() {
+    local marker="$1"
+    local tag="$2"
+    local file="$3"
+    grep -q "$marker" "$file" || _insert_before_title "$tag" "$file"
+}
+
 DOCS_DIR="$1"
 shift
 LATEST_MAJOR_VSN="$(cat "LATEST_MAJOR_VSN")"
@@ -61,31 +69,35 @@ _fixup_search_link() {
     fi
 
     if [[ -n "$ex_doc_major" ]] && [[ "$ex_doc_major" -gt 0 || "$ex_doc_minor" -ge 39 ]]; then
-        DATA_ENGINE_URL_SEARCH='data-engine-url="search.html?q="'
-        EXDOC_SEARCH=$(grep "${DATA_ENGINE_URL_SEARCH}" "$1" || echo "")
-        if [ "$(echo "$EXDOC_SEARCH" | wc -w)" -gt "0" ]; then
+        if grep -q 'data-engine-url="search.html?q="' "$1"; then
             _sed_i 's@data-engine-url="search.html?q="@data-engine-url="/doc/search.html?v='"${MAJOR_VSN}"'\&q="@g' "$1"
         fi
     else
         META_FULL_TEXT_SEARCH="<meta name=\"exdoc:full-text-search-url\""
-        EXDOC_SEARCH=$(grep "${META_FULL_TEXT_SEARCH}" "$1" || echo "")
-        if [ ! "$(echo "$EXDOC_SEARCH" | wc -w)" -gt "0" ]; then
-            _insert_before_title "${META_FULL_TEXT_SEARCH} content=\"/doc/search.html?v=${MAJOR_VSN}\&q=\">" "$1"
-        fi
+        _insert_before_title_once "$META_FULL_TEXT_SEARCH" \
+            "${META_FULL_TEXT_SEARCH} content=\"/doc/search.html?v=${MAJOR_VSN}\&q=\">" "$1"
     fi
 }
 
 _fixup_major_version() {
-    MAJOR_VSN_SEARCH=$(grep "<meta name=\"major-vsn\" content=\"[0-9][0-9]*\"" "$1" || echo "")
-    if [ ! "$(echo "$MAJOR_VSN_SEARCH" | wc -w)" -gt "0" ]; then
-        _insert_before_title "<meta name=\"major-vsn\" content=\"${MAJOR_VSN}\">" "$1"
-    fi
+    _insert_before_title_once '<meta name="major-vsn" content="[0-9][0-9]*"' \
+        "<meta name=\"major-vsn\" content=\"${MAJOR_VSN}\">" "$1"
 }
 
 _disable_autocomplete() {
-    AUTOCOMPLETE_SEARCH=$(grep "<meta name=\"exdoc:autocomplete\" content=\"off\">" "$1" || echo "")
-    if [ ! "$(echo "$AUTOCOMPLETE_SEARCH" | wc -w)" -gt "0" ]; then
-        _insert_before_title '<meta name="exdoc:autocomplete" content="off">' "$1"
+    _insert_before_title_once '<meta name="exdoc:autocomplete" content="off">' \
+        '<meta name="exdoc:autocomplete" content="off">' "$1"
+}
+
+_inject_algolia_typeahead() {
+    # Skip if our marker is already there (the meta tag below is also
+    # an idempotency guard on its own). Disable ExDoc's Lunr
+    # autocomplete on the same pages so it doesn't render alongside
+    # the Algolia dropdown.
+    if ! grep -q "algolia-typeahead.js" "$1"; then
+        _disable_autocomplete "$1"
+        _insert_before_title '<link rel="stylesheet" href="/assets/css/algolia-typeahead.css">' "$1"
+        _insert_before_title '<script src="/assets/js/algolia-typeahead.js" defer></script>' "$1"
     fi
 }
 
@@ -117,6 +129,7 @@ _add_head_tags() {
         _fixup_major_version "${file}"
         if [ "$MAJOR_VSN" -gt "26" ]; then
             _fixup_search_link "${file}"
+            _inject_algolia_typeahead "${file}"
         fi
         _add_canonical "${file}"
     done
@@ -133,10 +146,6 @@ for MAJOR_VSN in ${MAJOR_VSNS}; do
     echo "Adding head tags for OTP ${MAJOR_VSN} in ${TARGET_DIR}"
     # shellcheck disable=SC2046
     _add_head_tags "${TARGET_DIR}"
-    if [ "${MAJOR_VSN}" -gt "26" ]; then
-        _disable_autocomplete "${TARGET_DIR}/"*.html
-        _disable_autocomplete "${TARGET_DIR}/system/"*.html
-    fi
 done
 
 exit 0
