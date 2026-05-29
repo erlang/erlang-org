@@ -37,6 +37,10 @@ Most OS package managers provide pre-built binary packages.
 * For ArchLinux and Manjaro: `pacman -S erlang`
 * For FreeBSD: `pkg install erlang`
 * For Github Actions: [setup-beam](https://github.com/erlef/setup-beam)
+* For docker: `docker run -it erlang`
+
+> Note: Most OS package managers take some time to get the latest versions.
+> So if you want a specific version the recommendation is to build it yourself.
 
 ### License
 
