@@ -360,20 +360,21 @@ _check_present "/apps/erts/erl_cmd.html#emulator-flags" "emulator flags"       "
 # lvl3 must hold the dt term (with whatever modifier text follows
 # inside the <strong>). Catches the case where parseDefinitionList
 # emits records but loses the term text. _check_lvl3 picks the
-# top-ranked hit for the query whose URL contains the path — fine
-# when each dl-item has its own anchor (erl_cmd flags) and also
-# fine when dl-items share the parent's anchor (errors#exit-reasons,
-# erts_alloc#allocators) as long as the query disambiguates.
+# top-ranked hit for the query whose URL contains the path. Each
+# dl-item carries its own anchor: ExDoc emits an [id] on the
+# inline-code term (e.g. <code id="temp_alloc">), so a record
+# lands on #temp_alloc / #system_limit rather than the section
+# anchor #allocators / #exit-reasons.
 _check_lvl3 "/apps/erts/erl_cmd.html#+pad"               "+pad"        "erts"   "+pad emulator flag"
 _check_lvl3 "/apps/erts/erl_cmd.html#file_name_encoding" "+fnl"        "erts"   "+fnl filename encoding"
-_check_lvl3 "/system/errors.html#exit-reasons"           "system_limit" "Erlang System Documentation" "system_limit exit reason"
+_check_lvl3 "/system/errors.html#system_limit"           "system_limit" "Erlang System Documentation" "system_limit exit reason"
 
 # A dl-item's content should lead with the dd body, not the dt
 # term — the dt is already in hierarchy.lvl3, so leaving it on
 # the front of content duplicates the term in the snippet. The
 # crawler strips the dt + separator before indexing.
 _check_content_prefix "/apps/erts/erl_cmd.html#+pad"     "The boolean value used with the +pad" "erts" "+pad emulator flag"
-_check_content_prefix "/system/errors.html#exit-reasons" "A system limit has been reached" "Erlang System Documentation" "system_limit exit reason"
+_check_content_prefix "/system/errors.html#system_limit" "A system limit has been reached" "Erlang System Documentation" "system_limit exit reason"
 
 # A dl with many items must produce many child records — guards
 # against a regression where the parser bails out after the first
@@ -411,12 +412,13 @@ _count_dl_children "dl-children erl_cmd Emulator Flags" \
     "emulator flags" "erts" "Emulator Flags" "erl_cmd" 15
 
 # erts_alloc has two distinct dl sections — "Allocators" (each
-# allocator name as a dt; <li> elements have no inner id so all
-# child records share #allocators as their URL anchor) and
-# "System Flags Effecting erts_alloc" (each flag-group heading as
-# a dt). Both shapes should produce many records.
-_check_lvl3          "/apps/erts/erts_alloc.html#allocators" "temp_alloc"  "erts" "temp_alloc allocator"
-_check_content_prefix "/apps/erts/erts_alloc.html#allocators" "Allocator used for temporary" "erts" "temp_alloc allocator"
+# allocator name as a dt; the inline-code term carries an [id]
+# such as <code id="temp_alloc">, so each child record lands on
+# its own #temp_alloc anchor) and "System Flags Effecting
+# erts_alloc" (each flag-group heading as a dt). Both shapes
+# should produce many records.
+_check_lvl3          "/apps/erts/erts_alloc.html#temp_alloc" "temp_alloc"  "erts" "temp_alloc allocator"
+_check_content_prefix "/apps/erts/erts_alloc.html#temp_alloc" "Allocator used for temporary" "erts" "temp_alloc allocator"
 _check_lvl3 \
     "/apps/erts/erts_alloc.html#flags-for-configuration-of-alloc_util" \
     "Flags for Configuration of alloc_util" \
