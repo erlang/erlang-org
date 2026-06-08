@@ -133,6 +133,7 @@ test:
 	npm run shellcheck
 	_scripts/check.sh
 	_scripts/check_algolia_search.sh
+	_scripts/check_redirects.sh
 
 algolia:
 	_scripts/run_algolia_scraper.sh
