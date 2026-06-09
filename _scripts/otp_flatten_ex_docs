@@ -74,7 +74,10 @@ _get_latest_vsn() {
 }
 
 _get_latest_app_vsn() {
-    grep "${1}" "${OTP_VERSIONS_TABLE}" | sed -n "1s/.*${APP}-\([^ ]*\).*/\1/p"
+    ## Anchor the application name on a leading space so we do not match a
+    ## longer application that ends with it (e.g. "ftp" inside "tftp", which
+    ## would otherwise capture tftp's version because of the greedy ".*").
+    grep "${1}" "${OTP_VERSIONS_TABLE}" | sed -n "1s/.* ${APP}-\([^ ]*\).*/\1/p"
 }
 
 _add_versions() {
@@ -84,23 +87,59 @@ _add_versions() {
     local VERSION_NODES='var versionNodes = ['
     local VSN
     local version
+    local title_label
+    local otp_version
+    local app_version
+    local current_version
+    local current_title_label
     local latest
     local url
 
     for VSN in ${MAJOR_VSNs}; do
         if [ "$VSN" = "${MASTER_MAJOR_VSN}" ]; then
+            ## master/main is not in otp_versions.table yet, so it has no
+            ## released OTP version and its applications keep the versions they
+            ## had in the previous (latest) release until they are bumped.
+            otp_version="${MASTER_MAJOR_VSN}.0-rc0"
             if [ "${APP}" = "OTP" ]; then
-                version="${MASTER_MAJOR_VSN}.0"
+                app_version="${MASTER_MAJOR_VSN}.0"
             else
                 set +o pipefail
-                version=$(_get_latest_app_vsn "^OTP-$(( MASTER_MAJOR_VSN - 1 ))" "$APP")
+                app_version=$(_get_latest_app_vsn "^OTP-$(( MASTER_MAJOR_VSN - 1 ))" "$APP")
                 set -o pipefail
             fi
-            version="$version-rc0"
         else
-            set +o pipefail
-            version=$(_get_latest_app_vsn "^OTP-$VSN" "$APP")
-            set -o pipefail
+            otp_version=$(_get_latest_vsn "^OTP-${VSN}")
+            if [ "${APP}" = "OTP" ]; then
+                app_version="${otp_version}"
+            else
+                set +o pipefail
+                app_version=$(_get_latest_app_vsn "^OTP-$VSN" "$APP")
+                set -o pipefail
+            fi
+        fi
+        ## Applications that did not yet exist in a release are absent from that
+        ## release's row in otp_versions.table, so app_version comes back empty
+        ## (e.g. ftp/tftp before they were split out of inets in OTP 21). There is
+        ## no documentation to switch to for those, so drop the entry entirely --
+        ## except for the release we are currently flattening, whose own entry
+        ## must always be present for the dropdown to highlight the current page.
+        if [ "${APP}" != "OTP" ] && [ -z "${app_version}" ] && [ "$VSN" != "${MAJOR_VSN}" ]; then
+            continue
+        fi
+        ## The documentation is versioned per OTP release, so every page -- the
+        ## top-level docs and the individual applications alike -- is labelled by
+        ## its OTP version. An application's <title> additionally keeps the
+        ## application version as a hint of what changed between releases. Master
+        ## has no released version yet, so it uses the prerelease version (e.g.
+        ## "OTP 30.0-rc0"); the -rc0 also makes ExDoc treat it as a prerelease and
+        ## not show a "newer version available" banner pointing back at the latest
+        ## release.
+        version="OTP ${otp_version}"
+        if [ "${APP}" = "OTP" ]; then
+            title_label="${version}"
+        else
+            title_label="${version} (${APP} ${app_version})"
         fi
         if [ "$VSN" = "${LATEST_MAJOR_VSN}" ]; then
             latest="true"
@@ -109,12 +148,50 @@ _add_versions() {
             latest="false"
             url="/docs/${VSN}${URI}"
         fi
-        VERSION_NODES="${VERSION_NODES} {\"version\": \"v$version\", \"url\": \"$url\", \"latest\": $latest},"
+        if [ "$VSN" = "${MAJOR_VSN}" ]; then
+            current_version="${version}"
+            current_title_label="${title_label}"
+        fi
+        VERSION_NODES="${VERSION_NODES} {\"version\": \"${version}\", \"url\": \"$url\", \"latest\": $latest},"
     done
 
     VERSION_NODES="${VERSION_NODES}];"
 
     echo "${VERSION_NODES}" > "${DOCS_CONFIG}"
+
+    ## ExDoc bakes the version into .sidebar-projectVersion (the dropdown's
+    ## current-version chip) and into the page <title>. The dropdown highlights
+    ## the entry whose label matches the chip text exactly, so rewrite the chip
+    ## to our OTP label (current_version) on every page, including the top-level
+    ## docs (where ExDoc baked the bare "v29.0").
+    ##
+    ## Both rewrites assert (via the match count $n) that they changed at least
+    ## one page, and fail the build otherwise: if a future ExDoc release changes
+    ## this markup the substitution would silently match nothing and the docs
+    ## would quietly fall back to showing the application versions instead.
+    if [ -n "${current_version}" ]; then
+        SIDEBAR_LABEL="${current_version}" DOC_DIR="${1}" \
+        perl -0777 -i -pe '
+            BEGIN { $n = 0 }
+            $n += s{(class="sidebar-projectVersion"[^>]*>)[^<]*(</div>)}{$1\n          $ENV{SIDEBAR_LABEL}\n        $2}g;
+            END { die "no .sidebar-projectVersion found under $ENV{DOC_DIR} -- has ExDoc changed its HTML?\n" unless $n }
+        ' "${1}/"*.html
+    fi
+
+    ## For the individual applications the baked <title> is "<app> v<appvsn>";
+    ## rewrite it to the label that also carries the application version
+    ## (current_title_label). The match is version-agnostic ("<app> v<anything>")
+    ## because master bakes inconsistent application versions (some with a -rc0
+    ## suffix, some bumped ahead of the previous release). The top-level <title>
+    ## already shows the OTP version ("... -- Erlang/OTP v29.0") and is left as is.
+    if [ "${APP}" != "OTP" ] && [ -n "${current_title_label}" ]; then
+        TITLE_LABEL="${current_title_label}" APP_NAME="${APP}" DOC_DIR="${1}" \
+        perl -0777 -i -pe '
+            BEGIN { $n = 0 }
+            $n += s{(<title>[^<]*?)\Q$ENV{APP_NAME}\E v[0-9][^< ]*([^<]*</title>)}{$1$ENV{TITLE_LABEL}$2}g;
+            END { die "no \"$ENV{APP_NAME} v<vsn>\" <title> found under $ENV{DOC_DIR} -- has ExDoc changed its HTML?\n" unless $n }
+        ' "${1}/"*.html
+    fi
 }
 
 _flatten_and_update_docs() {
