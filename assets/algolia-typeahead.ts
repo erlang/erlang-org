@@ -287,7 +287,20 @@ function debounce<T extends unknown[]>(fn: (...args: T) => void, ms: number): (.
   };
 }
 
+// Removes the previous mount's document-level listeners. swup swaps
+// `#main` (input + dropdown go with it) but leaves the document click
+// listener behind, so we detach it before mounting onto the fresh
+// search bar to avoid piling up stale handlers.
+let teardownActive: (() => void) | null = null;
+
 function mount(input: HTMLInputElement, ctx: Context): void {
+  if (teardownActive) { teardownActive(); teardownActive = null; }
+
+  // `body.search-focused` lives outside `#main`, so it survives a swup
+  // navigation. Clear it on (re)mount so a page reached by clicking a
+  // result doesn't inherit the previous page's focused search bar.
+  document.body.classList.remove('search-focused');
+
   // Clone the input to detach ExDoc's Lunr listeners. The `/`
   // keyboard shortcut is bound on document and finds the input by
   // class, so it still focuses the replacement.
@@ -440,12 +453,48 @@ function mount(input: HTMLInputElement, ctx: Context): void {
     });
   }
 
+  // ExDoc toggles `body.search-focused` (sticky search bar + a visible
+  // close button) from its own focus/blur handlers, but the
+  // exdoc:autocomplete=off meta short-circuits those before they bind
+  // on our pages. So we own the state ourselves.
+  function setFocused(on: boolean): void {
+    document.body.classList.toggle('search-focused', on);
+  }
+
+  // Full cancel: abort any in-flight request, clear the query, drop the
+  // results and collapse the search UI. Mirrors ExDoc's own Escape /
+  // close-button behaviour, which is disabled on our pages.
+  function cancelSearch(): void {
+    if (ctrl) { ctrl.abort(); ctrl = null; }
+    if (loadingTimer) { clearTimeout(loadingTimer); loadingTimer = null; }
+    input.value = '';
+    hits = [];
+    selected = -1;
+    results.innerHTML = '';
+    wrap.hidden = true;
+    setFocused(false);
+  }
+
   const onInput = debounce(runQuery, DEBOUNCE_MS);
   input.addEventListener('input', onInput);
 
   input.addEventListener('focus', () => {
+    setFocused(true);
     if (hits.length) wrap.hidden = false;
   });
+
+  // ExDoc's close button (the "X") has no handler on our pages, since
+  // exdoc:autocomplete=off makes ExDoc skip binding it. Wire it up so
+  // clicking it cancels the search like it does in stock ExDoc.
+  const closeBtn = (input.closest('.search-bar') as HTMLElement | null)
+    ?.querySelector<HTMLButtonElement>('.search-close-button');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', e => {
+      e.preventDefault();
+      cancelSearch();
+      input.blur();
+    });
+  }
 
   // Capture-phase handler for Enter and Tab so they run *before*
   // ExDoc's listeners (Enter triggers their form submit; Tab
@@ -472,10 +521,7 @@ function mount(input: HTMLInputElement, ctx: Context): void {
   // the same behaviour.
   input.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
-      if (!wrap.hidden) {
-        wrap.hidden = true;
-        selected = -1;
-      }
+      cancelSearch();
       input.blur();
       return;
     }
@@ -494,11 +540,18 @@ function mount(input: HTMLInputElement, ctx: Context): void {
     }
   });
 
-  document.addEventListener('click', e => {
+  const onDocumentClick = (e: MouseEvent): void => {
     if (e.target === input) return;
     if (e.target instanceof Node && wrap.contains(e.target)) return;
     wrap.hidden = true;
-  });
+    setFocused(false);
+  };
+  document.addEventListener('click', onDocumentClick);
+  teardownActive = () => document.removeEventListener('click', onDocumentClick);
+
+  // Mark the live input so a repeated init() (e.g. the initial-load
+  // exdoc:loaded firing after our eager init below) is a no-op.
+  input.dataset.algoliaTypeahead = 'mounted';
 }
 
 function init(): void {
@@ -509,9 +562,19 @@ function init(): void {
   }
   const input = document.querySelector<HTMLInputElement>('.search-input');
   if (!input) return;
+  if (input.dataset.algoliaTypeahead === 'mounted') return;
   mount(input, ctx);
 }
 
+// ExDoc emits `exdoc:loaded` on the initial DOMContentLoaded and again
+// after every swup `page:view`. swup only swaps `#main`, so each in-build
+// navigation drops a fresh search input with no typeahead wired up —
+// re-running init on the event re-mounts it. init() is idempotent via a
+// marker on the input, so the duplicate initial-load call is a no-op.
+window.addEventListener('exdoc:loaded', init);
+
+// Fallback for ExDoc bundles that never emit exdoc:loaded: mount once
+// when the DOM is ready.
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
 } else {
