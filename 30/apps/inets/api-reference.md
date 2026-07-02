@@ -1,0 +1,25 @@
+# inets v9.7.1-rc0 - API Reference
+
+## Modules
+
+- Service API
+  - [inets](inets.md): The Inets services API.
+
+- HTTP client modules
+  - [httpc](httpc.md): An HTTP/1.1 client
+
+- HTTP server modules
+  - [httpd](httpd.md): HTTP server API
+  - [httpd_custom_api](httpd_custom_api.md): Behaviour with optional callbacks to customize the inets HTTP server.
+  - [httpd_socket](httpd_socket.md): Communication utility functions to be used by the Erlang web server API
+programmer.
+  - [httpd_util](httpd_util.md): Miscellaneous utility functions to be used when implementing Erlang web server
+API modules.
+  - [mod_alias](mod_alias.md): URL aliasing.
+  - [mod_auth](mod_auth.md): User authentication using text files, Dets, or Mnesia database.
+  - [mod_esi](mod_esi.md): Erlang Server Interface
+  - [mod_security](mod_security.md): Security Audit and Trailing Functionality
+
+- Deprecated functionality
+  - [http_uri](http_uri.md): Old URI utility module, use uri_string instead
+

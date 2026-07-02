@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="ExDoc v0.40.3">
+    <meta name="project" content="ssl v11.7.3-rc0">
+
+
+<meta name="major-vsn" content="30">
+<meta name="exdoc:autocomplete" content="off">
+<link rel="stylesheet" href="/assets/css/algolia-typeahead.css">
+<script src="/assets/js/algolia-typeahead.bundle.js" defer></script>
+<link rel="canonical" href="https://www.erlang.org/doc/apps/ssl/ssl_hardening.html" />
+    <title>TLS Hardening Guide — OTP 30.0-rc0 (ssl 11.7.3)</title>
+
+    <link rel="stylesheet" href="dist/html-erlang-KCHZLXSC.css" />
+
+    <script defer src="dist/sidebar_items-942DBA05.js"></script>
+    <script defer src="docs_config.js"></script>
+    <script defer src="dist/html-Y2MUTVIN.js"></script>
+<style>.dark img { background-color: white; }</style>
+  </head>
+  <body>
+    <script>(()=>{var t="ex_doc:settings",e="dark";var o="dark",s="light";var E="sidebar_state",n="closed";var r="sidebar_width";var a="sidebar-open";var i=new URLSearchParams(window.location.search),S=i.get("theme")||JSON.parse(localStorage.getItem(t)||"{}").theme;(S===o||S!==s&&window.matchMedia("(prefers-color-scheme: dark)").matches)&&document.body.classList.add(e);var d=sessionStorage.getItem(E),A=d!==n&&!window.matchMedia(`screen and (max-width: ${768}px)`).matches;document.body.classList.toggle(a,A);var c=sessionStorage.getItem(r);c&&document.body.style.setProperty("--sidebarWidth",`${c}px`);var p=/(Macintosh|iPhone|iPad|iPod)/.test(window.navigator.userAgent);document.documentElement.classList.toggle("apple-os",p);})();
+</script>
+
+<div class="body-wrapper">
+
+<button id="sidebar-menu" class="sidebar-button sidebar-toggle" aria-label="toggle sidebar" aria-controls="sidebar">
+  <i class="ri-menu-line ri-lg" title="Collapse/expand sidebar"></i>
+</button>
+
+<nav id="sidebar" class="sidebar">
+
+  <div class="sidebar-header">
+    <div class="sidebar-projectInfo">
+
+        <a href="../../index.html" class="sidebar-projectImage">
+          <img src="assets/logo.png" alt="ssl" />
+        </a>
+
+      <div>
+        <a href="../../index.html" class="sidebar-projectName" translate="no">
+ssl
+        </a>
+        <div class="sidebar-projectVersion" translate="no">
+          OTP 30.0-rc0
+        </div>
+      </div>
+    </div>
+    <ul id="sidebar-list-nav" class="sidebar-list-nav" role="tablist" data-extras="Pages"></ul>
+  </div>
+</nav>
+
+<output role="status" id="toast"></output>
+
+<main class="content page-extra" id="main" data-type="extras">
+  <div id="content" class="content-inner">
+    <div class="top-search">
+      <div class="search-settings">
+        <form class="search-bar" action="search.html">
+          <label class="search-label">
+            <span class="sr-only">Search documentation of ssl</span>
+            <div class="search-input-wrapper">
+              <input name="q" type="text" class="search-input" placeholder="Press / to search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+              <button type="button" tabindex="-1" class="search-close-button" aria-hidden="true">
+                <i class="ri-close-line ri-lg" title="Cancel search"></i>
+              </button>
+            </div>
+          </label>
+        </form>
+        <div class="autocomplete">
+        </div>
+        <div class="engine-selector" data-multiple="false">
+          <button type="button" class="engine-button" aria-label="Select search engine" aria-haspopup="true" aria-expanded="false">
+            <i class="ri-search-2-line" aria-hidden="true"></i>
+            <span class="engine-name">Search erlang documentation</span>
+            <i class="ri-arrow-down-s-line" aria-hidden="true"></i>
+          </button>
+          <div class="engine-dropdown" hidden role="menu">
+
+              <button type="button"
+                      class="engine-option"
+                      data-engine-url="/doc/search.html?v=30&q="
+                      role="menuitemradio"
+                      aria-checked="true">
+                <span class="name">Search erlang documentation</span>
+                <span class="help">Search erlang documentation</span>
+              </button>
+
+          </div>
+        </div>
+        <button class="icon-settings display-settings">
+          <i class="ri-settings-3-line"></i>
+          <span class="sr-only">Settings</span>
+        </button>
+      </div>
+    </div>
+
+<div id="top-content">
+  <div class="heading-with-actions top-heading">
+    <h1>TLS Hardening Guide</h1>
+
+<a href="ssl_hardening.md" title="Copy Markdown (hold Ctrl/Cmd and click it to open as Markdown)" class="copy-markdown icon-action" rel="help">
+  <i class="ri-markdown-line" aria-hidden="true"></i>
+  <span class="sr-only">Copy Markdown</span>
+</a>
+
+
+      <a href="https://github.com/erlang/otp/blob/master/lib/ssl/doc/guides/ssl_hardening.md#L1" title="View Source" class="icon-action" rel="help nofollow">
+        <i class="ri-code-s-slash-line" aria-hidden="true"></i>
+        <span class="sr-only">View Source</span>
+      </a>
+
+  </div>
+
+
+<p>This guide describes how to harden Transport Layer Security (TLS)
+connections configured with the ssl application. It covers
+cryptographic algorithm selection, protocol version configuration,
+certificate verification, and revocation checking.</p><section role="note" class="admonition info"><h4 class="admonition-title info">Note</h4><p>There can exist trade-offs between
+interoperability and security, and between resource consumption and
+security. If you make such trade-offs it is important that you make an
+informed decision and understand the consequences. Also this guide
+will always reflect the status of defaults for the release where it
+is published, unless otherwise specifically stated. Hence using older
+releases may need more configuration to achieve the same result.</p></section><p>Erlang's TLS implementation provided by the <code class="inline">ssl</code> application strives to
+have secure defaults. That said, we will avoid changing defaults in
+non-major releases.</p><p>For embedded systems with constrained bandwidth, cipher suites using
+Advanced Encryption Standard (AES) with counter cipher block chaining
+message authentication code, that is AES-CCM-8 (8-byte authentication
+tag) can be configured and provides 64-bit integrity instead of
+128-bit.</p><section role="note" class="admonition warning"><h4 class="admonition-title warning">Warning</h4><p>Be aware that enabling anything documented as legacy will make your
+application less secure.</p></section><section role="note" class="admonition warning"><h4 class="admonition-title warning">Warning</h4><p>Network Security Services Key Log Format (NSS Key Logging)
+is a debugging functionality that should not be enabled in
+production systems as it defeats the purpose of the TLS protocol.</p></section><h2 id="cryptographic-algorithms" class="section-heading"><a href="#cryptographic-algorithms" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Cryptographic Algorithms</span></h2><p>The available cryptographic algorithms depend on the version of
+OpenSSL cryptolib that Erlang/OTP is built and linked with.</p><p>When you configure algorithm options such as
+<a href="ssl.html#t:common_option_tls13/0"><code class="inline">supported_groups</code></a>, or
+<a href="ssl.html#t:common_option/0"><code class="inline">signature_algs</code></a>, the ssl application
+automatically removes any algorithms not supported by the underlying
+OpenSSL cryptolib. The exception is the
+<a href="ssl.html#t:common_option/0"><code class="inline">ciphers</code></a> option: user-supplied cipher
+suites are not automatically filtered against crypto support, this is
+due to the more complex composition of algorithms in cipher suites
+pre TLS-1.3. In this case use <a href="ssl.html#filter_cipher_suites/2"><code class="inline">ssl:filter_cipher_suites/2</code></a>
+to remove suites that are not supported by linked <code class="inline">OpenSSL cryptolib</code>.</p><section role="note" class="admonition info"><h4 class="admonition-title info">Note</h4><p>The TLS protocol is implemented in Erlang, and therefore only the cryptographic
+functions come from the <code class="inline">OpenSSL cryptolib</code>. This reduces the error
+surface by excluding buffer overflows and other pointer related errors
+that does not exist in Erlang programs.</p></section><h3 id="algorithms-selection" class="section-heading"><a href="#algorithms-selection" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Algorithms selection</span></h3><p>The TLS protocol typically specifies that the client's algorithm
+preference determines the algorithm selection. The server option
+<a href="ssl.html#t:server_option/0"><code class="inline">honor_cipher_order</code></a> overrides this for
+cipher suite selection in all TLS versions. For TLS-1.2 and legacy
+versions, <a href="ssl.html#t:server_option_pre_tls13/0"><code class="inline">honor_ecc_order</code></a>
+does the same for ECC curve selection.</p><h3 id="signature-algorithms" class="section-heading"><a href="#signature-algorithms" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Signature Algorithms</span></h3><p>The <a href="ssl.html#t:signature_algs/0"><code class="inline">signature_algs</code></a> option configures
+which signature algorithms are acceptable for TLS protocol messages.
+The <a href="ssl.html#t:signature_algs/0"><code class="inline">signature_algs_cert</code></a>, option
+separately configures acceptable algorithms for certificate chain
+signatures.</p><p>If <a href="ssl.html#t:signature_algs/0"><code class="inline">signature_algs</code></a> is specified but not
+<a href="ssl.html#t:signature_algs/0"><code class="inline">signature_algs_cert</code></a> the value of
+<a href="ssl.html#t:signature_algs/0"><code class="inline">signature_algs</code></a> will implicitly be used
+for <a href="ssl.html#t:signature_algs/0"><code class="inline">signature_algs_cert</code></a>; however if none
+of them are explicitly specified certificate signatures are verified
+against default <a href="ssl.html#t:signature_algs/0"><code class="inline">signature_algs</code></a> (with
+additional legacy SHA-1 algorithms — see note below).</p><section role="note" class="admonition info"><h4 class="admonition-title info">Note</h4><p>Currently using the default
+<a href="ssl.html#t:signature_algs/0"><code class="inline">signature_algs</code></a> will add
+<a href="ssl.html#t:signature_algs/0"><code class="inline">signature_algs_cert</code></a> that allows
+signature algorithms using SHA-1 as pseudo random function for
+certificate signatures. This is not allowed by default for protocol
+signatures. It is expected to be removed after 2030, when such
+certificates should have been phased out.</p></section><h3 id="post-quantum-algorithms" class="section-heading"><a href="#post-quantum-algorithms" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Post Quantum Algorithms</span></h3><p>Post-Quantum Cryptography (PQC) algorithms are designed to resist
+attacks from future cryptographically relevant quantum computers
+(CRQCs), which are expected to break algorithms such as RSA and ECC.
+PQC is only available in TLS-1.3.</p><section role="note" class="admonition info"><h4 class="admonition-title info">Note</h4><p>Even though CRQCs do not yet exist, enabling PQC protects against
+&quot;harvest now, decrypt later&quot; attacks where an adversary records
+encrypted traffic today for future decryption.</p></section><p>PQC algorithms generally require more computation and network
+bandwidth than classical algorithms. Key sizes, signatures, and
+ciphertexts are larger.</p><p>For key exchange, several ML-KEM hybrid groups are supported. By
+default, only x25519mlkem768 is offered — a hybrid that combines
+classical X25519 with ML-KEM-768 to balance current security with
+future quantum resistance, as the newer algorithms are less
+battle-tested.</p><p>For authentication, the signature algorithms ML-DSA and SLH-DSA are
+supported. ML-DSA is preferred due to faster signing and smaller
+signatures. Using PQC signature algorithms requires appropriate PQC
+certificates and keys.</p><h2 id="privacy-and-integrity" class="section-heading"><a href="#privacy-and-integrity" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Privacy and Integrity</span></h2><p>The protocol version TLS-1.3 is a major upgrade of the protocol
+over previous versions, and supporting both TLS-1.3 and
+TLS-1.2 will require a configuration including options from both.</p><p>TLS 1.3 significantly improves session handling over TLS 1.2 by
+reducing the handshake from two round-trips (2-RTT) to one (1-RTT).
+It mandates forward secrecy, encrypts more of the handshake, and
+introduces 0-RTT resumption for previously visited sites.</p><p>The protocol itself will prevent version downgrade when using TLS-1.3
+and TLS-1.2, which are the default supported versions. All other TLS
+versions still configurable are legacy versions. Datagram transport
+layer security, DTLS-1.2 over User Datagram Protocol (UDP) can also be
+configured and has functionality similar to TLS-1.2 but will always be
+less reliable and may lose application data just like plain UDP
+communication. DTLS over other transports can possibly be achieved but
+not out of the box. DTLS-1.3 is currently not supported.</p><h3 id="cipher-suites" class="section-heading"><a href="#cipher-suites" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Cipher Suites</span></h3><p>TLS-1.3 does not share any cipher suites with previous protocol versions.
+You will need to include at least one cipher suite for both
+TLS-1.3 and TLS-1.2 to be able to support both versions in the
+<a href="ssl.html#t:common_option/0"><code class="inline">ciphers</code></a> option.</p><p>TLS 1.3 uses only modern Authenticated Encryption with Associated Data (AEAD)
+cipher suites, so does the ssl application's TLS-1.2 default.</p><h3 id="session-key-renewal" class="section-heading"><a href="#session-key-renewal" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Session Key Renewal</span></h3><p>Renegotiation options only apply to versions prior to TLS-1.3.
+TLS-1.3 replaces renegotiation with the key update mechanism, which
+only handles session key rotation and does not allow renegotiating
+cipher suites or certificates mid-connection.</p><p>A server can disable client-initiated renegotiation with the
+<a href="ssl.html#t:server_option_pre_tls13/0"><code class="inline">client_renegotiation</code></a> option to
+avoid possible <a rel="nofollow" href="https://en.wikipedia.org/wiki/Denial-of-service_attack">DoS-attacks</a>.</p><p>By default, the server mitigates renegotiation abuse by enforcing a
+12-second delay between client initiated renegotiations.</p><h3 id="key-exchange-groups" class="section-heading"><a href="#key-exchange-groups" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Key Exchange Groups</span></h3><p>TLS-1.3 decouples key exchange algorithms from cipher suites. The key
+exchange algorithms are configured using the
+<a href="ssl.html#t:common_option_tls13/0"><code class="inline">supported_groups</code></a> option. In TLS-1.2
+in addition to the cipher suites the options
+<a href="ssl.html#t:common_option_pre_tls13/0"><code class="inline">eccs</code></a>,
+<a href="ssl.html#t:server_option_pre_tls13/0"><code class="inline">dh</code></a>,
+<a href="ssl.html#t:server_option_pre_tls13/0"><code class="inline">dhfile</code></a>, are available for
+configuring the key exchange.</p><p>TLS 1.3 removes static RSA, supporting only ephemeral Diffie-Hellman,
+which provides mandatory Perfect Forward Secrecy (PFS),
+so does the ssl application's TLS-1.2 default.</p><h3 id="pre-shared-keys" class="section-heading"><a href="#pre-shared-keys" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Pre-Shared Keys</span></h3><section role="note" class="admonition warning"><h4 class="admonition-title warning">Warning</h4><p>Do not use the same Pre-Shared Key (PSK) across both TLS 1.2 and TLS
+1.3, as it is considered unsafe.</p></section><p>In TLS-1.2, PSK is supported by PSK cipher suites, which generally
+lack forward secrecy unless combined with DHE or ECDHE key exchange.
+In TLS-1.3, PSK are most commonly used together with a key exchange
+algorithm, providing forward secrecy, although a PSK only option still
+exists.</p><h3 id="early-data" class="section-heading"><a href="#early-data" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Early Data</span></h3><p>Early data (0-RTT) in TLS-1.3 is not forward secret and is
+vulnerable to replay attacks. The server option
+<a href="ssl.html#t:server_option/0"><code class="inline">early_data</code></a> is disabled by default.</p><section role="note" class="admonition warning"><h4 class="admonition-title warning">Warning</h4><p>Only enable early data if your application can safely handle
+replayed requests (that is for instance, idempotent HTTP methods).</p></section><p>See <a href="using_ssl.html#early-data-in-tls-1-3">Early Data in TLS-1.3</a> for
+mitigation strategies and examples.</p><h2 id="authenticity" class="section-heading"><a href="#authenticity" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Authenticity</span></h2><p>Certificate verification is essential for establishing trust in TLS
+connections. The <code class="inline">ssl</code> application provides several mechanisms for
+customizing and strengthening certificate validation.</p><h3 id="certificate-and-keys" class="section-heading"><a href="#certificate-and-keys" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Certificate and Keys</span></h3><p>Use the <a href="ssl.html#t:common_option_cert/0"><code class="inline">certs_keys</code></a> option to be able
+to configure more than one possible certificate for the client or
+server. The <code class="inline">best</code> one compatible with the peer will be chosen.</p><h3 id="verify-function" class="section-heading"><a href="#verify-function" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Verify Function</span></h3><p>The <a href="ssl.html#t:common_option_cert/0"><code class="inline">verify_fun</code></a> option lets you
+customize certificate path validation for both TLS clients and
+servers. Use it to add application-specific checks beyond the
+standard chain verification.</p><section role="note" class="admonition warning"><h4 class="admonition-title warning">Warning</h4><p>However, the <a href="ssl.html#t:common_option_cert/0"><code class="inline">verify_fun</code></a> can also be
+used to accept certain errors. Doing so is at your own risk and will
+weaken the security properties of your application. Legacy client
+<a href="ssl.html#t:client_option_cert/0"><code class="inline">verify</code></a> option set to the value
+<code class="inline">verify_none</code> skips all certificate verification errors using
+a special <a href="ssl.html#t:common_option_cert/0"><code class="inline">verify_fun</code></a>
+and should only be used for testing and debugging purposes.</p></section><section role="note" class="admonition info"><h4 class="admonition-title info">Note</h4><p>On the server side, <code class="inline">verify_none</code> is default as client certification
+is an optional feature of the protocol and it needs configuring. When
+client certification is configured, setting
+<a href="ssl.html#t:server_option_cert/0"><code class="inline">verify</code></a> option to <code class="inline">verify_peer</code>, the
+server legacy option
+<a href="ssl.html#t:server_option_legacy/0"><code class="inline">fail_if_no_peer_cert</code></a> defaults to
+true.</p></section><p>To summarize:</p><ul><li>Always use <code class="inline">verify_peer</code> on the client side (default since OTP 26)</li><li>Avoid accepting <code class="inline">{bad_cert, _}</code> errors in <a href="ssl.html#t:common_option_cert/0"><code class="inline">verify_fun</code></a> unless
+there is some edge-case workaround that you have confidence in excluding.</li><li>When enabling client certification on the server, ensure
+<a href="ssl.html#t:server_option_legacy/0"><code class="inline">fail_if_no_peer_cert</code></a> is true (default since OTP 26).</li></ul><h3 id="certificate-revocation-verification" class="section-heading"><a href="#certificate-revocation-verification" class="hover-link"><i class="ri-link-m" aria-hidden="true"></i></a><span class="text">Certificate Revocation Verification</span></h3><p>Certificate revocation verification is important for security and
+needs to be performed. However it requires some application specific
+knowledge to set it up correctly, hence the option
+<a href="ssl.html#t:common_option_cert/0"><code class="inline">crl_check</code></a> default to
+<code class="inline">false</code>. Use true to verify the entire certificate chain, or peer to
+verify only the peer certificate.</p><section role="note" class="admonition warning"><h4 class="admonition-title warning">Warning</h4><p>The <code class="inline">best_effort</code> value is legacy and insecure — it silently
+accepts certificates when revocation status cannot be determined.</p></section><p>The built-in Certificate Revocation List (CRL) cache can
+be pre-populated via <a href="ssl_crl_cache.html#insert/1"><code class="inline">ssl_crl_cache:insert/1</code></a> or configured to
+fetch CRLs from HTTP distribution points in certificates.
+For custom CRL sources, implement the
+<a href="ssl_crl_cache_api.html"><code class="inline">ssl_crl_cache_api behaviour</code></a>.</p><p>The client can request Online Certificate Status Protocol (OCSP)
+stapling from the server with the
+<a href="ssl.html#t:client_option_cert/0"><code class="inline">stapling</code></a> option (disabled by
+default). In TLS-1.2, only end-entity certificate stapling is
+supported as opposed to TLS-1.3. If the server does not provide a
+staple, the connection by default fails with <code class="inline">{bad_cert, missing_ocsp_staple}</code>.</p><p>A custom <a href="ssl.html#t:common_option_cert/0"><code class="inline">verify_fun</code></a> can intercept
+this to implement fallback revocation checking (that is, direct CRL
+fetch).</p><section role="note" class="admonition warning"><h4 class="admonition-title warning">Warning</h4><p>Accepting <code class="inline">{bad_cert, missing_ocsp_staple}</code> without performing
+alternative revocation checking is insecure, as it allows a MITM
+attacker to suppress revocation information by omitting the staple.</p></section><section role="note" class="admonition info"><h4 class="admonition-title info">Note</h4><p>The ssl application does not perform direct OCSP queries (client
+contacting the OCSP responder via the certificate's Authority
+Information Access (AIA) extension), only OCSP stapling
+(server-provided responses in the TLS handshake) is supported to be
+verified by the client. The Erlang server has no stapling support.
+Also, OCSP support seems to be on the decline, for instance
+<code class="inline">Let's Encrypt</code> has dropped it.</p></section>
+
+</div>
+
+<div class="bottom-actions" id="bottom-actions">
+  <div class="bottom-actions-item">
+
+      <a href="ssl_distribution.html" class="bottom-actions-button" rel="prev">
+        <span class="subheader">
+          ← Previous Page
+        </span>
+        <span class="title">
+Erlang Distribution over TLS
+        </span>
+      </a>
+
+  </div>
+  <div class="bottom-actions-item">
+
+      <a href="standards_compliance.html" class="bottom-actions-button" rel="next">
+        <span class="subheader">
+          Next Page →
+        </span>
+        <span class="title">
+Standards Compliance
+        </span>
+      </a>
+
+  </div>
+</div>
+    <footer class="footer">
+
+        <p>
+
+          <span class="line">
+            <button class="a-main footer-button display-quick-switch" title="Go to package docs">
+              Go to package docs
+            </button>
+
+              <a href="llms.txt" target="_blank">
+                View llms.txt
+              </a>
+
+
+              <a href="ssl.epub">
+                Download ePub version
+              </a>
+
+          </span>
+        </p>
+
+        <p class="built-using">
+          Built using
+          <a href="https://github.com/elixir-lang/ex_doc" title="ExDoc" target="_blank" rel="help noopener" translate="no">ExDoc</a> (v0.40.3) for the
+
+            <a href="https://erlang.org" title="Erlang" target="_blank" translate="no">Erlang programming language</a>
+
+        </p>
+
+<p>Copyright © 1996-2026 <a href="https://www.ericsson.com">Ericsson AB</a></p>
+    </footer>
+  </div>
+</main>
+</div>
+  <script defer src="https://cdn.jsdelivr.net/npm/mermaid@11.14.0/dist/mermaid.min.js"></script>
+  <script>
+  let initialized = false;
+
+  window.addEventListener("exdoc:loaded", () => {
+      if (!initialized) {
+      mermaid.initialize({
+          startOnLoad: false,
+          theme: document.body.className.includes("dark") ? "dark" : "default"
+      });
+      initialized = true;
+      }
+
+      let id = 0;
+      for (const codeEl of document.querySelectorAll("pre code.mermaid")) {
+      const preEl = codeEl.parentElement;
+      const graphDefinition = codeEl.textContent;
+      const graphEl = document.createElement("div");
+      const graphId = "mermaid-graph-" + id++;
+      mermaid.render(graphId, graphDefinition).then(({svg, bindFunctions}) => {
+          graphEl.innerHTML = svg;
+          bindFunctions?.(graphEl);
+          preEl.insertAdjacentElement("afterend", graphEl);
+          preEl.remove();
+      });
+      }
+  });
+  </script>
+
+  </body>
+</html>
