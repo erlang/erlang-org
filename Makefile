@@ -11,7 +11,7 @@ netlify: clean
 	$(MAKE) -j $(shell nproc 2>/dev/null || sysctl -n hw.ncpu) --debug=basic BUNDLE_PATH=/opt/build/cache/bundle JEKYLL_ENV=production
 
 clean:
-	rm -rf _patches _versions _versions.new assets/otp-versions.json assets/otp-tickets.json docs _eeps faq _clones/eep _clones/faq eeps assets/js _redirects LATEST_MAJOR_VSN
+	rm -rf _patches _patches.new _versions _versions.new assets/otp-versions.json assets/otp-tickets.json docs _eeps faq _clones/eep _clones/faq eeps assets/js _redirects LATEST_MAJOR_VSN
 
 $(BUNDLE_PATH):
 	bundler install --jobs 4 --retry 3 --path $(BUNDLE_PATH)
@@ -70,9 +70,15 @@ eeps: _clones/eep
 
 EEPS_DEPS=_scripts/src/format-eeps.erl _scripts/src/eep-news.erl _scripts/src/gh.erl
 EEPS_HASH=$(shell cat $(EEPS_DEPS) | shasum -a 256 | awk '{print $$1}')
+## Trusts the cache in production like docs, _patches and _versions: a deploy
+## preview has no CI run to refresh the branch first, and regenerating needs
+## rebar3 and Erlang, which that build does not have. Note that gh.erl is a
+## dependency here as well as of _patches and _versions, so touching it
+## invalidates all three.
 _eeps: _clones/eep $(EEPS_DEPS)
 	if [ ! -d $@ ]; then git clone --single-branch -b $@ https://github.com/erlang/erlang-org $@; fi
-	if [ ! -f $@/$(shell cd $< && git rev-parse --short HEAD)-$(EEPS_HASH) ]; then \
+	if [ "$(JEKYLL_ENV)" != "production" ] && \
+	   [ ! -f $@/$(shell cd $< && git rev-parse --short HEAD)-$(EEPS_HASH) ]; then \
 	  $(MAKE) format-eeps; \
 	fi
 
@@ -120,13 +126,15 @@ assets/otp-versions.json: _versions
 ## The ticket index belongs to the patches cache, so the two caches stay
 ## independent of one another and the page joins them at run time.
 assets/otp-tickets.json: _patches
-	cp _patches/tickets.json $@
+	if [ -f _patches/tickets.json ]; then cp _patches/tickets.json $@; else echo '{}' > $@; fi
 
 PATCHES_DEPS=otp_versions.table _scripts/src/create-releases.erl _scripts/src/otp_readme.erl _scripts/src/gh.erl
 PATCHES_HASH=$(shell cat $(PATCHES_DEPS) | shasum -a 256 | awk '{print $$1}')
 _patches: $(PATCHES_DEPS)
 	if [ ! -d $@ ]; then git clone --single-branch -b $@ https://github.com/erlang/erlang-org $@; fi
-	if [ ! -f _patches/$(PATCHES_HASH) ]; then $(MAKE) patches; fi
+	if [ "$(JEKYLL_ENV)" != "production" ] && [ ! -f _patches/$(PATCHES_HASH) ]; then \
+	  $(MAKE) patches; \
+	fi
 
 assets/js assets/webfonts:
 	mkdir -p $@
@@ -135,13 +143,17 @@ versions: _scripts/_build/default/bin/erlang-org otp_versions.table
 	rm -rf _versions.new && mkdir _versions.new
 	$< create-versions otp_versions.table _versions.new/otp-versions.json
 	touch _versions.new/$(VERSIONS_HASH)
-	rm -rf _versions && mv _versions.new _versions
+	-mkdir _versions
+	rm -f _versions/*
+	mv _versions.new/* _versions/ && rmdir _versions.new
 
 patches: _scripts/_build/default/bin/erlang-org otp_versions.table
+	rm -rf _patches.new && mkdir _patches.new
+	$< create-releases otp_versions.table _patches.new/releases.json _patches.new/
+	touch _patches.new/$(PATCHES_HASH)
 	-mkdir _patches
 	rm -f _patches/*
-	$< create-releases otp_versions.table _patches/releases.json _patches/
-	touch _patches/$(PATCHES_HASH)
+	mv _patches.new/* _patches/ && rmdir _patches.new
 
 update:
 	npm update
