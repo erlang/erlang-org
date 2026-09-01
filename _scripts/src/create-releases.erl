@@ -156,7 +156,7 @@ strip_ids(Patch) ->
 create_patches(Dir, Releases) ->
     TmpDir = string:trim(os:cmd("mktemp -d")),
     os:cmd("rsync --archive --verbose --compress --include='*.readme' --include='*.README' --include='*.readme.md' --include='*.README.md' --exclude='*' erlang.org::erlang-download "++TmpDir ++ "/"),
-    maps:map(
+    ByRelease = maps:map(
       fun(Release, #{ patches := Patches }) ->
               pmap(
                 fun(Patch) ->
@@ -170,7 +170,49 @@ create_patches(Dir, Releases) ->
                         create_patch(Dir, strip_ids(Patch#{ release => Release }), Readme)
                 end, Patches)
       end, Releases),
-    file:del_dir_r(TmpDir).
+    file:del_dir_r(TmpDir),
+    create_tickets(Dir, lists:append(maps:values(ByRelease))).
+
+%% An index of every ticket id mentioned in a release's notes, to the releases
+%% that mention it. Written here rather than derived from the generated pages,
+%% because the ids are already structured at this point; recovering them from
+%% the rendered YAML would be reparsing our own output.
+create_tickets(Dir, PerPatch) ->
+    Index =
+        lists:foldl(
+          fun({Vsn, Ids}, Acc) ->
+                  lists:foldl(
+                    fun(Id, A) ->
+                            A#{ Id => lists:usort([Vsn | maps:get(Id, A, [])]) }
+                    end, Acc, Ids)
+          end, #{}, PerPatch),
+    ok = file:write_file(filename:join(Dir, "tickets.json"), json:encode(Index)),
+    ?LOG_INFO("Wrote ~ts: ~p ticket ids across ~p releases",
+              [filename:join(Dir, "tickets.json"), maps:size(Index), length(PerPatch)]).
+
+%% The parser hands back the raw binary when it cannot make sense of a readme,
+%% and those releases simply contribute no ids.
+ticket_ids(Readme) when is_binary(Readme) ->
+    [];
+ticket_ids(Readme) ->
+    lists:usort(
+      lists:flatten(
+        [[[maps:get(id, Ticket) | related_ids(Ticket)]
+          || Ticket <- maps:get(tickets, MD, [])]
+         || {App, MD} <- maps:get(applications, Readme, []),
+            App =/= <<"Thanks To">>, is_map(MD)])).
+
+related_ids(Ticket) ->
+    case maps:get(<<"Related Id(s)">>, Ticket, undefined) of
+        undefined ->
+            [];
+        Str ->
+            case re:run(Str, "\\[((?:PR|GH)-[0-9]+)\\]",
+                        [global, {capture, all_but_first, binary}]) of
+                {match, Matches} -> [Id || [Id] <- Matches];
+                nomatch -> []
+            end
+    end.
 
 create_patch(Dir, Patch, ReadmeStr) ->
     FrontMatter = lists:map(
@@ -185,7 +227,8 @@ create_patch(Dir, Patch, ReadmeStr) ->
             FrontMatter,
             otp_readme:render_yaml(Readme),
             "---\n",
-            otp_readme:render(Readme)]).
+            otp_readme:render(Readme)]),
+    {maps:get(name, Patch), ticket_ids(Readme)}.
 
 
 

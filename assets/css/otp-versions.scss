@@ -1,0 +1,981 @@
+---
+---
+
+@use "sass:map";
+@import "default";
+
+/* The version tree page.
+
+   Chrome comes from Bootstrap and the site palette: cards, tables, buttons and
+   form controls are the stock components. What is styled here is what the site
+   has no equivalent for - the tree's spine and branch spurs, and the colours
+   that say how two versions are ordered and how bad an advisory is. Those are
+   page-local because they encode meaning rather than brand, and are defined for
+   light and dark following the html.dark convention used across the site. */
+.otpv {
+  --otpv-rule: var(--site-border);
+  --otpv-rule-strong: rgba(0, 0, 0, 0.22);
+  --otpv-hover: rgba(0, 0, 0, 0.03);
+
+  --otpv-less: #7d5f00;
+  --otpv-less-bg: #fbf1d3;
+  --otpv-less-line: #d9b64a;
+  --otpv-gt: #166b3c;
+  --otpv-gt-bg: #e0f4e9;
+  --otpv-gt-line: #57b483;
+  --otpv-un: #a33324;
+  --otpv-un-bg: #fbe9e6;
+  --otpv-un-line: #e0a294;
+  --otpv-self: #0a5f9e;
+  --otpv-self-bg: #e3f0fa;
+  --otpv-self-line: #4a9edd;
+
+  --otpv-critical: #8c1d12;
+  --otpv-critical-bg: #fae4e0;
+  --otpv-high: #b34a12;
+  --otpv-high-bg: #fbeadf;
+  --otpv-medium: #8a6a00;
+  --otpv-medium-bg: #fbf1d3;
+  --otpv-low: #6c757d;
+  --otpv-low-bg: rgba(0, 0, 0, 0.05);
+
+  --otpv-stop: #b3261e;
+
+  --otpv-spine: 30px;
+  --otpv-mono: var(--bs-font-monospace);
+}
+
+html.dark .otpv {
+  --otpv-rule-strong: rgba(255, 255, 255, 0.28);
+  --otpv-hover: rgba(255, 255, 255, 0.04);
+
+  --otpv-less: #e8c34a;
+  --otpv-less-bg: #312709;
+  --otpv-less-line: #8a7025;
+  --otpv-gt: #5ed48f;
+  --otpv-gt-bg: #0f2c1d;
+  --otpv-gt-line: #2f7a52;
+  --otpv-un: #ff9280;
+  --otpv-un-bg: #391812;
+  --otpv-un-line: #8f4b3c;
+  --otpv-self: #66bdf5;
+  --otpv-self-bg: #0d2536;
+  --otpv-self-line: #2f7bb0;
+
+  --otpv-critical: #ff8a76;
+  --otpv-critical-bg: #3d160f;
+  --otpv-high: #f0a662;
+  --otpv-high-bg: #38220e;
+  --otpv-medium: #e8c34a;
+  --otpv-medium-bg: #312709;
+  --otpv-low: #9ca3af;
+  --otpv-low-bg: rgba(255, 255, 255, 0.06);
+
+  --otpv-stop: #ff6f5e;
+}
+
+.otpv {
+  /* -- search ------------------------------------------------------------ */
+
+  .otpv-search {
+    position: relative;
+  }
+
+  .otpv-hits {
+    position: absolute;
+    z-index: 40;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 4px;
+    background: var(--site-bg);
+    border: 1px solid var(--otpv-rule-strong);
+    border-radius: var(--bs-border-radius);
+    max-height: 340px;
+    overflow-y: auto;
+    padding: 4px;
+    box-shadow: 0 8px 24px -12px rgba(0, 0, 0, 0.4);
+
+    &:empty {
+      display: none;
+    }
+  }
+
+  .otpv-hit {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: baseline;
+    padding: 6px 9px;
+    border-radius: var(--bs-border-radius-sm);
+    cursor: pointer;
+
+    &:hover,
+    &[aria-selected="true"] {
+      background: var(--otpv-hover);
+    }
+    &[aria-selected="true"] {
+      box-shadow: inset 2px 0 0 var(--site-link);
+    }
+  }
+  .otpv-hit-k {
+    font-family: var(--otpv-mono);
+  }
+  .otpv-hit-m {
+    font-size: 0.8rem;
+    color: var(--site-text-muted);
+  }
+
+  /* -- relation and severity chips --------------------------------------- */
+
+  .otpv-chip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    font-family: var(--otpv-mono);
+    padding: 2px 9px 2px 7px;
+    border-radius: var(--bs-border-radius-pill);
+    border: 1px solid;
+
+    &::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      background: currentColor;
+      flex: none;
+    }
+    &.plain::before,
+    &.with-icon::before {
+      display: none;
+    }
+    &.plain {
+      color: var(--site-text-muted);
+      background: var(--otpv-hover);
+      border-color: var(--otpv-rule);
+    }
+    &.with-icon {
+      gap: 5px;
+    }
+    svg {
+      display: block;
+      flex: none;
+    }
+
+    &.self {
+      color: var(--otpv-self);
+      background: var(--otpv-self-bg);
+      border-color: var(--otpv-self-line);
+    }
+    &.less {
+      color: var(--otpv-less);
+      background: var(--otpv-less-bg);
+      border-color: var(--otpv-less-line);
+    }
+    &.gt {
+      color: var(--otpv-gt);
+      background: var(--otpv-gt-bg);
+      border-color: var(--otpv-gt-line);
+    }
+    &.un {
+      color: var(--otpv-un);
+      background: var(--otpv-un-bg);
+      border-color: var(--otpv-un-line);
+    }
+    &.eol {
+      color: var(--otpv-low);
+      background: var(--otpv-low-bg);
+      border-color: currentColor;
+
+      &::before {
+        border-radius: 50%;
+        background: none;
+        border: 1.5px solid currentColor;
+        width: 9px;
+        height: 9px;
+      }
+    }
+    &.sev-critical {
+      color: var(--otpv-critical);
+      background: var(--otpv-critical-bg);
+      border-color: currentColor;
+    }
+    &.sev-high {
+      color: var(--otpv-high);
+      background: var(--otpv-high-bg);
+      border-color: currentColor;
+    }
+    &.sev-medium {
+      color: var(--otpv-medium);
+      background: var(--otpv-medium-bg);
+      border-color: currentColor;
+    }
+    &.sev-low {
+      color: var(--otpv-low);
+      background: var(--otpv-low-bg);
+      border-color: currentColor;
+    }
+  }
+
+  .otpv-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 10px;
+    align-items: center;
+    margin-bottom: map.get($spacers, 3);
+
+    .otpv-chip {
+      cursor: help;
+    }
+  }
+
+  .otpv-tip {
+    position: absolute;
+    z-index: 30;
+    left: -1px;
+    top: calc(100% + 8px);
+    width: max-content;
+    max-width: 290px;
+    background: var(--site-bg);
+    color: var(--site-text);
+    border: 1px solid var(--otpv-rule-strong);
+    border-radius: var(--bs-border-radius);
+    box-shadow: 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+    padding: 10px 12px;
+    font-family: $font-family-sans-serif;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    text-align: left;
+    white-space: normal;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.12s ease;
+    pointer-events: none;
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: -5px;
+      left: 14px;
+      width: 8px;
+      height: 8px;
+      background: var(--site-bg);
+      border-left: 1px solid var(--otpv-rule-strong);
+      border-top: 1px solid var(--otpv-rule-strong);
+      transform: rotate(45deg);
+    }
+  }
+  .otpv-chip:hover .otpv-tip,
+  .otpv-chip:focus-visible .otpv-tip {
+    visibility: visible;
+    opacity: 1;
+  }
+
+  /* -- layout ------------------------------------------------------------ */
+
+  .otpv-cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 420px;
+    gap: map.get($spacers, 4);
+    align-items: start;
+
+    @include media-breakpoint-down(xl) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  /* -- the tree ---------------------------------------------------------- */
+
+  .otpv-tree {
+    padding: 4px 0 8px;
+  }
+
+  .otpv-major {
+    border-top: 1px solid var(--otpv-rule);
+
+    &:first-child {
+      border-top: 0;
+    }
+    &.open > .otpv-rows {
+      display: block;
+    }
+    /* Holds the current selection. Blue, like everything else that marks the
+       selection - red is reserved for a line that stops. */
+    &.on .otpv-node {
+      border-color: var(--otpv-self);
+    }
+    /* The trunk starts at the newest major's node and ends at the oldest
+       one's. Both must match only the major's own spine cell - as descendant
+       selectors they also hit every row inside, breaking the line. */
+    &:first-child > .otpv-major-btn > .otpv-spine::before {
+      top: 50%;
+    }
+    /* Only when it is collapsed; when open the trunk carries on down to the
+       root row below. */
+    &:last-child:not(.open) > .otpv-major-btn > .otpv-spine.last::before {
+      bottom: 50%;
+    }
+  }
+
+  .otpv-major-btn {
+    width: 100%;
+    background: none;
+    border: 0;
+    color: inherit;
+    display: grid;
+    grid-template-columns: var(--otpv-spine) 1fr auto;
+    gap: 0 14px;
+    align-items: center;
+    padding: 0 16px 0 0;
+    text-align: left;
+
+    &:hover {
+      background: var(--otpv-hover);
+    }
+
+    /* Height comes from the labels, not from padding on the button, so that
+       the spine cell stretches the full row and the line stays unbroken. */
+    > .otpv-major-name,
+    > .otpv-relbar {
+      padding: 10px 0;
+    }
+
+    /* Bridge the 1px border that separates one major from the previous one.
+       The :first-child rule below is more specific and still wins there. */
+    > .otpv-spine::before {
+      top: -1px;
+    }
+  }
+
+  .otpv-major-name {
+    font-weight: 700;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+
+    small {
+      font-weight: 400;
+      color: var(--site-text-muted);
+    }
+  }
+
+  /* The spine is one continuous line; nodes and dots sit on top of it. */
+  .otpv-spine {
+    position: relative;
+    align-self: stretch;
+    min-height: 26px;
+
+    &::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      margin-left: -1px;
+      background: var(--otpv-rule-strong);
+    }
+  }
+
+  .otpv-node {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 11px;
+    height: 11px;
+    margin: -5.5px 0 0 -5.5px;
+    border-radius: 50%;
+    background: var(--site-bg);
+    border: 2.5px solid var(--otpv-rule-strong);
+  }
+
+  .otpv-relbar {
+    display: flex;
+    gap: 3px;
+    align-items: center;
+
+    i {
+      display: block;
+      height: 14px;
+      border-radius: 2px;
+    }
+    .otpv-seg-sel {
+      background: var(--otpv-self);
+    }
+    .otpv-seg-gt {
+      background: var(--otpv-gt-line);
+    }
+    .otpv-seg-less {
+      background: var(--otpv-less-line);
+    }
+    .otpv-seg-un {
+      background: var(--otpv-un-line);
+    }
+  }
+
+  .otpv-caret {
+    color: var(--site-text-muted);
+    font-family: var(--otpv-mono);
+    width: 12px;
+  }
+
+  .otpv-rows {
+    display: none;
+    /* No trailing padding: the spine is drawn per row, so any padding here
+       shows up as a break in the line before the next major. */
+  }
+
+  .otpv-row {
+    display: grid;
+    grid-template-columns: var(--otpv-spine) 1fr;
+    gap: 0 14px;
+    align-items: stretch;
+
+    .otpv-spine {
+      min-height: 30px;
+    }
+  }
+
+  .otpv-row-btn {
+    display: grid;
+    grid-template-columns: minmax(92px, auto) 16px 1fr auto;
+    gap: 10px;
+    align-items: baseline;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: 0;
+    color: inherit;
+    padding: 4px 16px 4px 0;
+
+    &:hover {
+      background: var(--otpv-hover);
+    }
+  }
+
+  .otpv-v {
+    font-family: var(--otpv-mono);
+    font-size: 0.875rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .otpv-date {
+    font-family: var(--otpv-mono);
+    font-size: 0.8rem;
+    color: var(--site-text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .otpv-apps {
+    font-family: var(--otpv-mono);
+    font-size: 0.8rem;
+    color: var(--site-text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .otpv-warn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+
+    &.critical {
+      color: var(--otpv-critical);
+    }
+    &.high {
+      color: var(--otpv-high);
+    }
+    &.medium {
+      color: var(--otpv-medium);
+    }
+    &.low {
+      color: var(--otpv-low);
+    }
+    svg {
+      display: block;
+    }
+  }
+
+  /* The oldest version in the tree: the trunk ends at its node. */
+  .otpv-row.root .otpv-spine::before {
+    bottom: 50%;
+  }
+
+  .otpv-dot {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 7px;
+    height: 7px;
+    margin: -3.5px 0 0 -3.5px;
+    border-radius: 50%;
+    background: var(--otpv-rule-strong);
+  }
+
+  .otpv-row {
+    &.less .otpv-v {
+      color: var(--otpv-less);
+    }
+    &.less .otpv-dot {
+      background: var(--otpv-less-line);
+    }
+    &.gt .otpv-v {
+      color: var(--otpv-gt);
+    }
+    &.gt .otpv-dot {
+      background: var(--otpv-gt-line);
+    }
+    &.un .otpv-v {
+      color: var(--otpv-un);
+      opacity: 0.75;
+    }
+    &.sel .otpv-row-btn {
+      background: var(--otpv-self-bg);
+      box-shadow: inset 3px 0 0 var(--otpv-self-line);
+    }
+    &.sel .otpv-v {
+      color: var(--otpv-self);
+      font-weight: 600;
+    }
+    &.sel .otpv-dot {
+      box-shadow: 0 0 0 2px var(--site-bg), 0 0 0 4px var(--otpv-self);
+    }
+    &.match .otpv-row-btn {
+      background: var(--otpv-medium-bg);
+    }
+  }
+
+  /* -- branches ---------------------------------------------------------- */
+
+  .otpv-branch {
+    position: relative;
+
+    /* Carry the parent's line down behind the whole block. Without this the
+       trunk disappears for the height of the branch, because the branch's own
+       rows are indented away from the parent's spine column. */
+    &::before {
+      content: "";
+      position: absolute;
+      left: calc(var(--otpv-spine) / 2 - 1px);
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--otpv-rule-strong);
+    }
+
+    .otpv-rows {
+      display: block;
+      padding: 0;
+      margin-left: var(--otpv-spine);
+    }
+    .otpv-spine::before {
+      background: var(--otpv-rule);
+    }
+    .otpv-branch::before {
+      background: var(--otpv-rule);
+    }
+    /* The newest release on a branch is where its line stops. Cap the spine
+       there and terminate it with a stop, the way the old versions tree marked
+       a branch that goes no further. Rows run newest first, so this is the top
+       of the block. Placed after the relation colours so it wins over them -
+       the relation is still readable from the version number's colour. */
+    .otpv-row.head .otpv-spine::before {
+      top: 50%;
+    }
+    .otpv-row.head .otpv-dot {
+      width: 11px;
+      height: 11px;
+      margin: -5.5px 0 0 -5.5px;
+      background: var(--otpv-stop);
+      box-shadow: 0 0 0 3px var(--site-bg);
+    }
+
+    /* The stop keeps its fill when selected; the ring is what marks the
+       selection, here as everywhere else. */
+    .otpv-row.head.sel .otpv-dot {
+      background: var(--otpv-stop);
+      box-shadow: 0 0 0 2px var(--site-bg), 0 0 0 4px var(--otpv-self);
+    }
+  }
+
+  .otpv-branch-head {
+    display: grid;
+    grid-template-columns: var(--otpv-spine) 1fr;
+    gap: 0 14px;
+    align-items: center;
+
+    .otpv-spine {
+      min-height: 34px;
+    }
+  }
+
+  /* The spur runs down the branch's own spine and turns left into the node
+     of the version it came from, which sits directly below it. */
+  .otpv-elbow {
+    position: absolute;
+    left: 50%;
+    margin-left: -1px;
+    /* The box reaches from the parent's line across to the branch's own, so
+       the 2px border-right lands exactly on the branch spine rather than one
+       line-width short of it. */
+    width: calc(var(--otpv-spine) + 2px);
+    top: 0;
+    bottom: 50%;
+    /* The elbow belongs to the branch, not to what it grew out of: it is the
+       branch's own line peeling away. So it takes the branch tone, which also
+       keeps a branch off a branch from being drawn in trunk weight. */
+    border-right: 2px solid var(--otpv-rule);
+    border-bottom: 2px solid var(--otpv-rule);
+    border-bottom-right-radius: 9px;
+  }
+
+  /* A one-off branch is drawn with a broken line: it was cut to fix one issue
+     rather than to maintain a release, and usually stops almost immediately.
+     Texture rather than another colour, since every colour in the tree already
+     carries a meaning. Scoped with > so a branch off a one-off is judged on its
+     own merits. */
+  .otpv-branch.one-off {
+    > .otpv-rows > .otpv-row > .otpv-spine::before,
+    > .otpv-rows > .otpv-more > .otpv-spine::before {
+      background: none;
+      width: 0;
+      border-left: 2px dashed var(--otpv-rule);
+    }
+    > .otpv-branch-head > .otpv-spine > .otpv-elbow {
+      border-right-style: dashed;
+      border-bottom-style: dashed;
+    }
+  }
+
+  .otpv-oneoff {
+    font-style: italic;
+    color: var(--site-text-muted);
+    cursor: help;
+    border-bottom: 1px dotted currentColor;
+  }
+
+  .otpv-branch-label {
+    font-family: var(--otpv-mono);
+    font-size: 0.8rem;
+    color: var(--site-text-muted);
+    /* Line the label up with the branch's own releases rather than with the
+       parent's column, so everything belonging to the branch shares an edge. */
+    padding-left: var(--otpv-spine);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 6px;
+
+    b {
+      color: var(--site-text);
+    }
+  }
+
+  /* Stands in for the releases a collapsed branch is hiding, so it sits on the
+     line with a node like a release does - but in the neutral tone, since it is
+     not one and carries no ordering relation. */
+  .otpv-more {
+    display: grid;
+    grid-template-columns: var(--otpv-spine) 1fr;
+    gap: 0 14px;
+    align-items: center;
+
+    .otpv-more-btn {
+      justify-self: start;
+    }
+  }
+
+  .otpv-more-btn {
+    font-family: var(--otpv-mono);
+    font-size: 0.8rem;
+    color: var(--site-link);
+    background: none;
+    border: 0;
+    padding: 0 2px;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+
+    &:hover {
+      color: var(--site-link-hover);
+    }
+  }
+
+  /* -- detail card ------------------------------------------------------- */
+
+  .otpv-detail {
+    position: sticky;
+    top: 16px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+
+    @include media-breakpoint-down(xl) {
+      position: static;
+      max-height: none;
+    }
+
+    /* The card is dense; the site's default heading rhythm is built for
+       running prose and leaves far too much air in here. */
+    h5 {
+      font-size: 1rem;
+      margin: 0 0 map.get($spacers, 2);
+      padding-bottom: map.get($spacers, 1);
+    }
+    p {
+      margin-bottom: map.get($spacers, 2);
+    }
+    .table {
+      margin-bottom: 0;
+    }
+  }
+
+  .otpv-selected {
+    font-family: var(--otpv-mono);
+    border-bottom: 0;
+  }
+
+  .otpv-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: map.get($spacers, 2);
+  }
+
+  .otpv-sect {
+    padding: map.get($spacers, 3);
+    border-bottom: 1px solid var(--otpv-rule);
+
+    &:last-child {
+      border-bottom: 0;
+    }
+  }
+
+  .otpv-apps-list {
+    font-family: var(--otpv-mono);
+    font-size: 0.8rem;
+
+    td {
+      padding: 0.2rem 0;
+    }
+    .otpv-av {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      color: var(--site-text-muted);
+
+      b {
+        color: var(--otpv-gt);
+      }
+      s {
+        color: var(--site-text-muted);
+        opacity: 0.7;
+      }
+    }
+    &.muted td {
+      color: var(--site-text-muted);
+    }
+  }
+
+  details > summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--site-text-muted);
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+    &::after {
+      content: "+";
+      font-family: var(--otpv-mono);
+    }
+    &:hover {
+      color: var(--site-text);
+    }
+  }
+  details[open] > summary::after {
+    content: "\2013";
+  }
+
+  /* -- verdicts and advisories ------------------------------------------- */
+
+  .otpv-verdict,
+  .otpv-safe {
+    margin-top: map.get($spacers, 2);
+    border-radius: var(--bs-border-radius);
+    padding: 10px 12px;
+    border: 1px solid var(--otpv-rule);
+    background: var(--otpv-hover);
+
+    > b {
+      font-family: var(--otpv-mono);
+    }
+    p {
+      margin: 6px 0 0;
+      font-size: 0.875rem;
+    }
+  }
+  .otpv-verdict {
+    &.less {
+      background: var(--otpv-less-bg);
+      border-color: var(--otpv-less-line);
+
+      > b {
+        color: var(--otpv-less);
+      }
+    }
+    &.gt {
+      background: var(--otpv-gt-bg);
+      border-color: var(--otpv-gt-line);
+
+      > b {
+        color: var(--otpv-gt);
+      }
+    }
+    &.un {
+      background: var(--otpv-un-bg);
+      border-color: var(--otpv-un-line);
+
+      > b {
+        color: var(--otpv-un);
+      }
+    }
+  }
+  .otpv-safe {
+    background: var(--otpv-gt-bg);
+    border-color: var(--otpv-gt-line);
+
+    > b {
+      color: var(--otpv-gt);
+    }
+  }
+
+  .otpv-eol-note {
+    border: 1px solid var(--otpv-rule-strong);
+    border-left-width: 4px;
+    border-radius: var(--bs-border-radius);
+    padding: 10px 12px;
+    margin-bottom: map.get($spacers, 2);
+
+    > b {
+      display: block;
+      margin-bottom: 4px;
+    }
+    p {
+      margin: 0;
+      font-size: 0.875rem;
+      color: var(--site-text-muted);
+    }
+  }
+
+  .otpv-cve {
+    border: 1px solid var(--otpv-rule);
+    border-radius: var(--bs-border-radius);
+    padding: 10px 12px;
+    margin-bottom: map.get($spacers, 2);
+    background: var(--otpv-hover);
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+    h4 {
+      margin: 0;
+      font-size: 0.9rem;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+    .otpv-links {
+      margin-top: map.get($spacers, 2);
+    }
+  }
+
+  .otpv-cve-top {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 5px;
+  }
+  .otpv-cve-id {
+    font-family: var(--otpv-mono);
+    font-weight: 600;
+  }
+  .otpv-fix {
+    font-family: var(--otpv-mono);
+    font-size: 0.8rem;
+    color: var(--site-text-muted);
+    margin-top: 6px;
+    display: block;
+
+    b {
+      color: var(--otpv-gt);
+    }
+  }
+
+  /* While an advisory is picking out the releases it affects. */
+  .otpv-cve:has([aria-pressed="true"]) {
+    border-color: var(--otpv-un-line);
+    background: var(--otpv-un-bg);
+  }
+
+  .otpv-bundled {
+    margin-top: map.get($spacers, 3);
+    border-top: 1px solid var(--otpv-rule);
+    padding-top: map.get($spacers, 3);
+  }
+
+  .otpv-bundled-list {
+    list-style: none;
+    margin: map.get($spacers, 2) 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: map.get($spacers, 2);
+
+    li {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 6px;
+    }
+  }
+
+  .otpv-bundled-id {
+    font-family: var(--otpv-mono);
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+
+  .otpv-bundled-why {
+    flex-basis: 100%;
+    font-size: 0.8rem;
+    color: var(--site-text-muted);
+  }
+
+  .otpv-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+
+  /* -- sources ----------------------------------------------------------- */
+
+  .otpv-sources {
+    margin-top: map.get($spacers, 5);
+
+    p {
+      font-size: 0.875rem;
+      color: var(--site-text-muted);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      transition: none !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

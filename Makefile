@@ -1,17 +1,17 @@
-.PHONY: setup clean build update serve test algolia setup_gems setup_npm format-eeps patches assets/img/favicon.ico build-docs otp-headers
+.PHONY: setup clean build update serve test algolia setup_gems setup_npm format-eeps patches assets/img/favicon.ico build-docs otp-headers versions
 
 ## For netlify the BUNDLE_PATH is different so we need to check it
 BUNDLE_PATH?=vendor/bundle
 
 build: setup
 	bundler exec jekyll build
-	npx purgecss --css _site/assets/css/*.css --content `find _site -name "*.html" -o -name "*.js" | grep -v _site/doc/ | grep -v _site/docs/` --safelist '/^alg-/' -o _site/assets/css/
+	npx purgecss --css _site/assets/css/*.css --content `find _site -name "*.html" -o -name "*.js" | grep -v _site/doc/ | grep -v _site/docs/` --safelist '/^alg-/' '/^otpv-/' '/^sev-/' -o _site/assets/css/
 
 netlify: clean
 	$(MAKE) -j $(shell nproc 2>/dev/null || sysctl -n hw.ncpu) --debug=basic BUNDLE_PATH=/opt/build/cache/bundle JEKYLL_ENV=production
 
 clean:
-	rm -rf _patches docs _eeps faq _clones/eep _clones/faq eeps assets/js _redirects LATEST_MAJOR_VSN
+	rm -rf _patches _versions _versions.new assets/otp-versions.json assets/otp-tickets.json docs _eeps faq _clones/eep _clones/faq eeps assets/js _redirects LATEST_MAJOR_VSN
 
 $(BUNDLE_PATH):
 	bundler install --jobs 4 --retry 3 --path $(BUNDLE_PATH)
@@ -100,6 +100,28 @@ docs: otp_versions.table _scripts/download-docs.sh _scripts/otp_flatten_docs \
 	if [ "$(JEKYLL_ENV)" != "production" ]; then _scripts/download-docs.sh $^; fi
 	@touch docs
 
+VERSIONS_DEPS=otp_versions.table _scripts/src/create-versions.erl _scripts/src/gh.erl
+VERSIONS_HASH=$(shell cat $(VERSIONS_DEPS) | shasum -a 256 | awk '{print $$1}')
+## Generating this needs Erlang and a few hundred GitHub API calls, neither of
+## which the Netlify build has, so the result is cached in the _versions branch
+## and cloned back in. Falls back to generating locally while the branch does
+## not exist yet.
+_versions: $(VERSIONS_DEPS)
+	if [ ! -d $@ ]; then git clone --single-branch -b $@ https://github.com/erlang/erlang-org $@ || mkdir -p $@; fi
+	if [ "$(JEKYLL_ENV)" != "production" ] && [ ! -f _versions/$(VERSIONS_HASH) ]; then \
+	  $(MAKE) versions; \
+	fi
+
+## Copied rather than symlinked: jekyll follows a symlinked directory but
+## copies a symlinked file as the link itself, which dangles in _site.
+assets/otp-versions.json: _versions
+	cp _versions/otp-versions.json $@
+
+## The ticket index belongs to the patches cache, so the two caches stay
+## independent of one another and the page joins them at run time.
+assets/otp-tickets.json: _patches
+	cp _patches/tickets.json $@
+
 PATCHES_DEPS=otp_versions.table _scripts/src/create-releases.erl _scripts/src/otp_readme.erl _scripts/src/gh.erl
 PATCHES_HASH=$(shell cat $(PATCHES_DEPS) | shasum -a 256 | awk '{print $$1}')
 _patches: $(PATCHES_DEPS)
@@ -108,6 +130,12 @@ _patches: $(PATCHES_DEPS)
 
 assets/js assets/webfonts:
 	mkdir -p $@
+
+versions: _scripts/_build/default/bin/erlang-org otp_versions.table
+	rm -rf _versions.new && mkdir _versions.new
+	$< create-versions otp_versions.table _versions.new/otp-versions.json
+	touch _versions.new/$(VERSIONS_HASH)
+	rm -rf _versions && mv _versions.new _versions
 
 patches: _scripts/_build/default/bin/erlang-org otp_versions.table
 	-mkdir _patches
@@ -122,7 +150,7 @@ _redirects: _redirects.in _scripts/redirects.sh docs
 	cp _redirects.in "$@"
 	_scripts/redirects.sh >> "$@"
 
-setup: setup_gems setup_npm _patches docs _eeps eeps faq _redirects otp-headers
+setup: setup_gems setup_npm _patches assets/otp-versions.json assets/otp-tickets.json docs _eeps eeps faq _redirects otp-headers
 
 serve: setup
 	bundle exec jekyll serve --future --incremental --trace --livereload --host 0.0.0.0

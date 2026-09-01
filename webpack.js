@@ -4,7 +4,8 @@ module.exports = {
     //mode: 'development',
     entry: {
         "doc-search": './assets/doc-search.tsx',
-        "algolia-typeahead": './assets/algolia-typeahead.ts'
+        "algolia-typeahead": './assets/algolia-typeahead.ts',
+        "otp-versions": './assets/otp-versions.ts'
     },
     devtool: 'source-map',
     output: {

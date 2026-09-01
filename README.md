@@ -86,11 +86,89 @@ This is placed under `_data/release.json` and `_patches`.
 We fetch the latest [otp_versions.table] and from there use the [Github API](https://docs.github.com/en/rest)
 and use erlang.org rsync to fetch information about each patch released since OTP-17.0.
 
+`_patches/tickets.json` maps every `OTP-`, `PR-` and `GH-` id mentioned in a release's notes to the releases
+that mention it, which is what lets the [version tree](#versions) be searched by ticket. It is written here,
+from the parsed readmes, rather than derived later from the generated pages: the ids are already structured at
+that point, and recovering them from our own rendered YAML would be fragile.
+
 The files in `_patches` and `_data/release.json` contain a lot of duplicate information. We could have kept the
 `_data/release.json` as the only place to keep the data, but we didn't as doing lookups in it turned out to
 be too slow for jekyll.
 
 [otp_versions.table]: https://github.com/erlang/otp/blob/master/otp_versions.table
+
+### Versions
+
+This is placed under `assets/otp-versions.json` and `_versions`, and drives the
+[version tree](https://www.erlang.org/versions) page. The generator is [create-versions.erl]; the page is
+[otp-versions.ts] and [otp-versions.scss].
+
+#### Where the data comes from
+
+* **Applications** — [otp_versions.table], which says what each version contains and which of those
+  applications changed in it.
+* **Dates** — the `OTP-*` git tag dates, read through the [Github GraphQL API](https://docs.github.com/en/graphql).
+  Not the GitHub release dates: tags go back to 2014 while releases only start at OTP 21, and 86 of the older
+  ones were backfilled later with the date of the backfill rather than of the release (every OTP 21.0.x release
+  is stamped 2020-09-25). One GraphQL page per 100 tags, against ~570 REST calls.
+* **Advisories** — `openvex.table` from the [openvex] branch, joined with the repository security advisories
+  for GHSA ids, severities and summaries, which openvex does not carry.
+* **Ticket ids** — `tickets.json` out of the [patches](#patches) cache, copied to
+  `assets/otp-tickets.json` and fetched separately by the page.
+
+#### Decisions worth knowing
+
+* **The two caches do not depend on each other.** The ticket index is produced by the patches generator and
+  reaches the page as its own file, rather than being folded into the version data. Otherwise generating
+  `_versions` would mean having `_patches` in place first, which is an ordering to get wrong under `make -j`
+  and a staleness to reason about on every build. As separate files each cache refreshes on its own and the
+  page joins the latest of both. Only the releases that introduce a ticket are recorded; everything ordered
+  above one of them contains it, which the page works out.
+* **The generator emits facts; the page derives structure.** Which branch a version is on, how two versions
+  are ordered, and whether a release still carries an advisory are all computed in the browser from the
+  version numbers. Emitting them would mean maintaining the ordering algorithm in both Erlang and
+  TypeScript, and it is the one piece that must not drift.
+* **Advisory exposure runs through that same ordering.** A release is affected when its version of the
+  application is ordered *below* the version that fixed it. Where the two have no defined order nothing is
+  claimed — the page says "undetermined" rather than guessing. Every current branch head comes out clean,
+  which is the check that the join is right.
+* **Bundled components are shown, not dropped.** Every openvex statement about zlib, OpenSSL, PCRE2,
+  wxWidgets and the OpenGL refpages is a *dismissal* — none carries a fix version. They exist to answer the
+  scanners that flag the bundled copy, so they are listed under *Bundled components*, apart from the
+  advisories and labelled as assessments of a major release rather than of one version.
+* **A resolved advisory supersedes a stale assessment.** `openvex.table` still lists CVE-2025-58050 against
+  the bundled PCRE2 as `under_investigation` while the same CVE already has a fixed advisory against erts.
+  The page suppresses the assessment for that id and major, or it would report one vulnerability as both
+  open and unassessed.
+* **Support status is `latest - 3`,** per [SECURITY.md]. It also decides which releases are expanded by
+  default, so the page opens on what still receives updates and follows the policy on its own.
+* **The stop marker means "last release on this line", not "unmaintained".** It is a fact from the table;
+  `27.3.4.16` and `26.2.5.21` both carry it and both are recent.
+* **One visual device per meaning.** Line weight separates the main track from branches; a node's fill says
+  what it is (a release, tinted by its ordering relation, or the red stop at the end of a branch); a ring
+  says it is selected. Adding a colour means taking one of those meanings away.
+* **Branches are drawn above the version they branched off,** because every release on them is newer than
+  that version, and the page lists newest first.
+
+#### Building it
+
+Generating needs Erlang and a few hundred GitHub API calls, neither of which the Netlify build has, so the
+result is cached in the `_versions` branch the same way `_patches` is, and refreshed by
+[update-gh-cache.yaml]. Two differences from `_patches`, both because of that constraint: a production build
+never regenerates (`JEKYLL_ENV=production`, as `docs` does) so a stale cache cannot fail the site build, and
+`make versions` builds into a temporary directory and swaps, so a failed run cannot leave the cache empty.
+
+`assets/otp-versions.json` is *copied* out of the cache rather than symlinked into it as
+`_data/releases.json` is: jekyll follows a symlinked directory but copies a symlinked file as the link
+itself, which dangles in `_site`. The page's class names are partly built at runtime, so `/^otpv-/` and
+`/^sev-/` are on the purgecss safelist.
+
+[create-versions.erl]: _scripts/src/create-versions.erl
+[otp-versions.ts]: assets/otp-versions.ts
+[otp-versions.scss]: assets/css/otp-versions.scss
+[openvex]: https://github.com/erlang/otp/tree/openvex
+[SECURITY.md]: https://github.com/erlang/otp/blob/master/SECURITY.md
+[update-gh-cache.yaml]: .github/workflows/update-gh-cache.yaml
 
 ### Documentation
 
