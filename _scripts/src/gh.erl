@@ -1,6 +1,6 @@
 -module(gh).
 -include_lib("public_key/include/OTP-PUB-KEY.hrl").
--export([get/1]).
+-export([get/1, get/2, graphql/2]).
 -compile({no_auto_import,[get/1]}).
 
 get(Url) ->
@@ -48,6 +48,33 @@ get(Url, GetHdrs) ->
             end;
         {ok,{{_,200,_},_Hdrs,Body}} ->
             {ok, Body};
+        Else ->
+            {error, Else}
+    end.
+
+%% The GraphQL API is the only way to read tag dates without one request
+%% per tag. It always requires authentication, unlike the REST endpoints.
+graphql(Query, Variables) ->
+    application:ensure_all_started(inets),
+    application:ensure_all_started(ssl),
+    Url = "https://api.github.com/graphql",
+    Auth = case os:getenv("GITHUB_TOKEN") of
+               false -> [];
+               Token -> [{"Authorization", "bearer " ++ Token}]
+           end,
+    Body = json:encode(#{ query => unicode:characters_to_binary(Query),
+                          variables => Variables }),
+    case httpc:request(
+           post,
+           {Url,
+            [{"Accept", "application/vnd.github.v3+json"},
+             {"User-Agent", "erlang-httpc"} | Auth],
+            "application/json", Body}, ssl_opts(Url), [{body_format, binary}]) of
+        {ok, {{_, 200, _}, _Hdrs, RespBody}} ->
+            case json:decode(RespBody) of
+                #{ <<"errors">> := Errors } -> {error, Errors};
+                #{ <<"data">> := Data } -> {ok, Data}
+            end;
         Else ->
             {error, Else}
     end.

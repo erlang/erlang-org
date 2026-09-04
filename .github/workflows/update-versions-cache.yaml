@@ -1,0 +1,124 @@
+name: Update versions cache
+
+## The version tree is built from data that changes without anything pushing to
+## either repository: a security advisory published or edited on erlang/otp, and
+## the CVE record behind it, which MITRE enriches with a score, a CWE and the
+## affected ranges days after the advisory goes out. Neither raises an event a
+## workflow can listen for -- there is no advisory trigger in Actions, and MITRE
+## has no signal at all -- so the cache is polled.
+##
+## Releases are already covered: erlang/otp dispatches update-gh-cache.yaml,
+## which rebuilds this cache along with the others. This workflow is for the
+## metadata that arrives afterwards, which is most of it. A fix ships, the
+## advisory is published later, and until then the tree calls the release clean.
+
+on:
+  schedule:
+    ## Every six hours. A run costs a few hundred API calls to github and to
+    ## cveawg.mitre.org, so this is as often as is polite; the site itself is
+    ## only rebuilt when the data actually changed.
+    - cron: '37 1,7,13,19 * * *'
+  workflow_dispatch:
+
+## Shared with update-gh-cache.yaml, which force-pushes the same branches. This
+## one waits rather than cancelling: a poll that lands during a full cache update
+## runs after it and usually finds nothing left to do, whereas cancelling would
+## leave whichever ran second to overwrite the other's work.
+concurrency:
+  group: cache-branches
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  update-versions-cache:
+    if: github.repository == 'erlang/erlang-org'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Fetch ImageOS
+        id: image-os
+        run: echo "ImageOS=${ImageOS}" >> $GITHUB_OUTPUT
+
+      - name: Checkout 🛎️
+        uses: actions/checkout@v6
+
+      - name: asdf setup
+        uses: asdf-vm/actions/setup@v4
+        with:
+          asdf_branch: v0.19.0
+      - name: asdf add plugins
+        uses: asdf-vm/actions/plugins-add@v4
+      - name: asdf cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.asdf/installs
+          key: ${{ steps.image-os.outputs.ImageOS }}-${{ hashFiles('**/.tool-versions') }}
+          restore-keys: |
+            ${{ steps.image-os.outputs.ImageOS }}-asdf-
+      ## Erlang only. The generator is an escript and nothing here needs ruby or
+      ## node, which a plain `asdf install` would build from source whenever the
+      ## cache misses -- minutes of work, four times a day, for nothing.
+      - name: asdf install
+        run: asdf install erlang && asdf reshim
+
+      - name: Install rebar3
+        run: sudo bash -c "curl https://s3.amazonaws.com/rebar3-nightly/rebar3 > /usr/local/bin/rebar3 && chmod +x /usr/local/bin/rebar3"
+
+      ## Kept out of the working tree so it cannot end up in what gets deployed.
+      ## A missing branch is a real state -- the cache has to start somewhere --
+      ## but an unreachable github is not, and treating the two alike would turn
+      ## a blip into a force-push of the whole cache and a site build.
+      - name: Fetch the deployed cache
+        run: |
+          repo="https://github.com/${GITHUB_REPOSITORY}"
+          status=0
+          git ls-remote --exit-code --heads "$repo" _versions >/dev/null || status=$?
+          case "$status" in
+            0) git clone --depth 1 --single-branch -b _versions "$repo" "$RUNNER_TEMP/deployed" ;;
+            2) echo "No _versions branch yet; everything counts as new." ;;
+            *) echo "Could not reach $repo (git ls-remote exited $status)"; exit 1 ;;
+          esac
+
+      - name: Fetch otp_versions.table
+        run: make otp_versions.table
+
+      - name: Build _versions
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: make versions
+
+      ## Two separate questions, because they have different answers. The branch
+      ## needs a commit whenever anything differs, including the marker file that
+      ## records which generator built it. The site only needs rebuilding when
+      ## the data the page reads differs -- otherwise a quiet week would rebuild
+      ## erlang.org twenty-eight times to publish nothing.
+      - name: Decide what needs doing
+        id: changed
+        run: |
+          if diff -rq --exclude=.git "$RUNNER_TEMP/deployed" _versions >/dev/null 2>&1; then
+            echo "cache=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "cache=true" >> "$GITHUB_OUTPUT"
+          fi
+          if cmp -s "$RUNNER_TEMP/deployed/otp-versions.json" _versions/otp-versions.json; then
+            echo "site=false" >> "$GITHUB_OUTPUT"
+            echo "The version data is unchanged." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "site=true" >> "$GITHUB_OUTPUT"
+            echo "The version data changed; triggering a site build." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Deploy 🚀
+        if: steps.changed.outputs.cache == 'true'
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: _versions # The branch the action should deploy to.
+          folder: _versions # The folder the action should deploy.
+          single-commit: true
+
+      - name: Trigger netlify build
+        if: steps.changed.outputs.site == 'true'
+        env:
+          NETLIFY_BUILD_TRIGGER: ${{ secrets.NETLIFY_BUILD_TRIGGER }}
+        run: curl -X POST -d {} "${NETLIFY_BUILD_TRIGGER}"

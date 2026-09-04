@@ -10,7 +10,7 @@ The latest version of Erlang/OTP is [{{ release.latest.name }}]({% link _patches
 
 Take a look at the [Erlang/OTP {{ release.release }} release description]({% link _releases/{{ release.release }}.md %}) to see what changes Erlang/OTP {{ release.release }} brings over the previous major version.
 
-The Erlang/OTP version scheme is described in the [Erlang/OTP Systems Principles Guide]({% link doc/system/versions.html %}#version-scheme).
+The Erlang/OTP version scheme is described in the [Erlang/OTP Systems Principles Guide]({% link doc/system/versions.html %}#version-scheme). The [version tree]({% link versions.html %}) puts every release since Erlang/OTP 17.0 into the shape those version numbers describe, so you can see which releases contain a given one and which advisories each still carries.
 
 <!--end_excerpt-->
 
