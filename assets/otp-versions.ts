@@ -286,7 +286,7 @@ class VersionTree {
       // Arriving on a link: open only the release that version belongs to, and
       // put the legend at the top of the window, so the tree starts just below
       // it rather than the reader having to find a row somewhere down the page.
-      this.select(requested);
+      this.select(requested, { raise: false });
       this.root.querySelector(".otpv-legend")?.scrollIntoView({ block: "start", behavior: "instant" });
     } else {
       // Otherwise the releases that still receive updates are open to begin with.
@@ -1134,9 +1134,10 @@ class VersionTree {
 
   // -- interaction ---------------------------------------------------------
 
-  /** Whether the panel is currently a sheet, rather than the sidebar. */
+  /** Whether the panel is a sheet and up, rather than the sidebar or hidden. */
   private isSheet(): boolean {
-    return getComputedStyle(this.el("otpv-detail")).position === "fixed";
+    const style = getComputedStyle(this.el("otpv-detail"));
+    return style.position === "fixed" && style.display !== "none";
   }
 
   private closeSheet(): void {
@@ -1178,12 +1179,20 @@ class VersionTree {
     return this.root.querySelector<HTMLElement>(`.otpv-row[data-v="${CSS.escape(this.selected)}"]`);
   }
 
-  private select(v: string, opts: { scroll?: ScrollBehavior; push?: boolean } = {}): void {
+  /**
+   * @param opts.raise whether to bring the sheet up on a phone. Default for a
+   * selection the reader made by hand; a link or a step through history puts
+   * them on the version without laying a panel over the tree they arrived at.
+   */
+  private select(
+    v: string,
+    opts: { scroll?: ScrollBehavior; push?: boolean; raise?: boolean } = {}
+  ): void {
     const n = this.byName.get(v);
     if (!n) return;
     this.selected = v;
     this.chosen = true;
-    this.sheetOpen = true;
+    if (opts.raise !== false) this.sheetOpen = true;
     this.openMajors.add(n.major);
     // A version on a branch off a branch is only rendered once every branch
     // above it is open too, since each hangs off a row of its parent.
@@ -1453,7 +1462,7 @@ class VersionTree {
     // Going back should return to the version you were looking at.
     window.addEventListener("popstate", () => {
       const v = this.versionFromUrl() ?? this.nodes[this.nodes.length - 1].v;
-      this.select(v, { scroll: "smooth" });
+      this.select(v, { scroll: "smooth", raise: false });
     });
   }
 }
