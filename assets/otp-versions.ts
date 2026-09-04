@@ -21,16 +21,13 @@ interface Version {
   s: number[];
 }
 
+/** What openvex knows: which application version carries and fixes an advisory. */
 interface Advisory {
   major: string;
   cve: string;
   app: string;
   introduced: string;
   fixed: string;
-  ghsa: string | null;
-  severity: Severity | null;
-  summary: string | null;
-  url: string | null;
 }
 
 /**
@@ -48,17 +45,53 @@ interface NotAffected {
   justification: string;
 }
 
+/**
+ * The CVE record for an advisory, where one exists. `releases` says which
+ * releases are affected in release terms, which openvex cannot: it is organised
+ * per supported major, so it says nothing about anything older. Only the CVEs
+ * assigned by the Erlang Ecosystem Foundation carry it, so it is optional and
+ * openvex remains the fallback.
+ */
+interface CveRecord {
+  ghsa: string | null;
+  severity: Severity | null;
+  summary: string | null;
+  url: string | null;
+  releases: Array<{ from: string; until?: string; fixedAt?: string[] }>;
+  applications: Record<string, Array<{ from: string; until?: string; fixedAt?: string[] }>>;
+  cvss: { score: number; severity: string; vector: string | null } | null;
+  cwe: { id: string; description: string } | null;
+  workaround: string | null;
+}
+
+/**
+ * A bundled component that Erlang/OTP *is* affected by, as opposed to the
+ * dismissals. The fix is a version of that component, so it cannot be compared
+ * against anything a release carries: which releases are affected comes from
+ * the CVE record, and this says what the advisory is about.
+ */
+interface BundledAffected {
+  major: string;
+  cve: string;
+  component: string;
+  ref: string | null;
+  apps: string[];
+  fixed: string;
+}
+
 interface VersionData {
   strs: string[];
   versions: Version[];
   advisories: Advisory[];
   notAffected: NotAffected[];
+  cves: Record<string, CveRecord>;
+  bundledAffected: BundledAffected[];
   vexMajors: string[];
 }
 
 /**
  * Ticket id to the releases whose notes mention it. Those are the releases that
- * introduced the fix; everything ordered above one of them contains it too,
+ * introduced the fix; every descendant of one of them contains it too,
  * which the page works out rather than storing. Comes from the patches cache
  * rather than the version data, so the two stay independent of each other.
  */
@@ -72,10 +105,10 @@ interface VersionNode extends Version {
   major: string;
   branch: string;
   apps: Map<string, string>;
-  /** Advisories whose fix this version is ordered below. */
-  open: Advisory[];
-  /** Advisories that have no defined order against this version. */
-  undetermined: Advisory[];
+  /** Advisories this release still carries, by CVE id. */
+  open: string[];
+  /** Advisories whose order against this version is not defined. */
+  undetermined: string[];
 }
 
 interface Branch {
@@ -230,6 +263,30 @@ function compare(a: string, b: string): number | null {
   return null;
 }
 
+/**
+ * Whether a release falls in any affected range of a CVE record. A range is
+ * either bounded — affected from `from` until `until` — or open from `from`
+ * with a fix point per maintenance line, in which case a release is safe once
+ * it is one of those points or a descendant of one.
+ */
+function inAnyRange(
+  version: string,
+  ranges: Array<{ from: string; until?: string; fixedAt?: string[] }>
+): boolean {
+  const atOrAfter = (a: string, b: string) => {
+    const c = compare(a, b);
+    return c !== null && c >= 0;
+  };
+  return ranges.some((range) => {
+    if (!atOrAfter(version, range.from)) return false;
+    if (range.until) {
+      const c = compare(version, range.until);
+      return c !== null && c < 0;
+    }
+    return !(range.fixedAt ?? []).some((fix) => atOrAfter(version, fix));
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
@@ -241,6 +298,8 @@ class VersionTree {
   private majors: Major[] = [];
   private branchesByBase = new Map<string, Branch[]>();
   private appIndex = new Map<string, string[]>();
+  private advisoriesByCve = new Map<string, Advisory[]>();
+  private bundledByCve = new Map<string, BundledAffected[]>();
   private notAffectedByMajor = new Map<string, NotAffected[]>();
   private appKeys: string[] = [];
 
@@ -250,6 +309,11 @@ class VersionTree {
   /** What the tree is currently picking out: an application version, or a CVE. */
   private highlight: { app: number } | { cve: string } | { ticket: string } | null = null;
   private compareWith = "";
+  /**
+   * Advisories the reader has opened. Kept apart from the highlight: hiding the
+   * releases an advisory affects should not also fold the advisory away.
+   */
+  private expandedCves = new Set<string>();
   private hits: Array<{
     label: string;
     meta: string;
@@ -303,11 +367,20 @@ class VersionTree {
     const { strs, versions, advisories } = this.data;
 
     const byMajor = new Map<string, Advisory[]>();
+    const byCve = new Map<string, Advisory[]>();
     for (const a of advisories) {
-      const list = byMajor.get(a.major);
-      if (list) list.push(a);
+      const forMajor = byMajor.get(a.major);
+      if (forMajor) forMajor.push(a);
       else byMajor.set(a.major, [a]);
+      const forCve = byCve.get(a.cve);
+      if (forCve) forCve.push(a);
+      else byCve.set(a.cve, [a]);
     }
+    this.advisoriesByCve = byCve;
+    // Advisories whose CVE record describes releases directly. Every advisory
+    // is considered, not only those openvex mentions, and they apply to every
+    // release in the tree rather than to one major.
+    const byRelease = Object.entries(this.data.cves).filter(([, c]) => c.releases.length);
 
     this.nodes = versions.map((r) => {
       const apps = new Map<string, string>();
@@ -325,17 +398,31 @@ class VersionTree {
         open: [],
         undetermined: [],
       };
-      // A release still carries an advisory when its version of the affected
-      // application is ordered below the version that fixed it. Where the two
-      // have no order, nothing can be concluded either way.
+      // Where the CVE record says which releases are affected, it is the better
+      // answer: it reaches back to the release that introduced the flaw, while
+      // openvex only describes the majors still being updated.
+      const decided = new Set<string>();
+      for (const [cve, record] of byRelease) {
+        decided.add(cve);
+        if (inAnyRange(r.v, record.releases)) node.open.push(cve);
+      }
+
+      // Otherwise a release still carries an advisory when its version of the
+      // affected application is ordered below the version that fixed it. Where
+      // the two have no order, nothing can be concluded either way.
       for (const a of byMajor.get(major) ?? []) {
+        if (decided.has(a.cve)) continue;
         const have = apps.get(a.app);
         if (have === undefined) continue;
         const toFix = compare(have, a.fixed);
         const fromIntro = compare(have, a.introduced);
         if (toFix !== null && toFix >= 0) continue;
-        if (toFix !== null && toFix < 0 && fromIntro !== null && fromIntro >= 0) node.open.push(a);
-        else node.undetermined.push(a);
+        if (toFix !== null && toFix < 0 && fromIntro !== null && fromIntro >= 0) {
+          node.open.push(a.cve);
+          decided.add(a.cve);
+        } else if (!node.undetermined.includes(a.cve)) {
+          node.undetermined.push(a.cve);
+        }
       }
       return node;
     });
@@ -351,6 +438,12 @@ class VersionTree {
       }
     });
     this.appKeys = [...this.appIndex.keys()].sort();
+
+    for (const b of this.data.bundledAffected ?? []) {
+      const list = this.bundledByCve.get(b.cve);
+      if (list) list.push(b);
+      else this.bundledByCve.set(b.cve, [b]);
+    }
 
     // An assessment can be overtaken by events: openvex.table still carries
     // CVE-2025-58050 against the bundled PCRE2 as "under investigation", while
@@ -434,11 +527,12 @@ class VersionTree {
     return c < 0 ? "less" : "gt";
   }
 
-  private worstSeverity(list: Advisory[]): Severity | null {
+  private worstSeverity(cves: string[]): Severity | null {
     let worst: Severity | null = null;
-    for (const a of list) {
-      if (a.severity && (!worst || SEVERITY_RANK[a.severity] > SEVERITY_RANK[worst])) {
-        worst = a.severity;
+    for (const cve of cves) {
+      const severity = this.data.cves[cve]?.severity;
+      if (severity && (!worst || SEVERITY_RANK[severity] > SEVERITY_RANK[worst])) {
+        worst = severity;
       }
     }
     return worst;
@@ -448,7 +542,7 @@ class VersionTree {
     const h = this.highlight;
     if (!h) return false;
     if ("app" in h) return n.c.includes(h.app) || n.s.includes(h.app);
-    if ("cve" in h) return n.open.some((a) => a.cve === h.cve);
+    if ("cve" in h) return n.open.includes(h.cve);
     return (this.tickets[h.ticket] ?? []).includes(n.v);
   }
 
@@ -469,34 +563,89 @@ class VersionTree {
   }
 
   /** Names the release to move to, which is the actionable half of an advisory. */
-  private fixedInHtml(a: Advisory, from: VersionNode): Markup | string {
-    const fix = this.fixedIn(a, from);
+  private fixedInHtml(cve: string, from: VersionNode): Markup | string {
+    const fix = this.fixedIn(cve, from);
     if (!fix) return "";
     return fix.onThisLine
-      ? html`<span class="otpv-fix">first fixed in <b>Erlang/OTP ${fix.version}</b>, which is ordered
-          above ${from.v}</span>`
+      ? html`<span class="otpv-fix">first fixed in <b>Erlang/OTP ${fix.version}</b>, which is a
+          descendant of ${from.v}</span>`
       : html`<span class="otpv-fix">fixed in <b>Erlang/OTP ${fix.version}</b>, which has no order against
           ${from.v} &mdash; moving there is not guaranteed to keep what you have</span>`;
   }
 
-  /** Every release still carrying this advisory. */
-  private affectedBy(cve: string): VersionNode[] {
-    return this.nodes.filter((n) => n.open.some((a) => a.cve === cve));
+  /**
+   * The applications an advisory concerns. Openvex files it per major and per
+   * application, so a release outside those majors falls back to whatever the
+   * advisory names anywhere.
+   */
+  private appsFor(cve: string, major: string): string[] {
+    const all = this.advisoriesByCve.get(cve) ?? [];
+    const here = all.filter((a) => a.major === major);
+    const named = [...new Set((here.length ? here : all).map((a) => a.app))];
+    // openvex only covers the majors still updated, so an advisory it has not
+    // caught up with falls back to what the CVE record names.
+    if (named.length) return named;
+    const fromRecord = Object.keys(this.data.cves[cve]?.applications ?? {});
+    if (fromRecord.length) return fromRecord;
+    // Reached through a bundled component: name the application that ships it.
+    return [...new Set((this.bundledByCve.get(cve) ?? []).flatMap((b) => b.apps))];
   }
 
   /**
-   * The first release that carries the fix and is ordered above `from`, so
+   * The version of an application that fixes an advisory, for a release
+   * carrying `have`. Taken from the CVE record where it says so, since openvex
+   * only describes the majors it covers; null when this version is not affected.
+   */
+  private applicationFix(cve: string, app: string, have: string): string | null {
+    for (const range of this.data.cves[cve]?.applications?.[app] ?? []) {
+      const since = compare(have, range.from);
+      if (since === null || since < 0) continue;
+      if (range.until) {
+        const c = compare(have, range.until);
+        if (c !== null && c < 0) return range.until;
+        continue;
+      }
+      // An open range is fixed at one point per maintenance line. If none of
+      // them is at or below what is installed, the relevant fix is the earliest
+      // ordered above it.
+      const fixes = range.fixedAt ?? [];
+      if (fixes.some((f) => { const c = compare(have, f); return c !== null && c >= 0; })) continue;
+      const ahead = fixes
+        .filter((f) => { const c = compare(have, f); return c !== null && c < 0; })
+        .sort((a, b) => compare(a, b) ?? 0);
+      if (ahead.length) return ahead[0];
+    }
+    return null;
+  }
+
+  /** Every release still carrying this advisory. */
+  private affectedBy(cve: string): VersionNode[] {
+    return this.nodes.filter((n) => n.open.includes(cve));
+  }
+
+  /**
+   * The first release that carries the fix and is a descendant of `from`, so
    * upgrading to it is guaranteed to include everything already in hand. Falls
    * back to the earliest release carrying the fix at all, flagged as being off
    * this line, when no descendant has it.
    */
-  private fixedIn(a: Advisory, from: VersionNode): { version: string; onThisLine: boolean } | null {
-    const carriesFix = this.nodes.filter((n) => {
-      const have = n.apps.get(a.app);
-      if (have === undefined) return false;
-      const c = compare(have, a.fixed);
-      return c !== null && c >= 0;
-    });
+  private fixedIn(cve: string, from: VersionNode): { version: string; onThisLine: boolean } | null {
+    const record = this.data.cves[cve];
+    // Where the CVE record names the releases that carry the fix, use those:
+    // they are stated rather than inferred, and they cover the lines openvex
+    // says nothing about.
+    const stated = (record?.releases ?? []).flatMap((r) => r.fixedAt ?? (r.until ? [r.until] : []));
+    const known = stated.filter((v) => this.byName.has(v));
+    const carriesFix = known.length
+      ? known.map((v) => this.byName.get(v)!).sort((x, y) => this.position.get(x.v)! - this.position.get(y.v)!)
+      : this.nodes.filter((n) =>
+          (this.advisoriesByCve.get(cve) ?? []).some((a) => {
+            const have = n.apps.get(a.app);
+            if (have === undefined) return false;
+            const c = compare(have, a.fixed);
+            return c !== null && c >= 0;
+          })
+        );
     const descendant = carriesFix.find((n) => {
       const c = compare(from.v, n.v);
       return c !== null && c < 0;
@@ -820,10 +969,9 @@ class VersionTree {
   }
 
   private securityHtml(n: VersionNode): Markup {
-    if (this.data.vexMajors.length === 0) {
+    if (!Object.keys(this.data.cves).length) {
       return html`<p class="text-muted">Advisory data is unavailable.</p>`;
     }
-    const from = Math.min(...this.data.vexMajors.map(Number));
     const supported = this.majors
       .slice(0, SUPPORTED_MAJORS)
       .map((m) => m.n)
@@ -837,44 +985,98 @@ class VersionTree {
             discovered vulnerabilities will not be fixed here.</p>
         </div>`;
 
-    if (Number(n.major) < from) {
-      return html`${unsupported}
-        <p class="text-muted">No advisory data either: <code>openvex.table</code> starts at Erlang/OTP
-          ${from}, so the advisories below cannot be listed for this release.</p>`;
-    }
-
     const showing = this.highlight && "cve" in this.highlight ? this.highlight.cve : null;
     const advisories = n.open.length
       ? [...n.open]
-          .sort((a, b) => (SEVERITY_RANK[b.severity!] ?? 0) - (SEVERITY_RANK[a.severity!] ?? 0))
-          .map(
-            (a) => html`<div class="otpv-cve">
-              <div class="otpv-cve-top">
-                <span class="otpv-chip sev-${a.severity}">${a.severity}</span>
-                <span class="otpv-cve-id">${a.cve}</span>
-              </div>
-              <h4>${a.summary ?? ""}</h4>
-              <span class="otpv-fix">
-                ${a.app} ${n.apps.get(a.app)!} &lt; <b>${a.fixed}</b> &mdash; not fixed here
-              </span>
-              ${this.fixedInHtml(a, n)}
-              <div class="otpv-links">
-                <button
-                  class="btn btn-sm btn-outline-secondary"
-                  type="button"
-                  data-cve="${a.cve}"
-                  aria-pressed="${showing === a.cve ? "true" : "false"}"
-                >${showing === a.cve ? "Hide affected versions" : "Show affected versions"}</button>
-                ${a.url
-                  ? html`<a class="btn btn-sm btn-outline-primary" href="${a.url}">${a.ghsa ?? "Advisory"}</a>`
-                  : ""}
-              </div>
-            </div>`
+          .sort(
+            (a, b) =>
+              (SEVERITY_RANK[this.data.cves[b]?.severity!] ?? 0) -
+              (SEVERITY_RANK[this.data.cves[a]?.severity!] ?? 0)
           )
-      : html`<div class="otpv-safe">
+          .map((cve) => {
+            const record = this.data.cves[cve];
+            const applications = this.appsFor(cve, n.major);
+            // What this release carries, against the version that fixes it. The
+            // CVE record answers for any release; openvex only for the majors
+            // it covers, and only once its bot has caught up.
+            const versions = applications
+              .map((app) => {
+                const have = n.apps.get(app);
+                if (have === undefined) return null;
+                const openvex = (this.advisoriesByCve.get(cve) ?? []).find(
+                  (e) => e.app === app && e.major === n.major
+                );
+                const fixed = this.applicationFix(cve, app, have) ?? openvex?.fixed;
+                return fixed ? { app, have, fixed } : null;
+              })
+              .filter((v): v is { app: string; have: string; fixed: string } => v !== null);
+            return html`
+              <details class="otpv-cve"${this.expandedCves.has(cve) ? raw(" open") : ""}>
+                <summary class="otpv-cve-top">
+                  <span class="otpv-chip sev-${record?.severity}">${record?.severity}${record?.cvss ? ` ${record.cvss.score}` : ""}</span>
+                  ${applications.length ? html`<span class="otpv-cve-app">${applications.join(", ")}</span>` : ""}
+                  <span class="otpv-cve-title">${record?.summary ?? cve}</span>
+                </summary>
+                <span class="otpv-fix"
+                  >${cve}${record?.cwe ? ` \u00b7 ${record.cwe.id} ${record.cwe.description}` : ""}</span
+                >
+                ${versions.map(
+                  (e) => html`<span class="otpv-fix">${e.app} ${e.have} &lt; <b>${e.fixed}</b> &mdash; not fixed here</span>`
+                )}
+                ${(this.bundledByCve.get(cve) ?? []).map(
+                  (b) => html`<span class="otpv-fix">through bundled ${b.component}, fixed in
+                    <b>${b.fixed}</b> of that component</span>`
+                )}
+                ${record?.cvss?.vector ? html`<span class="otpv-fix">${record.cvss.vector}</span>` : ""}
+                ${this.fixedInHtml(cve, n)}
+                ${record?.workaround
+                  ? html`
+                    <details class="otpv-workaround">
+                      <summary>Workaround</summary>
+                      <p>${record.workaround}</p>
+                    </details>`
+                  : ""}
+                <div class="otpv-links">
+                  <button class="btn btn-sm btn-outline-secondary" type="button" data-cve="${cve}"
+                          aria-pressed="${showing === cve ? "true" : "false"}"
+                  >${showing === cve ? "Hide affected versions" : "Show affected versions"}</button>
+                  ${record?.url
+                    ? html`<a class="btn btn-sm btn-outline-primary" href="${record.url}">${record.ghsa ?? "Advisory"}</a>`
+                    : ""}
+                </div>
+              </details>`;
+          })
+      : html`
+        <div class="otpv-safe">
           <b>No open advisories</b>
-          <p>Every application version here is ordered at or above the version that fixed it.</p>
+          <p>No advisory names this release, and none of the application versions it carries is below the
+            version that fixed one.</p>
         </div>`;
+
+
+    // Neither source places these: the CVE record does not say which releases
+    // are affected and openvex does not list them at all. Kept apart from the
+    // advisories above, because not knowing is not the same as being affected.
+    const unplaced = Object.entries(this.data.cves).filter(
+      ([cve, record]) => !record.releases.length && !this.advisoriesByCve.has(cve)
+    );
+    const unplacedHtml = unplaced.length
+      ? html`
+        <details class="otpv-bundled">
+          <summary>Advisories that could not be placed &mdash; ${unplaced.length}</summary>
+          <p class="text-muted">Neither the CVE record nor <code>openvex.table</code> says which releases
+            these affect, so whether this one is among them is unknown.</p>
+          <ul class="otpv-bundled-list">
+            ${unplaced.map(
+              ([cve, record]) => html`<li>
+                <span class="otpv-bundled-id">${cve}</span>
+                <span class="otpv-chip plain">${record.severity ?? "unrated"}</span>
+                <span class="otpv-bundled-why">${record.summary ?? ""}</span>
+              </li>`
+            )}
+          </ul>
+        </details>`
+      : "";
 
     const undetermined = n.undetermined.length
       ? html`<p class="text-muted">${n.undetermined.length} advisor${n.undetermined.length === 1
@@ -883,7 +1085,7 @@ class VersionTree {
           determined.</p>`
       : "";
 
-    return html`${unsupported}${advisories}${undetermined}${this.bundledHtml(n.major)}`;
+    return html`${unsupported}${advisories}${undetermined}${unplacedHtml}${this.bundledHtml(n.major)}`;
   }
 
   /**
@@ -957,8 +1159,8 @@ class VersionTree {
     const head = line[0];
     const newest = this.nodes[this.nodes.length - 1];
     if (head.v !== n.v) {
-      return html`<b>${head.v}</b> is the newest version on this line and is ordered above ${n.v} &mdash; the
-        safe upgrade without leaving the branch.`;
+      return html`<b>${head.v}</b> is the newest version on this line and is a descendant of ${n.v}
+        &mdash; the safe upgrade without leaving the branch.`;
     }
     if (n.v !== newest.v) {
       return html`This is the newest version on its line. Moving to <b>${newest.v}</b> crosses to the main
@@ -1028,8 +1230,24 @@ class VersionTree {
       const cve = button.dataset.cve!;
       const showing = this.highlight && "cve" in this.highlight && this.highlight.cve === cve;
       this.setHighlight(showing ? null : { cve });
+      // The advisory stays open either way; the button is inside it.
+      this.expandedCves.add(cve);
       this.render();
     });
+
+    // `toggle` does not bubble, so it is caught on the way down.
+    this.el("otpv-detail").addEventListener(
+      "toggle",
+      (e) => {
+        const details = e.target as HTMLDetailsElement;
+        if (!details.classList?.contains("otpv-cve")) return;
+        const cve = details.querySelector<HTMLElement>("[data-cve]")?.dataset.cve;
+        if (!cve) return;
+        if (details.open) this.expandedCves.add(cve);
+        else this.expandedCves.delete(cve);
+      },
+      true
+    );
 
     this.el("otpv-expand").addEventListener("click", () => {
       this.majors.forEach((m) => this.openMajors.add(m.n));
@@ -1068,9 +1286,9 @@ class VersionTree {
           hits.push({ label: key, meta: `${this.appIndex.get(key)!.length} Erlang/OTP versions`, app: key });
         }
       }
-      for (const a of this.data.advisories) {
+      for (const [id, a] of Object.entries(this.data.cves)) {
         if (hits.length >= 20) break;
-        const cve = a.cve.toLowerCase();
+        const cve = id.toLowerCase();
         const ghsa = (a.ghsa ?? "").toLowerCase();
         const summary = a.summary ?? "";
         // An id matches from the start freely, but only as a substring once the
@@ -1083,9 +1301,9 @@ class VersionTree {
           ghsa.startsWith(typed) ||
           (typed.length >= 4 && (cve.includes(typed) || ghsa.includes(typed))) ||
           (typed.length >= 3 && summary.toLowerCase().includes(typed));
-        if (found && !hits.some((h) => h.cve === a.cve)) {
+        if (found && !hits.some((h) => h.cve === id)) {
           const short = summary.length > 58 ? summary.slice(0, 58) + "\u2026" : summary;
-          hits.push({ label: a.cve, meta: `${a.severity ?? ""} · ${short}`, cve: a.cve });
+          hits.push({ label: id, meta: `${a.severity ?? ""} · ${short}`, cve: id });
         }
       }
       // "#8699" is how a pull request or issue is written on github, so accept
@@ -1177,6 +1395,7 @@ class VersionTree {
       } else if (hit.cve) {
         search.value = hit.cve;
         this.setHighlight({ cve: hit.cve });
+        this.expandedCves.add(hit.cve);
         const affected = this.affectedBy(hit.cve);
         if (affected.length) this.select(affected[affected.length - 1].v, { scroll: "smooth", push: true });
         else this.renderTree();

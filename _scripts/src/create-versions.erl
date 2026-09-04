@@ -8,6 +8,18 @@
 %%                            GitHub releases only start at Erlang/OTP 21 and
 %%                            the older ones were backfilled with the date of
 %%                            the backfill rather than of the release.
+%%   * the CVE records      - which releases each advisory affects, said in
+%%                            release terms rather than application ones, plus
+%%                            the CVSS score, the CWE and any workaround. Only
+%%                            the ones the Erlang Ecosystem Foundation assigned
+%%                            carry release data, so openvex remains the source
+%%                            for the rest.
+%%   * the repository       - the list of advisories, with their GHSA ids,
+%%     security advisories    severities and summaries. This is the index: it is
+%%                            what the bot maintaining openvex watches, so
+%%                            openvex trails it by however long that pull
+%%                            request sits unmerged. Indexing on openvex instead
+%%                            leaves the newest advisories invisible.
 %%   * the openvex branch   - two kinds of statement. For an OTP application,
 %%                            the affected and fixed versions per CVE; it names
 %%                            CVEs only, so GHSA ids, severities and summaries
@@ -34,7 +46,9 @@ main([OTPVersionTable, OutFile]) ->
 
     Versions = parse_otp_versions_table(OTPVersionTable),
     Dates = tag_dates(),
-    {VexMajors, Advisories, NotAffected} = advisories(),
+    Ghsa = ghsa_by_cve(),
+    {VexMajors, Advisories, NotAffected, BundledAffected} = advisories(),
+    Cves = cve_records(Ghsa),
 
     {Rows, StringIx} = lists:mapfoldl(
                          fun(V, Acc) -> row(V, Dates, Acc) end, #{}, Versions),
@@ -44,13 +58,17 @@ main([OTPVersionTable, OutFile]) ->
                 versions => Rows,
                 advisories => Advisories,
                 notAffected => NotAffected,
+                bundledAffected => BundledAffected,
+                cves => Cves,
                 vexMajors => VexMajors }),
     ok = filelib:ensure_dir(OutFile),
     ok = file:write_file(OutFile, Json),
     ?LOG_INFO("Wrote ~ts: ~p versions, ~p advisories, ~p not-affected "
-              "assessments, ~p application versions",
+              "assessments, ~p application versions, ~p advisories "
+              "(~p with release data)",
               [OutFile, length(Rows), length(Advisories), length(NotAffected),
-               maps:size(StringIx)]),
+               maps:size(StringIx), maps:size(Cves),
+               length([C || C <- maps:values(Cves), maps:get(releases, C, []) =/= []])]),
     ok.
 
 %%====================================================================
@@ -96,6 +114,133 @@ intern(Str, Ix) ->
             N = maps:size(Ix),
             {N, Ix#{ Str => N }}
     end.
+
+%%====================================================================
+%% CVE records, from the CVE Services API
+%%====================================================================
+
+%% openvex says which application version fixes an advisory, and only for the
+%% majors still receiving updates. The CVE record says which *releases* are
+%% affected, from the version that introduced the flaw, which usually reaches
+%% much further back. Fetched for every advisory; the ones that carry no
+%% release data still contribute a score, a CWE and a workaround.
+cve_records(Ghsa) ->
+    maps:map(
+      fun(Cve, Meta) ->
+              case cve_record(Cve) of
+                  {ok, Record} ->
+                      maps:merge(Meta, Record);
+                  error ->
+                      ?LOG_WARNING("No CVE record for ~ts", [Cve]),
+                      maps:merge(Meta, #{ releases => [], applications => #{},
+                                          cvss => null, cwe => null,
+                                          workaround => null })
+              end
+      end, Ghsa).
+
+cve_record(Cve) ->
+    Url = "https://cveawg.mitre.org/api/cve/" ++ binary_to_list(Cve),
+    case httpc:request(get, {Url, [{"User-Agent", "erlang-httpc"}]},
+                       [{ssl, httpc:ssl_verify_host_options(true)}],
+                       [{body_format, binary}]) of
+        {ok, {{_, 200, _}, _, Body}} ->
+            #{ <<"containers">> := Containers } = json:decode(Body),
+            Cna = maps:get(<<"cna">>, Containers, #{}),
+            Adp = maps:get(<<"adp">>, Containers, []),
+            {ok, #{ releases => release_ranges(maps:get(<<"affected">>, Cna, [])),
+                    applications => applications(maps:get(<<"affected">>, Cna, [])),
+                    cvss => cvss([Cna | Adp]),
+                    cwe => cwe(maps:get(<<"problemTypes">>, Cna, [])),
+                    workaround => first_value(maps:get(<<"workarounds">>, Cna, [])) }};
+        _ ->
+            error
+    end.
+
+%% The applications an advisory concerns and the versions of them it affects.
+%% openvex says this too, but only for the majors it covers, and only once the
+%% bot that maintains it has caught up.
+applications(Affected) ->
+    maps:from_list(
+      [{Name, [range(V) || V <- Versions]}
+       || A <- Affected,
+          Name <- [maps:get(<<"packageName">>, A, undefined)],
+          is_binary(Name),
+          not lists:member(Name, [<<"otp">>, <<"erlang/otp">>]),
+          %% Vendored components are named by their upstream repository.
+          nomatch =:= binary:match(Name, <<"/">>),
+          Versions <- [[V || V <- maps:get(<<"versions">>, A, []),
+                             maps:get(<<"versionType">>, V, undefined) =:= <<"otp">>,
+                             maps:get(<<"status">>, V, undefined) =:= <<"affected">>,
+                             is_version(maps:get(<<"version">>, V, undefined))]],
+          Versions =/= []]).
+
+%% Two shapes appear, and both say the same thing. Either a bounded range per
+%% maintenance line, or one open range from where the flaw was introduced with a
+%% `changes' entry marking where each line was fixed.
+release_ranges(Affected) ->
+    [range(V)
+     || A <- Affected,
+        lists:member(maps:get(<<"packageName">>, A, undefined), [<<"otp">>, <<"erlang/otp">>]),
+        V <- maps:get(<<"versions">>, A, []),
+        maps:get(<<"versionType">>, V, undefined) =:= <<"otp">>,
+        %% Entries carry a status of their own and the default is unaffected, so
+        %% only the explicitly affected ranges count. A record may also bound
+        %% the versions below the first release as "unknown", which is not a
+        %% claim that they are affected.
+        maps:get(<<"status">>, V, undefined) =:= <<"affected">>,
+        is_version(maps:get(<<"version">>, V, undefined))].
+
+range(V) ->
+    From = maps:get(<<"version">>, V),
+    case maps:get(<<"lessThan">>, V, undefined) of
+        Until when is_binary(Until) ->
+            case is_version(Until) of
+                true -> #{ from => From, until => Until };
+                false -> #{ from => From, fixedAt => fixed_at(V) }
+            end;
+        _ ->
+            #{ from => From, fixedAt => fixed_at(V) }
+    end.
+
+fixed_at(V) ->
+    [At || C <- maps:get(<<"changes">>, V, []),
+           maps:get(<<"status">>, C, undefined) =:= <<"unaffected">>,
+           At <- [maps:get(<<"at">>, C, undefined)],
+           is_version(At)].
+
+is_version(V) when is_binary(V) ->
+    match =:= re:run(V, "^[0-9]+(\\.[0-9]+)*$", [{capture, none}]);
+is_version(_) ->
+    false.
+
+cvss([]) ->
+    null;
+cvss([Container | Rest]) ->
+    Scores = [M || Metric <- maps:get(<<"metrics">>, Container, []),
+                   M <- maps:values(Metric),
+                   is_map(M), is_map_key(<<"baseScore">>, M)],
+    case Scores of
+        [] ->
+            cvss(Rest);
+        [Score | _] ->
+            #{ score => maps:get(<<"baseScore">>, Score),
+               severity => string:lowercase(maps:get(<<"baseSeverity">>, Score, <<>>)),
+               vector => maps:get(<<"vectorString">>, Score, null) }
+    end.
+
+cwe([#{ <<"descriptions">> := [#{ <<"cweId">> := Id, <<"description">> := Text } | _] } | _]) ->
+    %% The description repeats the id, so it is dropped here rather than left
+    %% for every consumer to notice and strip.
+    #{ id => Id,
+       description => iolist_to_binary(
+                        re:replace(Text, "^CWE-[0-9]+\\s*", "", [{return, binary}])) };
+cwe([_ | Rest]) ->
+    cwe(Rest);
+cwe([]) ->
+    null.
+
+first_value([#{ <<"value">> := Value } | _]) -> Value;
+first_value(_) -> null.
 
 %%====================================================================
 %% Release dates, from the git tags
@@ -175,21 +320,21 @@ advisories() ->
                 [{"Accept", "application/vnd.github.raw"}]) of
         {ok, Raw} ->
             Vex = json:decode(Raw),
-            Ghsa = ghsa_by_cve(),
             Majors = [major_of(K) || K <- maps:keys(Vex)],
             Statements =
                 lists:append(
                   [[S || Entry <- Entries,
-                         S <- [statement(major_of(Major), Entry, Ghsa)],
+                         S <- [statement(major_of(Major), Entry)],
                          S =/= skip]
                    || {Major, Entries} <- maps:to_list(Vex)]),
             {lists:sort(Majors),
              [A || {advisory, A} <- Statements],
-             [N || {not_affected, N} <- Statements]};
+             [N || {not_affected, N} <- Statements],
+             [B || {bundled_affected, B} <- Statements]};
         {error, Reason} ->
             ?LOG_WARNING("Could not read openvex.table (~p), the page will "
                          "show no advisories.", [Reason]),
-            {[], [], []}
+            {[], [], [], []}
     end.
 
 major_of(<<"otp-", Major/binary>>) -> Major;
@@ -198,39 +343,51 @@ major_of(Other) -> Other.
 %% An entry maps one purl to a vulnerability id and carries the status
 %% alongside it. A `pkg:otp/` purl with a fix is an advisory against an
 %% application; anything else is an assessment of a vendored component.
-statement(Major, Entry, Ghsa) ->
+statement(Major, Entry) ->
     case [{K, V} || {K, V} <- maps:to_list(Entry), K =/= <<"status">>] of
-        [{Purl, Id}] -> statement(Major, Purl, Id, maps:get(<<"status">>, Entry, #{}), Ghsa);
+        [{Purl, Id}] -> statement(Major, Purl, Id, maps:get(<<"status">>, Entry, #{}));
         _ -> skip
     end.
 
-statement(Major, Purl, Id, Status, Ghsa) when is_map(Status) ->
+statement(Major, Purl, Id, Status) when is_map(Status) ->
     case {otp_purl(Purl), maps:get(<<"fixed">>, Status, [])} of
         {{ok, App, Introduced}, [FixedPurl | _]} ->
             case otp_purl(FixedPurl) of
                 {ok, App, Fixed} ->
-                    Meta = maps:get(Id, Ghsa, #{}),
                     {advisory,
                      #{ major => Major,
                         cve => Id,
                         app => App,
                         introduced => Introduced,
-                        fixed => Fixed,
-                        ghsa => maps:get(ghsa, Meta, null),
-                        severity => maps:get(severity, Meta, null),
-                        summary => maps:get(summary, Meta, null),
-                        url => maps:get(url, Meta, null) }};
+                        fixed => Fixed }};
                 _ ->
                     skip
             end;
         {_, []} ->
             not_affected(Major, Purl, Id, maps:get(<<"not_affected">>, Status, null), Status);
+        {error, [FixedPurl | _]} ->
+            %% A bundled component that Erlang/OTP *is* affected by. Every
+            %% statement about one has so far been a dismissal, so this path is
+            %% untravelled, but dropping it would hide a real advisory. The fix
+            %% is a version of the component, not of an application, so it
+            %% cannot be compared against anything a release carries: the
+            %% release it applies to comes from the CVE record, and this records
+            %% what the advisory is about.
+            {Component, Ref} = component(Purl),
+            {bundled_affected,
+             #{ major => Major,
+                cve => Id,
+                component => Component,
+                ref => Ref,
+                apps => [App || A <- maps:get(<<"apps">>, Status, []),
+                                {ok, App, _} <- [otp_purl(A)]],
+                fixed => element(1, component(FixedPurl)) }};
         _ ->
             skip
     end;
-statement(Major, Purl, Id, <<"under_investigation">>, _Ghsa) ->
+statement(Major, Purl, Id, <<"under_investigation">>) ->
     not_affected(Major, Purl, Id, <<"under_investigation">>, #{});
-statement(_, _, _, _, _) ->
+statement(_, _, _, _) ->
     skip.
 
 not_affected(_Major, _Purl, _Id, null, _Status) ->
