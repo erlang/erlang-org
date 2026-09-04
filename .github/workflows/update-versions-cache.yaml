@@ -35,8 +35,6 @@ jobs:
   update-versions-cache:
     if: github.repository == 'erlang/erlang-org'
     runs-on: ubuntu-24.04
-    env:
-      DEPLOYED: ${{ runner.temp }}/deployed
     steps:
       - name: Fetch ImageOS
         id: image-os
@@ -77,7 +75,7 @@ jobs:
           status=0
           git ls-remote --exit-code --heads "$repo" _versions >/dev/null || status=$?
           case "$status" in
-            0) git clone --depth 1 --single-branch -b _versions "$repo" "$DEPLOYED" ;;
+            0) git clone --depth 1 --single-branch -b _versions "$repo" "$RUNNER_TEMP/deployed" ;;
             2) echo "No _versions branch yet; everything counts as new." ;;
             *) echo "Could not reach $repo (git ls-remote exited $status)"; exit 1 ;;
           esac
@@ -98,12 +96,12 @@ jobs:
       - name: Decide what needs doing
         id: changed
         run: |
-          if diff -rq --exclude=.git "$DEPLOYED" _versions >/dev/null 2>&1; then
+          if diff -rq --exclude=.git "$RUNNER_TEMP/deployed" _versions >/dev/null 2>&1; then
             echo "cache=false" >> "$GITHUB_OUTPUT"
           else
             echo "cache=true" >> "$GITHUB_OUTPUT"
           fi
-          if cmp -s "$DEPLOYED/otp-versions.json" _versions/otp-versions.json; then
+          if cmp -s "$RUNNER_TEMP/deployed/otp-versions.json" _versions/otp-versions.json; then
             echo "site=false" >> "$GITHUB_OUTPUT"
             echo "The version data is unchanged." >> "$GITHUB_STEP_SUMMARY"
           else
