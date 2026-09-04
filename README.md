@@ -170,6 +170,29 @@ never regenerates (`JEKYLL_ENV=production`, as `docs` does) so a stale cache can
 itself, which dangles in `_site`. The page's class names are partly built at runtime, so `/^otpv-/` and
 `/^sev-/` are on the purgecss safelist.
 
+#### Keeping it up to date
+
+The other caches are refreshed by a push to master or by `erlang/otp` dispatching
+[update-gh-cache.yaml], which is enough for them: they change when a release
+happens, and a release is what does the dispatching. The version data is not like
+that. Most of what the page says about an advisory arrives *after* the release
+that fixed it -- the advisory is published later, and the CVE record behind it is
+enriched with a score, a CWE and its affected ranges later still. Neither event
+can start a workflow: GitHub Actions has no repository-advisory trigger, and the
+CVE records come from MITRE, which gives no signal at all.
+
+So [update-versions-cache.yaml] polls, every six hours. It builds only this cache
+-- installing erlang alone, since a full `asdf install` would compile ruby from
+source four times a day for nothing -- and then answers two questions separately.
+The branch is redeployed when anything differs, including the marker file that
+records which generator built it; the site is only rebuilt when
+`otp-versions.json` itself differs, so a quiet week does not rebuild erlang.org
+twenty-eight times to publish nothing.
+
+Adding a trigger on the `openvex` branch in `erlang/otp` would cut the latency for
+that one source, but not for the others, and openvex is the fallback rather than
+the index. The poll is what actually closes the gap.
+
 #### Testing it
 
 `make test` runs both suites; each can be run on its own while working.
@@ -186,6 +209,7 @@ itself, which dangles in `_site`. The page's class names are partly built at run
   so that editing them does not change `VERSIONS_DEPS` and force the cache to be regenerated.
 
 [create-versions.erl]: _scripts/src/create-versions.erl
+[update-versions-cache.yaml]: .github/workflows/update-versions-cache.yaml
 [otp-versions.ts]: assets/otp-versions.ts
 [otp-version-scheme.ts]: assets/otp-version-scheme.ts
 [otp-version-scheme.test.ts]: assets/otp-version-scheme.test.ts
