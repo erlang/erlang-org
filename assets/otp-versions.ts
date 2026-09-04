@@ -249,6 +249,13 @@ class VersionTree {
    * this begins closed and is raised by the reader choosing one.
    */
   private sheetOpen = false;
+  /**
+   * Whether the reader has picked a version. A version is held from the start
+   * so that everything has something to compare against, but until one has been
+   * asked for the page shows no relations and no detail: a page that opens with
+   * a release already picked out is answering a question nobody put to it.
+   */
+  private chosen = false;
   private hits: Array<{
     label: string;
     meta: string;
@@ -631,11 +638,12 @@ class VersionTree {
     this.renderDetail();
     // Revealed once there is something to show, so the shell is not left
     // half-rendered while the data loads or if it never arrives.
-    this.root.querySelectorAll<HTMLElement>(".otpv-legend, .otpv-cols").forEach((e) => (e.hidden = false));
+    this.root.querySelectorAll<HTMLElement>(".otpv-cols").forEach((e) => (e.hidden = false));
+    this.root.querySelectorAll<HTMLElement>(".otpv-legend").forEach((e) => (e.hidden = !this.chosen));
     // The detail panel runs to a few thousand characters; announcing all of it
     // on every selection would be unusable, so only the change is announced.
     const announce = this.root.querySelector("#otpv-announce");
-    if (announce) announce.textContent = `Selected Erlang/OTP ${this.selected}`;
+    if (announce && this.chosen) announce.textContent = `Selected Erlang/OTP ${this.selected}`;
   }
 
   private rowHtml(n: VersionNode, isHead = false): Markup {
@@ -645,7 +653,7 @@ class VersionTree {
       changed.slice(0, 4).join("  ") + (changed.length > 4 ? "  +" + (changed.length - 4) : "");
     const severity = this.worstSeverity(n.open);
     const classes = [
-      this.relation(n.v),
+      this.chosen ? this.relation(n.v) : "",
       highlighted ? "match" : "",
       isHead ? "head" : "",
       // 17.0 is the root of the whole tree, so the main track stops there.
@@ -673,7 +681,7 @@ class VersionTree {
    * it is newer than that version. Branches off branches nest the same way.
    */
   private branchHtml(b: Branch): Markup {
-    const holdsSelection = b.rows.some((r) => r.v === this.selected);
+    const holdsSelection = this.chosen && b.rows.some((r) => r.v === this.selected);
     const collapsible = b.rows.length > COLLAPSE_AT;
     const collapsed = collapsible && !this.openBranches.has(b.id) && !holdsSelection;
     const shown = collapsed ? b.rows.slice(0, 1) : b.rows;
@@ -759,12 +767,14 @@ class VersionTree {
         const open = this.openMajors.has(m.n);
         const seg: Record<Relation, number> = { sel: 0, less: 0, gt: 0, un: 0 };
         m.all.forEach((n) => seg[this.relation(n.v)]++);
-        const bar = (["sel", "gt", "less", "un"] as Relation[])
-          .filter((k) => seg[k])
-          .map((k) => {
-            const width = Math.max(3, Math.round((seg[k] / m.all.length) * 96));
-            return html`<i class="otpv-seg-${k}" style="width:${width}px"></i>`;
-          });
+        const bar = !this.chosen
+          ? []
+          : (["sel", "gt", "less", "un"] as Relation[])
+              .filter((k) => seg[k])
+              .map((k) => {
+                const width = Math.max(3, Math.round((seg[k] / m.all.length) * 96));
+                return html`<i class="otpv-seg-${k}" style="width:${width}px"></i>`;
+              });
         const from = m.from?.slice(0, 4);
         const to = m.to?.slice(0, 4);
         const years = from && to ? ` \u00b7 ${from}${to === from ? "" : "\u2013" + to}` : "";
@@ -799,6 +809,16 @@ class VersionTree {
   }
 
   private renderDetail(): void {
+    if (!this.chosen) {
+      this.el("otpv-detail").innerHTML = String(html`
+        <div class="card-header">
+          <h5 class="otpv-selected">Pick a version</h5>
+          <p class="text-muted mb-0">Choose a release in the tree to see what it contains, which
+            versions are guaranteed to contain it, and which advisories it still carries.</p>
+        </div>`);
+      this.el("otpv-detail").classList.remove("otpv-open");
+      return;
+    }
     const n = this.byName.get(this.selected)!;
     const previous = this.predecessor(n);
     const changed = n.c.map((i) => this.data.strs[i]).sort();
@@ -1162,6 +1182,7 @@ class VersionTree {
     const n = this.byName.get(v);
     if (!n) return;
     this.selected = v;
+    this.chosen = true;
     this.sheetOpen = true;
     this.openMajors.add(n.major);
     // A version on a branch off a branch is only rendered once every branch
