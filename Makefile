@@ -46,6 +46,21 @@ otp_versions.table:
 _scripts/_build/default/bin/erlang-org: $(wildcard _scripts/src/*.erl) _scripts/rebar.config
 	$(MAKE) -C _scripts
 
+## _patches, _versions and _eeps each shell out to a recursive make that builds
+## the escript, and under `make -j` those sub-makes run rebar3 concurrently on
+## one _build directory. That fails, non-deterministically, with
+##
+##   ebin/create-releases.beam:none: failed to rename ...
+##
+## Building it once here leaves each sub-make with nothing left to do. The
+## dependency is order-only: a rebuilt escript says nothing about whether a
+## cached branch is still current, which is what the hash markers are for.
+## Production skips it, since nothing is generated there and the build host has
+## no Erlang to build it with.
+ifneq ($(JEKYLL_ENV),production)
+_patches _versions _eeps: | _scripts/_build/default/bin/erlang-org
+endif
+
 _clones/eep:
 	git clone https://github.com/erlang/eep $@
 	cd $@ && ./build.pl
