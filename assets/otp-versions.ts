@@ -242,6 +242,13 @@ class VersionTree {
    * releases an advisory affects should not also fold the advisory away.
    */
   private expandedCves = new Set<string>();
+  /**
+   * Whether the detail sheet is up. Only means anything where the layout has
+   * stacked and the panel is a sheet over the foot of the window; in the
+   * sidebar the panel is always there. A version is selected from the start, so
+   * this begins closed and is raised by the reader choosing one.
+   */
+  private sheetOpen = false;
   private hits: Array<{
     label: string;
     meta: string;
@@ -824,6 +831,7 @@ class VersionTree {
 
     this.el("otpv-detail").innerHTML = String(html`
       <div class="card-header">
+        <button class="otpv-sheet-close" type="button" aria-label="Close">&times;</button>
         <h5 class="otpv-selected">Erlang/OTP ${n.v}</h5>
         <div class="otpv-meta">
           <span class="otpv-chip plain">${n.d ? "tagged " + n.d : "date unrecorded"}</span>
@@ -884,6 +892,11 @@ class VersionTree {
           installers for this version.</p>
       </div>
     `);
+
+    // The card is rebuilt from scratch on every selection, so the sheet's state
+    // has to be re-applied rather than left on the element, the same way the
+    // opened advisories are.
+    this.el("otpv-detail").classList.toggle("otpv-open", this.sheetOpen);
 
     const input = this.el<HTMLInputElement>("otpv-cmp");
     input.addEventListener("input", () => {
@@ -1101,10 +1114,55 @@ class VersionTree {
 
   // -- interaction ---------------------------------------------------------
 
+  /** Whether the panel is currently a sheet, rather than the sidebar. */
+  private isSheet(): boolean {
+    return getComputedStyle(this.el("otpv-detail")).position === "fixed";
+  }
+
+  private closeSheet(): void {
+    this.sheetOpen = false;
+    this.el("otpv-detail").classList.remove("otpv-open");
+  }
+
+  /**
+   * The foot of what the reader can actually see: the top of the sheet where
+   * there is one, the foot of the window otherwise.
+   */
+  private visibleBottom(): number {
+    const sheet = this.el("otpv-detail");
+    return this.isSheet() ? sheet.getBoundingClientRect().top : window.innerHeight;
+  }
+
+  /** Puts the selected row in the middle of the visible area. */
+  private scrollToSelected(behavior: ScrollBehavior): void {
+    const row = this.selectedRow();
+    if (!row) return;
+    const box = row.getBoundingClientRect();
+    window.scrollBy({ top: box.top + box.height / 2 - this.visibleBottom() / 2, behavior });
+  }
+
+  /**
+   * A row tapped near the foot of the window is behind the sheet that tapping
+   * it has just raised. Moves it out from under, and only that far: a tap
+   * should not otherwise shift what the reader is looking at.
+   */
+  private keepSelectedClearOfSheet(): void {
+    if (!this.isSheet()) return;
+    const row = this.selectedRow();
+    if (!row) return;
+    const overlap = row.getBoundingClientRect().bottom - this.visibleBottom();
+    if (overlap > 0) window.scrollBy({ top: overlap + 12, behavior: "smooth" });
+  }
+
+  private selectedRow(): HTMLElement | null {
+    return this.root.querySelector<HTMLElement>(`.otpv-row[data-v="${CSS.escape(this.selected)}"]`);
+  }
+
   private select(v: string, opts: { scroll?: ScrollBehavior; push?: boolean } = {}): void {
     const n = this.byName.get(v);
     if (!n) return;
     this.selected = v;
+    this.sheetOpen = true;
     this.openMajors.add(n.major);
     // A version on a branch off a branch is only rendered once every branch
     // above it is open too, since each hangs off a row of its parent.
@@ -1125,9 +1183,11 @@ class VersionTree {
     if (opts.scroll) {
       // The site sets scroll-behavior: smooth, which "auto" would inherit;
       // arriving on a link should land straight on the version instead.
-      this.root
-        .querySelector(`.otpv-row[data-v="${CSS.escape(v)}"]`)
-        ?.scrollIntoView({ block: "center", behavior: opts.scroll });
+      // Centred on what is visible rather than on the window, so that the sheet
+      // does not take the half the version was aimed at.
+      this.scrollToSelected(opts.scroll);
+    } else {
+      this.keepSelectedClearOfSheet();
     }
   }
 
@@ -1152,7 +1212,19 @@ class VersionTree {
       if (row) this.select(row.dataset.v!, { push: true });
     });
 
+    // Escape is the way out of anything laid over the page. The search box has
+    // its own handler for closing its results; leave that key press to it.
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      if ((e.target as HTMLElement)?.id === "otpv-q") return;
+      if (this.sheetOpen && this.isSheet()) this.closeSheet();
+    });
+
     this.el("otpv-detail").addEventListener("click", (e) => {
+      if ((e.target as HTMLElement).closest(".otpv-sheet-close")) {
+        this.closeSheet();
+        return;
+      }
       const button = (e.target as HTMLElement).closest<HTMLElement>("[data-cve]");
       if (!button) return;
       const cve = button.dataset.cve!;
