@@ -170,8 +170,27 @@ never regenerates (`JEKYLL_ENV=production`, as `docs` does) so a stale cache can
 itself, which dangles in `_site`. The page's class names are partly built at runtime, so `/^otpv-/` and
 `/^sev-/` are on the purgecss safelist.
 
+#### Testing it
+
+`make test` runs both suites; each can be run on its own while working.
+
+* `npm test` — the version scheme, in [otp-version-scheme.test.ts]. It is kept apart from the page in
+  [otp-version-scheme.ts] so the rules can be exercised without a browser: `node --experimental-strip-types`
+  runs the TypeScript directly, so there is nothing to install and no build step between the source and the
+  test. The cases are the ones in the [Version Scheme] documentation, so the page can be checked against the
+  document it claims to implement.
+* `make -C _scripts test` — the generator, in [create-versions_tests.erl]. What it pins down is the reading
+  of the sources rather than the fetching: a CVE record that bounds versions it knows nothing about as
+  `unknown`, a CWE description that repeats its own id, the two shapes an affected range comes in, an
+  openvex purl with a doubled slash. Each of those has been wrong at least once. The tests live in `test/`
+  so that editing them does not change `VERSIONS_DEPS` and force the cache to be regenerated.
+
 [create-versions.erl]: _scripts/src/create-versions.erl
 [otp-versions.ts]: assets/otp-versions.ts
+[otp-version-scheme.ts]: assets/otp-version-scheme.ts
+[otp-version-scheme.test.ts]: assets/otp-version-scheme.test.ts
+[create-versions_tests.erl]: _scripts/test/create-versions_tests.erl
+[Version Scheme]: https://www.erlang.org/doc/system/versions.html#version_scheme
 [otp-versions.scss]: assets/css/otp-versions.scss
 [openvex]: https://github.com/erlang/otp/tree/openvex
 [security advisories]: https://github.com/erlang/otp/security/advisories

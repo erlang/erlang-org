@@ -37,6 +37,13 @@
 -include_lib("kernel/include/logger.hrl").
 -export([main/1]).
 
+%% The tests live in test/ and reach these functions directly, so that editing
+%% them leaves VERSIONS_DEPS alone rather than forcing the version cache to be
+%% rebuilt over a few hundred GitHub API calls.
+-ifdef(TEST).
+-compile([export_all, nowarn_export_all]).
+-endif.
+
 main([OTPVersionTable, OutFile]) ->
     [?LOG_WARNING("Running without github authentication, consider setting "
                   "GITHUB_TOKEN in order for the API to not throttle you.")
@@ -381,7 +388,7 @@ statement(Major, Purl, Id, Status) when is_map(Status) ->
                 ref => Ref,
                 apps => [App || A <- maps:get(<<"apps">>, Status, []),
                                 {ok, App, _} <- [otp_purl(A)]],
-                fixed => element(1, component(FixedPurl)) }};
+                fixed => element(2, component(FixedPurl)) }};
         _ ->
             skip
     end;

@@ -171,6 +171,8 @@ test:
 	DEPLOY=true $(MAKE) setup
 	yamllint -f standard .
 	npm run shellcheck
+	npm test
+	$(MAKE) -C _scripts test
 	_scripts/check.sh
 	_scripts/check_algolia_search.sh
 	_scripts/check_redirects.sh
