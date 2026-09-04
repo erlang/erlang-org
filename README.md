@@ -189,6 +189,14 @@ records which generator built it; the site is only rebuilt when
 `otp-versions.json` itself differs, so a quiet week does not rebuild erlang.org
 twenty-eight times to publish nothing.
 
+Both workflows force-push the cache branches, so they share one `concurrency`
+group named for those branches rather than taking one each. Without it a poll and
+a full cache update can overlap, and the one that finishes second overwrites the
+other -- normally harmless, since the same inputs give a byte-identical file, but
+not if an advisory is published in between. The full update supersedes a running
+poll, which has deployed nothing until its last two steps; a poll queues behind a
+running full update and then usually finds nothing left to do.
+
 Adding a trigger on the `openvex` branch in `erlang/otp` would cut the latency for
 that one source, but not for the others, and openvex is the fallback rather than
 the index. The poll is what actually closes the gap.
