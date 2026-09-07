@@ -14,13 +14,13 @@
  * can be tested without one.
  */
 
-import { compare, branchOf, baseOf, inAnyRange } from "./otp-version-scheme";
+import { compare, branchOf, baseOf } from "./otp-version-scheme";
 
 interface Version {
-  v: string;
-  d: string | null;
-  c: number[];
-  s: number[];
+  vsn: string;
+  date: string | null;
+  changed: number[];
+  same: number[];
 }
 
 /** What openvex knows: which application version carries and fixes an advisory. */
@@ -64,6 +64,8 @@ interface CveRecord {
   cvss: { score: number; severity: string; vector: string | null } | null;
   cwe: { id: string; description: string } | null;
   workaround: string | null;
+  vulnerable: string[];
+  fixedAt: string[];
 }
 
 /**
@@ -278,7 +280,7 @@ class VersionTree {
   ) {
     this.patchesBase = root.dataset.patches ?? "/patches/";
     this.build();
-    this.selected = this.nodes[this.nodes.length - 1].v;
+    this.selected = this.nodes[this.nodes.length - 1].vsn;
     this.bind();
 
     const requested = this.versionFromUrl();
@@ -322,20 +324,20 @@ class VersionTree {
     // Advisories whose CVE record describes releases directly. Every advisory
     // is considered, not only those openvex mentions, and they apply to every
     // release in the tree rather than to one major.
-    const byRelease = Object.entries(this.data.cves).filter(([, c]) => c.releases.length);
+    const byRelease = Object.entries(this.data.cves).filter(([, c]) => c.vulnerable.length);
 
     this.nodes = versions.map((r) => {
       const apps = new Map<string, string>();
-      for (const i of r.c.concat(r.s)) {
+      for (const i of r.changed.concat(r.same)) {
         const s = strs[i];
         const dash = s.lastIndexOf("-");
         apps.set(s.slice(0, dash), s.slice(dash + 1));
       }
-      const major = r.v.split(".")[0];
+      const major = r.vsn.split(".")[0];
       const node: VersionNode = {
         ...r,
         major,
-        branch: branchOf(r.v),
+        branch: branchOf(r.vsn),
         apps,
         open: [],
         undetermined: [],
@@ -346,7 +348,7 @@ class VersionTree {
       const decided = new Set<string>();
       for (const [cve, record] of byRelease) {
         decided.add(cve);
-        if (inAnyRange(r.v, record.releases)) node.open.push(cve);
+        if (record.vulnerable.includes(r.vsn)) node.open.push(cve);
       }
 
       // Otherwise a release still carries an advisory when its version of the
@@ -370,13 +372,13 @@ class VersionTree {
     });
 
     this.nodes.forEach((n, i) => {
-      this.byName.set(n.v, n);
-      this.position.set(n.v, i);
-      for (const ix of n.c.concat(n.s)) {
+      this.byName.set(n.vsn, n);
+      this.position.set(n.vsn, i);
+      for (const ix of n.changed.concat(n.same)) {
         const key = strs[ix];
         const list = this.appIndex.get(key);
-        if (list) list.push(n.v);
-        else this.appIndex.set(key, [n.v]);
+        if (list) list.push(n.vsn);
+        else this.appIndex.set(key, [n.vsn]);
       }
     });
     this.appKeys = [...this.appIndex.keys()].sort();
@@ -426,7 +428,7 @@ class VersionTree {
 
     this.majors.sort((a, b) => Number(b.n) - Number(a.n));
     for (const m of this.majors) {
-      const dates = m.all.map((n) => n.d).filter((d): d is string => d !== null).sort();
+      const dates = m.all.map((n) => n.date).filter((d): d is string => d !== null).sort();
       m.from = dates[0] ?? null;
       m.to = dates[dates.length - 1] ?? null;
       // Newest first, matching how the tree is read.
@@ -435,7 +437,7 @@ class VersionTree {
 
       // A release's maintenance branch is the one cut from its last main-track
       // version, when the next release took over. Anything else is a one-off.
-      const lastOnMainTrack = m.trunk[0]?.v;
+      const lastOnMainTrack = m.trunk[0]?.vsn;
       for (const b of m.branches) {
         const base = this.byName.get(b.base);
         b.oneOff = !base || base.branch !== "trunk" || b.base !== lastOnMainTrack;
@@ -483,9 +485,9 @@ class VersionTree {
   private matchesHighlight(n: VersionNode): boolean {
     const h = this.highlight;
     if (!h) return false;
-    if ("app" in h) return n.c.includes(h.app) || n.s.includes(h.app);
+    if ("app" in h) return n.changed.includes(h.app) || n.same.includes(h.app);
     if ("cve" in h) return n.open.includes(h.cve);
-    return (this.tickets[h.ticket] ?? []).includes(n.v);
+    return (this.tickets[h.ticket] ?? []).includes(n.vsn);
   }
 
   /**
@@ -510,9 +512,9 @@ class VersionTree {
     if (!fix) return "";
     return fix.onThisLine
       ? html`<span class="otpv-fix">first fixed in <b>Erlang/OTP ${fix.version}</b>, which is a
-          descendant of ${from.v}</span>`
+          descendant of ${from.vsn}</span>`
       : html`<span class="otpv-fix">fixed in <b>Erlang/OTP ${fix.version}</b>, which has no order against
-          ${from.v} &mdash; moving there is not guaranteed to keep what you have</span>`;
+          ${from.vsn} &mdash; moving there is not guaranteed to keep what you have</span>`;
   }
 
   /**
@@ -576,10 +578,10 @@ class VersionTree {
     // Where the CVE record names the releases that carry the fix, use those:
     // they are stated rather than inferred, and they cover the lines openvex
     // says nothing about.
-    const stated = (record?.releases ?? []).flatMap((r) => r.fixedAt ?? (r.until ? [r.until] : []));
+    const stated = (record?.fixedAt ?? []);
     const known = stated.filter((v) => this.byName.has(v));
     const carriesFix = known.length
-      ? known.map((v) => this.byName.get(v)!).sort((x, y) => this.position.get(x.v)! - this.position.get(y.v)!)
+      ? known.map((v) => this.byName.get(v)!).sort((x, y) => this.position.get(x.vsn)! - this.position.get(y.vsn)!)
       : this.nodes.filter((n) =>
           (this.advisoriesByCve.get(cve) ?? []).some((a) => {
             const have = n.apps.get(a.app);
@@ -589,11 +591,11 @@ class VersionTree {
           })
         );
     const descendant = carriesFix.find((n) => {
-      const c = compare(from.v, n.v);
+      const c = compare(from.vsn, n.vsn);
       return c !== null && c < 0;
     });
-    if (descendant) return { version: descendant.v, onThisLine: true };
-    return carriesFix.length ? { version: carriesFix[0].v, onThisLine: false } : null;
+    if (descendant) return { version: descendant.vsn, onThisLine: true };
+    return carriesFix.length ? { version: carriesFix[0].vsn, onThisLine: false } : null;
   }
 
   /**
@@ -648,12 +650,12 @@ class VersionTree {
 
   private rowHtml(n: VersionNode, isHead = false): Markup {
     const highlighted = this.matchesHighlight(n);
-    const changed = n.c.map((i) => this.data.strs[i]);
+    const changed = n.changed.map((i) => this.data.strs[i]);
     const shown =
       changed.slice(0, 4).join("  ") + (changed.length > 4 ? "  +" + (changed.length - 4) : "");
     const severity = this.worstSeverity(n.open);
     const classes = [
-      this.chosen ? this.relation(n.v) : "",
+      this.chosen ? this.relation(n.vsn) : "",
       highlighted ? "match" : "",
       isHead ? "head" : "",
       // 17.0 is the root of the whole tree, so the main track stops there.
@@ -665,13 +667,13 @@ class VersionTree {
       : "";
 
     return html`
-      <div class="otpv-row ${classes.join(" ")}" data-v="${n.v}">
+      <div class="otpv-row ${classes.join(" ")}" data-v="${n.vsn}">
         <span class="otpv-spine"><span class="otpv-dot"></span></span>
         <button class="otpv-row-btn" type="button">
-          <span class="otpv-v">${n.v}</span>
+          <span class="otpv-v">${n.vsn}</span>
           <span class="otpv-warn ${severity ?? ""}"${warning}>${severity ? SHIELD : ""}</span>
           <span class="otpv-apps">${changed.length ? shown : raw("&mdash;")}</span>
-          <span class="otpv-date">${n.d ?? ""}</span>
+          <span class="otpv-date">${n.date ?? ""}</span>
         </button>
       </div>`;
   }
@@ -681,7 +683,7 @@ class VersionTree {
    * it is newer than that version. Branches off branches nest the same way.
    */
   private branchHtml(b: Branch): Markup {
-    const holdsSelection = this.chosen && b.rows.some((r) => r.v === this.selected);
+    const holdsSelection = this.chosen && b.rows.some((r) => r.vsn === this.selected);
     const collapsible = b.rows.length > COLLAPSE_AT;
     const collapsed = collapsible && !this.openBranches.has(b.id) && !holdsSelection;
     const shown = collapsed ? b.rows.slice(0, 1) : b.rows;
@@ -730,7 +732,7 @@ class VersionTree {
   }
 
   private rowsWithBranches(n: VersionNode, isHead = false): Markup {
-    const spurs = (this.branchesByBase.get(n.v) ?? []).map((b) => this.branchHtml(b));
+    const spurs = (this.branchesByBase.get(n.vsn) ?? []).map((b) => this.branchHtml(b));
     return html`${spurs}${this.rowHtml(n, isHead)}`;
   }
 
@@ -753,8 +755,8 @@ class VersionTree {
       `Neither these nor ${v} is an ancestor of the other, so nothing follows about ` +
       "what either contains — a fix present in one may simply not exist in the other.";
 
-    const first = this.nodes[0].d;
-    const last = this.nodes[this.nodes.length - 1].d;
+    const first = this.nodes[0].date;
+    const last = this.nodes[this.nodes.length - 1].date;
     const span = first && last ? ` &middot; ${first.slice(0, 4)}&ndash;${last.slice(0, 4)}` : "";
     const branches = [...this.branchesByBase.values()].flat().length;
     this.el("otpv-count").innerHTML = String(
@@ -766,7 +768,7 @@ class VersionTree {
     this.el("otpv-tree").innerHTML = String(html`${this.majors.map((m, i) => {
         const open = this.openMajors.has(m.n);
         const seg: Record<Relation, number> = { sel: 0, less: 0, gt: 0, un: 0 };
-        m.all.forEach((n) => seg[this.relation(n.v)]++);
+        m.all.forEach((n) => seg[this.relation(n.vsn)]++);
         const bar = !this.chosen
           ? []
           : (["sel", "gt", "less", "un"] as Relation[])
@@ -821,9 +823,9 @@ class VersionTree {
     }
     const n = this.byName.get(this.selected)!;
     const previous = this.predecessor(n);
-    const changed = n.c.map((i) => this.data.strs[i]).sort();
-    const unchanged = n.s.map((i) => this.data.strs[i]).sort();
-    const tag = "OTP-" + n.v;
+    const changed = n.changed.map((i) => this.data.strs[i]).sort();
+    const unchanged = n.same.map((i) => this.data.strs[i]).sort();
+    const tag = "OTP-" + n.vsn;
     const severity = this.worstSeverity(n.open);
     const newest = this.nodes[this.nodes.length - 1];
 
@@ -852,11 +854,11 @@ class VersionTree {
     this.el("otpv-detail").innerHTML = String(html`
       <div class="card-header">
         <button class="otpv-sheet-close" type="button" aria-label="Close">&times;</button>
-        <h5 class="otpv-selected">Erlang/OTP ${n.v}</h5>
+        <h5 class="otpv-selected">Erlang/OTP ${n.vsn}</h5>
         <div class="otpv-meta">
-          <span class="otpv-chip plain">${n.d ? "tagged " + n.d : "date unrecorded"}</span>
+          <span class="otpv-chip plain">${n.date ? "tagged " + n.date : "date unrecorded"}</span>
           <span class="otpv-chip plain">
-            ${n.c.length} of ${n.c.length + n.s.length} applications changed
+            ${n.changed.length} of ${n.changed.length + n.same.length} applications changed
           </span>
           ${severity
             ? html`<span class="otpv-chip with-icon sev-${severity}"
@@ -876,7 +878,7 @@ class VersionTree {
       <div class="otpv-sect">
         <h5 class="border-bottom">Is it in there?</h5>
         <input id="otpv-cmp" class="form-control" type="search" spellcheck="false" autocomplete="off"
-          value="${this.compareWith}" placeholder="Compare with e.g. ${newest.v}">
+          value="${this.compareWith}" placeholder="Compare with e.g. ${newest.vsn}">
         ${this.verdictHtml()}
       </div>
 
@@ -1019,7 +1021,7 @@ class VersionTree {
     // are affected and openvex does not list them at all. Kept apart from the
     // advisories above, because not knowing is not the same as being affected.
     const unplaced = Object.entries(this.data.cves).filter(
-      ([cve, record]) => !record.releases.length && !this.advisoriesByCve.has(cve)
+      ([cve, record]) => !record.vulnerable.length && !this.advisoriesByCve.has(cve)
     );
     const unplacedHtml = unplaced.length
       ? html`
@@ -1119,14 +1121,14 @@ class VersionTree {
     const line = n.branch === "trunk" ? major.trunk : major.branches.find((b) => b.id === n.branch)!.rows;
     const head = line[0];
     const newest = this.nodes[this.nodes.length - 1];
-    if (head.v !== n.v) {
-      return html`<b>${head.v}</b> is the newest version on this line and is a descendant of ${n.v}
+    if (head.vsn !== n.vsn) {
+      return html`<b>${head.vsn}</b> is the newest version on this line and is a descendant of ${n.vsn}
         &mdash; the safe upgrade without leaving the branch.`;
     }
-    if (n.v !== newest.v) {
-      return html`This is the newest version on its line. Moving to <b>${newest.v}</b> crosses to the main
-        track, where the order against ${n.v} is
-        <b>${compare(n.v, newest.v) === null ? "undefined" : "defined"}</b>.`;
+    if (n.vsn !== newest.vsn) {
+      return html`This is the newest version on its line. Moving to <b>${newest.vsn}</b> crosses to the main
+        track, where the order against ${n.vsn} is
+        <b>${compare(n.vsn, newest.vsn) === null ? "undefined" : "defined"}</b>.`;
     }
     return html`The newest Erlang/OTP version. Everything else in the tree is an ancestor of it or has no
       order against it.`;
@@ -1306,7 +1308,7 @@ class VersionTree {
       }
       const hits: typeof this.hits = [];
       for (const n of this.nodes) {
-        if (n.v.startsWith(q)) hits.push({ label: "Erlang/OTP " + n.v, meta: n.d ?? "", version: n.v });
+        if (n.vsn.startsWith(q)) hits.push({ label: "Erlang/OTP " + n.vsn, meta: n.date ?? "", version: n.vsn });
       }
       hits.sort((a, b) => this.position.get(b.version!)! - this.position.get(a.version!)!);
       hits.length = Math.min(hits.length, 7);
@@ -1427,7 +1429,7 @@ class VersionTree {
         this.setHighlight({ cve: hit.cve });
         this.expandedCves.add(hit.cve);
         const affected = this.affectedBy(hit.cve);
-        if (affected.length) this.select(affected[affected.length - 1].v, { scroll: "smooth", push: true });
+        if (affected.length) this.select(affected[affected.length - 1].vsn, { scroll: "smooth", push: true });
         else this.renderTree();
       } else if (hit.ticket) {
         search.value = hit.ticket;
@@ -1445,7 +1447,7 @@ class VersionTree {
           this.data.notAffected.filter((a) => a.id === hit.bundled).map((a) => a.major)
         );
         const newest = this.nodes.filter((n) => majors.has(n.major)).pop();
-        if (newest) this.select(newest.v, { scroll: "smooth", push: true });
+        if (newest) this.select(newest.vsn, { scroll: "smooth", push: true });
         else this.renderTree();
       }
     };
@@ -1461,7 +1463,7 @@ class VersionTree {
 
     // Going back should return to the version you were looking at.
     window.addEventListener("popstate", () => {
-      const v = this.versionFromUrl() ?? this.nodes[this.nodes.length - 1].v;
+      const v = this.versionFromUrl() ?? this.nodes[this.nodes.length - 1].vsn;
       this.select(v, { scroll: "smooth", raise: false });
     });
   }

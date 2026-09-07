@@ -53,21 +53,23 @@ main([OTPVersionTable, OutFile]) ->
 
     Versions = parse_otp_versions_table(OTPVersionTable),
     Dates = tag_dates(),
-    Ghsa = ghsa_by_cve(),
-    {VexMajors, Advisories, NotAffected, BundledAffected} = advisories(),
+    Ghsa = ghsa_by_cve(Versions),
+    {VexMajors, Advisories, NotAffected, BundledAffected} = openvex(),
     Cves = cve_records(Ghsa),
 
     {Rows, StringIx} = lists:mapfoldl(
                          fun(V, Acc) -> row(V, Dates, Acc) end, #{}, Versions),
 
-    Json = json:encode(
-             #{ strs => [S || {S, _} <- lists:keysort(2, maps:to_list(StringIx))],
+    Json = json:format(
+             #{
+                strs => [S || {S, _} <- lists:keysort(2, maps:to_list(StringIx))],
                 versions => Rows,
                 advisories => Advisories,
                 notAffected => NotAffected,
                 bundledAffected => BundledAffected,
                 cves => Cves,
-                vexMajors => VexMajors }),
+                vexMajors => VexMajors
+                }),
     ok = filelib:ensure_dir(OutFile),
     ok = file:write_file(OutFile, Json),
     ?LOG_INFO("Wrote ~ts: ~p versions, ~p advisories, ~p not-affected "
@@ -106,10 +108,10 @@ components(Vsn) ->
 row(#{ vsn := Vsn, changed := Changed, same := Same }, Dates, Acc0) ->
     {ChangedIx, Acc1} = lists:mapfoldl(fun intern/2, Acc0, Changed),
     {SameIx, Acc2} = lists:mapfoldl(fun intern/2, Acc1, Same),
-    Row = #{ v => Vsn,
-             d => maps:get(Vsn, Dates, null),
-             c => ChangedIx,
-             s => SameIx },
+    Row = #{ vsn => Vsn,
+             date => maps:get(Vsn, Dates, null),
+             changed => ChangedIx,
+             same => SameIx },
     {Row, Acc2}.
 
 %% Application versions repeat across every release that carries them
@@ -322,7 +324,7 @@ release_dates() ->
 %% Security advisories
 %%====================================================================
 
-advisories() ->
+openvex() ->
     case gh:get("/repos/erlang/otp/contents/openvex.table?ref=openvex",
                 [{"Accept", "application/vnd.github.raw"}]) of
         {ok, Raw} ->
@@ -431,19 +433,66 @@ component(Purl) ->
         _ -> {string:trim(Without, leading, "/"), null}
     end.
 
-ghsa_by_cve() ->
+ghsa_by_cve(Versions) ->
     case gh:get("/repos/erlang/otp/security-advisories") of
         {ok, Advisories} ->
             maps:from_list(
               [{Cve, #{ ghsa => maps:get(<<"ghsa_id">>, A, null),
                         severity => maps:get(<<"severity">>, A, null),
                         summary => maps:get(<<"summary">>, A, null),
-                        url => maps:get(<<"html_url">>, A, null) }}
+                        url => maps:get(<<"html_url">>, A, null),
+                        vulnerabilities => maps:get(<<"vulnerabilities">>, A, []),
+                        fixedAt => fixed_at_from_vulnerabilities(maps:get(<<"vulnerabilities">>, A, [])),
+                        vulnerable => vulnerable_versions(Cve, maps:get(<<"vulnerabilities">>, A, []), Versions) }}
                || A <- Advisories,
                   Cve <- [maps:get(<<"cve_id">>, A, null)],
-                  Cve =/= null]);
+                  Cve =/= null,
+                  maps:get(~"state", A, null) =:= ~"published"]);
         {error, Reason} ->
             ?LOG_WARNING("Could not read security advisories (~p), advisories "
                          "will show without GHSA ids or severities.", [Reason]),
             #{}
     end.
+
+%% Calculates set of vulnerable versions from the vulnerabilities array in the security advisory.
+vulnerable_versions(Cve, Vulnerabilities, Versions) ->
+    lists:flatmap(
+        fun(#{ ~"package" := #{ ~"ecosystem" := ~"",
+                                   ~"name" := ~"OTP" },
+                  ~"vulnerable_version_range" := Range,
+                  ~"patched_versions" := Patched }) ->
+                      [Vsn || #{ vsn := Vsn } <:- Versions,
+                        in_range(Cve, Vsn, Range, Patched)];
+                  (V) ->
+                    []
+              end, Vulnerabilities).
+
+in_range(Cve, Vsn, <<">=",Range/binary>>, Patched) ->
+    PatchedVersions = [string:trim(P, both) || P <- string:split(Patched, ",", all)],
+    Res =
+    case versions:compare(Vsn, string:trim(Range, both)) of
+        _ when Patched =:= ~"" -> true;
+        descendant ->
+            lists:all(fun(P) ->
+                versions:compare(Vsn, P) =:= undefined end, PatchedVersions)
+                orelse
+            not lists:any(fun(P) ->
+                lists:member(versions:compare(Vsn, P),[descendant, same]) end, PatchedVersions);
+        _ ->
+            false
+    end,
+    io:format("~p~n", [Res]),
+    Res.
+
+fixed_at_from_vulnerabilities(Vulnerabilities) ->
+    lists:foldl(
+        fun(#{ ~"package" := #{ ~"ecosystem" := ~"",
+                                   ~"name" := ~"OTP" },
+                  ~"patched_versions" := Patched }, Acc) ->
+            PatchedVersions = [string:trim(P, both) || P <- string:split(Patched, ",", all)],
+            case PatchedVersions of
+                [] -> Acc;
+                _ -> Acc ++ PatchedVersions
+            end;
+           (V, Acc) -> Acc
+        end, [], Vulnerabilities).
