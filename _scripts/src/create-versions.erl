@@ -468,7 +468,7 @@ vulnerable_versions(Cve, Vulnerabilities, Versions) ->
               end, Vulnerabilities).
 
 in_range(Cve, Vsn, <<">=",Range/binary>>, Patched) ->
-    PatchedVersions = [string:trim(P, both) || P <- string:split(Patched, ",", all)],
+    PatchedVersions = [string:trim(P, both) || P <- string:lexemes(Patched, ", ")],
     Res =
     case versions:compare(Vsn, string:trim(Range, both)) of
         _ when Patched =:= ~"" -> true;
