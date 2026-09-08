@@ -84,7 +84,7 @@ interface BundledAffected {
 }
 
 interface VersionData {
-  strs: string[];
+  appVersions: string[];
   versions: Version[];
   advisories: Advisory[];
   notAffected: NotAffected[];
@@ -308,7 +308,7 @@ class VersionTree {
   // -- derivation ----------------------------------------------------------
 
   private build(): void {
-    const { strs, versions, advisories } = this.data;
+    const { appVersions, versions, advisories } = this.data;
 
     const byMajor = new Map<string, Advisory[]>();
     const byCve = new Map<string, Advisory[]>();
@@ -329,7 +329,7 @@ class VersionTree {
     this.nodes = versions.map((r) => {
       const apps = new Map<string, string>();
       for (const i of r.changed.concat(r.same)) {
-        const s = strs[i];
+        const s = appVersions[i];
         const dash = s.lastIndexOf("-");
         apps.set(s.slice(0, dash), s.slice(dash + 1));
       }
@@ -375,13 +375,13 @@ class VersionTree {
       this.byName.set(n.vsn, n);
       this.position.set(n.vsn, i);
       for (const ix of n.changed.concat(n.same)) {
-        const key = strs[ix];
+        const key = appVersions[ix];
         const list = this.appIndex.get(key);
         if (list) list.push(n.vsn);
         else this.appIndex.set(key, [n.vsn]);
       }
     });
-    this.appKeys = [...this.appIndex.keys()].sort();
+    this.appKeys = appVersions; // sorted by the source data
 
     for (const b of this.data.bundledAffected ?? []) {
       const list = this.bundledByCve.get(b.cve);
@@ -498,7 +498,7 @@ class VersionTree {
     const h = this.highlight;
     if (!h) return null;
     const matched = this.nodes.filter((n) => this.matchesHighlight(n)).length;
-    if ("app" in h) return html`<b>${this.data.strs[h.app]}</b> is in ${matched} releases`;
+    if ("app" in h) return html`<b>${this.data.appVersions[h.app]}</b> is in ${matched} releases`;
     if ("cve" in h) return html`<b>${h.cve}</b> is still open in ${matched} releases`;
     const releases = this.tickets[h.ticket] ?? [];
     const listed = releases.slice(0, 4).join(", ");
@@ -650,7 +650,7 @@ class VersionTree {
 
   private rowHtml(n: VersionNode, isHead = false): Markup {
     const highlighted = this.matchesHighlight(n);
-    const changed = n.changed.map((i) => this.data.strs[i]);
+    const changed = n.changed.map((i) => this.data.appVersions[i]);
     const shown =
       changed.slice(0, 4).join("  ") + (changed.length > 4 ? "  +" + (changed.length - 4) : "");
     const severity = this.worstSeverity(n.open);
@@ -823,8 +823,8 @@ class VersionTree {
     }
     const n = this.byName.get(this.selected)!;
     const previous = this.predecessor(n);
-    const changed = n.changed.map((i) => this.data.strs[i]).sort();
-    const unchanged = n.same.map((i) => this.data.strs[i]).sort();
+    const changed = n.changed.map((i) => this.data.appVersions[i]).sort();
+    const unchanged = n.same.map((i) => this.data.appVersions[i]).sort();
     const tag = "OTP-" + n.vsn;
     const severity = this.worstSeverity(n.open);
     const newest = this.nodes[this.nodes.length - 1];
@@ -1306,20 +1306,22 @@ class VersionTree {
         }
         return;
       }
-      const hits: typeof this.hits = [];
+      const otp_hits: typeof this.hits = [];
+      const app_hits: typeof this.hits = [];
+      const cve_hits: typeof this.hits = [];
+      const ticket_hits: typeof this.hits = [];
+      const pr_hits: typeof this.hits = [];
       for (const n of this.nodes) {
-        if (n.vsn.startsWith(q)) hits.push({ label: "Erlang/OTP " + n.vsn, meta: n.date ?? "", version: n.vsn });
+        if (n.vsn.startsWith(q)) otp_hits.push({ label: "Erlang/OTP " + n.vsn, meta: n.date ?? "", version: n.vsn });
       }
-      hits.sort((a, b) => this.position.get(b.version!)! - this.position.get(a.version!)!);
-      hits.length = Math.min(hits.length, 7);
+      otp_hits.sort((a, b) => this.position.get(b.version!)! - this.position.get(a.version!)!);
       for (const key of this.appKeys) {
-        if (hits.length >= 14) break;
+        //console.log(key, q, key.toLowerCase().startsWith(q));
         if (key.toLowerCase().startsWith(q)) {
-          hits.push({ label: key, meta: `${this.appIndex.get(key)!.length} Erlang/OTP versions`, app: key });
+          app_hits.push({ label: key, meta: `${this.appIndex.get(key)!.length} Erlang/OTP versions`, app: key });
         }
       }
       for (const [id, a] of Object.entries(this.data.cves)) {
-        if (hits.length >= 20) break;
         const cve = id.toLowerCase();
         const ghsa = (a.ghsa ?? "").toLowerCase();
         const summary = a.summary ?? "";
@@ -1333,39 +1335,51 @@ class VersionTree {
           ghsa.startsWith(typed) ||
           (typed.length >= 4 && (cve.includes(typed) || ghsa.includes(typed))) ||
           (typed.length >= 3 && summary.toLowerCase().includes(typed));
-        if (found && !hits.some((h) => h.cve === id)) {
+        if (found && !cve_hits.some((h) => h.cve === id)) {
           const short = summary.length > 58 ? summary.slice(0, 58) + "\u2026" : summary;
-          hits.push({ label: id, meta: `${a.severity ?? ""} · ${short}`, cve: id });
+          cve_hits.push({ label: id, meta: `${a.severity ?? ""} · ${short}`, cve: id });
         }
       }
       // "#8699" is how a pull request or issue is written on github, so accept
       // that for the PR- and GH- ids as well as their spelled-out form.
       const issue = /^#(\d+)$/.exec(typed);
       for (const id of Object.keys(this.tickets)) {
-        if (hits.length >= 24) break;
         const lower = id.toLowerCase();
         const matches = issue
           ? /^(pr|gh)-/.test(lower) && lower.slice(3).startsWith(issue[1])
           : lower.includes(typed);
         if (!matches) continue;
         const introduced = this.tickets[id];
-        hits.push({
+        ticket_hits.push({
           label: id,
           meta: `first in ${introduced.slice(0, 3).join(", ")}${introduced.length > 3 ? "\u2026" : ""}`,
           ticket: id,
         });
       }
-      for (const a of this.data.notAffected) {
-        if (hits.length >= 20) break;
-        const haystack = `${a.id} ${a.component}`.toLowerCase();
-        if (haystack.includes(q) && !hits.some((h) => h.cve === a.id || h.bundled === a.id)) {
-          hits.push({ label: a.id, meta: `${a.component} · not affected`, bundled: a.id });
-        }
+
+
+      const truncated: typeof this.hits = [];
+      if (Math.min(otp_hits.length, 1) +
+        Math.min(app_hits.length, 1) +
+        Math.min(cve_hits.length, 1) +
+        Math.min(ticket_hits.length, 1) +
+        Math.min(pr_hits.length, 1) > 1) {
+        truncated.push({
+          label: "…",
+          meta: "Search results truncated to 10 hits per category. Please refine your search for more specific results.",
+        });
+        console.log("truncating search results", otp_hits.length, app_hits.length, cve_hits.length, ticket_hits.length, pr_hits.length);
+        otp_hits.length = Math.min(otp_hits.length, 10); // set a limit of max 10 hits
+        app_hits.length = Math.min(app_hits.length, 10); // set a limit of max 10 hits
+        cve_hits.length = Math.min(cve_hits.length, 10); // set a limit of max 10 hits
+        ticket_hits.length = Math.min(ticket_hits.length, 10); // set a limit of max 10 hits
+        pr_hits.length = Math.min(pr_hits.length, 10); // set a limit of max 10 hits
       }
-      this.hits = hits;
+
+      this.hits = [...otp_hits, ...app_hits, ...cve_hits, ...ticket_hits, ...pr_hits, ...truncated];
       this.activeHit = -1;
       results.innerHTML = String(
-        html`${hits.map(
+        html`${this.hits.map(
           (h, i) => html`
           <div class="otpv-hit" role="option" id="otpv-hit-${i}" aria-selected="false" data-i="${i}">
             <span class="otpv-hit-k">${h.label}</span>
@@ -1373,7 +1387,7 @@ class VersionTree {
           </div>`
         )}`
       );
-      search.setAttribute("aria-expanded", hits.length ? "true" : "false");
+      search.setAttribute("aria-expanded", this.hits.length ? "true" : "false");
       search.removeAttribute("aria-activedescendant");
     };
 
@@ -1420,7 +1434,7 @@ class VersionTree {
         search.value = "";
         this.select(hit.version, { scroll: "smooth", push: true });
       } else if (hit.app) {
-        this.setHighlight({ app: this.data.strs.indexOf(hit.app) });
+        this.setHighlight({ app: this.data.appVersions.indexOf(hit.app) });
         search.value = hit.app;
         const carrying = this.appIndex.get(hit.app)!;
         this.select([...carrying].sort((a, b) => this.position.get(a)! - this.position.get(b)!)[0], { scroll: "smooth", push: true });

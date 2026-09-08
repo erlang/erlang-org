@@ -57,12 +57,27 @@ main([OTPVersionTable, OutFile]) ->
     {VexMajors, Advisories, NotAffected, BundledAffected} = openvex(),
     Cves = cve_records(Ghsa),
 
-    {Rows, StringIx} = lists:mapfoldl(
-                         fun(V, Acc) -> row(V, Dates, Acc) end, #{}, Versions),
+    Apps = lists:flatmap(fun(#{ changed := Changed, same := Same }) ->
+                          Changed ++ Same end, Versions),
+
+    SortedApps =
+      lists:reverse(
+        lists:usort(fun(A, B) ->
+        [AppA, VsnA] = string:split(A, "-"),
+        [AppB, VsnB] = string:split(B, "-"),
+        case AppA =:= AppB of
+            true -> vsn_le(VsnA, VsnB);
+            false -> AppA =< AppB
+        end
+    end, Apps)),
+
+    AppIx = maps:from_list(lists:zip(SortedApps, lists:seq(0, length(SortedApps) - 1))),
+
+    Rows = lists:map(fun(V) -> row(V, Dates, AppIx) end, Versions),
 
     Json = json:format(
              #{
-                strs => [S || {S, _} <- lists:keysort(2, maps:to_list(StringIx))],
+                appVersions => SortedApps,
                 versions => Rows,
                 advisories => Advisories,
                 notAffected => NotAffected,
@@ -76,7 +91,7 @@ main([OTPVersionTable, OutFile]) ->
               "assessments, ~p application versions, ~p advisories "
               "(~p with release data)",
               [OutFile, length(Rows), length(Advisories), length(NotAffected),
-               maps:size(StringIx), maps:size(Cves),
+               maps:size(AppIx), maps:size(Cves),
                length([C || C <- maps:values(Cves), maps:get(releases, C, []) =/= []])]),
     ok.
 
@@ -105,24 +120,13 @@ vsn_le(A, B) -> components(A) =< components(B).
 components(Vsn) ->
     [binary_to_integer(P) || P <- string:split(Vsn, ".", all)].
 
-row(#{ vsn := Vsn, changed := Changed, same := Same }, Dates, Acc0) ->
-    {ChangedIx, Acc1} = lists:mapfoldl(fun intern/2, Acc0, Changed),
-    {SameIx, Acc2} = lists:mapfoldl(fun intern/2, Acc1, Same),
-    Row = #{ vsn => Vsn,
-             date => maps:get(Vsn, Dates, null),
-             changed => ChangedIx,
-             same => SameIx },
-    {Row, Acc2}.
-
-%% Application versions repeat across every release that carries them
-%% unchanged, so they are interned into one table and referenced by index.
-intern(Str, Ix) ->
-    case Ix of
-        #{ Str := N } -> {N, Ix};
-        _ ->
-            N = maps:size(Ix),
-            {N, Ix#{ Str => N }}
-    end.
+row(#{ vsn := Vsn, changed := Changed, same := Same }, Dates, Ix) ->
+    ChangedIx = lists:map(fun(App) -> maps:get(App, Ix) end, Changed),
+    SameIx = lists:map(fun(App) -> maps:get(App, Ix) end, Same),
+    #{ vsn => Vsn,
+       date => maps:get(Vsn, Dates, null),
+       changed => ChangedIx,
+       same => SameIx }.
 
 %%====================================================================
 %% CVE records, from the CVE Services API
@@ -464,11 +468,11 @@ vulnerable_versions(Cve, Vulnerabilities, Versions) ->
                       ~"patched_versions" := Patched }) ->
                           [Vsn || #{ vsn := Vsn } <:- Versions,
                             in_range(Cve, Vsn, Range, Patched)];
-                  (V) ->
+                  (_V) ->
                       []
             end, Vulnerabilities)).
 
-in_range(Cve, Vsn, <<">=",Range/binary>>, Patched) ->
+in_range(_Cve, Vsn, <<">=",Range/binary>>, Patched) ->
     PatchedVersions = [string:trim(P, both) ||
         P <- string:lexemes(Patched, ", ")],
     case versions:compare(Vsn, string:trim(Range, both)) of
@@ -495,5 +499,5 @@ fixed_at_from_vulnerabilities(Vulnerabilities) ->
                 [] -> Acc;
                 _ -> Acc ++ PatchedVersions
             end;
-           (V, Acc) -> Acc
+           (_V, Acc) -> Acc
         end, [], Vulnerabilities).
