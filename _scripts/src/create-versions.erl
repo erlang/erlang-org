@@ -456,40 +456,41 @@ ghsa_by_cve(Versions) ->
 
 %% Calculates set of vulnerable versions from the vulnerabilities array in the security advisory.
 vulnerable_versions(Cve, Vulnerabilities, Versions) ->
-    lists:flatmap(
-        fun(#{ ~"package" := #{ ~"ecosystem" := ~"",
-                                   ~"name" := ~"OTP" },
-                  ~"vulnerable_version_range" := Range,
-                  ~"patched_versions" := Patched }) ->
-                      [Vsn || #{ vsn := Vsn } <:- Versions,
-                        in_range(Cve, Vsn, Range, Patched)];
+    lists:usort(
+        lists:flatmap(
+            fun(#{ ~"package" := #{ ~"ecosystem" := ~"",
+                                      ~"name" := ~"OTP" },
+                      ~"vulnerable_version_range" := Range,
+                      ~"patched_versions" := Patched }) ->
+                          [Vsn || #{ vsn := Vsn } <:- Versions,
+                            in_range(Cve, Vsn, Range, Patched)];
                   (V) ->
-                    []
-              end, Vulnerabilities).
+                      []
+            end, Vulnerabilities)).
 
 in_range(Cve, Vsn, <<">=",Range/binary>>, Patched) ->
-    PatchedVersions = [string:trim(P, both) || P <- string:lexemes(Patched, ", ")],
-    Res =
+    PatchedVersions = [string:trim(P, both) ||
+        P <- string:lexemes(Patched, ", ")],
     case versions:compare(Vsn, string:trim(Range, both)) of
-        _ when Patched =:= ~"" -> true;
         descendant ->
+            Patched =:= ~"" orelse
             lists:all(fun(P) ->
                 versions:compare(Vsn, P) =:= undefined end, PatchedVersions)
                 orelse
             not lists:any(fun(P) ->
                 lists:member(versions:compare(Vsn, P),[descendant, same]) end, PatchedVersions);
+        same ->
+            true;
         _ ->
             false
-    end,
-    io:format("~p~n", [Res]),
-    Res.
+    end.
 
 fixed_at_from_vulnerabilities(Vulnerabilities) ->
     lists:foldl(
         fun(#{ ~"package" := #{ ~"ecosystem" := ~"",
                                    ~"name" := ~"OTP" },
                   ~"patched_versions" := Patched }, Acc) ->
-            PatchedVersions = [string:trim(P, both) || P <- string:split(Patched, ",", all)],
+            PatchedVersions = [string:trim(P, both) || P <- string:lexemes(Patched, ", ")],
             case PatchedVersions of
                 [] -> Acc;
                 _ -> Acc ++ PatchedVersions
