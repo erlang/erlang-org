@@ -791,7 +791,7 @@ class VersionTree {
           </span>
           <span class="otpv-major-name">
             Erlang/OTP ${m.n}
-            <small>${m.all.length} release${m.all.length === 1 ? "" : "s"}${years}${branches}</small>
+            <small>${m.all.length} release${m.all.length === 1 ? "" : "s"}${years}${branches} \u00b7 <a href="https://github.com/erlang/otp/tree/maint-${m.n}">maint-${m.n}</a></small>
             ${this.isSupported(m.n) ? "" : html`<span class="otpv-chip eol">no longer supported</span>`}
           </span>
           <span class="otpv-relbar">
