@@ -1,0 +1,1953 @@
+---
+layout: patch
+name: 28.0
+release: 28
+html_url: https://github.com/erlang/otp/releases/tag/OTP-28.0
+published_at: 2025-05-21T09:35:52Z
+tag_name: OTP-28.0
+src: https://github.com/erlang/otp/releases/download/OTP-28.0/otp_src_28.0.tar.gz
+erlang_download_readme_md: https://erlang.org/download/otp_src_28.0.readme.md
+erlang_download_readme: https://erlang.org/download/otp_src_28.0.readme
+readme: https://github.com/erlang/otp/releases/download/OTP-28.0/OTP-28.0.README
+html: https://github.com/erlang/otp/releases/download/OTP-28.0/otp_doc_html_28.0.tar.gz
+man: https://github.com/erlang/otp/releases/download/OTP-28.0/otp_doc_man_28.0.tar.gz
+win32_exe: https://github.com/erlang/otp/releases/download/OTP-28.0/otp_win32_28.0.exe
+win32_zip: https://github.com/erlang/otp/releases/download/OTP-28.0/otp_win32_28.0.zip
+win64_exe: https://github.com/erlang/otp/releases/download/OTP-28.0/otp_win64_28.0.exe
+win64_zip: https://github.com/erlang/otp/releases/download/OTP-28.0/otp_win64_28.0.zip
+Applications:
+  HIGHLIGHTS:
+    pre: ""
+    post: ""
+    mode: "markdown"
+    tickets:
+      OTP-19180:
+        release_note: "For various error types, the compiler now tries to suggest potential fixes by\nadding \"did you mean ...?\" at the end of error messages.\n\nWhen a function is used with wrong arity, the compiler will try to suggest a\ndefined function with the same name but a different arity. For example, given\nthe following module:\n\n```\n-module(typos).\n-export([t/0]).\nbar(A) -> A.\nbar(A,A,A) -> A.\nbar(A,A,A,A) -> A.\nt() -> bar(0, 0).\n```\n\nThe compiler will emit the following message:\n\n```\ntypo.erl:6:12: function bar/2 undefined, did you mean bar/1,3,4?\n%   6|     t() -> bar(0, 0).\n%    |            ^\n```\n\nFor compiler errors that can easily be caused by typos, the compiler will try\nto suggest what the correct variable or function name, could be. For example,\ngiven the following module:\n\n```\n-module(typos).\n-export([bar/2]).\n\nbar(A0, B0) ->\n    A + B.\n```\n\nthe compiler will emit the following error messages:\n\n```\ntypos.erl:5:5: variable 'A' is unbound, did you mean 'A0'?\n%    5|     A + B.\n%     |     ^\n\ntypos.erl:5:9: variable 'B' is unbound, did you mean 'B0'?\n%    5|     A + B.\n%     |         ^\n```\n\nError types that now suggest correct arities: `bad_inline`, `undefined_nif`,\n`bad_nowarn_unused_function`, `bad_nowarn_bif_clash`, `undefined_function`.\n\nError types that now suggest correct names: `bad_inline`, `undefined_nif`,\n`bad_nowarn_unused_function`, `undefined_on_load`, `undefined_function`,\n`undefined_record`, `undefined_field`, `unbound_var`.\n\nUsing a function with wrong arity has higher precedence than having a typo in\nthe function name. If the compiler can find a defined function with the same\nname but a different arity, it will not suggest a defined function with a\nclose-enough name, regardless of arity.\n\n"
+        Applications: "compiler, stdlib"
+        RelatedIds: "[PR-8699], [PR-9094]\n\n[PR-8699]: https://github.com/erlang/otp/pull/8699\n[PR-9094]: https://github.com/erlang/otp/pull/9094"
+      OTP-19184:
+        release_note: "Comprehensions have been extended with zip generators according to [EEP 73].\n\nExample:\n\n```\n1> [A+B || A <- [1,2,3] && B <- [4,5,6]].\n[5,7,9]\n```\n\n[EEP 73]: https://www.erlang.org/eeps/eep-0073"
+        Applications: "compiler, debugger, stdlib, syntax_tools"
+        RelatedIds: "[PR-8926]\n\n[PR-8926]: https://github.com/erlang/otp/pull/8926"
+      OTP-19198:
+        release_note: "Functionality making it possible for processes to enable reception of\n[priority messages] has been introduced in accordance with [EEP 76].\n\n[EEP 76]: https://www.erlang.org/eeps/eep-0076\n[priority messages]: https://erlang.org/doc/system/ref_man_processes.html#priority-messages"
+        Applications: "erts"
+        RelatedIds: "[PR-9269], [PR-9519], [PR-9590]\n\n[PR-9269]: https://github.com/erlang/otp/pull/9269\n[PR-9519]: https://github.com/erlang/otp/pull/9519\n[PR-9590]: https://github.com/erlang/otp/pull/9590"
+      OTP-19314:
+        release_note: "The [`erl -noshell`] mode has been updated to have two sub modes called `raw`\nand `cooked`, where `cooked` is the old default behaviour and `raw` can be\nused to bypass the line-editing support of the native terminal. Using `raw`\nmode it is possible to read keystrokes as they happen without the user having\nto press Enter. Also, the `raw` mode does not echo the typed characters to\nstdout. An example of how to create a tic-tac-toe game using this mechanism is\nincluded in [the documentation].\n\n[`erl -noshell`]: https://erlang.org/doc/apps/erts/erl_cmd.html#noshell\n[the documentation]: https://erlang.org/doc/apps/stdlib/terminal_interface.html"
+        Applications: "erts, stdlib"
+        RelatedIds: "[GH-8037], [PR-8962]\n\n[GH-8037]: https://github.com/erlang/otp/issues/8037\n[PR-8962]: https://github.com/erlang/otp/pull/8962"
+      OTP-19317:
+        release_note: "New strict generators have been added for comprehensions.\n\nThe currently existing generators are \"relaxed\": they ignore terms in the\nright-hand side expression that do not match the left-hand side pattern.\n\nThe new strict generators fail with exception `badmatch` if a pattern doesn't\nmatch.\n\nExamples:\n\nUsing the current relaxed generator operator `<-`, any element not matching\nthe pattern `{_,_}` will be silently discarded:\n\n```\n1> [T || {_,_}=T <- [{ok,1},ok,{error,2}]].\n[{ok,1},{error,2}]\n```\n\nIf the intention is that all lists processed by a list comprehension must only\ncontain tuples of size two, using the new strict version of the operator\nensures that term not matching will cause a crash:\n\n```\n2> [T || {_,_}=T <:- [{ok,1},ok,{error,2}]].\n** exception error: no match of right hand side value ok\n```\n\nUsing the strict generator operator to mark the intention that all list\nelements must match the pattern could help finding mistakes quicker if\nsomething unpexected is added to the list processed by the generator.\n\nThe strict version for bitstring generators is `<:=`.\n\n"
+        Applications: "compiler, debugger, stdlib, syntax_tools"
+        RelatedIds: "[PR-8625]\n\n[PR-8625]: https://github.com/erlang/otp/pull/8625"
+      OTP-19337:
+        release_note: "The `join(Binaries, Separator)` function that joins a list of binaries has\nbeen added to the [`binary`] module.\n\n[`binary`]: https://erlang.org/doc/man/binary"
+        Applications: "stdlib"
+        RelatedIds: "[GH-8099], [PR-8100]\n\n[GH-8099]: https://github.com/erlang/otp/issues/8099\n[PR-8100]: https://github.com/erlang/otp/pull/8100"
+      OTP-19364:
+        release_note: "[EEP-69: Nominal Types] has been implemented. As a side effect, nominal types\ncan encode opaque types. We changed all opaque-handling logic and improved\nopaque warnings in Dialyzer.\n\nAll existing Erlang type systems are structural: two types are seen as\nequivalent if their structures are the same. Type comparisons are based on the\nstructures of the types, not on how the user explicitly defines them. For\nexample, in the following example, `meter()` and `foot()` are equivalent. The\ntwo types can be used interchangeably. Neither of them differ from the basic\ntype `integer()`.\n\n```\n-type meter() :: integer().\n-type foot() :: integer().\n```\n\nNominal typing is an alternative type system, where two types are equivalent\nif and only if they are declared with the same type name. The EEP proposes one\nnew syntax -nominal for declaring nominal types. Under nominal typing,\n`meter()` and `foot()` are no longer compatible. Whenever a function expects\ntype `meter()`, passing in type `foot()` would result in a Dialyzer error.\n\n```\n-nominal meter() :: integer().\n-nominal foot() :: integer().\n```\n\nMore nominal type-checking rules can be found in the EEP. It is worth noting\nthat most work for adding nominal types and type-checking is in\n`erl_types.erl`. The rest are changes that removed the previous opaque\ntype-checking, and added an improved version of it using nominal type-checking\nwith reworked warnings.\n\nBackwards compatibility for opaque type-checking is not preserved by this PR.\nPrevious opaque warnings can appear with slightly different wordings. A new\nkind of opaque warning `opaque_union` is added, together with a Dialyzer\noption `no_opaque_union` to turn this kind of warnings off.\n\n[EEP-69: Nominal Types]: https://www.erlang.org/eeps/eep-0069"
+        Applications: "dialyzer, diameter, edoc, erts, eunit, kernel, mnesia, parsetools, runtime_tools, snmp"
+        RelatedIds: "[PR-9079]\n\n[PR-9079]: https://github.com/erlang/otp/pull/9079"
+      OTP-19431:
+        release_note: "Module [`re`] has been updated to use PCRE2, which is mostly backward\ncompatible with PCRE.\n\nThe most noticeable incompatibilities are\n\n- The default character encoding is pure ASCII and not Latin1. Unicode support\n  is still available with options `unicode` and `ucp`.\n- Options `bsr_anycrlf`, `bsr_unicode` and `{newline,_}` are only set when a\n  regex is compiled and cannot be changed at matching for precompiled regex.\n\n[`re`]: https://erlang.org/doc/man/re"
+        Tags: "POTENTIAL INCOMPATIBILITY"
+      OTP-19452:
+        release_note: "It is now possible to use any base for floating point numbers as described in\n[EEP 75: Based Floating Point Literals].\n\nComputers represent floating point numbers in binary, but such numbers are\ntypically printed using base ten, for example 0.314159265e1. To maintain exact\nbit-level precision when converting numbers to and from text, it is better to\nuse a base that matches the internally used base, such as 16 for a compact but\nstill exact representation, or 2 for visualizing or writing down the exact\ninternal format. One particular case where such exact representations are\nuseful is in code generating tools.\n\nExamples:\n\n```\n> 2#0.111.\n0.875\n> 16#fefe.fefe#e16.\n1.2041849337671418e24\n```\n\n[EEP 75: Based Floating Point Literals]: https://www.erlang.org/eeps/eep-0075"
+        Applications: "otp, stdlib"
+        RelatedIds: "[PR-9106]\n\n[PR-9106]: https://github.com/erlang/otp/pull/9106"
+      OTP-19477:
+        release_note: "There is a new [`zstd`] module that does [Zstandard] compression.\n\n[Zstandard]: https://facebook.github.io/zstd/\n[`zstd`]: https://erlang.org/doc/man/zstd"
+        Applications: "stdlib"
+        RelatedIds: "[PR-9316]\n\n[PR-9316]: https://github.com/erlang/otp/pull/9316"
+      OTP-19502:
+        release_note: "The compiler’s alias analysis pass is now both faster and less conservative,\nallowing optimizations of records and binary construction to be applied in\nmore cases."
+        Applications: "compiler"
+        RelatedIds: "[PR-8695]\n\n[PR-8695]: https://github.com/erlang/otp/pull/8695"
+      OTP-19538:
+        release_note: "Line numbers used to be reported in the following way:\n\n```\n1> lists:last([]).\n** exception error: no function clause matching lists:last([]) (lists.erl, line 389)\n```\n\nStarting from Erlang/OTP 28, line numbers are now reported in the following\nway:\n\n```\n1> lists:last([]).\n** exception error: no function clause matching lists:last([]) (lists.erl:389)\n```"
+        Applications: "stdlib"
+        RelatedIds: "[PR-9468]\n\n[PR-9468]: https://github.com/erlang/otp/pull/9468"
+      OTP-19553:
+        release_note: "SPDX 2.2 Source Software-Bill-Of-Materials for Erlang/OTP compliant with NTIA\nminimum requirements.\n\nThe SBOM contains a root package. Inside the root package there are multiple\nSPDX packages. Each SPDX package corresponds to an Erlang/OTP application and\nthe Erlang runtime system (erts). Inside each package, there may be multiple\npackages, such as vendor dependency packages inside the erts SPDX package."
+        Applications: "otp"
+        RelatedIds: "[PR-9586], [PR-9630], [PR-9660], [PR-9714]\n\n[PR-9586]: https://github.com/erlang/otp/pull/9586\n[PR-9630]: https://github.com/erlang/otp/pull/9630\n[PR-9660]: https://github.com/erlang/otp/pull/9660\n[PR-9714]: https://github.com/erlang/otp/pull/9714"
+      OTP-19556:
+        release_note: "Added functions that produce utf-8 binaries instead of iolists. New functions\nare: `io_lib:bformat/2`, `io_lib:bformat/3`, `io_lib:bfwrite/2`,\n`io_lib:bfwrite/3`, `io_lib:bwrite/2` and `io_lib:bwrite_string/3`."
+        Applications: "stdlib"
+        RelatedIds: "[PR-9772]\n\n[PR-9772]: https://github.com/erlang/otp/pull/9772"
+      OTP-19609:
+        release_note: "An **experimental** API for a native debugger has been added. The main\ncomponents are the following:\n\n- A new compiler option `beam_debug_info` for the Erlang compiler. When given,\n  most optimizations are disabled and debug information suitable for the\n  native debugger are added to generated BEAM files.\n- A new `+D` emulator flag. When given, the VM becomes \"debuggable\", which\n  means that when modules that been compiled with the `beam_debug_info` option\n  are loaded, the code is instrumented so that one can enable and disable\n  breakpoints on executable lines.\n- An experimental `erl_debugger` module with a new debugging API. Essentially,\n  it allows a single, local, process to be registered as the \"debugger\"\n  process for the node. This process is the one that will receive messages\n  notifying that a process hit a breakpoint. This way, the front-end\n  implementation of a debugger (such as [edb from WhatApp]) can be decoupled\n  from OTP.\n- The `erl_debugger` module also exposes new BIFs to inspect `X` and `Y`\n  registers of a suspended process. Together with new code-information BIFs,\n  this let's a debugger show the values of variables in scope for a suspended\n  process.\n\n[edb from WhatApp]: https://github.com/WhatsApp/edb"
+        Applications: "compiler, erts, kernel"
+        RelatedIds: "[PR-8670], [PR-9334], [PR-9604]\n\n[PR-8670]: https://github.com/erlang/otp/pull/8670\n[PR-9334]: https://github.com/erlang/otp/pull/9334\n[PR-9604]: https://github.com/erlang/otp/pull/9604"
+      OTP-19612:
+        release_note: "The ancient ASN.1 modules used in `public_key` has been replaced with more\nmodern versions, but we have strived to keep the documented Erlang API for the\n`public_key` application compatible."
+        Tags: "POTENTIAL INCOMPATIBILITY"
+      OTP-19627:
+        release_note: "Removed the default values for SCTP send (sndbuf) and receive (recbuf)\nbuffers."
+        Applications: "kernel"
+        RelatedIds: "[GH-9722], OTP-19576\n\n[GH-9722]: https://github.com/erlang/otp/issues/9722"
+  POTENTIALINCOMPATIBILITIES:
+    pre: ""
+    post: ""
+    mode: "markdown"
+    tickets:
+      OTP-19233:
+        release_note: "`proc_lib:stop/1,3` (and in extension `gen_server:stop/3`, `gen_statem:stop/3`\nand so on) have been updated to not throw an error if the process to be\nstopped exits with the same reason as given to `proc_lib:stop/3`."
+        Applications: "stdlib"
+        RelatedIds: "[PR-8772]\n\n[PR-8772]: https://github.com/erlang/otp/pull/8772"
+      OTP-19285:
+        release_note: "The size of an atom in the Erlang source code was limited to 255 bytes in\nprevious releases, meaning that an atom containing only emojis could contain\nonly 63 emojis.\n\nWhile atoms are still only allowed to contain 255 characters, the number of\nbytes is no longer limited.\n\nExternal tools that parse the `AtU8` chunk of a BEAM file directly need to be\nupdated. Tools that use `beam_lib:chunks(Beam, [atoms])` to read the atom\ntable will continue to work.\n\n"
+        Applications: "compiler, erts, stdlib"
+        RelatedIds: "[PR-8913]\n\n[PR-8913]: https://github.com/erlang/otp/pull/8913"
+      OTP-19290:
+        release_note: "The `undec_rest` option would be ignored in generated functions for exclusive\ndecode. The option is now respected, meaning that the return value from such\nfunctions are now three-tuples instead of a two-tuples."
+        Applications: "asn1"
+        RelatedIds: "[PR-8798]\n\n[PR-8798]: https://github.com/erlang/otp/pull/8798"
+      OTP-19323:
+        release_note: "The literals chunk in BEAM is no longer compressed, resulting in slightly\nsmaller BEAM files when a BEAM file is stripped using\n`beam_lib:strip_files/1`.\n\nThis is a potential incompatibility for tools that read and interpret the\ncontents of the literal chunk. One way to update such tools to work with the\nnew format is to retrieve the chunk using `beam_lib:chunks(Beam, [literals])`.\n\n"
+        Applications: "compiler, erts, stdlib"
+        RelatedIds: "[GH-8967], [PR-8988]\n\n[GH-8967]: https://github.com/erlang/otp/issues/8967\n[PR-8988]: https://github.com/erlang/otp/pull/8988"
+      OTP-19355:
+        release_note: "The `abort_if_missing_suites` option now defaults to `true`. If you prefer the\nold behavior, set `abort_if_missing_suites` to `false` in your test runs."
+        Applications: "common_test"
+        RelatedIds: "[PR-9045]\n\n[PR-9045]: https://github.com/erlang/otp/pull/9045"
+      OTP-19420:
+        release_note: "CBC algorithms are not offered by default. See Configuring algorithms in SSH\nif you wish to enable them."
+        Applications: "ssh"
+        RelatedIds: "[PR-9277]\n\n[PR-9277]: https://github.com/erlang/otp/pull/9277"
+      OTP-19431:
+        release_note: "Module [`re`] has been updated to use PCRE2, which is mostly backward\ncompatible with PCRE.\n\nThe most noticeable incompatibilities are\n\n- The default character encoding is pure ASCII and not Latin1. Unicode support\n  is still available with options `unicode` and `ucp`.\n- Options `bsr_anycrlf`, `bsr_unicode` and `{newline,_}` are only set when a\n  regex is compiled and cannot be changed at matching for precompiled regex.\n\n[`re`]: https://erlang.org/doc/man/re"
+        Tags: "HIGHLIGHT"
+      OTP-19536:
+        release_note: "If a process being suspended using `erlang:suspend_process()` currently is\nwaiting in a `receive ... after` expression, the timer for the timeout will\nnow also be suspended until the process is resumed."
+        Applications: "erts"
+        RelatedIds: "[PR-8670]\n\n[PR-8670]: https://github.com/erlang/otp/pull/8670"
+      OTP-19597:
+        release_note: "Change automatic hibernation of static supervisors so that they will hibernate\nafter being idle for 1 second instead of only after starting, dynamic\nsupervisors (simple_one_for_one) will not be hibernated at all. An option to\nthe supervisor is added to make it configurable for the application. This\noption defaults to 1 second for static supervisors and to infinity for the\nsimple_one_for_one supervisors."
+        Applications: "stdlib"
+        RelatedIds: "[PR-9680]\n\n[PR-9680]: https://github.com/erlang/otp/pull/9680"
+      OTP-19612:
+        release_note: "The ancient ASN.1 modules used in `public_key` has been replaced with more\nmodern versions, but we have strived to keep the documented Erlang API for the\n`public_key` application compatible."
+        Tags: "HIGHLIGHT"
+      OTP-19615:
+        release_note: "The socket option names for built-in socket options in the module `socket` has\nbeen cleaned up.\n\nNow, for known socket options, it is only the canonical protocol names that\nare allowed such as `ip` for the socket option `{ip,recvtos}`. Previously, due\nto being a protocol alias; `{'IP',recvtos}` was also allowed, as was the\nincorrect `{hopopt,recvtos}` because the protocol `hopopt` on Linux has the\nsame protocol number as `ip`.\n\nSo, to reduce confusion, all enumerated protocol names with the same number,\nare not allowed for the known protocol options, only the canonical name."
+        Applications: "erts"
+        RelatedIds: "[PR-9718]\n\n[PR-9718]: https://github.com/erlang/otp/pull/9718"
+  OTP-28.0:
+    pre: ""
+    post: ""
+    mode: "markdown"
+    tickets:
+      OTP-19452:
+        type: "## Improvements and New Features"
+        release_note: "It is now possible to use any base for floating point numbers as described in\n[EEP 75: Based Floating Point Literals].\n\nComputers represent floating point numbers in binary, but such numbers are\ntypically printed using base ten, for example 0.314159265e1. To maintain exact\nbit-level precision when converting numbers to and from text, it is better to\nuse a base that matches the internally used base, such as 16 for a compact but\nstill exact representation, or 2 for visualizing or writing down the exact\ninternal format. One particular case where such exact representations are\nuseful is in code generating tools.\n\nExamples:\n\n```\n> 2#0.111.\n0.875\n> 16#fefe.fefe#e16.\n1.2041849337671418e24\n```\n\n[EEP 75: Based Floating Point Literals]: https://www.erlang.org/eeps/eep-0075"
+        Tags: "HIGHLIGHT"
+      OTP-19478:
+        type: "## Improvements and New Features"
+        release_note: "Fixed licenses in files and added ORT curations to the following apps: otp,\neldap, erl_interface, eunit, parsetools, stdlib, syntax_tools, and ERTS."
+        RelatedIds: "[PR-9376], [PR-9402], [PR-9819]\n\n[PR-9376]: https://github.com/erlang/otp/pull/9376\n[PR-9402]: https://github.com/erlang/otp/pull/9402\n[PR-9819]: https://github.com/erlang/otp/pull/9819"
+      OTP-19492:
+        type: "## Improvements and New Features"
+        release_note: "Fixes the sarif generation in the scan code script"
+        RelatedIds: "[PR-9409]\n\n[PR-9409]: https://github.com/erlang/otp/pull/9409"
+      OTP-19553:
+        type: "## Improvements and New Features"
+        release_note: "SPDX 2.2 Source Software-Bill-Of-Materials for Erlang/OTP compliant with NTIA\nminimum requirements.\n\nThe SBOM contains a root package. Inside the root package there are multiple\nSPDX packages. Each SPDX package corresponds to an Erlang/OTP application and\nthe Erlang runtime system (erts). Inside each package, there may be multiple\npackages, such as vendor dependency packages inside the erts SPDX package."
+        Tags: "HIGHLIGHT"
+      OTP-19601:
+        type: "## Improvements and New Features"
+        release_note: "Fixes wrong relationship order for SPDX packages and mistaken inclusion of\nerts documentation in the erts test SPDX package."
+        RelatedIds: "[PR-9717]\n\n[PR-9717]: https://github.com/erlang/otp/pull/9717"
+      OTP-19607:
+        type: "## Improvements and New Features"
+        release_note: "sbom validates copyrights to be of a specific format, as defined in the\nLICENSE-HEADERS.md, which will prevent mistakes in copyrights"
+        RelatedIds: "[PR-9758]\n\n[PR-9758]: https://github.com/erlang/otp/pull/9758"
+      OTP-19629:
+        type: "## Improvements and New Features"
+        release_note: "SBOM produces package url as per the Erlang Ecosystem Foundation guidelines"
+        RelatedIds: "[PR-9791]\n\n[PR-9791]: https://github.com/erlang/otp/pull/9791"
+  asn1-5.4:
+    pre: ""
+    post: "> #### Full runtime dependencies of asn1-5.4\n>\n> erts-14.0, kernel-9.0, stdlib-5.0"
+    mode: "markdown"
+    tickets:
+      OTP-19290:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "The `undec_rest` option would be ignored in generated functions for exclusive\ndecode. The option is now respected, meaning that the return value from such\nfunctions are now three-tuples instead of a two-tuples."
+        Tags: "POTENTIAL INCOMPATIBILITY"
+      OTP-19575:
+        type: "## Improvements and New Features"
+        release_note: "The license and copyright header has changed format to include an\n`SPDX-License-Identifier`. At the same time, most files have been updated to\nfollow a uniform standard for license headers."
+        RelatedIds: "[PR-9670]\n\n[PR-9670]: https://github.com/erlang/otp/pull/9670"
+      OTP-19612:
+        type: "## Improvements and New Features"
+        release_note: "The ancient ASN.1 modules used in `public_key` has been replaced with more\nmodern versions, but we have strived to keep the documented Erlang API for the\n`public_key` application compatible."
+        Tags: "HIGHLIGHT, POTENTIAL INCOMPATIBILITY"
+  common_test-1.28:
+    pre: ""
+    post: "> #### Full runtime dependencies of common_test-1.28\n>\n> compiler-6.0, crypto-4.5, debugger-4.1, erts-7.0, ftp-1.0, inets-6.0,\n> kernel-8.4, observer-2.1, runtime_tools-1.8.16, sasl-2.5, snmp-5.1.2, ssh-4.0,\n> stdlib-4.0, syntax_tools-1.7, tools-3.2, xmerl-1.3.8"
+    mode: "markdown"
+    tickets:
+      OTP-19485:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Replaced calls to deprecated `crypto:start()` with\n`application:start(crypto)`."
+        RelatedIds: "[PR-8592]\n\n[PR-8592]: https://github.com/erlang/otp/pull/8592"
+      OTP-19604:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Enhance specs of timeout for improving documentation and dialyzer analysis."
+        RelatedIds: "[PR-9574]\n\n[PR-9574]: https://github.com/erlang/otp/pull/9574"
+      OTP-19159:
+        type: "## Improvements and New Features"
+        release_note: "The overage reports in HTML can be rendered in dark mode if requested by the\nuser's browser."
+        RelatedIds: "[PR-7830]\n\n[PR-7830]: https://github.com/erlang/otp/pull/7830"
+      OTP-19355:
+        type: "## Improvements and New Features"
+        release_note: "The `abort_if_missing_suites` option now defaults to `true`. If you prefer the\nold behavior, set `abort_if_missing_suites` to `false` in your test runs."
+        Tags: "POTENTIAL INCOMPATIBILITY"
+      OTP-19478:
+        type: "## Improvements and New Features"
+        release_note: "Fixed licenses in files and added ORT curations to the following apps: otp,\neldap, erl_interface, eunit, parsetools, stdlib, syntax_tools, and ERTS."
+        RelatedIds: "[PR-9376], [PR-9402], [PR-9819]\n\n[PR-9376]: https://github.com/erlang/otp/pull/9376\n[PR-9402]: https://github.com/erlang/otp/pull/9402\n[PR-9819]: https://github.com/erlang/otp/pull/9819"
+      OTP-19480:
+        type: "## Improvements and New Features"
+        release_note: "Added support for compiling Erlang/OTP for Windows on ARM64."
+        RelatedIds: "[PR-8734]\n\n[PR-8734]: https://github.com/erlang/otp/pull/8734"
+      OTP-19575:
+        type: "## Improvements and New Features"
+        release_note: "The license and copyright header has changed format to include an\n`SPDX-License-Identifier`. At the same time, most files have been updated to\nfollow a uniform standard for license headers."
+        RelatedIds: "[PR-9670]\n\n[PR-9670]: https://github.com/erlang/otp/pull/9670"
+  compiler-9.0:
+    pre: ""
+    post: "> #### Full runtime dependencies of compiler-9.0\n>\n> crypto-5.1, erts-13.0, kernel-8.4, stdlib-6.0"
+    mode: "markdown"
+    tickets:
+      OTP-19141:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "The compiler will now emit warnings when some map patterns cannot possibly\nmatch because a previous clauses matches the same pattern. For example:\n\n```erlang\nmm_1(#{}) -> a;\nmm_1(#{b := B}) -> {b,B}.\n\nmm_2(#{a := A}) -> {a,A};\nmm_2(#{a := A, b := B}) -> {b,A,B}.\n```\n\nThe second clause of these function can never match and the compiler will now\nemit a warning for both of them.\n\nNote that the compiler is not guaranteed to emit warnings for every possible\nmap pattern that cannot match."
+        RelatedIds: "[GH-8558], [PR-8600]\n\n[GH-8558]: https://github.com/erlang/otp/issues/8558\n[PR-8600]: https://github.com/erlang/otp/pull/8600"
+      OTP-19285:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "The size of an atom in the Erlang source code was limited to 255 bytes in\nprevious releases, meaning that an atom containing only emojis could contain\nonly 63 emojis.\n\nWhile atoms are still only allowed to contain 255 characters, the number of\nbytes is no longer limited.\n\nExternal tools that parse the `AtU8` chunk of a BEAM file directly need to be\nupdated. Tools that use `beam_lib:chunks(Beam, [atoms])` to read the atom table will continue to work.\n\n"
+        Tags: "POTENTIAL INCOMPATIBILITY"
+      OTP-19323:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "The literals chunk in BEAM is no longer compressed, resulting in slightly\nsmaller BEAM files when a BEAM file is stripped using\n`beam_lib:strip_files/1`.\n\nThis is a potential incompatibility for tools that read and interpret the\ncontents of the literal chunk. One way to update such tools to work with the\nnew format is to retrieve the chunk using `beam_lib:chunks(Beam, [atoms])`\n\n\n"
+        Tags: "POTENTIAL INCOMPATIBILITY"
+      OTP-19376:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "The final validation step in the compiler will now reject modules containing\nfunctions with more than 255 arguments. No impact is expected as the emulator\nhas always refused to load these modules."
+        RelatedIds: "[GH-9113], [PR-9121]\n\n[GH-9113]: https://github.com/erlang/otp/issues/9113\n[PR-9121]: https://github.com/erlang/otp/pull/9121"
+      OTP-19485:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Replaced calls to deprecated `crypto:start()` with\n`application:start(crypto)`."
+        RelatedIds: "[PR-8592]\n\n[PR-8592]: https://github.com/erlang/otp/pull/8592"
+      OTP-19574:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Refactor code to not rely on `+nowarn_shadow_vars`."
+        RelatedIds: "[PR-9678]\n\n[PR-9678]: https://github.com/erlang/otp/pull/9678"
+      OTP-19096:
+        type: "## Improvements and New Features"
+        release_note: "The EEP-48 doc chunk embedded into `.beam` files by the compiler is now\n`compressed` and `deterministic`."
+        RelatedIds: "[PR-8494]\n\n[PR-8494]: https://github.com/erlang/otp/pull/8494"
+      OTP-19115:
+        type: "## Improvements and New Features"
+        release_note: "Provided that the map argument for a `maps:put/3` call is known to the\ncompiler to be a map, the compiler will replace such calls with the\ncorresponding update using the map syntax."
+        RelatedIds: "[PR-8540]\n\n[PR-8540]: https://github.com/erlang/otp/pull/8540"
+      OTP-19180:
+        type: "## Improvements and New Features"
+        release_note: "For various error types, the compiler now tries to suggest potential fixes by\nadding \"did you mean ...?\" at the end of error messages.\n\nWhen a function is used with wrong arity, the compiler will try to suggest a\ndefined function with the same name but a different arity. For example, given\nthe following module:\n\n```\n-module(typos).\n-export([t/0]).\nbar(A) -> A.\nbar(A,A,A) -> A.\nbar(A,A,A,A) -> A.\nt() -> bar(0, 0).\n```\n\nThe compiler will emit the following message:\n\n```\ntypo.erl:6:12: function bar/2 undefined, did you mean bar/1,3,4?\n%   6|     t() -> bar(0, 0).\n%    |            ^\n```\n\nFor compiler errors that can easily be caused by typos, the compiler will try\nto suggest what the correct variable or function name, could be. For example,\ngiven the following module:\n\n```\n-module(typos).\n-export([bar/2]).\n\nbar(A0, B0) ->\n    A + B.\n```\n\nthe compiler will emit the following error messages:\n\n```\ntypos.erl:5:5: variable 'A' is unbound, did you mean 'A0'?\n%    5|     A + B.\n%     |     ^\n\ntypos.erl:5:9: variable 'B' is unbound, did you mean 'B0'?\n%    5|     A + B.\n%     |         ^\n```\n\nError types that now suggest correct arities: `bad_inline`, `undefined_nif`,\n`bad_nowarn_unused_function`, `bad_nowarn_bif_clash`, `undefined_function`.\n\nError types that now suggest correct names: `bad_inline`, `undefined_nif`,\n`bad_nowarn_unused_function`, `undefined_on_load`, `undefined_function`,\n`undefined_record`, `undefined_field`, `unbound_var`.\n\nUsing a function with wrong arity has higher precedence than having a typo in\nthe function name. If the compiler can find a defined function with the same\nname but a different arity, it will not suggest a defined function with a\nclose-enough name, regardless of arity.\n\n"
+        Tags: "HIGHLIGHT"
+      OTP-19184:
+        type: "## Improvements and New Features"
+        release_note: "Comprehensions have been extended with zip generators according to [EEP 73].\n\nExample:\n\n```\n1> [A+B || A <- [1,2,3] && B <- [4,5,6]].\n[5,7,9]\n```\n\n[EEP 73]: https://www.erlang.org/eeps/eep-0073"
+        Tags: "HIGHLIGHT"
+      OTP-19306:
+        type: "## Improvements and New Features"
+        release_note: "Documentation chunks (EEP-48) has been updated to include the following\nreserved metadata fields: `behaviours`, `group`, `source_path`, and\n`source_annos`. The compiler has also been updated to emit this metadata. See\nthe [EEP-48 documentation] for more details.\n\n[EEP-48 documentation]: https://erlang.org/doc/apps/kernel/eep48_chapter.html"
+        RelatedIds: "[PR-8945], [PR-8975]\n\n[PR-8945]: https://github.com/erlang/otp/pull/8945\n[PR-8975]: https://github.com/erlang/otp/pull/8975"
+      OTP-19317:
+        type: "## Improvements and New Features"
+        release_note: "New strict generators have been added for comprehensions.\n\nThe currently existing generators are \"relaxed\": they ignore terms in the\nright-hand side expression that do not match the left-hand side pattern.\n\nThe new strict generators fail with exception `badmatch` if a pattern doesn't\nmatch.\n\nExamples:\n\nUsing the current relaxed generator operator `<-`, any element not matching\nthe pattern `{_,_}` will be silently discarded:\n\n```\n1> [T || {_,_}=T <- [{ok,1},ok,{error,2}]].\n[{ok,1},{error,2}]\n```\n\nIf the intention is that all lists processed by a list comprehension must only\ncontain tuples of size two, using the new strict version of the operator\nensures that term not matching will cause a crash:\n\n```\n2> [T || {_,_}=T <:- [{ok,1},ok,{error,2}]].\n** exception error: no match of right hand side value ok\n```\n\nUsing the strict generator operator to mark the intention that all list\nelements must match the pattern could help finding mistakes quicker if\nsomething unpexected is added to the list processed by the generator.\n\nThe strict version for bitstring generators is `<:=`.\n\n"
+        Tags: "HIGHLIGHT"
+      OTP-19334:
+        type: "## Improvements and New Features"
+        release_note: "New options for suppressing behaviour warnings have been added:\n\n- `nowarn_conflicting_behaviours`\n- `nowarn_undefined_behaviour_func`\n- `nowarn_undefined_behaviour`\n- `nowarn_undefined_behaviour_callbacks`\n- `nowarn_ill_defined_behaviour_callbacks`\n- `nowarn_ill_defined_optional_callbacks`"
+        RelatedIds: "[GH-8985], [PR-9020]\n\n[GH-8985]: https://github.com/erlang/otp/issues/8985\n[PR-9020]: https://github.com/erlang/otp/pull/9020"
+      OTP-19339:
+        type: "## Improvements and New Features"
+        release_note: "Some BIFs with side-effects are optimized in `try`/`catch` in the same way as\nguard BIFs in order to gain performance.\n\nThe following BIFs that are optimized in this way: `binary_to_atom/1`,\n`binary_to_atom/2`, `binary_to_existing_atom/1`, `list_to_atom/1`, and\n`list_to_existing_atom/1`."
+        RelatedIds: "[PR-9042], [PR-9122]\n\n[PR-9042]: https://github.com/erlang/otp/pull/9042\n[PR-9122]: https://github.com/erlang/otp/pull/9122"
+      OTP-19394:
+        type: "## Improvements and New Features"
+        release_note: "The compiler now converts known documentation attribute metadata entries from\n`unicode:chardata/0` to `unicode:unicode_binary/0`."
+        RelatedIds: "[PR-9192]\n\n[PR-9192]: https://github.com/erlang/otp/pull/9192"
+      OTP-19425:
+        type: "## Improvements and New Features"
+        release_note: "The `warn_deprecated_catch` option enables warnings for use of old-style catch\nexpressions on the form `catch Expr` instead of the modern\n`try ... catch ... end`. To prevent new uses of uses of old catches to be\nadded, this compiler option can be enabled on the project level and\n`-compile(nowarn_deprecated_catch).` added to individual files that still\ncontain old catches."
+        RelatedIds: "[PR-9154]\n\n[PR-9154]: https://github.com/erlang/otp/pull/9154"
+      OTP-19432:
+        type: "## Improvements and New Features"
+        release_note: "Defining a fun in terms of an imported function is not allowed. Before this\nrelease, the compiler would not catch this kind of error if the name of the\nimported function happened to be a BIF. Consider this example:\n\n```\n-module(fun_example).\n-export([foo/0, bar/0]).\n-import(m, [max/2, not_a_bif/0]).\n\nfoo() ->\n    fun max/2.\n\nbar() ->\n    fun not_a_bif/0.\n```\n\nThe compiler in Erlang/OTP 27 would generate the following messages:\n\n```text\nfun_example.erl:9:5: function not_a_bif/0 undefined\n%    9|     fun not_a_bif/0.\n%     |     ^\n\nfun_example.erl:3:2: Warning: import directive overrides auto-imported BIF max/2 --\nuse \"-compile({no_auto_import,[max/2]}).\" to resolve name clash\n%    3| -import(m, [max/2, not_a_bif/0]).\n%     |  ^\n```\n\nThat is, there would be a (cryptic) error for `fun not_a_bif/0`, but only a\nwarning for `fun max/2`.\n\nWhen compiling with this release, both attempts to create a fun will result in\nerror messages (as well as a warning):\n\n```text\nfun_example.erl:6:5: creating a fun from imported name max/2 is not allowed\n%    6|     fun max/2.\n%     |     ^\n\nfun_example.erl:9:5: creating a fun from imported name not_a_bif/0 is not allowed\n%    9|     fun not_a_bif/0.\n%     |     ^\n\nfun_example.erl:3:2: Warning: import directive overrides auto-imported BIF max/2 --\nuse \"-compile({no_auto_import,[max/2]}).\" to resolve name clash\n%    3| -import(m, [max/2, not_a_bif/0]).\n%     |  ^\n```\n\nAlso, attempting to call a local function having the same name as\nauto-imported BIF would result in an error if the BIF was added to Erlang/OTP\nbefore R14, and a warning for newer BIFs. This has been changed to always emit\na warning. For example:\n\n```\n-module(bif_example).\n-export([bar/1]).\n\nbar(B) ->\n    is_boolean(B).\n\nis_boolean(B) ->\n        B =:= true orelse B =:= false.\n```\n\nwill now result in the following warning instead of an error:\n\n```text\nif_example.erl:5:5: Warning: ambiguous call of overridden auto-imported BIF is_boolean/1 --\nuse erlang:is_boolean/1 or \"-compile({no_auto_import,[is_boolean/1]}).\" to resolve name clash\n%    5|     is_boolean(B).\n%     |     ^\n```\n\n"
+        RelatedIds: "[PR-9246]\n\n[PR-9246]: https://github.com/erlang/otp/pull/9246"
+      OTP-19502:
+        type: "## Improvements and New Features"
+        release_note: "The compiler’s alias analysis pass is now both faster and less conservative,\nallowing optimizations of records and binary construction to be applied in\nmore cases."
+        Tags: "HIGHLIGHT"
+      OTP-19524:
+        type: "## Improvements and New Features"
+        release_note: "BEAM files no longer include a `Meta` chunk if there are no features used.\nThat slightly decreases the size of BEAM files, and it also ensures that\n`m(Module)` and `beam_lib:md5(Beam)` will match for preloaded modules."
+        RelatedIds: "[PR-9517]\n\n[PR-9517]: https://github.com/erlang/otp/pull/9517"
+      OTP-19575:
+        type: "## Improvements and New Features"
+        release_note: "The license and copyright header has changed format to include an\n`SPDX-License-Identifier`. At the same time, most files have been updated to\nfollow a uniform standard for license headers."
+        RelatedIds: "[PR-9670]\n\n[PR-9670]: https://github.com/erlang/otp/pull/9670"
+      OTP-19609:
+        type: "## Improvements and New Features"
+        release_note: "An **experimental** API for a native debugger has been added. The main\ncomponents are the following:\n\n- A new compiler option `beam_debug_info` for the Erlang compiler. When given,\n  most optimizations are disabled and debug information suitable for the\n  native debugger are added to generated BEAM files.\n- A new `+D` emulator flag. When given, the VM becomes \"debuggable\", which\n  means that when modules that been compiled with the `beam_debug_info` option\n  are loaded, the code is instrumented so that one can enable and disable\n  breakpoints on executable lines.\n- An experimental `erl_debugger` module with a new debugging API. Essentially,\n  it allows a single, local, process to be registered as the \"debugger\"\n  process for the node. This process is the one that will receive messages\n  notifying that a process hit a breakpoint. This way, the front-end\n  implementation of a debugger (such as [edb from WhatApp]) can be decoupled\n  from OTP.\n- The `erl_debugger` module also exposes new BIFs to inspect `X` and `Y`\n  registers of a suspended process. Together with new code-information BIFs,\n  this let's a debugger show the values of variables in scope for a suspended\n  process.\n\n[edb from WhatApp]: https://github.com/WhatsApp/edb"
+        Tags: "HIGHLIGHT"
+  crypto-5.6:
+    pre: ""
+    post: "> #### Full runtime dependencies of crypto-5.6\n>\n> erts-9.0, kernel-6.0, stdlib-3.9"
+    mode: "markdown"
+    tickets:
+      OTP-19500:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Fixed minor potential leak of EVP_MAC when `crypto` module is unloaded."
+        RelatedIds: "[PR-9119]\n\n[PR-9119]: https://github.com/erlang/otp/pull/9119"
+      OTP-19554:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Added copyright and license to crypto_ec_curves.erl"
+      OTP-19155:
+        type: "## Improvements and New Features"
+        release_note: "The `crypto:start/0`, `crypto:stop/0`, and `crypto:enable_fips_mode/1`\nfunctions have been deprecated."
+        RelatedIds: "[PR-8592]\n\n[PR-8592]: https://github.com/erlang/otp/pull/8592"
+      OTP-19156:
+        type: "## Improvements and New Features"
+        release_note: "Warnings are now logged if module [`crypto`] with FIPS-supported OpenSSL is\nloaded without application [`crypto`] being loaded. In this case FIPS will be\ndisabled even if the user had set application parameter `fips_mode`.\n\n[`crypto`]: https://erlang.org/doc/apps/crypto/index.html\n[`crypto`]: https://erlang.org/doc/man/crypto"
+        RelatedIds: "[PR-8590]\n\n[PR-8590]: https://github.com/erlang/otp/pull/8590"
+      OTP-19426:
+        type: "## Improvements and New Features"
+        release_note: "The functionality of `crypto:crypto_one_time_aead/6` is now also available in\nthe new functions `crypto:crypto_one_time_aead_init/4` and\n`crypto:crypto_one_time_aead/4`, which makes it possible to reuse\ninitialization."
+        RelatedIds: "[PR-9289]\n\n[PR-9289]: https://github.com/erlang/otp/pull/9289"
+      OTP-19480:
+        type: "## Improvements and New Features"
+        release_note: "Added support for compiling Erlang/OTP for Windows on ARM64."
+        RelatedIds: "[PR-8734]\n\n[PR-8734]: https://github.com/erlang/otp/pull/8734"
+      OTP-19487:
+        type: "## Improvements and New Features"
+        release_note: "New key `fips_provider_buildinfo` in map returned by `crypto:info/0`. If\npresent, it contains the version of the FIPS provider which may be different\nthan the version of the rest of OpenSSL."
+        RelatedIds: "[GH-9366], [PR-9410]\n\n[GH-9366]: https://github.com/erlang/otp/issues/9366\n[PR-9410]: https://github.com/erlang/otp/pull/9410"
+      OTP-19510:
+        type: "## Improvements and New Features"
+        release_note: "Exported `crypto` types `sha3()`, `hmac_hash_algorithm()` and\n`cmac_cipher_algorithm()`."
+        RelatedIds: "[PR-9448]\n\n[PR-9448]: https://github.com/erlang/otp/pull/9448"
+      OTP-19519:
+        type: "## Improvements and New Features"
+        release_note: "When compiling C/C++ code on Unix systems, the compiler hardening flags\nsuggested by the Open Source Security Foundation are now enabled by default.\nTo disable them, pass `--disable-security-hardening-flags` to `configure`."
+        RelatedIds: "[PR-9441]\n\n[PR-9441]: https://github.com/erlang/otp/pull/9441"
+      OTP-19575:
+        type: "## Improvements and New Features"
+        release_note: "The license and copyright header has changed format to include an\n`SPDX-License-Identifier`. At the same time, most files have been updated to\nfollow a uniform standard for license headers."
+        RelatedIds: "[PR-9670]\n\n[PR-9670]: https://github.com/erlang/otp/pull/9670"
+  debugger-6.0:
+    pre: ""
+    post: "> #### Full runtime dependencies of debugger-6.0\n>\n> compiler-8.0, erts-15.0, kernel-10.0, stdlib-7.0, wx-2.0"
+    mode: "markdown"
+    tickets:
+      OTP-19484:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Error handling has been improved when modules fail to load."
+        RelatedIds: "[GH-7819], [PR-9399]\n\n[GH-7819]: https://github.com/erlang/otp/issues/7819\n[PR-9399]: https://github.com/erlang/otp/pull/9399"
+      OTP-19184:
+        type: "## Improvements and New Features"
+        release_note: "Comprehensions have been extended with zip generators according to [EEP 73].\n\nExample:\n\n```\n1> [A+B || A <- [1,2,3] && B <- [4,5,6]].\n[5,7,9]\n```\n\n[EEP 73]: https://www.erlang.org/eeps/eep-0073"
+        Tags: "HIGHLIGHT"
+      OTP-19317:
+        type: "## Improvements and New Features"
+        release_note: "New strict generators have been added for comprehensions.\n\nThe currently existing generators are \"relaxed\": they ignore terms in the\nright-hand side expression that do not match the left-hand side pattern.\n\nThe new strict generators fail with exception `badmatch` if a pattern doesn't\nmatch.\n\nExamples:\n\nUsing the current relaxed generator operator `<-`, any element not matching\nthe pattern `{_,_}` will be silently discarded:\n\n```\n1> [T || {_,_}=T <- [{ok,1},ok,{error,2}]].\n[{ok,1},{error,2}]\n```\n\nIf the intention is that all lists processed by a list comprehension must only\ncontain tuples of size two, using the new strict version of the operator\nensures that term not matching will cause a crash:\n\n```\n2> [T || {_,_}=T <:- [{ok,1},ok,{error,2}]].\n** exception error: no match of right hand side value ok\n```\n\nUsing the strict generator operator to mark the intention that all list\nelements must match the pattern could help finding mistakes quicker if\nsomething unpexected is added to the list processed by the generator.\n\nThe strict version for bitstring generators is `<:=`.\n\n"
+        Tags: "HIGHLIGHT"
+      OTP-19575:
+        type: "## Improvements and New Features"
+        release_note: "The license and copyright header has changed format to include an\n`SPDX-License-Identifier`. At the same time, most files have been updated to\nfollow a uniform standard for license headers."
+        RelatedIds: "[PR-9670]\n\n[PR-9670]: https://github.com/erlang/otp/pull/9670"
+  dialyzer-5.4:
+    pre: ""
+    post: "> #### Full runtime dependencies of dialyzer-5.4\n>\n> compiler-8.0, erts-12.0, kernel-8.0, stdlib-5.0, syntax_tools-2.0"
+    mode: "markdown"
+    tickets:
+      OTP-19262:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "The `-Wno_unknown` option will now prevent a warning being printed to standard\noutput when the command line interface is used."
+        RelatedIds: "[GH-8822], [PR-8885]\n\n[GH-8822]: https://github.com/erlang/otp/issues/8822\n[PR-8885]: https://github.com/erlang/otp/pull/8885"
+      OTP-19364:
+        type: "## Improvements and New Features"
+        release_note: "[EEP-69: Nominal Types] has been implemented. As a side effect, nominal types\ncan encode opaque types. We changed all opaque-handling logic and improved\nopaque warnings in Dialyzer.\n\nAll existing Erlang type systems are structural: two types are seen as\nequivalent if their structures are the same. Type comparisons are based on the\nstructures of the types, not on how the user explicitly defines them. For\nexample, in the following example, `meter()` and `foot()` are equivalent. The\ntwo types can be used interchangeably. Neither of them differ from the basic\ntype `integer()`.\n\n```\n-type meter() :: integer().\n-type foot() :: integer().\n```\n\nNominal typing is an alternative type system, where two types are equivalent\nif and only if they are declared with the same type name. The EEP proposes one\nnew syntax -nominal for declaring nominal types. Under nominal typing,\n`meter()` and `foot()` are no longer compatible. Whenever a function expects\ntype `meter()`, passing in type `foot()` would result in a Dialyzer error.\n\n```\n-nominal meter() :: integer().\n-nominal foot() :: integer().\n```\n\nMore nominal type-checking rules can be found in the EEP. It is worth noting\nthat most work for adding nominal types and type-checking is in\n`erl_types.erl`. The rest are changes that removed the previous opaque\ntype-checking, and added an improved version of it using nominal type-checking\nwith reworked warnings.\n\nBackwards compatibility for opaque type-checking is not preserved by this PR.\nPrevious opaque warnings can appear with slightly different wordings. A new\nkind of opaque warning `opaque_union` is added, together with a Dialyzer\noption `no_opaque_union` to turn this kind of warnings off.\n\n[EEP-69: Nominal Types]: https://www.erlang.org/eeps/eep-0069"
+        Tags: "HIGHLIGHT"
+      OTP-19478:
+        type: "## Improvements and New Features"
+        release_note: "Fixed licenses in files and added ORT curations to the following apps: otp,\neldap, erl_interface, eunit, parsetools, stdlib, syntax_tools, and ERTS."
+        RelatedIds: "[PR-9376], [PR-9402], [PR-9819]\n\n[PR-9376]: https://github.com/erlang/otp/pull/9376\n[PR-9402]: https://github.com/erlang/otp/pull/9402\n[PR-9819]: https://github.com/erlang/otp/pull/9819"
+      OTP-19575:
+        type: "## Improvements and New Features"
+        release_note: "The license and copyright header has changed format to include an\n`SPDX-License-Identifier`. At the same time, most files have been updated to\nfollow a uniform standard for license headers."
+        RelatedIds: "[PR-9670]\n\n[PR-9670]: https://github.com/erlang/otp/pull/9670"
+  diameter-2.5:
+    pre: ""
+    post: "> #### Full runtime dependencies of diameter-2.5\n>\n> erts-10.0, kernel-3.2, ssl-9.0, stdlib-5.0"
+    mode: "markdown"
+    tickets:
+      OTP-19620:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "With this change diameter will not crash when decoding a DiameterURI without\nport number."
+        RelatedIds: "[PR-9321]\n\n[PR-9321]: https://github.com/erlang/otp/pull/9321"
+      OTP-19364:
+        type: "## Improvements and New Features"
+        release_note: "[EEP-69: Nominal Types] has been implemented. As a side effect, nominal types\ncan encode opaque types. We changed all opaque-handling logic and improved\nopaque warnings in Dialyzer.\n\nAll existing Erlang type systems are structural: two types are seen as\nequivalent if their structures are the same. Type comparisons are based on the\nstructures of the types, not on how the user explicitly defines them. For\nexample, in the following example, `meter()` and `foot()` are equivalent. The\ntwo types can be used interchangeably. Neither of them differ from the basic\ntype `integer()`.\n\n```\n-type meter() :: integer().\n-type foot() :: integer().\n```\n\nNominal typing is an alternative type system, where two types are equivalent\nif and only if they are declared with the same type name. The EEP proposes one\nnew syntax -nominal for declaring nominal types. Under nominal typing,\n`meter()` and `foot()` are no longer compatible. Whenever a function expects\ntype `meter()`, passing in type `foot()` would result in a Dialyzer error.\n\n```\n-nominal meter() :: integer().\n-nominal foot() :: integer().\n```\n\nMore nominal type-checking rules can be found in the EEP. It is worth noting\nthat most work for adding nominal types and type-checking is in\n`erl_types.erl`. The rest are changes that removed the previous opaque\ntype-checking, and added an improved version of it using nominal type-checking\nwith reworked warnings.\n\nBackwards compatibility for opaque type-checking is not preserved by this PR.\nPrevious opaque warnings can appear with slightly different wordings. A new\nkind of opaque warning `opaque_union` is added, together with a Dialyzer\noption `no_opaque_union` to turn this kind of warnings off.\n\n[EEP-69: Nominal Types]: https://www.erlang.org/eeps/eep-0069"
+        Tags: "HIGHLIGHT"
+      OTP-19575:
+        type: "## Improvements and New Features"
+        release_note: "The license and copyright header has changed format to include an\n`SPDX-License-Identifier`. At the same time, most files have been updated to\nfollow a uniform standard for license headers."
+        RelatedIds: "[PR-9670]\n\n[PR-9670]: https://github.com/erlang/otp/pull/9670"
+      OTP-19621:
+        type: "## Improvements and New Features"
+        release_note: "With this change diameter will not use slave terminology"
+        RelatedIds: "[PR-9786]\n\n[PR-9786]: https://github.com/erlang/otp/pull/9786"
+  edoc-1.4:
+    pre: ""
+    post: "> #### Full runtime dependencies of edoc-1.4\n>\n> erts-11.0, inets-5.10, kernel-7.0, stdlib-4.0, syntax_tools-2.0, xmerl-1.3.7"
+    mode: "markdown"
+    tickets:
+      OTP-19574:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Refactor code to not rely on `+nowarn_shadow_vars`."
+        RelatedIds: "[PR-9678]\n\n[PR-9678]: https://github.com/erlang/otp/pull/9678"
+      OTP-19364:
+        type: "## Improvements and New Features"
+        release_note: "[EEP-69: Nominal Types] has been implemented. As a side effect, nominal types\ncan encode opaque types. We changed all opaque-handling logic and improved\nopaque warnings in Dialyzer.\n\nAll existing Erlang type systems are structural: two types are seen as\nequivalent if their structures are the same. Type comparisons are based on the\nstructures of the types, not on how the user explicitly defines them. For\nexample, in the following example, `meter()` and `foot()` are equivalent. The\ntwo types can be used interchangeably. Neither of them differ from the basic\ntype `integer()`.\n\n```\n-type meter() :: integer().\n-type foot() :: integer().\n```\n\nNominal typing is an alternative type system, where two types are equivalent\nif and only if they are declared with the same type name. The EEP proposes one\nnew syntax -nominal for declaring nominal types. Under nominal typing,\n`meter()` and `foot()` are no longer compatible. Whenever a function expects\ntype `meter()`, passing in type `foot()` would result in a Dialyzer error.\n\n```\n-nominal meter() :: integer().\n-nominal foot() :: integer().\n```\n\nMore nominal type-checking rules can be found in the EEP. It is worth noting\nthat most work for adding nominal types and type-checking is in\n`erl_types.erl`. The rest are changes that removed the previous opaque\ntype-checking, and added an improved version of it using nominal type-checking\nwith reworked warnings.\n\nBackwards compatibility for opaque type-checking is not preserved by this PR.\nPrevious opaque warnings can appear with slightly different wordings. A new\nkind of opaque warning `opaque_union` is added, together with a Dialyzer\noption `no_opaque_union` to turn this kind of warnings off.\n\n[EEP-69: Nominal Types]: https://www.erlang.org/eeps/eep-0069"
+        Tags: "HIGHLIGHT"
+      OTP-19575:
+        type: "## Improvements and New Features"
+        release_note: "The license and copyright header has changed format to include an\n`SPDX-License-Identifier`. At the same time, most files have been updated to\nfollow a uniform standard for license headers."
+        RelatedIds: "[PR-9670]\n\n[PR-9670]: https://github.com/erlang/otp/pull/9670"
+  eldap-1.2.15:
+    pre: ""
+    post: "> #### Full runtime dependencies of eldap-1.2.15\n>\n> asn1-3.0, erts-6.0, kernel-3.0, ssl-5.3.4, stdlib-3.4"
+    mode: "markdown"
+    tickets:
+      OTP-19604:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Enhance specs of timeout for improving documentation and dialyzer analysis."
+        RelatedIds: "[PR-9574]\n\n[PR-9574]: https://github.com/erlang/otp/pull/9574"
+      OTP-19478:
+        type: "## Improvements and New Features"
+        release_note: "Fixed licenses in files and added ORT curations to the following apps: otp,\neldap, erl_interface, eunit, parsetools, stdlib, syntax_tools, and ERTS."
+        RelatedIds: "[PR-9376], [PR-9402], [PR-9819]\n\n[PR-9376]: https://github.com/erlang/otp/pull/9376\n[PR-9402]: https://github.com/erlang/otp/pull/9402\n[PR-9819]: https://github.com/erlang/otp/pull/9819"
+      OTP-19575:
+        type: "## Improvements and New Features"
+        release_note: "The license and copyright header has changed format to include an\n`SPDX-License-Identifier`. At the same time, most files have been updated to\nfollow a uniform standard for license headers."
+        RelatedIds: "[PR-9670]\n\n[PR-9670]: https://github.com/erlang/otp/pull/9670"
+  erl_interface-5.6:
+    pre: ""
+    post: ""
+    mode: "markdown"
+    tickets:
+      OTP-19478:
+        type: "## Improvements and New Features"
+        release_note: "Fixed licenses in files and added ORT curations to the following apps: otp,\neldap, erl_interface, eunit, parsetools, stdlib, syntax_tools, and ERTS."
+        RelatedIds: "[PR-9376], [PR-9402], [PR-9819]\n\n[PR-9376]: https://github.com/erlang/otp/pull/9376\n[PR-9402]: https://github.com/erlang/otp/pull/9402\n[PR-9819]: https://github.com/erlang/otp/pull/9819"
+      OTP-19480:
+        type: "## Improvements and New Features"
+        release_note: "Added support for compiling Erlang/OTP for Windows on ARM64."
+        RelatedIds: "[PR-8734]\n\n[PR-8734]: https://github.com/erlang/otp/pull/8734"
+      OTP-19519:
+        type: "## Improvements and New Features"
+        release_note: "When compiling C/C++ code on Unix systems, the compiler hardening flags\nsuggested by the Open Source Security Foundation are now enabled by default.\nTo disable them, pass `--disable-security-hardening-flags` to `configure`."
+        RelatedIds: "[PR-9441]\n\n[PR-9441]: https://github.com/erlang/otp/pull/9441"
+      OTP-19575:
+        type: "## Improvements and New Features"
+        release_note: "The license and copyright header has changed format to include an\n`SPDX-License-Identifier`. At the same time, most files have been updated to\nfollow a uniform standard for license headers."
+        RelatedIds: "[PR-9670]\n\n[PR-9670]: https://github.com/erlang/otp/pull/9670"
+      OTP-19614:
+        type: "## Improvements and New Features"
+        release_note: "Update of MD5 implementation from OpenSSL version 3.1.4 to 3.5."
+        RelatedIds: "[PR-9775]\n\n[PR-9775]: https://github.com/erlang/otp/pull/9775"
+      OTP-16607:
+        type: "## Known Bugs and Problems"
+        release_note: "The `ei` API for decoding/encoding terms is not fully 64-bit compatible since\nterms that have a representation on the external term format larger than 2 GB\ncannot be handled."
+        RelatedIds: "OTP-16608"
+  erts-16.0:
+    pre: ""
+    post: "> #### Full runtime dependencies of erts-16.0\n>\n> kernel-9.0, sasl-3.3, stdlib-4.1"
+    mode: "markdown"
+    tickets:
+      OTP-19144:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "ETS tables with more than 2 billion keys are now supported."
+        RelatedIds: "[PR-8589]\n\n[PR-8589]: https://github.com/erlang/otp/pull/8589"
+      OTP-19259:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "The zlib library included in Erlang/OTP has been updated to version 1.3.1."
+        RelatedIds: "[PR-8862]\n\n[PR-8862]: https://github.com/erlang/otp/pull/8862"
+      OTP-19263:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "[`to_erl`] no longer clears the screen when attaching to a `run_erl` session.\n\n[`to_erl`]: https://erlang.org/doc/system/embedded.html#to_erl"
+        RelatedIds: "[PR-8943]\n\n[PR-8943]: https://github.com/erlang/otp/pull/8943"
+      OTP-19285:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "The size of an atom in the Erlang source code was limited to 255 bytes in\nprevious releases, meaning that an atom containing only emojis could contain\nonly 63 emojis.\n\nWhile atoms are still only allowed to contain 255 characters, the number of\nbytes is no longer limited.\n\nExternal tools that parse the `AtU8` chunk of a BEAM file directly need to be\nupdated. Tools that use `beam_lib:chunks(Beam, [atoms])` to read the atom table will continue to work.\n\n"
+        Tags: "POTENTIAL INCOMPATIBILITY"
+      OTP-19295:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Fixed a bug where `erlc` would crash if its path contained spaces."
+        RelatedIds: "[PR-8937]\n\n[PR-8937]: https://github.com/erlang/otp/pull/8937"
+      OTP-19313:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "The [`-noshell`] mode has been updated to read data lazily from standard\ninput. Before this fix any data would be read greedily which meant that Erlang\ncould consume data not meant for it. It also meant that in order for\n`shell:start_interactive/0` to work on Windows an API that did not support\nreading of Unicode characters had to be used.\n\n[`-noshell`]: https://erlang.org/doc/apps/erts/erl_cmd.html#noshell"
+        RelatedIds: "[GH-8113], [PR-8962]\n\n[GH-8113]: https://github.com/erlang/otp/issues/8113\n[PR-8962]: https://github.com/erlang/otp/pull/8962"
+      OTP-19323:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "The literals chunk in BEAM is no longer compressed, resulting in slightly\nsmaller BEAM files when a BEAM file is stripped using\n`beam_lib:strip_files/1`.\n\nThis is a potential incompatibility for tools that read and interpret the\ncontents of the literal chunk. One way to update such tools to work with the\nnew format is to retrieve the chunk using `beam_lib:chunks(Beam, [literals])`.\n\n"
+        Tags: "POTENTIAL INCOMPATIBILITY"
+      OTP-19453:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Fixed `erlang:localtime_to_universaltime/2` with `IsDST` set to `true` and a\ntimezone without daylight saving (for example `UTC`) to assume that the\nprovided localtime does not have DST. This has always been the behaviour, but\nglibc versions after 2.37 changed it so that the behavior in Erlang also\nchanged."
+        RelatedIds: "[PR-9207]\n\n[PR-9207]: https://github.com/erlang/otp/pull/9207"
+      OTP-19454:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Support for the `TZ` environment variable has been added on Windows. Before\nthis change only the time zone configured in the OS was ever used."
+        RelatedIds: "[PR-9207]\n\n[PR-9207]: https://github.com/erlang/otp/pull/9207"
+      OTP-19488:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Suppressed various warnings when building the emulator with recent versions of\nGCC"
+        RelatedIds: "[GH-9413], [PR-9417]\n\n[GH-9413]: https://github.com/erlang/otp/issues/9413\n[PR-9417]: https://github.com/erlang/otp/pull/9417"
+      OTP-19507:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Fixed a bug in re:run and re:compile where the pattern parameter would be read\nincorrectly if it was a sub-binary."
+        RelatedIds: "[GH-9438], [PR-9478]\n\n[GH-9438]: https://github.com/erlang/otp/issues/9438\n[PR-9478]: https://github.com/erlang/otp/pull/9478"
+      OTP-19518:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Fixed a broken makefile rule that made it so that `O2` and `-O2` could not be\npart of the directory path when building Erlang/OTP. Bug has been present\nsince R11B released 2006."
+        RelatedIds: "[GH-9487], [PR-9488]\n\n[GH-9487]: https://github.com/erlang/otp/issues/9487\n[PR-9488]: https://github.com/erlang/otp/pull/9488"
+      OTP-19532:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Fixed the index types of modules `atomics` and `counters` from `integer()` to\n`pos_integer()`, which is more correct."
+        RelatedIds: "[PR-9538]\n\n[PR-9538]: https://github.com/erlang/otp/pull/9538"
+      OTP-19594:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Fix `erl` flags `+Q`, `+P` and `+t` to not allow values greater\nthan 4294975487. Before this fix, the runtime would either truncate the value\nor crash depending on which value was given."
+        RelatedIds: "[GH-9668], [PR-9671]\n\n[GH-9668]: https://github.com/erlang/otp/issues/9668\n[PR-9671]: https://github.com/erlang/otp/pull/9671"
+      OTP-19615:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "The socket option names for built-in socket options in the module `socket` has\nbeen cleaned up.\n\nNow, for known socket options, it is only the canonical protocol names that\nare allowed such as `ip` for the socket option `{ip,recvtos}`. Previously, due\nto being a protocol alias; `{'IP',recvtos}` was also allowed, as was the\nincorrect `{hopopt,recvtos}` because the protocol `hopopt` on Linux has the\nsame protocol number as `ip`.\n\nSo, to reduce confusion, all enumerated protocol names with the same number,\nare not allowed for the known protocol options, only the canonical name."
+        Tags: "POTENTIAL INCOMPATIBILITY"
+      OTP-19617:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "On windows, socket:sendv could incorrectly return {ok, integer()} on Windows."
+        RelatedIds: "OTP-19482"
+      OTP-19198:
+        type: "## Improvements and New Features"
+        release_note: "Functionality making it possible for processes to enable reception of\n[priority messages] has been introduced in accordance with [EEP 76].\n\n[EEP 76]: https://www.erlang.org/eeps/eep-0076\n[priority messages]: https://erlang.org/doc/system/ref_man_processes.html#priority-messages"
+        Tags: "HIGHLIGHT"
+      OTP-19271:
+        type: "## Improvements and New Features"
+        release_note: "The `trace:system/3` function has been added. It has a similar interface as\n`erlang:system_monitor/2` but it also supports trace sessions."
+        RelatedIds: "[PR-8660]\n\n[PR-8660]: https://github.com/erlang/otp/pull/8660"
+      OTP-19278:
+        type: "## Improvements and New Features"
+        release_note: "Added support for `SIGWINCH`, `SIGCONT`, and `SIGINFO` signals to\n`os:set_signal/2` where available."
+        RelatedIds: "[PR-8887], [PR-8938]\n\n[PR-8887]: https://github.com/erlang/otp/pull/8887\n[PR-8938]: https://github.com/erlang/otp/pull/8938"
+      OTP-19314:
+        type: "## Improvements and New Features"
+        release_note: "The [`erl -noshell`] mode has been updated to have two sub modes called `raw`\nand `cooked`, where `cooked` is the old default behaviour and `raw` can be\nused to bypass the line-editing support of the native terminal. Using `raw`\nmode it is possible to read keystrokes as they happen without the user having\nto press Enter. Also, the `raw` mode does not echo the typed characters to\nstdout. An example of how to create a tic-tac-toe game using this mechanism is\nincluded in [the documentation].\n\n[`erl -noshell`]: https://erlang.org/doc/apps/erts/erl_cmd.html#noshell\n[the documentation]: https://erlang.org/doc/apps/stdlib/terminal_interface.html"
+        Tags: "HIGHLIGHT"
+      OTP-19364:
+        type: "## Improvements and New Features"
+        release_note: "[EEP-69: Nominal Types] has been implemented. As a side effect, nominal types\ncan encode opaque types. We changed all opaque-handling logic and improved\nopaque warnings in Dialyzer.\n\nAll existing Erlang type systems are structural: two types are seen as\nequivalent if their structures are the same. Type comparisons are based on the\nstructures of the types, not on how the user explicitly defines them. For\nexample, in the following example, `meter()` and `foot()` are equivalent. The\ntwo types can be used interchangeably. Neither of them differ from the basic\ntype `integer()`.\n\n```\n-type meter() :: integer().\n-type foot() :: integer().\n```\n\nNominal typing is an alternative type system, where two types are equivalent\nif and only if they are declared with the same type name. The EEP proposes one\nnew syntax -nominal for declaring nominal types. Under nominal typing,\n`meter()` and `foot()` are no longer compatible. Whenever a function expects\ntype `meter()`, passing in type `foot()` would result in a Dialyzer error.\n\n```\n-nominal meter() :: integer().\n-nominal foot() :: integer().\n```\n\nMore nominal type-checking rules can be found in the EEP. It is worth noting\nthat most work for adding nominal types and type-checking is in\n`erl_types.erl`. The rest are changes that removed the previous opaque\ntype-checking, and added an improved version of it using nominal type-checking\nwith reworked warnings.\n\nBackwards compatibility for opaque type-checking is not preserved by this PR.\nPrevious opaque warnings can appear with slightly different wordings. A new\nkind of opaque warning `opaque_union` is added, together with a Dialyzer\noption `no_opaque_union` to turn this kind of warnings off.\n\n[EEP-69: Nominal Types]: https://www.erlang.org/eeps/eep-0069"
+        Tags: "HIGHLIGHT"
+      OTP-19369:
+        type: "## Improvements and New Features"
+        release_note: "Two BIFs have been added to the [`erlang`] module.\n\n`erlang:processes_iterator/0` returns a process iterator that can be used to\niterate through the process table.\n\n`erlang:process_next/1` takes in a process iterator and returns a 2-tuple,\nconsisting of a process identifier and a new process iterator. When the\nprocess iterator runs out of processes in the process table, `none` will be\nreturned.\n\nUsing these BIFs to scan the processes scales better than using\n`erlang:processes/0`, at the cost of giving less consistency guarantees.\nProcess identifiers returned from consecutive calls of `erlang:process_next/1`\nmay not be a consistent snapshot of all elements existing in the table during\nany of the calls. A process identifier is only guaranteed to be returned from\na call to `erlang:processes_next/1` if it was alive before the call to\n`erlang:processes_iterator/0` and was still alive when\n`erlang:processes_next/1` returned `none`.\n\n[`erlang`]: https://erlang.org/doc/man/erlang"
+        RelatedIds: "[PR-9129]\n\n[PR-9129]: https://github.com/erlang/otp/pull/9129"
+      OTP-19386:
+        type: "## Improvements and New Features"
+        release_note: "Improved open debug for gen_tcp_socket (connect and listen) and gen_udp_socket\n(open)."
+      OTP-19431:
+        type: "## Improvements and New Features"
+        release_note: "Module [`re`] has been updated to use PCRE2, which is mostly backward\ncompatible with PCRE.\n\nThe most noticeable incompatibilities are\n\n- The default character encoding is pure ASCII and not Latin1. Unicode support\n  is still available with options `unicode` and `ucp`.\n- Options `bsr_anycrlf`, `bsr_unicode` and `{newline,_}` are only set when a\n  regex is compiled and cannot be changed at matching for precompiled regex.\n\n[`re`]: https://erlang.org/doc/man/re"
+        Tags: "HIGHLIGHT, POTENTIAL INCOMPATIBILITY"
+      OTP-19450:
+        type: "## Improvements and New Features"
+        release_note: "When booting the runtime system on a 32-bit computer with a single core, the\nboot code will try to minimize the peak memory use by disabling parallel\nloading of BEAM files."
+        RelatedIds: "[PR-9342]\n\n[PR-9342]: https://github.com/erlang/otp/pull/9342"
+      OTP-19451:
+        type: "## Improvements and New Features"
+        release_note: "A `socket` option `{otp,select_read}` has been added that enables keeping a\nsocket in the VM select/poll set between calls to recv functions.\n\nThis increases throughput by reducing the number of calls to said functions."
+        RelatedIds: "[PR-9344]\n\n[PR-9344]: https://github.com/erlang/otp/pull/9344"
+      OTP-19460:
+        type: "## Improvements and New Features"
+        release_note: "`erlc` will now write compiler warnings and errors to standard error, instead\nof standard output, in common with other language compilers."
+        RelatedIds: "[GH-9255], [PR-9363]\n\n[GH-9255]: https://github.com/erlang/otp/issues/9255\n[PR-9363]: https://github.com/erlang/otp/pull/9363"
+      OTP-19465:
+        type: "## Improvements and New Features"
+        release_note: "Fixed the Windows build to always include `.pdb` files for all DLLs and\nexecutables to help with debugging."
+        RelatedIds: "[PR-9229]\n\n[PR-9229]: https://github.com/erlang/otp/pull/9229"
+      OTP-19472:
+        type: "## Improvements and New Features"
+        release_note: "Improve the naming of the (internal) esock mutex(es). It is now possible to\nconfigure (as in autoconf) the use of simple names for the esock mutex(es)."
+        RelatedIds: "[PR-9388]\n\n[PR-9388]: https://github.com/erlang/otp/pull/9388"
+      OTP-19473:
+        type: "## Improvements and New Features"
+        release_note: "An optimization for appending 0 bits to a binary was removed in patch releases\nfor OTP versions 25, 26, and 27. This optimization has been reintroduced in\nErlang/OTP 28."
+        RelatedIds: "[PR-8697], [PR-9396]\n\n[PR-8697]: https://github.com/erlang/otp/pull/8697\n[PR-9396]: https://github.com/erlang/otp/pull/9396"
+      OTP-19478:
+        type: "## Improvements and New Features"
+        release_note: "Fixed licenses in files and added ORT curations to the following apps: otp,\neldap, erl_interface, eunit, parsetools, stdlib, syntax_tools, and ERTS."
+        RelatedIds: "[PR-9376], [PR-9402], [PR-9819]\n\n[PR-9376]: https://github.com/erlang/otp/pull/9376\n[PR-9402]: https://github.com/erlang/otp/pull/9402\n[PR-9819]: https://github.com/erlang/otp/pull/9819"
+      OTP-19479:
+        type: "## Improvements and New Features"
+        release_note: "When using `enif_select_read` (or `enif_select` with `ERL_NIF_SELECT_READ`) on\nsystems with kernel polling enabled (that is most Unix systems), file\ndescriptors that are always re-enabled as soon as they trigger are now part of\na specialized pollset just as `driver_select`. This reduces the CPU usage in\nsuch scenarios as the erts does not have to re-insert the FD everytime it it\ntriggered. As a result of this optimization [`socket`] based reading uses a\nlot less CPU and achieves a higher throughput.\n\n[`socket`]: https://erlang.org/doc/man/socket"
+        RelatedIds: "[PR-9275]\n\n[PR-9275]: https://github.com/erlang/otp/pull/9275"
+      OTP-19480:
+        type: "## Improvements and New Features"
+        release_note: "Added support for compiling Erlang/OTP for Windows on ARM64."
+        RelatedIds: "[PR-8734]\n\n[PR-8734]: https://github.com/erlang/otp/pull/8734"
+      OTP-19481:
+        type: "## Improvements and New Features"
+        release_note: "The Windows installer no longer creates the `erl.ini` file, making\ninstallations redistributable."
+        RelatedIds: "[PR-9330]\n\n[PR-9330]: https://github.com/erlang/otp/pull/9330"
+      OTP-19503:
+        type: "## Improvements and New Features"
+        release_note: "Added erlang:hibernate/0, which hibernates a process without discarding the\nstack."
+        RelatedIds: "[PR-9406]\n\n[PR-9406]: https://github.com/erlang/otp/pull/9406"
+      OTP-19509:
+        type: "## Improvements and New Features"
+        release_note: "The asmjit library (used by BeamJIT) has been updated to version\n029075b84bf0161a761beb63e6eda519a29020db."
+        RelatedIds: "[PR-9495]\n\n[PR-9495]: https://github.com/erlang/otp/pull/9495"
+      OTP-19519:
+        type: "## Improvements and New Features"
+        release_note: "When compiling C/C++ code on Unix systems, the compiler hardening flags\nsuggested by the Open Source Security Foundation are now enabled by default.\nTo disable them, pass `--disable-security-hardening-flags` to `configure`."
+        RelatedIds: "[PR-9441]\n\n[PR-9441]: https://github.com/erlang/otp/pull/9441"
+      OTP-19536:
+        type: "## Improvements and New Features"
+        release_note: "If a process being suspended using `erlang:suspend_process()` currently is\nwaiting in a `receive ... after` expression, the timer for the timeout will\nnow also be suspended until the process is resumed."
+        Tags: "POTENTIAL INCOMPATIBILITY"
+      OTP-19539:
+        type: "## Improvements and New Features"
+        release_note: "A test module for TLS distribution over `socket` has been implemented."
+        RelatedIds: "[PR-9511]\n\n[PR-9511]: https://github.com/erlang/otp/pull/9511"
+      OTP-19541:
+        type: "## Improvements and New Features"
+        release_note: "Upgrade pcre2 to 10.45"
+        RelatedIds: "[PR-9582]\n\n[PR-9582]: https://github.com/erlang/otp/pull/9582"
+      OTP-19551:
+        type: "## Improvements and New Features"
+        release_note: "The `+R` emulator options has been removed. It has had any effect since\nErlang/OTP R9."
+        RelatedIds: "[PR-9608]\n\n[PR-9608]: https://github.com/erlang/otp/pull/9608"
+      OTP-19575:
+        type: "## Improvements and New Features"
+        release_note: "The license and copyright header has changed format to include an\n`SPDX-License-Identifier`. At the same time, most files have been updated to\nfollow a uniform standard for license headers."
+        RelatedIds: "[PR-9670]\n\n[PR-9670]: https://github.com/erlang/otp/pull/9670"
+      OTP-19576:
+        type: "## Improvements and New Features"
+        release_note: "Increase the default inet-driver buffer size(s). Also introduce kernel\nparameters for UDP and SCTP to change the sizes when creating (those) sockets."
+      OTP-19589:
+        type: "## Improvements and New Features"
+        release_note: "Add `+JPperfdirectory <dir>` for specifying which directory Erlang should\nplace perf symbol information files."
+        RelatedIds: "[GH-9500], [PR-9639]\n\n[GH-9500]: https://github.com/erlang/otp/issues/9500\n[PR-9639]: https://github.com/erlang/otp/pull/9639"
+      OTP-19590:
+        type: "## Improvements and New Features"
+        release_note: "Allow multiple static nifs to be part of the same archive. See the NIF\ndocumentation for details."
+        RelatedIds: "[PR-9625]\n\n[PR-9625]: https://github.com/erlang/otp/pull/9625"
+      OTP-19591:
+        type: "## Improvements and New Features"
+        release_note: "Various improvements reducing lock contention on run queues due to task\nstealing."
+        RelatedIds: "[PR-9594]\n\n[PR-9594]: https://github.com/erlang/otp/pull/9594"
+      OTP-19603:
+        type: "## Improvements and New Features"
+        release_note: "The new implementation has the same behavior as the previous one. The newer\ncompilers already have native support for FP16, so this implementation is only\nrelevant for older compilers. For this reason, the new implementation has not\nbeen tested for speed."
+        RelatedIds: "[PR-9735]\n\n[PR-9735]: https://github.com/erlang/otp/pull/9735"
+      OTP-19609:
+        type: "## Improvements and New Features"
+        release_note: "An **experimental** API for a native debugger has been added. The main\ncomponents are the following:\n\n- A new compiler option `beam_debug_info` for the Erlang compiler. When given,\n  most optimizations are disabled and debug information suitable for the\n  native debugger are added to generated BEAM files.\n- A new `+D` emulator flag. When given, the VM becomes \"debuggable\", which\n  means that when modules that been compiled with the `beam_debug_info` option\n  are loaded, the code is instrumented so that one can enable and disable\n  breakpoints on executable lines.\n- An experimental `erl_debugger` module with a new debugging API. Essentially,\n  it allows a single, local, process to be registered as the \"debugger\"\n  process for the node. This process is the one that will receive messages\n  notifying that a process hit a breakpoint. This way, the front-end\n  implementation of a debugger (such as [edb from WhatApp]) can be decoupled\n  from OTP.\n- The `erl_debugger` module also exposes new BIFs to inspect `X` and `Y`\n  registers of a suspended process. Together with new code-information BIFs,\n  this let's a debugger show the values of variables in scope for a suspended\n  process.\n\n[edb from WhatApp]: https://github.com/WhatsApp/edb"
+        Tags: "HIGHLIGHT"
+      OTP-19613:
+        type: "## Improvements and New Features"
+        release_note: "Update internal `ryu` implementation to use latest version. The new version is\na little bit faster in some scenarios. `ryu` is used by `float_to_list/1` and\nsimilar functions to convert floats to strings."
+        RelatedIds: "[PR-9733]\n\n[PR-9733]: https://github.com/erlang/otp/pull/9733"
+      OTP-19614:
+        type: "## Improvements and New Features"
+        release_note: "Update of MD5 implementation from OpenSSL version 3.1.4 to 3.5."
+        RelatedIds: "[PR-9775]\n\n[PR-9775]: https://github.com/erlang/otp/pull/9775"
+      OTP-19618:
+        type: "## Improvements and New Features"
+        release_note: "Small optimization in binary_to_term by not allocating an unnecessary large\nnative stack frame."
+        RelatedIds: "[PR-9759], [PR-9809]\n\n[PR-9759]: https://github.com/erlang/otp/pull/9759\n[PR-9809]: https://github.com/erlang/otp/pull/9809"
+  et-1.7.2:
+    pre: ""
+    post: "> #### Full runtime dependencies of et-1.7.2\n>\n> erts-9.0, kernel-5.3, runtime_tools-1.10, stdlib-3.4, wx-1.2"
+    mode: "markdown"
+    tickets:
+      OTP-19575:
+        type: "## Improvements and New Features"
+        release_note: "The license and copyright header has changed format to include an\n`SPDX-License-Identifier`. At the same time, most files have been updated to\nfollow a uniform standard for license headers."
+        RelatedIds: "[PR-9670]\n\n[PR-9670]: https://github.com/erlang/otp/pull/9670"
+  eunit-2.10:
+    pre: ""
+    post: "> #### Full runtime dependencies of eunit-2.10\n>\n> erts-9.0, kernel-5.3, stdlib-3.4"
+    mode: "markdown"
+    tickets:
+      OTP-19630:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Fix so that when running tests in parallel and one test is cancelled due to a\nfailing setup, it is report as cancelled. Before this fix the cancellation was\nignored."
+        RelatedIds: "[PR-9794]\n\n[PR-9794]: https://github.com/erlang/otp/pull/9794"
+      OTP-19364:
+        type: "## Improvements and New Features"
+        release_note: "[EEP-69: Nominal Types] has been implemented. As a side effect, nominal types\ncan encode opaque types. We changed all opaque-handling logic and improved\nopaque warnings in Dialyzer.\n\nAll existing Erlang type systems are structural: two types are seen as\nequivalent if their structures are the same. Type comparisons are based on the\nstructures of the types, not on how the user explicitly defines them. For\nexample, in the following example, `meter()` and `foot()` are equivalent. The\ntwo types can be used interchangeably. Neither of them differ from the basic\ntype `integer()`.\n\n```\n-type meter() :: integer().\n-type foot() :: integer().\n```\n\nNominal typing is an alternative type system, where two types are equivalent\nif and only if they are declared with the same type name. The EEP proposes one\nnew syntax -nominal for declaring nominal types. Under nominal typing,\n`meter()` and `foot()` are no longer compatible. Whenever a function expects\ntype `meter()`, passing in type `foot()` would result in a Dialyzer error.\n\n```\n-nominal meter() :: integer().\n-nominal foot() :: integer().\n```\n\nMore nominal type-checking rules can be found in the EEP. It is worth noting\nthat most work for adding nominal types and type-checking is in\n`erl_types.erl`. The rest are changes that removed the previous opaque\ntype-checking, and added an improved version of it using nominal type-checking\nwith reworked warnings.\n\nBackwards compatibility for opaque type-checking is not preserved by this PR.\nPrevious opaque warnings can appear with slightly different wordings. A new\nkind of opaque warning `opaque_union` is added, together with a Dialyzer\noption `no_opaque_union` to turn this kind of warnings off.\n\n[EEP-69: Nominal Types]: https://www.erlang.org/eeps/eep-0069"
+        Tags: "HIGHLIGHT"
+      OTP-19478:
+        type: "## Improvements and New Features"
+        release_note: "Fixed licenses in files and added ORT curations to the following apps: otp,\neldap, erl_interface, eunit, parsetools, stdlib, syntax_tools, and ERTS."
+        RelatedIds: "[PR-9376], [PR-9402], [PR-9819]\n\n[PR-9376]: https://github.com/erlang/otp/pull/9376\n[PR-9402]: https://github.com/erlang/otp/pull/9402\n[PR-9819]: https://github.com/erlang/otp/pull/9819"
+      OTP-19575:
+        type: "## Improvements and New Features"
+        release_note: "The license and copyright header has changed format to include an\n`SPDX-License-Identifier`. At the same time, most files have been updated to\nfollow a uniform standard for license headers."
+        RelatedIds: "[PR-9670]\n\n[PR-9670]: https://github.com/erlang/otp/pull/9670"
+  ftp-1.2.4:
+    pre: ""
+    post: "> #### Full runtime dependencies of ftp-1.2.4\n>\n> erts-7.0, kernel-6.0, runtime_tools-1.15.1, ssl-10.2, stdlib-3.5"
+    mode: "markdown"
+    tickets:
+      OTP-19575:
+        type: "## Improvements and New Features"
+        release_note: "The license and copyright header has changed format to include an\n`SPDX-License-Identifier`. At the same time, most files have been updated to\nfollow a uniform standard for license headers."
+        RelatedIds: "[PR-9670]\n\n[PR-9670]: https://github.com/erlang/otp/pull/9670"
+  inets-9.4:
+    pre: ""
+    post: "> #### Full runtime dependencies of inets-9.4\n>\n> erts-14.0, kernel-9.0, mnesia-4.12, public_key-1.13, runtime_tools-1.8.14,\n> ssl-9.0, stdlib-5.0, stdlib-6.0"
+    mode: "markdown"
+    tickets:
+      OTP-19485:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Replaced calls to deprecated `crypto:start()` with\n`application:start(crypto)`."
+        RelatedIds: "[PR-8592]\n\n[PR-8592]: https://github.com/erlang/otp/pull/8592"
+      OTP-19604:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Enhance specs of timeout for improving documentation and dialyzer analysis."
+        RelatedIds: "[PR-9574]\n\n[PR-9574]: https://github.com/erlang/otp/pull/9574"
+      OTP-19520:
+        type: "## Improvements and New Features"
+        release_note: "Enhanced http client documentation."
+        RelatedIds: "[PR-9516]\n\n[PR-9516]: https://github.com/erlang/otp/pull/9516"
+      OTP-19521:
+        type: "## Improvements and New Features"
+        release_note: "Enhance made to mod_esi documentation"
+        RelatedIds: "[PR-9472]\n\n[PR-9472]: https://github.com/erlang/otp/pull/9472"
+      OTP-19575:
+        type: "## Improvements and New Features"
+        release_note: "The license and copyright header has changed format to include an\n`SPDX-License-Identifier`. At the same time, most files have been updated to\nfollow a uniform standard for license headers."
+        RelatedIds: "[PR-9670]\n\n[PR-9670]: https://github.com/erlang/otp/pull/9670"
+      OTP-19624:
+        type: "## Improvements and New Features"
+        release_note: "Inets Makefiles now create and use dependencies files for .erl files"
+        RelatedIds: "[PR-9101]\n\n[PR-9101]: https://github.com/erlang/otp/pull/9101"
+  jinterface-1.15:
+    pre: ""
+    post: ""
+    mode: "markdown"
+    tickets:
+      OTP-19308:
+        type: "## Improvements and New Features"
+        release_note: "The `.class` files of jinterface are now part of the prebuilt archive using\nJava 8."
+        RelatedIds: "[PR-8960]\n\n[PR-8960]: https://github.com/erlang/otp/pull/8960"
+      OTP-19575:
+        type: "## Improvements and New Features"
+        release_note: "The license and copyright header has changed format to include an\n`SPDX-License-Identifier`. At the same time, most files have been updated to\nfollow a uniform standard for license headers."
+        RelatedIds: "[PR-9670]\n\n[PR-9670]: https://github.com/erlang/otp/pull/9670"
+  kernel-10.3:
+    pre: ""
+    post: "> #### Full runtime dependencies of kernel-10.3\n>\n> crypto-5.0, erts-15.2.5, sasl-3.0, stdlib-6.0"
+    mode: "markdown"
+    tickets:
+      OTP-19228:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Fixed an issue where output to the shell would not print the prompt on a new\nline."
+        RelatedIds: "[PR-8820]\n\n[PR-8820]: https://github.com/erlang/otp/pull/8820"
+      OTP-19296:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "When in [`shell`] is in `-noshell` mode, and in `latin1` encoding mode, io\nrequests in latin1 encoding will not be translated to unicode and back to\nlatin1.\n\n[`shell`]: https://erlang.org/doc/man/shell"
+        RelatedIds: "[PR-9013]\n\n[PR-9013]: https://github.com/erlang/otp/pull/9013"
+      OTP-19297:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Fixed a bug where a composing unicode character would bind to a character not\navailable to the user and deleting that character would cause a crash."
+        RelatedIds: "[PR-9005]\n\n[PR-9005]: https://github.com/erlang/otp/pull/9005"
+      OTP-19313:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "The [`-noshell`] mode has been updated to read data lazily from standard\ninput. Before this fix any data would be read greedily which meant that Erlang\ncould consume data not meant for it. It also meant that in order for\n`shell:start_interactive/0` to work on Windows an API that did not support\nreading of Unicode characters had to be used.\n\n[`-noshell`]: https://erlang.org/doc/apps/erts/erl_cmd.html#noshell"
+        RelatedIds: "[GH-8113], [PR-8962]\n\n[GH-8113]: https://github.com/erlang/otp/issues/8113\n[PR-8962]: https://github.com/erlang/otp/pull/8962"
+      OTP-19414:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "The Erlang shell no longer crashes when a shell prompt ends with an escape\nsequence."
+        RelatedIds: "[PR-9272]\n\n[PR-9272]: https://github.com/erlang/otp/pull/9272"
+      OTP-19513:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "`code:get_doc/1` now works for cover-compiled modules."
+        RelatedIds: "[PR-9433]\n\n[PR-9433]: https://github.com/erlang/otp/pull/9433"
+      OTP-19544:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "An infinite loop in CNAME loop detection that can cause Out Of Memory has been\nfixed. This affected CNAME lookup with the internal DNS resolver."
+        RelatedIds: "[PR-9587], OTP-19545\n\n[PR-9587]: https://github.com/erlang/otp/pull/9587"
+      OTP-19555:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "The internal resolver framework has been fixed to wait with the first resolver\nlookup until the ERL_INETRC environment variable has been applied.\n\nPreviously, on some platform(s) (Linux) a first lookup when figuring out the\ndomain name was always placed on the `native` resolver even if ERL_INETRC was\nused to disable it."
+        RelatedIds: "[PR-9543]\n\n[PR-9543]: https://github.com/erlang/otp/pull/9543"
+      OTP-19588:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Fix `logger:add_handler(default, ...)` to correctly replay events generated\nduring startup when the default logger is set to `undefined` in logger's\nconfiguration parameters."
+        RelatedIds: "[GH-9436], [PR-9595]\n\n[GH-9436]: https://github.com/erlang/otp/issues/9436\n[PR-9595]: https://github.com/erlang/otp/pull/9595"
+      OTP-19604:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Enhance specs of timeout for improving documentation and dialyzer analysis."
+        RelatedIds: "[PR-9574]\n\n[PR-9574]: https://github.com/erlang/otp/pull/9574"
+      OTP-19627:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Removed the default values for SCTP send (sndbuf) and receive (recbuf)\nbuffers."
+        Tags: "HIGHLIGHT"
+      OTP-19194:
+        type: "## Improvements and New Features"
+        release_note: "`application:load/1` slows down as the number of directories in the code path\nincreases because the call to `code:where_is_file/1` for the '.app' file must\nscan each directory for the app.\n\n`code_server` maintains a cache of the contents of directories in the path.\nRe-using that cache when searching for '.app' files in `application:load/1`\nmay improve its runtime, especially when loading multiple applications."
+        RelatedIds: "[PR-8078]\n\n[PR-8078]: https://github.com/erlang/otp/pull/8078"
+      OTP-19226:
+        type: "## Improvements and New Features"
+        release_note: "The [`Erlang SSH daemon`] now uses the same backend to handle multiline\nfunctionality as the Erlang shell.\n\n[`Erlang SSH daemon`]: https://erlang.org/doc/apps/ssh/using_ssh.html#running-an-erlang-ssh-daemon"
+        RelatedIds: "[PR-8805]\n\n[PR-8805]: https://github.com/erlang/otp/pull/8805"
+      OTP-19278:
+        type: "## Improvements and New Features"
+        release_note: "Added support for `SIGWINCH`, `SIGCONT`, and `SIGINFO` signals to\n`os:set_signal/2` where available."
+        RelatedIds: "[PR-8887], [PR-8938]\n\n[PR-8887]: https://github.com/erlang/otp/pull/8887\n[PR-8938]: https://github.com/erlang/otp/pull/8938"
+      OTP-19287:
+        type: "## Improvements and New Features"
+        release_note: "Add `net_kernel:allowed/0`, it returns a list of nodes that are explicitly\nallowed to connect to the node by calling `net_kernel:allow/1`"
+        RelatedIds: "[PR-8207]\n\n[PR-8207]: https://github.com/erlang/otp/pull/8207"
+      OTP-19306:
+        type: "## Improvements and New Features"
+        release_note: "Documentation chunks (EEP-48) has been updated to include the following\nreserved metadata fields: `behaviours`, `group`, `source_path`, and\n`source_annos`. The compiler has also been updated to emit this metadata. See\nthe [EEP-48 documentation] for more details.\n\n[EEP-48 documentation]: https://erlang.org/doc/apps/kernel/eep48_chapter.html"
+        RelatedIds: "[PR-8945], [PR-8975]\n\n[PR-8945]: https://github.com/erlang/otp/pull/8945\n[PR-8975]: https://github.com/erlang/otp/pull/8975"
+      OTP-19343:
+        type: "## Improvements and New Features"
+        release_note: "The `erpc:call/3`, `erpc:call/5`, `erpc:multicall/3`, and `erpc:multicall/5`\nfunctions now also accept an option map as last argument containing the\n`timeout` and `always_spawn` options. The `always_spawn` option can be used in\norder to ensure that the call operation will use a newly spawned process when\nexecuting the remote call."
+        RelatedIds: "[PR-8642]\n\n[PR-8642]: https://github.com/erlang/otp/pull/8642"
+      OTP-19364:
+        type: "## Improvements and New Features"
+        release_note: "[EEP-69: Nominal Types] has been implemented. As a side effect, nominal types\ncan encode opaque types. We changed all opaque-handling logic and improved\nopaque warnings in Dialyzer.\n\nAll existing Erlang type systems are structural: two types are seen as\nequivalent if their structures are the same. Type comparisons are based on the\nstructures of the types, not on how the user explicitly defines them. For\nexample, in the following example, `meter()` and `foot()` are equivalent. The\ntwo types can be used interchangeably. Neither of them differ from the basic\ntype `integer()`.\n\n```\n-type meter() :: integer().\n-type foot() :: integer().\n```\n\nNominal typing is an alternative type system, where two types are equivalent\nif and only if they are declared with the same type name. The EEP proposes one\nnew syntax -nominal for declaring nominal types. Under nominal typing,\n`meter()` and `foot()` are no longer compatible. Whenever a function expects\ntype `meter()`, passing in type `foot()` would result in a Dialyzer error.\n\n```\n-nominal meter() :: integer().\n-nominal foot() :: integer().\n```\n\nMore nominal type-checking rules can be found in the EEP. It is worth noting\nthat most work for adding nominal types and type-checking is in\n`erl_types.erl`. The rest are changes that removed the previous opaque\ntype-checking, and added an improved version of it using nominal type-checking\nwith reworked warnings.\n\nBackwards compatibility for opaque type-checking is not preserved by this PR.\nPrevious opaque warnings can appear with slightly different wordings. A new\nkind of opaque warning `opaque_union` is added, together with a Dialyzer\noption `no_opaque_union` to turn this kind of warnings off.\n\n[EEP-69: Nominal Types]: https://www.erlang.org/eeps/eep-0069"
+        Tags: "HIGHLIGHT"
+      OTP-19386:
+        type: "## Improvements and New Features"
+        release_note: "Improved open debug for gen_tcp_socket (connect and listen) and gen_udp_socket\n(open)."
+      OTP-19401:
+        type: "## Improvements and New Features"
+        release_note: "`t:io:standard_error/0` has been updated to write via a NIF API instead of a\nport. This allows it to access the dirty-scheduler pool and make sure that\nwrites have been written to the OSs `stderr` when `io:format/3` and equivalent\nreturn."
+        RelatedIds: "[PR-9116]\n\n[PR-9116]: https://github.com/erlang/otp/pull/9116"
+      OTP-19404:
+        type: "## Improvements and New Features"
+        release_note: "Added the option `exception_on_failure` to `os:cmd/2` to make `os:cmd/2` raise\nan exception if the command fails to execute."
+        RelatedIds: "[PR-9082]\n\n[PR-9082]: https://github.com/erlang/otp/pull/9082"
+      OTP-19451:
+        type: "## Improvements and New Features"
+        release_note: "A `socket` option `{otp,select_read}` has been added that enables keeping a\nsocket in the VM select/poll set between calls to recv functions.\n\nThis increases throughput by reducing the number of calls to said functions."
+        RelatedIds: "[PR-9344]\n\n[PR-9344]: https://github.com/erlang/otp/pull/9344"
+      OTP-19522:
+        type: "## Improvements and New Features"
+        release_note: "Add a configure chapter to the socket usage guide"
+        RelatedIds: "[PR-9508]\n\n[PR-9508]: https://github.com/erlang/otp/pull/9508"
+      OTP-19575:
+        type: "## Improvements and New Features"
+        release_note: "The license and copyright header has changed format to include an\n`SPDX-License-Identifier`. At the same time, most files have been updated to\nfollow a uniform standard for license headers."
+        RelatedIds: "[PR-9670]\n\n[PR-9670]: https://github.com/erlang/otp/pull/9670"
+      OTP-19576:
+        type: "## Improvements and New Features"
+        release_note: "Increase the default inet-driver buffer size(s). Also introduce kernel\nparameters for UDP and SCTP to change the sizes when creating (those) sockets."
+      OTP-19609:
+        type: "## Improvements and New Features"
+        release_note: "An **experimental** API for a native debugger has been added. The main\ncomponents are the following:\n\n- A new compiler option `beam_debug_info` for the Erlang compiler. When given,\n  most optimizations are disabled and debug information suitable for the\n  native debugger are added to generated BEAM files.\n- A new `+D` emulator flag. When given, the VM becomes \"debuggable\", which\n  means that when modules that been compiled with the `beam_debug_info` option\n  are loaded, the code is instrumented so that one can enable and disable\n  breakpoints on executable lines.\n- An experimental `erl_debugger` module with a new debugging API. Essentially,\n  it allows a single, local, process to be registered as the \"debugger\"\n  process for the node. This process is the one that will receive messages\n  notifying that a process hit a breakpoint. This way, the front-end\n  implementation of a debugger (such as [edb from WhatApp]) can be decoupled\n  from OTP.\n- The `erl_debugger` module also exposes new BIFs to inspect `X` and `Y`\n  registers of a suspended process. Together with new code-information BIFs,\n  this let's a debugger show the values of variables in scope for a suspended\n  process.\n\n[edb from WhatApp]: https://github.com/WhatsApp/edb"
+        Tags: "HIGHLIGHT"
+  megaco-4.8:
+    pre: ""
+    post: "> #### Full runtime dependencies of megaco-4.8\n>\n> asn1-3.0, debugger-4.0, erts-12.0, et-1.5, kernel-8.0, runtime_tools-1.8.14,\n> stdlib-2.5"
+    mode: "markdown"
+    tickets:
+      OTP-19523:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Add missing spec and doc for exported functions."
+      OTP-19403:
+        type: "## Improvements and New Features"
+        release_note: "Nano seconds are now used for (example) meas result presentation.\n\nNanoseconds are now used, for example, in `meas` result presentations."
+      OTP-19480:
+        type: "## Improvements and New Features"
+        release_note: "Added support for compiling Erlang/OTP for Windows on ARM64."
+        RelatedIds: "[PR-8734]\n\n[PR-8734]: https://github.com/erlang/otp/pull/8734"
+      OTP-19519:
+        type: "## Improvements and New Features"
+        release_note: "When compiling C/C++ code on Unix systems, the compiler hardening flags\nsuggested by the Open Source Security Foundation are now enabled by default.\nTo disable them, pass `--disable-security-hardening-flags` to `configure`."
+        RelatedIds: "[PR-9441]\n\n[PR-9441]: https://github.com/erlang/otp/pull/9441"
+      OTP-19570:
+        type: "## Improvements and New Features"
+        release_note: "Add copyright notice to files that still had none."
+      OTP-19575:
+        type: "## Improvements and New Features"
+        release_note: "The license and copyright header has changed format to include an\n`SPDX-License-Identifier`. At the same time, most files have been updated to\nfollow a uniform standard for license headers."
+        RelatedIds: "[PR-9670]\n\n[PR-9670]: https://github.com/erlang/otp/pull/9670"
+      OTP-19598:
+        type: "## Improvements and New Features"
+        release_note: "Tweaked some of the meas examples in order to make them benchmark compatible."
+  mnesia-4.24:
+    pre: ""
+    post: "> #### Full runtime dependencies of mnesia-4.24\n>\n> erts-9.0, kernel-5.3, stdlib-5.0"
+    mode: "markdown"
+    tickets:
+      OTP-19364:
+        type: "## Improvements and New Features"
+        release_note: "[EEP-69: Nominal Types] has been implemented. As a side effect, nominal types\ncan encode opaque types. We changed all opaque-handling logic and improved\nopaque warnings in Dialyzer.\n\nAll existing Erlang type systems are structural: two types are seen as\nequivalent if their structures are the same. Type comparisons are based on the\nstructures of the types, not on how the user explicitly defines them. For\nexample, in the following example, `meter()` and `foot()` are equivalent. The\ntwo types can be used interchangeably. Neither of them differ from the basic\ntype `integer()`.\n\n```\n-type meter() :: integer().\n-type foot() :: integer().\n```\n\nNominal typing is an alternative type system, where two types are equivalent\nif and only if they are declared with the same type name. The EEP proposes one\nnew syntax -nominal for declaring nominal types. Under nominal typing,\n`meter()` and `foot()` are no longer compatible. Whenever a function expects\ntype `meter()`, passing in type `foot()` would result in a Dialyzer error.\n\n```\n-nominal meter() :: integer().\n-nominal foot() :: integer().\n```\n\nMore nominal type-checking rules can be found in the EEP. It is worth noting\nthat most work for adding nominal types and type-checking is in\n`erl_types.erl`. The rest are changes that removed the previous opaque\ntype-checking, and added an improved version of it using nominal type-checking\nwith reworked warnings.\n\nBackwards compatibility for opaque type-checking is not preserved by this PR.\nPrevious opaque warnings can appear with slightly different wordings. A new\nkind of opaque warning `opaque_union` is added, together with a Dialyzer\noption `no_opaque_union` to turn this kind of warnings off.\n\n[EEP-69: Nominal Types]: https://www.erlang.org/eeps/eep-0069"
+        Tags: "HIGHLIGHT"
+      OTP-19575:
+        type: "## Improvements and New Features"
+        release_note: "The license and copyright header has changed format to include an\n`SPDX-License-Identifier`. At the same time, most files have been updated to\nfollow a uniform standard for license headers."
+        RelatedIds: "[PR-9670]\n\n[PR-9670]: https://github.com/erlang/otp/pull/9670"
+  observer-2.18:
+    pre: ""
+    post: "> #### Full runtime dependencies of observer-2.18\n>\n> erts-15.0, et-1.5, kernel-10.0, runtime_tools-2.1, stdlib-5.0, wx-2.3"
+    mode: "markdown"
+    tickets:
+      OTP-19604:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Enhance specs of timeout for improving documentation and dialyzer analysis."
+        RelatedIds: "[PR-9574]\n\n[PR-9574]: https://github.com/erlang/otp/pull/9574"
+      OTP-19528:
+        type: "## Improvements and New Features"
+        release_note: "With this change etop from observer application will scroll as top from shell"
+        RelatedIds: "[PR-9659]\n\n[PR-9659]: https://github.com/erlang/otp/pull/9659"
+      OTP-19575:
+        type: "## Improvements and New Features"
+        release_note: "The license and copyright header has changed format to include an\n`SPDX-License-Identifier`. At the same time, most files have been updated to\nfollow a uniform standard for license headers."
+        RelatedIds: "[PR-9670]\n\n[PR-9670]: https://github.com/erlang/otp/pull/9670"
+  odbc-2.16:
+    pre: ""
+    post: "> #### Full runtime dependencies of odbc-2.16\n>\n> erts-6.0, kernel-3.0, stdlib-2.0"
+    mode: "markdown"
+    tickets:
+      OTP-19604:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Enhance specs of timeout for improving documentation and dialyzer analysis."
+        RelatedIds: "[PR-9574]\n\n[PR-9574]: https://github.com/erlang/otp/pull/9574"
+      OTP-19456:
+        type: "## Improvements and New Features"
+        release_note: "Updated odbc configure to enable easier use of iodbc driver."
+        RelatedIds: "[PR-9083]\n\n[PR-9083]: https://github.com/erlang/otp/pull/9083"
+      OTP-19480:
+        type: "## Improvements and New Features"
+        release_note: "Added support for compiling Erlang/OTP for Windows on ARM64."
+        RelatedIds: "[PR-8734]\n\n[PR-8734]: https://github.com/erlang/otp/pull/8734"
+      OTP-19519:
+        type: "## Improvements and New Features"
+        release_note: "When compiling C/C++ code on Unix systems, the compiler hardening flags\nsuggested by the Open Source Security Foundation are now enabled by default.\nTo disable them, pass `--disable-security-hardening-flags` to `configure`."
+        RelatedIds: "[PR-9441]\n\n[PR-9441]: https://github.com/erlang/otp/pull/9441"
+      OTP-19575:
+        type: "## Improvements and New Features"
+        release_note: "The license and copyright header has changed format to include an\n`SPDX-License-Identifier`. At the same time, most files have been updated to\nfollow a uniform standard for license headers."
+        RelatedIds: "[PR-9670]\n\n[PR-9670]: https://github.com/erlang/otp/pull/9670"
+  os_mon-2.11:
+    pre: ""
+    post: "> #### Full runtime dependencies of os_mon-2.11\n>\n> erts-14.0, kernel-9.0, sasl-4.2.1, stdlib-5.0"
+    mode: "markdown"
+    tickets:
+      OTP-19604:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Enhance specs of timeout for improving documentation and dialyzer analysis."
+        RelatedIds: "[PR-9574]\n\n[PR-9574]: https://github.com/erlang/otp/pull/9574"
+      OTP-19207:
+        type: "## Improvements and New Features"
+        release_note: "`m:disksup` will now recognize HAMMER2 volumes."
+        RelatedIds: "[PR-8704]\n\n[PR-8704]: https://github.com/erlang/otp/pull/8704"
+      OTP-19575:
+        type: "## Improvements and New Features"
+        release_note: "The license and copyright header has changed format to include an\n`SPDX-License-Identifier`. At the same time, most files have been updated to\nfollow a uniform standard for license headers."
+        RelatedIds: "[PR-9670]\n\n[PR-9670]: https://github.com/erlang/otp/pull/9670"
+  parsetools-2.7:
+    pre: ""
+    post: "> #### Full runtime dependencies of parsetools-2.7\n>\n> erts-6.0, kernel-3.0, stdlib-3.4"
+    mode: "markdown"
+    tickets:
+      OTP-19364:
+        type: "## Improvements and New Features"
+        release_note: "[EEP-69: Nominal Types] has been implemented. As a side effect, nominal types\ncan encode opaque types. We changed all opaque-handling logic and improved\nopaque warnings in Dialyzer.\n\nAll existing Erlang type systems are structural: two types are seen as\nequivalent if their structures are the same. Type comparisons are based on the\nstructures of the types, not on how the user explicitly defines them. For\nexample, in the following example, `meter()` and `foot()` are equivalent. The\ntwo types can be used interchangeably. Neither of them differ from the basic\ntype `integer()`.\n\n```\n-type meter() :: integer().\n-type foot() :: integer().\n```\n\nNominal typing is an alternative type system, where two types are equivalent\nif and only if they are declared with the same type name. The EEP proposes one\nnew syntax -nominal for declaring nominal types. Under nominal typing,\n`meter()` and `foot()` are no longer compatible. Whenever a function expects\ntype `meter()`, passing in type `foot()` would result in a Dialyzer error.\n\n```\n-nominal meter() :: integer().\n-nominal foot() :: integer().\n```\n\nMore nominal type-checking rules can be found in the EEP. It is worth noting\nthat most work for adding nominal types and type-checking is in\n`erl_types.erl`. The rest are changes that removed the previous opaque\ntype-checking, and added an improved version of it using nominal type-checking\nwith reworked warnings.\n\nBackwards compatibility for opaque type-checking is not preserved by this PR.\nPrevious opaque warnings can appear with slightly different wordings. A new\nkind of opaque warning `opaque_union` is added, together with a Dialyzer\noption `no_opaque_union` to turn this kind of warnings off.\n\n[EEP-69: Nominal Types]: https://www.erlang.org/eeps/eep-0069"
+        Tags: "HIGHLIGHT"
+      OTP-19478:
+        type: "## Improvements and New Features"
+        release_note: "Fixed licenses in files and added ORT curations to the following apps: otp,\neldap, erl_interface, eunit, parsetools, stdlib, syntax_tools, and ERTS."
+        RelatedIds: "[PR-9376], [PR-9402], [PR-9819]\n\n[PR-9376]: https://github.com/erlang/otp/pull/9376\n[PR-9402]: https://github.com/erlang/otp/pull/9402\n[PR-9819]: https://github.com/erlang/otp/pull/9819"
+      OTP-19575:
+        type: "## Improvements and New Features"
+        release_note: "The license and copyright header has changed format to include an\n`SPDX-License-Identifier`. At the same time, most files have been updated to\nfollow a uniform standard for license headers."
+        RelatedIds: "[PR-9670]\n\n[PR-9670]: https://github.com/erlang/otp/pull/9670"
+  public_key-1.18:
+    pre: ""
+    post: "> #### Full runtime dependencies of public_key-1.18\n>\n> asn1-5.0, crypto-5.0, erts-13.0, kernel-8.0, stdlib-4.0"
+    mode: "markdown"
+    tickets:
+      OTP-19616:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Enable public_key to decode legacy certs using md2 hash."
+        RelatedIds: "[GH-9754], [PR-9755]\n\n[GH-9754]: https://github.com/erlang/otp/issues/9754\n[PR-9755]: https://github.com/erlang/otp/pull/9755"
+      OTP-19519:
+        type: "## Improvements and New Features"
+        release_note: "When compiling C/C++ code on Unix systems, the compiler hardening flags\nsuggested by the Open Source Security Foundation are now enabled by default.\nTo disable them, pass `--disable-security-hardening-flags` to `configure`."
+        RelatedIds: "[PR-9441]\n\n[PR-9441]: https://github.com/erlang/otp/pull/9441"
+      OTP-19573:
+        type: "## Improvements and New Features"
+        release_note: "Ignore instead of crashing unhandled entries when loading CA-certificates."
+        RelatedIds: "[GH-9565], [PR-9677]\n\n[GH-9565]: https://github.com/erlang/otp/issues/9565\n[PR-9677]: https://github.com/erlang/otp/pull/9677"
+      OTP-19575:
+        type: "## Improvements and New Features"
+        release_note: "The license and copyright header has changed format to include an\n`SPDX-License-Identifier`. At the same time, most files have been updated to\nfollow a uniform standard for license headers."
+        RelatedIds: "[PR-9670]\n\n[PR-9670]: https://github.com/erlang/otp/pull/9670"
+      OTP-19612:
+        type: "## Improvements and New Features"
+        release_note: "The ancient ASN.1 modules used in `public_key` has been replaced with more\nmodern versions, but we have strived to keep the documented Erlang API for the\n`public_key` application compatible."
+        Tags: "HIGHLIGHT, POTENTIAL INCOMPATIBILITY"
+  reltool-1.0.2:
+    pre: ""
+    post: "> #### Full runtime dependencies of reltool-1.0.2\n>\n> erts-15.0, kernel-9.0, sasl-4.2.1, stdlib-5.0, tools-2.6.14, wx-2.3"
+    mode: "markdown"
+    tickets:
+      OTP-19575:
+        type: "## Improvements and New Features"
+        release_note: "The license and copyright header has changed format to include an\n`SPDX-License-Identifier`. At the same time, most files have been updated to\nfollow a uniform standard for license headers."
+        RelatedIds: "[PR-9670]\n\n[PR-9670]: https://github.com/erlang/otp/pull/9670"
+  runtime_tools-2.2:
+    pre: ""
+    post: "> #### Full runtime dependencies of runtime_tools-2.2\n>\n> erts-16.0, kernel-10.0, mnesia-4.12, stdlib-6.0"
+    mode: "markdown"
+    tickets:
+      OTP-19364:
+        type: "## Improvements and New Features"
+        release_note: "[EEP-69: Nominal Types] has been implemented. As a side effect, nominal types\ncan encode opaque types. We changed all opaque-handling logic and improved\nopaque warnings in Dialyzer.\n\nAll existing Erlang type systems are structural: two types are seen as\nequivalent if their structures are the same. Type comparisons are based on the\nstructures of the types, not on how the user explicitly defines them. For\nexample, in the following example, `meter()` and `foot()` are equivalent. The\ntwo types can be used interchangeably. Neither of them differ from the basic\ntype `integer()`.\n\n```\n-type meter() :: integer().\n-type foot() :: integer().\n```\n\nNominal typing is an alternative type system, where two types are equivalent\nif and only if they are declared with the same type name. The EEP proposes one\nnew syntax -nominal for declaring nominal types. Under nominal typing,\n`meter()` and `foot()` are no longer compatible. Whenever a function expects\ntype `meter()`, passing in type `foot()` would result in a Dialyzer error.\n\n```\n-nominal meter() :: integer().\n-nominal foot() :: integer().\n```\n\nMore nominal type-checking rules can be found in the EEP. It is worth noting\nthat most work for adding nominal types and type-checking is in\n`erl_types.erl`. The rest are changes that removed the previous opaque\ntype-checking, and added an improved version of it using nominal type-checking\nwith reworked warnings.\n\nBackwards compatibility for opaque type-checking is not preserved by this PR.\nPrevious opaque warnings can appear with slightly different wordings. A new\nkind of opaque warning `opaque_union` is added, together with a Dialyzer\noption `no_opaque_union` to turn this kind of warnings off.\n\n[EEP-69: Nominal Types]: https://www.erlang.org/eeps/eep-0069"
+        Tags: "HIGHLIGHT"
+      OTP-19519:
+        type: "## Improvements and New Features"
+        release_note: "When compiling C/C++ code on Unix systems, the compiler hardening flags\nsuggested by the Open Source Security Foundation are now enabled by default.\nTo disable them, pass `--disable-security-hardening-flags` to `configure`."
+        RelatedIds: "[PR-9441]\n\n[PR-9441]: https://github.com/erlang/otp/pull/9441"
+      OTP-19575:
+        type: "## Improvements and New Features"
+        release_note: "The license and copyright header has changed format to include an\n`SPDX-License-Identifier`. At the same time, most files have been updated to\nfollow a uniform standard for license headers."
+        RelatedIds: "[PR-9670]\n\n[PR-9670]: https://github.com/erlang/otp/pull/9670"
+      OTP-19584:
+        type: "## Improvements and New Features"
+        release_note: "With this change observer will use cheaper iterators to avoid locking when not\nnecessary."
+        RelatedIds: "[PR-9711]\n\n[PR-9711]: https://github.com/erlang/otp/pull/9711"
+  sasl-4.3:
+    pre: ""
+    post: "> #### Full runtime dependencies of sasl-4.3\n>\n> erts-15.0, kernel-6.0, stdlib-4.0, tools-2.6.14"
+    mode: "markdown"
+    tickets:
+      OTP-19279:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Fixed the documentation for the ExtraFiles option to `systools:make_tar/2`."
+        RelatedIds: "[GH-8842], [PR-8894]\n\n[GH-8842]: https://github.com/erlang/otp/issues/8842\n[PR-8894]: https://github.com/erlang/otp/pull/8894"
+      OTP-19398:
+        type: "## Improvements and New Features"
+        release_note: "[`.appup`] files are now included in releases in order to make it possible to\ncreate upgrade packages from an installed release.\n\n[`.appup`]: https://erlang.org/doc/apps/sasl/appup.html"
+        RelatedIds: "[PR-8973]\n\n[PR-8973]: https://github.com/erlang/otp/pull/8973"
+      OTP-19575:
+        type: "## Improvements and New Features"
+        release_note: "The license and copyright header has changed format to include an\n`SPDX-License-Identifier`. At the same time, most files have been updated to\nfollow a uniform standard for license headers."
+        RelatedIds: "[PR-9670]\n\n[PR-9670]: https://github.com/erlang/otp/pull/9670"
+  snmp-5.19:
+    pre: ""
+    post: "> #### Full runtime dependencies of snmp-5.19\n>\n> crypto-4.6, erts-12.0, kernel-8.0, mnesia-4.12, runtime_tools-1.8.14,\n> stdlib-5.0"
+    mode: "markdown"
+    tickets:
+      OTP-19364:
+        type: "## Improvements and New Features"
+        release_note: "[EEP-69: Nominal Types] has been implemented. As a side effect, nominal types\ncan encode opaque types. We changed all opaque-handling logic and improved\nopaque warnings in Dialyzer.\n\nAll existing Erlang type systems are structural: two types are seen as\nequivalent if their structures are the same. Type comparisons are based on the\nstructures of the types, not on how the user explicitly defines them. For\nexample, in the following example, `meter()` and `foot()` are equivalent. The\ntwo types can be used interchangeably. Neither of them differ from the basic\ntype `integer()`.\n\n```\n-type meter() :: integer().\n-type foot() :: integer().\n```\n\nNominal typing is an alternative type system, where two types are equivalent\nif and only if they are declared with the same type name. The EEP proposes one\nnew syntax -nominal for declaring nominal types. Under nominal typing,\n`meter()` and `foot()` are no longer compatible. Whenever a function expects\ntype `meter()`, passing in type `foot()` would result in a Dialyzer error.\n\n```\n-nominal meter() :: integer().\n-nominal foot() :: integer().\n```\n\nMore nominal type-checking rules can be found in the EEP. It is worth noting\nthat most work for adding nominal types and type-checking is in\n`erl_types.erl`. The rest are changes that removed the previous opaque\ntype-checking, and added an improved version of it using nominal type-checking\nwith reworked warnings.\n\nBackwards compatibility for opaque type-checking is not preserved by this PR.\nPrevious opaque warnings can appear with slightly different wordings. A new\nkind of opaque warning `opaque_union` is added, together with a Dialyzer\noption `no_opaque_union` to turn this kind of warnings off.\n\n[EEP-69: Nominal Types]: https://www.erlang.org/eeps/eep-0069"
+        Tags: "HIGHLIGHT"
+      OTP-19480:
+        type: "## Improvements and New Features"
+        release_note: "Added support for compiling Erlang/OTP for Windows on ARM64."
+        RelatedIds: "[PR-8734]\n\n[PR-8734]: https://github.com/erlang/otp/pull/8734"
+      OTP-19519:
+        type: "## Improvements and New Features"
+        release_note: "When compiling C/C++ code on Unix systems, the compiler hardening flags\nsuggested by the Open Source Security Foundation are now enabled by default.\nTo disable them, pass `--disable-security-hardening-flags` to `configure`."
+        RelatedIds: "[PR-9441]\n\n[PR-9441]: https://github.com/erlang/otp/pull/9441"
+      OTP-19572:
+        type: "## Improvements and New Features"
+        release_note: "Add copyright notice to files that still had none."
+      OTP-19575:
+        type: "## Improvements and New Features"
+        release_note: "The license and copyright header has changed format to include an\n`SPDX-License-Identifier`. At the same time, most files have been updated to\nfollow a uniform standard for license headers."
+        RelatedIds: "[PR-9670]\n\n[PR-9670]: https://github.com/erlang/otp/pull/9670"
+  ssh-5.3:
+    pre: ""
+    post: "> #### Full runtime dependencies of ssh-5.3\n>\n> crypto-5.0, erts-14.0, kernel-10.3, public_key-1.6.1, runtime_tools-1.15.1,\n> stdlib-5.0, stdlib-6.0"
+    mode: "markdown"
+    tickets:
+      OTP-19324:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "The implementation of the ssh server-side supervision tree has been improved."
+        RelatedIds: "[GH-8223], [PR-8968]\n\n[GH-8223]: https://github.com/erlang/otp/issues/8223\n[PR-8968]: https://github.com/erlang/otp/pull/8968"
+      OTP-19566:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "SSH daemon accepts fun as tcpip_tunnel_in option. This provides more control\nover TCP connection tunnel handle by server."
+        RelatedIds: "[PR-9571]\n\n[PR-9571]: https://github.com/erlang/otp/pull/9571"
+      OTP-19226:
+        type: "## Improvements and New Features"
+        release_note: "The [`Erlang SSH daemon`] now uses the same backend to handle multiline\nfunctionality as the Erlang shell.\n\n[`Erlang SSH daemon`]: https://erlang.org/doc/apps/ssh/using_ssh.html#running-an-erlang-ssh-daemon"
+        RelatedIds: "[PR-8805]\n\n[PR-8805]: https://github.com/erlang/otp/pull/8805"
+      OTP-19420:
+        type: "## Improvements and New Features"
+        release_note: "CBC algorithms are not offered by default. See Configuring algorithms in SSH\nif you wish to enable them."
+        Tags: "POTENTIAL INCOMPATIBILITY"
+      OTP-19535:
+        type: "## Improvements and New Features"
+        release_note: "Daemon can be configured (bannerfun option) to send banner message at the\nbeginning of user authentication."
+        RelatedIds: "[PR-9149]\n\n[PR-9149]: https://github.com/erlang/otp/pull/9149"
+      OTP-19575:
+        type: "## Improvements and New Features"
+        release_note: "The license and copyright header has changed format to include an\n`SPDX-License-Identifier`. At the same time, most files have been updated to\nfollow a uniform standard for license headers."
+        RelatedIds: "[PR-9670]\n\n[PR-9670]: https://github.com/erlang/otp/pull/9670"
+      OTP-19586:
+        type: "## Improvements and New Features"
+        release_note: "For interoperability reasons, SSH ignore message with no length specified is\ntreated as message with zero length specified - it will not cause decode\nerror."
+        RelatedIds: "[PR-9214]\n\n[PR-9214]: https://github.com/erlang/otp/pull/9214"
+      OTP-19596:
+        type: "## Improvements and New Features"
+        release_note: "Documentation improvements."
+        RelatedIds: "[PR-9298]\n\n[PR-9298]: https://github.com/erlang/otp/pull/9298"
+  ssl-11.3:
+    pre: ""
+    post: "> #### Full runtime dependencies of ssl-11.3\n>\n> crypto-5.6, erts-16.0, inets-5.10.7, kernel-10.3, public_key-1.16.4,\n> runtime_tools-1.15.1, stdlib-7.0"
+    mode: "markdown"
+    tickets:
+      OTP-19367:
+        type: "## Improvements and New Features"
+        release_note: "Refactoring, minor optimizations and improved log printouts."
+        RelatedIds: "[PR-9019]\n\n[PR-9019]: https://github.com/erlang/otp/pull/9019"
+      OTP-19406:
+        type: "## Improvements and New Features"
+        release_note: "`supervisor:which_child/2` is now used to make start-up code for\nTLS-connections simpler and more straight forward, and to increase stability\nand maintainability of the ssl application."
+        RelatedIds: "[PR-9231]\n\n[PR-9231]: https://github.com/erlang/otp/pull/9231"
+      OTP-19430:
+        type: "## Improvements and New Features"
+        release_note: "The data handling for tls-v1.3 has been optimized."
+        RelatedIds: "[PR-9305]\n\n[PR-9305]: https://github.com/erlang/otp/pull/9305"
+      OTP-19463:
+        type: "## Improvements and New Features"
+        release_note: "Added experimental socket support."
+        RelatedIds: "[PR-9398]\n\n[PR-9398]: https://github.com/erlang/otp/pull/9398"
+      OTP-19531:
+        type: "## Improvements and New Features"
+        release_note: "Improve code health by removing dead code."
+        RelatedIds: "[PR-9563]\n\n[PR-9563]: https://github.com/erlang/otp/pull/9563"
+      OTP-19539:
+        type: "## Improvements and New Features"
+        release_note: "A test module for TLS distribution over `socket` has been implemented."
+        RelatedIds: "[PR-9511]\n\n[PR-9511]: https://github.com/erlang/otp/pull/9511"
+      OTP-19575:
+        type: "## Improvements and New Features"
+        release_note: "The license and copyright header has changed format to include an\n`SPDX-License-Identifier`. At the same time, most files have been updated to\nfollow a uniform standard for license headers."
+        RelatedIds: "[PR-9670]\n\n[PR-9670]: https://github.com/erlang/otp/pull/9670"
+  stdlib-7.0:
+    pre: ""
+    post: "> #### Full runtime dependencies of stdlib-7.0\n>\n> compiler-5.0, crypto-4.5, erts-16.0, kernel-10.0, sasl-3.0, syntax_tools-3.2.1"
+    mode: "markdown"
+    tickets:
+      OTP-19161:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Shell help now orders the commands in alphabetical order."
+        RelatedIds: "[PR-8573]\n\n[PR-8573]: https://github.com/erlang/otp/pull/8573"
+      OTP-19233:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "`proc_lib:stop/1,3` (and in extension `gen_server:stop/3`, `gen_statem:stop/3`\nand so on) have been updated to not throw an error if the process to be\nstopped exits with the same reason as given to `proc_lib:stop/3`."
+        Tags: "POTENTIAL INCOMPATIBILITY"
+      OTP-19285:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "The size of an atom in the Erlang source code was limited to 255 bytes in\nprevious releases, meaning that an atom containing only emojis could contain\nonly 63 emojis.\n\nWhile atoms are still only allowed to contain 255 characters, the number of\nbytes is no longer limited.\n\nExternal tools that parse the `AtU8` chunk of a BEAM file directly need to be\nupdated. Tools that use `beam_lib:chunks(Beam, [atoms])` to read the atom\ntable will continue to work.\n\n"
+        Tags: "POTENTIAL INCOMPATIBILITY"
+      OTP-19303:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "`argparse:help/1` now accepts `unicode:chardata/0`."
+        RelatedIds: "[PR-8932]\n\n[PR-8932]: https://github.com/erlang/otp/pull/8932"
+      OTP-19323:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "The literals chunk in BEAM is no longer compressed, resulting in slightly\nsmaller BEAM files when a BEAM file is stripped using\n`beam_lib:strip_files/1`.\n\nThis is a potential incompatibility for tools that read and interpret the\ncontents of the literal chunk. One way to update such tools to work with the\nnew format is to retrieve the chunk using `beam_lib:chunks(Beam, [atoms])`\n\n"
+        Tags: "POTENTIAL INCOMPATIBILITY"
+      OTP-19393:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "The previous `digraph_utils:preorder/1` and `digraph_utils:postorder/1` did\nnot start the traversal from root nodes. This fix makes both traversals only\nstart or restart from a root node in one of the components, or an arbitrary\nnode if no root node can be visited."
+        RelatedIds: "[PR-9171]\n\n[PR-9171]: https://github.com/erlang/otp/pull/9171"
+      OTP-19413:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Auto-completion in the shell is now significantly faster for function\nparameters that uses complex custom types."
+        RelatedIds: "[PR-9271]\n\n[PR-9271]: https://github.com/erlang/otp/pull/9271"
+      OTP-19421:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Stringfying a non-latin1 atom will now produce a readable string instead of\nencoding each character using `\\x{...}` escape sequences. Example:\n\n```\n-define(S(T), ??T).\n\natom() ->\n    ?S('атом').\n```\n\nThe `atom/0` function now returns `\"'атом'\"` instead of\n`\"'\\\\x{430}\\\\x{442}\\\\x{43E}\\\\x{43C}'\"`."
+        RelatedIds: "[GH-9173], [PR-9276]\n\n[GH-9173]: https://github.com/erlang/otp/issues/9173\n[PR-9276]: https://github.com/erlang/otp/pull/9276"
+      OTP-19422:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "A few minor issues were corrected in [`syntax_tools`], as well in the\n[`erl_anno`] module.\n\n[`erl_anno`]: https://erlang.org/doc/man/erl_anno\n[`syntax_tools`]: https://erlang.org/doc/man/syntax_tools"
+        RelatedIds: "[PR-9253]\n\n[PR-9253]: https://github.com/erlang/otp/pull/9253"
+      OTP-19427:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "`m:dets` could print error messages to standard output when repairing DETS\nfiles. This has been changed to send the messages to [`logger`].\n\n`ets:fun2ms` would print an error message to standard output as well as\nreturning an error tuple. The printing of the message has been removed.\n\n[`logger`]: https://erlang.org/doc/man/logger"
+        RelatedIds: "[PR-9232], [PR-9446]\n\n[PR-9232]: https://github.com/erlang/otp/pull/9232\n[PR-9446]: https://github.com/erlang/otp/pull/9446"
+      OTP-19441:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "The functions for converting to and from the RFC1339 date and time format\nwould not properly handle fractional seconds for negative times."
+        RelatedIds: "[GH-9279], [PR-9280]\n\n[GH-9279]: https://github.com/erlang/otp/issues/9279\n[PR-9280]: https://github.com/erlang/otp/pull/9280"
+      OTP-19485:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Replaced calls to deprecated `crypto:start()` with\n`application:start(crypto)`."
+        RelatedIds: "[PR-8592]\n\n[PR-8592]: https://github.com/erlang/otp/pull/8592"
+      OTP-19511:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Fixed a bug when calling shell completion on a reserved word followed by a _(_\nwould crash the shell."
+        RelatedIds: "[GH-9470]\n\n[GH-9470]: https://github.com/erlang/otp/issues/9470"
+      OTP-19514:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Corrected the spec of `ets:update_element/4`."
+        RelatedIds: "[PR-9504]\n\n[PR-9504]: https://github.com/erlang/otp/pull/9504"
+      OTP-19515:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Corrected the spec for `ets:info/1`."
+        RelatedIds: "[PR-9514]\n\n[PR-9514]: https://github.com/erlang/otp/pull/9514"
+      OTP-19533:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Fixed crash when defining records with a string field in the shell"
+        RelatedIds: "[GH-9557]\n\n[GH-9557]: https://github.com/erlang/otp/issues/9557"
+      OTP-19540:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Details in the hibernation implementation and time-out handling has been\nimproved for `gen_statem`. In particular to avoid selective receive when\ncancelling a time-out."
+        RelatedIds: "[PR-9579]\n\n[PR-9579]: https://github.com/erlang/otp/pull/9579"
+      OTP-19583:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Fixed a bug when getting help on a module compiled without debug_info."
+        RelatedIds: "[PR-9654]\n\n[PR-9654]: https://github.com/erlang/otp/pull/9654"
+      OTP-19593:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Fix [`zip`] extraction to wrap invalid DOS timestamps to their correct value\ninstead of returning the actual value. Before this fix the timestamp returned\ncould have a second greater than 59. The bug has been present since Erlang/OTP\n27.1.\n\n[`zip`]: https://erlang.org/doc/man/zip"
+        RelatedIds: "[GH-9536], [PR-9537]\n\n[GH-9536]: https://github.com/erlang/otp/issues/9536\n[PR-9537]: https://github.com/erlang/otp/pull/9537"
+      OTP-19604:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Enhance specs of timeout for improving documentation and dialyzer analysis."
+        RelatedIds: "[PR-9574]\n\n[PR-9574]: https://github.com/erlang/otp/pull/9574"
+      OTP-19125:
+        type: "## Improvements and New Features"
+        release_note: "Singleton type variables in an union type do not make sense from Dialyzer's\npoint of view. The following example is ill-typed:\n\n```erlang\n-spec run_test(Opts) -> term()\n      when Opts :: {join_specs, Bool} | {test, Bool}.\n```\n\nThis used to be reported as a warning. In OTP-28, this is an error"
+        RelatedIds: "[PR-8556]\n\n[PR-8556]: https://github.com/erlang/otp/pull/8556"
+      OTP-19127:
+        type: "## Improvements and New Features"
+        release_note: "By default, sets created by the [`sets`] module will now be represented as\nmaps.\n\n[`sets`]: https://erlang.org/doc/man/sets"
+        RelatedIds: "[PR-8429]\n\n[PR-8429]: https://github.com/erlang/otp/pull/8429"
+      OTP-19180:
+        type: "## Improvements and New Features"
+        release_note: "For various error types, the compiler now tries to suggest potential fixes by\nadding \"did you mean ...?\" at the end of error messages.\n\nWhen a function is used with wrong arity, the compiler will try to suggest a\ndefined function with the same name but a different arity. For example, given\nthe following module:\n\n```\n-module(typos).\n-export([t/0]).\nbar(A) -> A.\nbar(A,A,A) -> A.\nbar(A,A,A,A) -> A.\nt() -> bar(0, 0).\n```\n\nThe compiler will emit the following message:\n\n```\ntypo.erl:6:12: function bar/2 undefined, did you mean bar/1,3,4?\n%   6|     t() -> bar(0, 0).\n%    |            ^\n```\n\nFor compiler errors that can easily be caused by typos, the compiler will try\nto suggest what the correct variable or function name, could be. For example,\ngiven the following module:\n\n```\n-module(typos).\n-export([bar/2]).\n\nbar(A0, B0) ->\n    A + B.\n```\n\nthe compiler will emit the following error messages:\n\n```\ntypos.erl:5:5: variable 'A' is unbound, did you mean 'A0'?\n%    5|     A + B.\n%     |     ^\n\ntypos.erl:5:9: variable 'B' is unbound, did you mean 'B0'?\n%    5|     A + B.\n%     |         ^\n```\n\nError types that now suggest correct arities: `bad_inline`, `undefined_nif`,\n`bad_nowarn_unused_function`, `bad_nowarn_bif_clash`, `undefined_function`.\n\nError types that now suggest correct names: `bad_inline`, `undefined_nif`,\n`bad_nowarn_unused_function`, `undefined_on_load`, `undefined_function`,\n`undefined_record`, `undefined_field`, `unbound_var`.\n\nUsing a function with wrong arity has higher precedence than having a typo in\nthe function name. If the compiler can find a defined function with the same\nname but a different arity, it will not suggest a defined function with a\nclose-enough name, regardless of arity.\n\n"
+        Tags: "HIGHLIGHT"
+      OTP-19184:
+        type: "## Improvements and New Features"
+        release_note: "Comprehensions have been extended with zip generators according to [EEP 73].\n\nExample:\n\n```\n1> [A+B || A <- [1,2,3] && B <- [4,5,6]].\n[5,7,9]\n```\n\n[EEP 73]: https://www.erlang.org/eeps/eep-0073"
+        Tags: "HIGHLIGHT"
+      OTP-19204:
+        type: "## Improvements and New Features"
+        release_note: "Before restarting a child, a supervisor must check if the restart limit is\nreached. This adds a penalty to the overall restart time, which should be kept\nlow. The algorithm has been optimized from 2\\*O(n) to O(n) behavior."
+        RelatedIds: "[PR-8261]\n\n[PR-8261]: https://github.com/erlang/otp/pull/8261"
+      OTP-19224:
+        type: "## Improvements and New Features"
+        release_note: "Added the possibility to configure shell docs column width through the stdlib\nparameter [`shell_docs_columns`].\n\n[`shell_docs_columns`]: https://erlang.org/doc/apps/stdlib/stdlib_app.html#shell_docs_columns"
+        RelatedIds: "[PR-8651]\n\n[PR-8651]: https://github.com/erlang/otp/pull/8651"
+      OTP-19230:
+        type: "## Improvements and New Features"
+        release_note: "The `io:setopts/2` function now accepts the `line_history` option for more\nexplicit handling of when to save shell history."
+        RelatedIds: "[PR-8792]\n\n[PR-8792]: https://github.com/erlang/otp/pull/8792"
+      OTP-19231:
+        type: "## Improvements and New Features"
+        release_note: "The shell now prints a help message explaining how to interrupt a running\ncommand when stuck executing a command for longer than 5 seconds."
+        RelatedIds: "[PR-8793]\n\n[PR-8793]: https://github.com/erlang/otp/pull/8793"
+      OTP-19250:
+        type: "## Improvements and New Features"
+        release_note: "Binaries can now be used as input to `calendar:rfc3339_to_system_time/2`, and\nproduced as output of `calendar:system_time_to_rfc3339/2`."
+        RelatedIds: "[PR-8812]\n\n[PR-8812]: https://github.com/erlang/otp/pull/8812"
+      OTP-19314:
+        type: "## Improvements and New Features"
+        release_note: "The [`erl -noshell`] mode has been updated to have two sub modes called `raw`\nand `cooked`, where `cooked` is the old default behaviour and `raw` can be\nused to bypass the line-editing support of the native terminal. Using `raw`\nmode it is possible to read keystrokes as they happen without the user having\nto press Enter. Also, the `raw` mode does not echo the typed characters to\nstdout. An example of how to create a tic-tac-toe game using this mechanism is\nincluded in [the documentation].\n\n[`erl -noshell`]: https://erlang.org/doc/apps/erts/erl_cmd.html#noshell\n[the documentation]: https://erlang.org/doc/apps/stdlib/terminal_interface.html"
+        Tags: "HIGHLIGHT"
+      OTP-19315:
+        type: "## Improvements and New Features"
+        release_note: "Added `io:get_password/0` that can read passwords from stdin when in \"raw\"\n`-noshell` mode."
+        RelatedIds: "[PR-8962], [PR-9006]\n\n[PR-8962]: https://github.com/erlang/otp/pull/8962\n[PR-9006]: https://github.com/erlang/otp/pull/9006"
+      OTP-19317:
+        type: "## Improvements and New Features"
+        release_note: "New strict generators have been added for comprehensions.\n\nThe currently existing generators are \"relaxed\": they ignore terms in the\nright-hand side expression that do not match the left-hand side pattern.\n\nThe new strict generators fail with exception `badmatch` if a pattern doesn't\nmatch.\n\nExamples:\n\nUsing the current relaxed generator operator `<-`, any element not matching\nthe pattern `{_,_}` will be silently discarded:\n\n```\n1> [T || {_,_}=T <- [{ok,1},ok,{error,2}]].\n[{ok,1},{error,2}]\n```\n\nIf the intention is that all lists processed by a list comprehension must only\ncontain tuples of size two, using the new strict version of the operator\nensures that term not matching will cause a crash:\n\n```\n2> [T || {_,_}=T <:- [{ok,1},ok,{error,2}]].\n** exception error: no match of right hand side value ok\n```\n\nUsing the strict generator operator to mark the intention that all list\nelements must match the pattern could help finding mistakes quicker if\nsomething unpexected is added to the list processed by the generator.\n\nThe strict version for bitstring generators is `<:=`.\n\n"
+        Tags: "HIGHLIGHT"
+      OTP-19334:
+        type: "## Improvements and New Features"
+        release_note: "New options for suppressing behaviour warnings have been added:\n\n- `nowarn_conflicting_behaviours`\n- `nowarn_undefined_behaviour_func`\n- `nowarn_undefined_behaviour`\n- `nowarn_undefined_behaviour_callbacks`\n- `nowarn_ill_defined_behaviour_callbacks`\n- `nowarn_ill_defined_optional_callbacks`"
+        RelatedIds: "[GH-8985], [PR-9020]\n\n[GH-8985]: https://github.com/erlang/otp/issues/8985\n[PR-9020]: https://github.com/erlang/otp/pull/9020"
+      OTP-19337:
+        type: "## Improvements and New Features"
+        release_note: "The `join(Binaries, Separator)` function that joins a list of binaries has\nbeen added to the [`binary`] module.\n\n[`binary`]: https://erlang.org/doc/man/binary"
+        Tags: "HIGHLIGHT"
+      OTP-19345:
+        type: "## Improvements and New Features"
+        release_note: "The `supervisor:which_child/2` function has been added to facilitate getting\nthe pid of a sibling process; that is a process under same supervisor as the\nprocess that calls to call the new function."
+        RelatedIds: "[PR-8976]\n\n[PR-8976]: https://github.com/erlang/otp/pull/8976"
+      OTP-19354:
+        type: "## Improvements and New Features"
+        release_note: "The function `erl_anno:set_end_location/2` for setting the end location of a\ntoken has been added."
+        RelatedIds: "[PR-8966]\n\n[PR-8966]: https://github.com/erlang/otp/pull/8966"
+      OTP-19371:
+        type: "## Improvements and New Features"
+        release_note: "Added a warning for calling non-exported functions with the remote function\ncall syntax from the same module, and likewise for the remote fun syntax."
+        RelatedIds: "[GH-9092], [PR-9095]\n\n[GH-9092]: https://github.com/erlang/otp/issues/9092\n[PR-9095]: https://github.com/erlang/otp/pull/9095"
+      OTP-19425:
+        type: "## Improvements and New Features"
+        release_note: "The `warn_deprecated_catch` option enables warnings for use of old-style catch\nexpressions on the form `catch Expr` instead of the modern\n`try ... catch ... end`. To prevent new uses of uses of old catches to be\nadded, this compiler option can be enabled on the project level and\n`-compile(nowarn_deprecated_catch).` added to individual files that still\ncontain old catches."
+        RelatedIds: "[PR-9154]\n\n[PR-9154]: https://github.com/erlang/otp/pull/9154"
+      OTP-19431:
+        type: "## Improvements and New Features"
+        release_note: "Module [`re`] has been updated to use PCRE2, which is mostly backward\ncompatible with PCRE.\n\nThe most noticeable incompatibilities are\n\n- The default character encoding is pure ASCII and not Latin1. Unicode support\n  is still available with options `unicode` and `ucp`.\n- Options `bsr_anycrlf`, `bsr_unicode` and `{newline,_}` are only set when a\n  regex is compiled and cannot be changed at matching for precompiled regex.\n\n[`re`]: https://erlang.org/doc/man/re"
+        Tags: "HIGHLIGHT, POTENTIAL INCOMPATIBILITY"
+      OTP-19432:
+        type: "## Improvements and New Features"
+        release_note: "Defining a fun in terms of an imported function is not allowed. Before this\nrelease, the compiler would not catch this kind of error if the name of the\nimported function happened to be a BIF. Consider this example:\n\n```\n-module(fun_example).\n-export([foo/0, bar/0]).\n-import(m, [max/2, not_a_bif/0]).\n\nfoo() ->\n    fun max/2.\n\nbar() ->\n    fun not_a_bif/0.\n```\n\nThe compiler in Erlang/OTP 27 would generate the following messages:\n\n```text\nfun_example.erl:9:5: function not_a_bif/0 undefined\n%    9|     fun not_a_bif/0.\n%     |     ^\n\nfun_example.erl:3:2: Warning: import directive overrides auto-imported BIF max/2 --\nuse \"-compile({no_auto_import,[max/2]}).\" to resolve name clash\n%    3| -import(m, [max/2, not_a_bif/0]).\n%     |  ^\n```\n\nThat is, there would be a (cryptic) error for `fun not_a_bif/0`, but only a\nwarning for `fun max/2`.\n\nWhen compiling with this release, both attempts to create a fun will result in\nerror messages (as well as a warning):\n\n```text\nfun_example.erl:6:5: creating a fun from imported name max/2 is not allowed\n%    6|     fun max/2.\n%     |     ^\n\nfun_example.erl:9:5: creating a fun from imported name not_a_bif/0 is not allowed\n%    9|     fun not_a_bif/0.\n%     |     ^\n\nfun_example.erl:3:2: Warning: import directive overrides auto-imported BIF max/2 --\nuse \"-compile({no_auto_import,[max/2]}).\" to resolve name clash\n%    3| -import(m, [max/2, not_a_bif/0]).\n%     |  ^\n```\n\nAlso, attempting to call a local function having the same name as\nauto-imported BIF would result in an error if the BIF was added to Erlang/OTP\nbefore R14, and a warning for newer BIFs. This has been changed to always emit\na warning. For example:\n\n```\n-module(bif_example).\n-export([bar/1]).\n\nbar(B) ->\n    is_boolean(B).\n\nis_boolean(B) ->\n        B =:= true orelse B =:= false.\n```\n\nwill now result in the following warning instead of an error:\n\n```text\nif_example.erl:5:5: Warning: ambiguous call of overridden auto-imported BIF is_boolean/1 --\nuse erlang:is_boolean/1 or \"-compile({no_auto_import,[is_boolean/1]}).\" to resolve name clash\n%    5|     is_boolean(B).\n%     |     ^\n```\n\n"
+        RelatedIds: "[PR-9246]\n\n[PR-9246]: https://github.com/erlang/otp/pull/9246"
+      OTP-19452:
+        type: "## Improvements and New Features"
+        release_note: "It is now possible to use any base for floating point numbers as described in\n[EEP 75: Based Floating Point Literals].\n\nComputers represent floating point numbers in binary, but such numbers are\ntypically printed using base ten, for example 0.314159265e1. To maintain exact\nbit-level precision when converting numbers to and from text, it is better to\nuse a base that matches the internally used base, such as 16 for a compact but\nstill exact representation, or 2 for visualizing or writing down the exact\ninternal format. One particular case where such exact representations are\nuseful is in code generating tools.\n\nExamples:\n\n```\n> 2#0.111.\n0.875\n> 16#fefe.fefe#e16.\n1.2041849337671418e24\n```\n\n[EEP 75: Based Floating Point Literals]: https://www.erlang.org/eeps/eep-0075"
+        Tags: "HIGHLIGHT"
+      OTP-19474:
+        type: "## Improvements and New Features"
+        release_note: "The callback function `handle_continue/2` in `gen_server` callback modules is\nnow cached like the others, thanks to code cleanup and optimization of the\ninternal behaviour loop.\n\nThis should only improve performance, not affect functionality."
+        RelatedIds: "[PR-9333]\n\n[PR-9333]: https://github.com/erlang/otp/pull/9333"
+      OTP-19476:
+        type: "## Improvements and New Features"
+        release_note: "Encoding done by the [`json`] module has been optimized.\n\n[`json`]: https://erlang.org/doc/man/json"
+        RelatedIds: "[PR-9251]\n\n[PR-9251]: https://github.com/erlang/otp/pull/9251"
+      OTP-19477:
+        type: "## Improvements and New Features"
+        release_note: "There is a new [`zstd`] module that does [Zstandard] compression.\n\n[Zstandard]: https://facebook.github.io/zstd/\n[`zstd`]: https://erlang.org/doc/man/zstd"
+        Tags: "HIGHLIGHT"
+      OTP-19478:
+        type: "## Improvements and New Features"
+        release_note: "Fixed licenses in files and added ORT curations to the following apps: otp,\neldap, erl_interface, eunit, parsetools, stdlib, syntax_tools, and ERTS."
+        RelatedIds: "[PR-9376], [PR-9402], [PR-9819]\n\n[PR-9376]: https://github.com/erlang/otp/pull/9376\n[PR-9402]: https://github.com/erlang/otp/pull/9402\n[PR-9819]: https://github.com/erlang/otp/pull/9819"
+      OTP-19483:
+        type: "## Improvements and New Features"
+        release_note: "Functions of a module can now be grouped in the shell code completion by using\nthe _group_ key in the _-doc_ attribute e.g. ``` -doc(#{group=><<\"Public\nAPI\">>). fetch()->...\n\n```.\n\nFunctions, callbacks and types in the module reference documentation of OTP is now grouped using this feature."
+        RelatedIds: "[PR-9408] ```\n\n[PR-9408]: https://github.com/erlang/otp/pull/9408"
+      OTP-19505:
+        type: "## Improvements and New Features"
+        release_note: "Added calendar:universal_time_to_system_time/1,2 and\ncalendar:local_time_to_system_time/1,2"
+        RelatedIds: "[PR-9445]\n\n[PR-9445]: https://github.com/erlang/otp/pull/9445"
+      OTP-19508:
+        type: "## Improvements and New Features"
+        release_note: "Improve error messages for `json:decode/1`."
+        RelatedIds: "[PR-9484]\n\n[PR-9484]: https://github.com/erlang/otp/pull/9484"
+      OTP-19512:
+        type: "## Improvements and New Features"
+        release_note: "ETS `heir` can be set without getting an `ETS-TRANSFER` message. Useful when\nthe heir is a supervisor process that cannot handle custom messages."
+        RelatedIds: "[PR-7970]\n\n[PR-7970]: https://github.com/erlang/otp/pull/7970"
+      OTP-19516:
+        type: "## Improvements and New Features"
+        release_note: "Added support for the Unicode 16 standard."
+        RelatedIds: "[PR-9141], [PR-9518]\n\n[PR-9141]: https://github.com/erlang/otp/pull/9141\n[PR-9518]: https://github.com/erlang/otp/pull/9518"
+      OTP-19526:
+        type: "## Improvements and New Features"
+        release_note: "When documenting a function or type that needs to deal with durations, usually\nwe can document it as \"time in milliseconds\". Since the `timer` family of\nfunctions (`hms`, `hours`, `seconds`, ...) all return time in milliseconds, it\nis useful to be able to use this type in type specifications."
+        RelatedIds: "[PR-9515]\n\n[PR-9515]: https://github.com/erlang/otp/pull/9515"
+      OTP-19537:
+        type: "## Improvements and New Features"
+        release_note: "A new event time-out has been implemented in `gen_server`, that behaves more\nlike the one in `gen_statem`.\n\nSee the type `gen_server:action/0` for `{timeout|hibernate,...}`, and also\nrelated functions."
+        RelatedIds: "[PR-9287], [PR-9615], [PR-9621]\n\n[PR-9287]: https://github.com/erlang/otp/pull/9287\n[PR-9615]: https://github.com/erlang/otp/pull/9615\n[PR-9621]: https://github.com/erlang/otp/pull/9621"
+      OTP-19538:
+        type: "## Improvements and New Features"
+        release_note: "Line numbers used to be reported in the following way:\n\n```\n1> lists:last([]).\n** exception error: no function clause matching lists:last([]) (lists.erl, line 389)\n```\n\nStarting from Erlang/OTP 28, line numbers are now reported in the following\nway:\n\n```\n1> lists:last([]).\n** exception error: no function clause matching lists:last([]) (lists.erl:389)\n```"
+        Tags: "HIGHLIGHT"
+      OTP-19541:
+        type: "## Improvements and New Features"
+        release_note: "Upgrade pcre2 to 10.45"
+        RelatedIds: "[PR-9582]\n\n[PR-9582]: https://github.com/erlang/otp/pull/9582"
+      OTP-19556:
+        type: "## Improvements and New Features"
+        release_note: "Added functions that produce utf-8 binaries instead of iolists. New functions\nare: `io_lib:bformat/2`, `io_lib:bformat/3`, `io_lib:bfwrite/2`,\n`io_lib:bfwrite/3`, `io_lib:bwrite/2` and `io_lib:bwrite_string/3`."
+        Tags: "HIGHLIGHT"
+      OTP-19575:
+        type: "## Improvements and New Features"
+        release_note: "The license and copyright header has changed format to include an\n`SPDX-License-Identifier`. At the same time, most files have been updated to\nfollow a uniform standard for license headers."
+        RelatedIds: "[PR-9670]\n\n[PR-9670]: https://github.com/erlang/otp/pull/9670"
+      OTP-19578:
+        type: "## Improvements and New Features"
+        release_note: "A list of PCRE2 incompatibilities is documented in a user's guide for stdlib."
+        RelatedIds: "[PR-9705]\n\n[PR-9705]: https://github.com/erlang/otp/pull/9705"
+      OTP-19597:
+        type: "## Improvements and New Features"
+        release_note: "Change automatic hibernation of static supervisors so that they will hibernate\nafter being idle for 1 second instead of only after starting, dynamic\nsupervisors (simple_one_for_one) will not be hibernated at all. An option to\nthe supervisor is added to make it configurable for the application. This\noption defaults to 1 second for static supervisors and to infinity for the\nsimple_one_for_one supervisors."
+        Tags: "POTENTIAL INCOMPATIBILITY"
+  syntax_tools-4.0:
+    pre: ""
+    post: "> #### Full runtime dependencies of syntax_tools-4.0\n>\n> compiler-9.0, erts-16.0, kernel-10.3, stdlib-7.0"
+    mode: "markdown"
+    tickets:
+      OTP-19422:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "A few minor issues were corrected in [`syntax_tools`], as well in the\n[`erl_anno`] module.\n\n[`erl_anno`]: https://erlang.org/doc/man/erl_anno\n[`syntax_tools`]: https://erlang.org/doc/man/syntax_tools"
+        RelatedIds: "[PR-9253]\n\n[PR-9253]: https://github.com/erlang/otp/pull/9253"
+      OTP-19184:
+        type: "## Improvements and New Features"
+        release_note: "Comprehensions have been extended with zip generators according to [EEP 73].\n\nExample:\n\n```\n1> [A+B || A <- [1,2,3] && B <- [4,5,6]].\n[5,7,9]\n```\n\n[EEP 73]: https://www.erlang.org/eeps/eep-0073"
+        Tags: "HIGHLIGHT"
+      OTP-19317:
+        type: "## Improvements and New Features"
+        release_note: "New strict generators have been added for comprehensions.\n\nThe currently existing generators are \"relaxed\": they ignore terms in the\nright-hand side expression that do not match the left-hand side pattern.\n\nThe new strict generators fail with exception `badmatch` if a pattern doesn't\nmatch.\n\nExamples:\n\nUsing the current relaxed generator operator `<-`, any element not matching\nthe pattern `{_,_}` will be silently discarded:\n\n```\n1> [T || {_,_}=T <- [{ok,1},ok,{error,2}]].\n[{ok,1},{error,2}]\n```\n\nIf the intention is that all lists processed by a list comprehension must only\ncontain tuples of size two, using the new strict version of the operator\nensures that term not matching will cause a crash:\n\n```\n2> [T || {_,_}=T <:- [{ok,1},ok,{error,2}]].\n** exception error: no match of right hand side value ok\n```\n\nUsing the strict generator operator to mark the intention that all list\nelements must match the pattern could help finding mistakes quicker if\nsomething unpexected is added to the list processed by the generator.\n\nThe strict version for bitstring generators is `<:=`.\n\n"
+        Tags: "HIGHLIGHT"
+      OTP-19478:
+        type: "## Improvements and New Features"
+        release_note: "Fixed licenses in files and added ORT curations to the following apps: otp,\neldap, erl_interface, eunit, parsetools, stdlib, syntax_tools, and ERTS."
+        RelatedIds: "[PR-9376], [PR-9402], [PR-9819]\n\n[PR-9376]: https://github.com/erlang/otp/pull/9376\n[PR-9402]: https://github.com/erlang/otp/pull/9402\n[PR-9819]: https://github.com/erlang/otp/pull/9819"
+      OTP-19575:
+        type: "## Improvements and New Features"
+        release_note: "The license and copyright header has changed format to include an\n`SPDX-License-Identifier`. At the same time, most files have been updated to\nfollow a uniform standard for license headers."
+        RelatedIds: "[PR-9670]\n\n[PR-9670]: https://github.com/erlang/otp/pull/9670"
+  tftp-1.2.3:
+    pre: ""
+    post: "> #### Full runtime dependencies of tftp-1.2.3\n>\n> erts-6.0, kernel-6.0, stdlib-5.0"
+    mode: "markdown"
+    tickets:
+      OTP-19575:
+        type: "## Improvements and New Features"
+        release_note: "The license and copyright header has changed format to include an\n`SPDX-License-Identifier`. At the same time, most files have been updated to\nfollow a uniform standard for license headers."
+        RelatedIds: "[PR-9670]\n\n[PR-9670]: https://github.com/erlang/otp/pull/9670"
+  tools-4.1.2:
+    pre: ""
+    post: "> #### Full runtime dependencies of tools-4.1.2\n>\n> compiler-8.5, erts-15.0, erts-15.0, kernel-10.0, runtime_tools-2.1, stdlib-6.0"
+    mode: "markdown"
+    tickets:
+      OTP-19135:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "A crash has been eliminated in `tprof:collect/0` when unloading a module while\ncollecting traces."
+        RelatedIds: "[GH-8483], [PR-8547]\n\n[GH-8483]: https://github.com/erlang/otp/issues/8483\n[PR-8547]: https://github.com/erlang/otp/pull/8547"
+      OTP-19396:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Improved the `indent-region` Emacs command, which could indent badly when\ninside multiline string."
+        RelatedIds: "[PR-9186]\n\n[PR-9186]: https://github.com/erlang/otp/pull/9186"
+      OTP-19419:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "`eprof:start_profiling/3` can now return information about which process it\nfailed to trace."
+        RelatedIds: "[PR-9219]\n\n[PR-9219]: https://github.com/erlang/otp/pull/9219"
+      OTP-19517:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Fixed a race condition when processes cause the Cover server to be started at\nthe same time."
+        RelatedIds: "[PR-9124]\n\n[PR-9124]: https://github.com/erlang/otp/pull/9124"
+      OTP-19580:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Fix bug in [`tprof`] where the session name could not be set.\n\n[`tprof`]: https://erlang.org/doc/man/tprof"
+        RelatedIds: "[PR-9648]\n\n[PR-9648]: https://github.com/erlang/otp/pull/9648"
+      OTP-19628:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "Add [`tprof`] to the `.app` file.\n\n[`tprof`]: https://erlang.org/doc/man/tprof"
+        RelatedIds: "[PR-9787]\n\n[PR-9787]: https://github.com/erlang/otp/pull/9787"
+      OTP-19575:
+        type: "## Improvements and New Features"
+        release_note: "The license and copyright header has changed format to include an\n`SPDX-License-Identifier`. At the same time, most files have been updated to\nfollow a uniform standard for license headers."
+        RelatedIds: "[PR-9670]\n\n[PR-9670]: https://github.com/erlang/otp/pull/9670"
+  wx-2.5:
+    pre: ""
+    post: "> #### Full runtime dependencies of wx-2.5\n>\n> erts-12.0, kernel-8.0, stdlib-5.0"
+    mode: "markdown"
+    tickets:
+      OTP-19478:
+        type: "## Improvements and New Features"
+        release_note: "Fixed licenses in files and added ORT curations to the following apps: otp,\neldap, erl_interface, eunit, parsetools, stdlib, syntax_tools, and ERTS."
+        RelatedIds: "[PR-9376], [PR-9402], [PR-9819]\n\n[PR-9376]: https://github.com/erlang/otp/pull/9376\n[PR-9402]: https://github.com/erlang/otp/pull/9402\n[PR-9819]: https://github.com/erlang/otp/pull/9819"
+      OTP-19480:
+        type: "## Improvements and New Features"
+        release_note: "Added support for compiling Erlang/OTP for Windows on ARM64."
+        RelatedIds: "[PR-8734]\n\n[PR-8734]: https://github.com/erlang/otp/pull/8734"
+      OTP-19519:
+        type: "## Improvements and New Features"
+        release_note: "When compiling C/C++ code on Unix systems, the compiler hardening flags\nsuggested by the Open Source Security Foundation are now enabled by default.\nTo disable them, pass `--disable-security-hardening-flags` to `configure`."
+        RelatedIds: "[PR-9441]\n\n[PR-9441]: https://github.com/erlang/otp/pull/9441"
+      OTP-19575:
+        type: "## Improvements and New Features"
+        release_note: "The license and copyright header has changed format to include an\n`SPDX-License-Identifier`. At the same time, most files have been updated to\nfollow a uniform standard for license headers."
+        RelatedIds: "[PR-9670]\n\n[PR-9670]: https://github.com/erlang/otp/pull/9670"
+  xmerl-2.1.4:
+    pre: ""
+    post: "> #### Full runtime dependencies of xmerl-2.1.4\n>\n> erts-6.0, kernel-8.4, stdlib-2.5"
+    mode: "markdown"
+    tickets:
+      OTP-19534:
+        type: "## Fixed Bugs and Malfunctions"
+        release_note: "With this change all public functions in xmerl have specs."
+        RelatedIds: "[PR-9327]\n\n[PR-9327]: https://github.com/erlang/otp/pull/9327"
+      OTP-19575:
+        type: "## Improvements and New Features"
+        release_note: "The license and copyright header has changed format to include an\n`SPDX-License-Identifier`. At the same time, most files have been updated to\nfollow a uniform standard for license headers."
+        RelatedIds: "[PR-9670]\n\n[PR-9670]: https://github.com/erlang/otp/pull/9670"
+  Thanksto:
+    pre: "Adam Wight, Aleksander Lisiecki, Alexandre Rodrigues, Anders Ågren Thuné, Andrea\nLeopardi, Ariel Otilibili, Benedikt Reinartz, Benjamin Philip, Brujo Benavides,\nChris Freeze, Christophe De Troyer, Cocoa, Dairon Medina Caro, Daniel Gorin,\nDaniel Kozmacs, Dániel Szoboszlay, dependabot[bot], Dmitri Vereshchagin, Dominic\nLetz, Douglas Vought, Egor Ignatov, Eksperimental, Frank Hunleth, Freddie\nLamble, Fredrik Frantzen, Frej Drejhammar, Gary Rennie, Hichem Fantar, Ilya\nKlyuchnikov, iri, Isabell H, Jan Uhlig, Jean-Louis Huynen, Jean-Sébastien\nPédron, João Henrique Ferreira de Freitas, Johannes Christ, Jonas Bernoulli,\nJonatan Kłosko, José Valim, Juan Barrios, Julian Doherty, Keyhan Jannat Khah ☕,\nKirill A. Korinsky, lucioleKi, Lukasz Samson, Maria Scott, Mario Idival, Mario\nUher, Marko Mindek, Martin Davidsson, Matwey V. Kornilov, Maxim Fedorov, Michael\nDavis, Michael Neumann, Nelson Vides, Nicholas Moen, Onno Vos, Paul Guyot,\nPhilip Munksgaard, preciz, Richard Carlsson, Roberto Aloi, Robin Morisset,\nRoeland van Batenburg, ruslandoga, Ryan Kirkman, S0AndS0, sabiwara, Sam Weaver,\nSergei Shuvatov, siiky, Simon Cornish, Siri Hansen, Stavros Aronis, Stefan\nGrundmann, Steffen Deusch, Tobias Pfeiffer, Tomer, Vadim Yanitskiy, Vance\nShipley, William Fank Thomé, williamthome, William Yang, Wojtek Mach, Wojtek\nSurowka, yagogarea, Yoshiyuki Kurauchi, Zero King"
+    post: ""
+    mode: "markdown"
+    tickets:
+Application:
+  - asn1-5.4
+  - common_test-1.28
+  - compiler-9.0
+  - crypto-5.6
+  - debugger-6.0
+  - dialyzer-5.4
+  - diameter-2.5
+  - edoc-1.4
+  - eldap-1.2.15
+  - erl_interface-5.6
+  - erts-16.0
+  - et-1.7.2
+  - eunit-2.10
+  - ftp-1.2.4
+  - inets-9.4
+  - jinterface-1.15
+  - kernel-10.3
+  - megaco-4.8
+  - mnesia-4.24
+  - observer-2.18
+  - odbc-2.16
+  - os_mon-2.11
+  - parsetools-2.7
+  - public_key-1.18
+  - reltool-1.0.2
+  - runtime_tools-2.2
+  - sasl-4.3
+  - snmp-5.19
+  - ssh-5.3
+  - ssl-11.3
+  - stdlib-7.0
+  - syntax_tools-4.0
+  - tftp-1.2.3
+  - tools-4.1.2
+  - wx-2.5
+  - xmerl-2.1.4
+Date: 2025-05-21
+GitTag: OTP-28.0
+InitalRelease: OTP 28.0
+Predecessor: OTP
+Release: 28
+Seqnum:
+  - GH-7819
+  - GH-8037
+  - GH-8099
+  - GH-8113
+  - GH-8223
+  - GH-8483
+  - GH-8558
+  - GH-8822
+  - GH-8842
+  - GH-8967
+  - GH-8985
+  - GH-9092
+  - GH-9113
+  - GH-9173
+  - GH-9255
+  - GH-9279
+  - GH-9366
+  - GH-9413
+  - GH-9436
+  - GH-9438
+  - GH-9470
+  - GH-9487
+  - GH-9500
+  - GH-9536
+  - GH-9557
+  - GH-9565
+  - GH-9668
+  - GH-9722
+  - GH-9754
+  - OTP-16608
+  - OTP-19482
+  - OTP-19545
+  - OTP-19576
+  - PR-7830
+  - PR-7970
+  - PR-8078
+  - PR-8100
+  - PR-8207
+  - PR-8261
+  - PR-8429
+  - PR-8494
+  - PR-8540
+  - PR-8547
+  - PR-8556
+  - PR-8573
+  - PR-8589
+  - PR-8590
+  - PR-8592
+  - PR-8600
+  - PR-8625
+  - PR-8642
+  - PR-8651
+  - PR-8660
+  - PR-8670
+  - PR-8695
+  - PR-8697
+  - PR-8699
+  - PR-8704
+  - PR-8734
+  - PR-8772
+  - PR-8792
+  - PR-8793
+  - PR-8798
+  - PR-8805
+  - PR-8812
+  - PR-8820
+  - PR-8862
+  - PR-8885
+  - PR-8887
+  - PR-8894
+  - PR-8913
+  - PR-8926
+  - PR-8932
+  - PR-8937
+  - PR-8938
+  - PR-8943
+  - PR-8945
+  - PR-8960
+  - PR-8962
+  - PR-8966
+  - PR-8968
+  - PR-8973
+  - PR-8975
+  - PR-8976
+  - PR-8988
+  - PR-9005
+  - PR-9006
+  - PR-9013
+  - PR-9019
+  - PR-9020
+  - PR-9042
+  - PR-9045
+  - PR-9079
+  - PR-9082
+  - PR-9083
+  - PR-9094
+  - PR-9095
+  - PR-9101
+  - PR-9106
+  - PR-9116
+  - PR-9119
+  - PR-9121
+  - PR-9122
+  - PR-9124
+  - PR-9129
+  - PR-9141
+  - PR-9149
+  - PR-9154
+  - PR-9171
+  - PR-9186
+  - PR-9192
+  - PR-9207
+  - PR-9214
+  - PR-9219
+  - PR-9229
+  - PR-9231
+  - PR-9232
+  - PR-9246
+  - PR-9251
+  - PR-9253
+  - PR-9269
+  - PR-9271
+  - PR-9272
+  - PR-9275
+  - PR-9276
+  - PR-9277
+  - PR-9280
+  - PR-9287
+  - PR-9289
+  - PR-9298
+  - PR-9299
+  - PR-9305
+  - PR-9316
+  - PR-9321
+  - PR-9327
+  - PR-9330
+  - PR-9333
+  - PR-9334
+  - PR-9342
+  - PR-9344
+  - PR-9363
+  - PR-9376
+  - PR-9388
+  - PR-9396
+  - PR-9398
+  - PR-9399
+  - PR-9402
+  - PR-9406
+  - PR-9408
+  - PR-9409
+  - PR-9410
+  - PR-9417
+  - PR-9433
+  - PR-9441
+  - PR-9445
+  - PR-9446
+  - PR-9448
+  - PR-9468
+  - PR-9472
+  - PR-9478
+  - PR-9484
+  - PR-9488
+  - PR-9495
+  - PR-9504
+  - PR-9508
+  - PR-9511
+  - PR-9514
+  - PR-9515
+  - PR-9516
+  - PR-9517
+  - PR-9518
+  - PR-9519
+  - PR-9537
+  - PR-9538
+  - PR-9543
+  - PR-9563
+  - PR-9571
+  - PR-9574
+  - PR-9579
+  - PR-9582
+  - PR-9586
+  - PR-9587
+  - PR-9590
+  - PR-9594
+  - PR-9595
+  - PR-9604
+  - PR-9608
+  - PR-9610
+  - PR-9615
+  - PR-9621
+  - PR-9625
+  - PR-9630
+  - PR-9639
+  - PR-9648
+  - PR-9654
+  - PR-9659
+  - PR-9660
+  - PR-9670
+  - PR-9671
+  - PR-9677
+  - PR-9678
+  - PR-9680
+  - PR-9705
+  - PR-9711
+  - PR-9714
+  - PR-9717
+  - PR-9718
+  - PR-9733
+  - PR-9735
+  - PR-9755
+  - PR-9758
+  - PR-9759
+  - PR-9772
+  - PR-9774
+  - PR-9775
+  - PR-9786
+  - PR-9787
+  - PR-9791
+  - PR-9794
+  - PR-9809
+  - PR-9819
+System: OTP
+TroubleReportId:
+  - OTP-16607
+  - OTP-19096
+  - OTP-19115
+  - OTP-19125
+  - OTP-19127
+  - OTP-19135
+  - OTP-19141
+  - OTP-19144
+  - OTP-19155
+  - OTP-19156
+  - OTP-19159
+  - OTP-19161
+  - OTP-19180
+  - OTP-19184
+  - OTP-19194
+  - OTP-19198
+  - OTP-19204
+  - OTP-19207
+  - OTP-19224
+  - OTP-19226
+  - OTP-19228
+  - OTP-19230
+  - OTP-19231
+  - OTP-19233
+  - OTP-19250
+  - OTP-19259
+  - OTP-19262
+  - OTP-19263
+  - OTP-19271
+  - OTP-19278
+  - OTP-19279
+  - OTP-19285
+  - OTP-19287
+  - OTP-19290
+  - OTP-19295
+  - OTP-19296
+  - OTP-19297
+  - OTP-19303
+  - OTP-19306
+  - OTP-19308
+  - OTP-19313
+  - OTP-19314
+  - OTP-19315
+  - OTP-19317
+  - OTP-19323
+  - OTP-19324
+  - OTP-19334
+  - OTP-19337
+  - OTP-19339
+  - OTP-19343
+  - OTP-19345
+  - OTP-19354
+  - OTP-19355
+  - OTP-19364
+  - OTP-19367
+  - OTP-19369
+  - OTP-19371
+  - OTP-19376
+  - OTP-19386
+  - OTP-19393
+  - OTP-19394
+  - OTP-19396
+  - OTP-19398
+  - OTP-19401
+  - OTP-19403
+  - OTP-19404
+  - OTP-19406
+  - OTP-19413
+  - OTP-19414
+  - OTP-19419
+  - OTP-19420
+  - OTP-19421
+  - OTP-19422
+  - OTP-19425
+  - OTP-19426
+  - OTP-19427
+  - OTP-19430
+  - OTP-19431
+  - OTP-19432
+  - OTP-19441
+  - OTP-19450
+  - OTP-19451
+  - OTP-19452
+  - OTP-19453
+  - OTP-19454
+  - OTP-19456
+  - OTP-19460
+  - OTP-19463
+  - OTP-19465
+  - OTP-19472
+  - OTP-19473
+  - OTP-19474
+  - OTP-19476
+  - OTP-19477
+  - OTP-19478
+  - OTP-19479
+  - OTP-19480
+  - OTP-19481
+  - OTP-19483
+  - OTP-19484
+  - OTP-19485
+  - OTP-19487
+  - OTP-19488
+  - OTP-19492
+  - OTP-19500
+  - OTP-19502
+  - OTP-19503
+  - OTP-19505
+  - OTP-19507
+  - OTP-19508
+  - OTP-19509
+  - OTP-19510
+  - OTP-19511
+  - OTP-19512
+  - OTP-19513
+  - OTP-19514
+  - OTP-19515
+  - OTP-19516
+  - OTP-19517
+  - OTP-19518
+  - OTP-19519
+  - OTP-19520
+  - OTP-19521
+  - OTP-19522
+  - OTP-19523
+  - OTP-19524
+  - OTP-19526
+  - OTP-19528
+  - OTP-19531
+  - OTP-19532
+  - OTP-19533
+  - OTP-19534
+  - OTP-19535
+  - OTP-19536
+  - OTP-19537
+  - OTP-19538
+  - OTP-19539
+  - OTP-19540
+  - OTP-19541
+  - OTP-19544
+  - OTP-19551
+  - OTP-19553
+  - OTP-19554
+  - OTP-19555
+  - OTP-19556
+  - OTP-19566
+  - OTP-19570
+  - OTP-19572
+  - OTP-19573
+  - OTP-19574
+  - OTP-19575
+  - OTP-19576
+  - OTP-19578
+  - OTP-19580
+  - OTP-19583
+  - OTP-19584
+  - OTP-19586
+  - OTP-19588
+  - OTP-19589
+  - OTP-19590
+  - OTP-19591
+  - OTP-19593
+  - OTP-19594
+  - OTP-19596
+  - OTP-19597
+  - OTP-19598
+  - OTP-19601
+  - OTP-19603
+  - OTP-19604
+  - OTP-19607
+  - OTP-19609
+  - OTP-19612
+  - OTP-19613
+  - OTP-19614
+  - OTP-19615
+  - OTP-19616
+  - OTP-19617
+  - OTP-19618
+  - OTP-19620
+  - OTP-19621
+  - OTP-19624
+  - OTP-19627
+  - OTP-19628
+  - OTP-19629
+  - OTP-19630
+---
+## OTP-28.0
