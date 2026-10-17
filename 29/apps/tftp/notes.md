@@ -1,0 +1,230 @@
+<!--
+%CopyrightBegin%
+
+SPDX-License-Identifier: Apache-2.0
+
+Copyright Ericsson AB 2023-2026. All Rights Reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+%CopyrightEnd%
+-->
+# TFTP Release Notes
+
+## Tftp 1.3
+
+### Improvements and New Features
+
+- The legacy `and` and `or` operators have been replaced with other language constructs.
+
+  Own Id: OTP-19744 Aux Id: [PR-10114], [PR-10554], [PR-10568], [PR-10579], [PR-10585], [PR-10598], [PR-10710], [PR-10718], [PR-10580], [PR-10730]
+
+- All use of legacy `catch` in the TFTP application has been rewritten.
+  
+  In the process, deep return using `exit/1` or `throw/1` from callbacks has been changed to only work with `throw/1`, as customary.  This was considered a misfeature.
+  
+  Explicit loading of callback module or logger module has been removed, since that was against what one would expect for embedded mode.
+
+  Own Id: OTP-19996 Aux Id: [PR-10753]
+
+- Added support for `-unsafe` attributes, which is used to mark functions as unsafe to use. 
+  
+  This is similar to but separate from deprecation, and the compiler will by default now generate warnings for calls to functions in Erlang/OTP that are known to be always unsafe.
+  
+  Furthermore, `m:xref` can now be used to find calls to functions in another application that lack a `-doc` attribute (`undocumented_function_calls`), calls to functions in another application marked `-doc false.` (`private_function_calls`), as well as calls to unsafe functions (`unsafe_function_calls`).
+
+  Own Id: OTP-20066 Aux Id: [PR-10839]
+
+[PR-10114]: https://github.com/erlang/otp/pull/10114
+[PR-10554]: https://github.com/erlang/otp/pull/10554
+[PR-10568]: https://github.com/erlang/otp/pull/10568
+[PR-10579]: https://github.com/erlang/otp/pull/10579
+[PR-10585]: https://github.com/erlang/otp/pull/10585
+[PR-10598]: https://github.com/erlang/otp/pull/10598
+[PR-10710]: https://github.com/erlang/otp/pull/10710
+[PR-10718]: https://github.com/erlang/otp/pull/10718
+[PR-10580]: https://github.com/erlang/otp/pull/10580
+[PR-10730]: https://github.com/erlang/otp/pull/10730
+[PR-10753]: https://github.com/erlang/otp/pull/10753
+[PR-10839]: https://github.com/erlang/otp/pull/10839
+
+## Tftp 1.2.4
+
+### Fixed Bugs and Malfunctions
+
+- An issue in the undocumented initial state option \[\{root_dir,Dir\}] to the tftp_file module has been fixed. The request file name was just concatenated to Dir so it was possible to traverse above Dir by using "../" file path components. Now the option actually restricts local file operations to the Dir directory and subdirectories.
+  
+  The initial state option and how to use it was previously undocumented, so it is unlikely that anyone would have used it without understanding its peculiarities.
+  
+  The documentation of the TFTP application has also been clarified to make it obvious that the default server configuration allows read and write access to all files that are readable or writable by the user running the Erlang VM, and that the default configuration therefore should be avoided.
+  
+  Thanks to Luigino Camastra at Aisle Research, for finding and reporting this issue.
+
+  Own Id: OTP-19981 Aux Id: [PR-10706], [CVE-2026-21620]
+
+[PR-10706]: https://github.com/erlang/otp/pull/10706
+[CVE-2026-21620]: https://nvd.nist.gov/vuln/detail/2026-21620
+
+## Tftp 1.2.3
+
+### Improvements and New Features
+
+- The license and copyright header has changed format to include an `SPDX-License-Identifier`. At the same time, most files have been updated to follow a uniform standard for license headers.
+
+  Own Id: OTP-19575 Aux Id: [PR-9670]
+
+[PR-9670]: https://github.com/erlang/otp/pull/9670
+
+## Tftp 1.2.2.1
+
+### Fixed Bugs and Malfunctions
+
+- An issue in the undocumented initial state option \[\{root_dir,Dir\}] to the tftp_file module has been fixed. The request file name was just concatenated to Dir so it was possible to traverse above Dir by using "../" file path components. Now the option actually restricts local file operations to the Dir directory and subdirectories.
+  
+  The initial state option and how to use it was previously undocumented, so it is unlikely that anyone would have used it without understanding its peculiarities.
+  
+  The documentation of the TFTP application has also been clarified to make it obvious that the default server configuration allows read and write access to all files that are readable or writable by the user running the Erlang VM, and that the default configuration therefore should be avoided.
+  
+  Thanks to Luigino Camastra at Aisle Research, for finding and reporting this issue.
+
+  Own Id: OTP-19981 Aux Id: [PR-10706], [CVE-2026-21620]
+
+[PR-10706]: https://github.com/erlang/otp/pull/10706
+[CVE-2026-21620]: https://nvd.nist.gov/vuln/detail/2026-21620
+
+## Tftp 1.2.2
+
+### Fixed Bugs and Malfunctions
+
+- Fix specs in tftp:read_file function.
+
+  Own Id: OTP-19446 Aux Id: [PR-9327], ERIERL-1179
+
+[PR-9327]: https://github.com/erlang/otp/pull/9327
+
+## Tftp 1.2.1
+
+### Improvements and New Features
+
+- The legacy dependency to `m:error_logger` has been removed. `m:logger` is now used.
+
+  Own Id: OTP-19114
+
+## Tftp 1.2
+
+### Improvements and New Features
+
+- There is a new [`tftp_logger`](`m:tftp_logger`) callback behavior module.
+
+  Own Id: OTP-18787 Aux Id: [PR-7700]
+
+- The documentation has been migrated to use Markdown and ExDoc.
+
+  Own Id: OTP-18955 Aux Id: [PR-8026]
+
+[PR-7700]: https://github.com/erlang/otp/pull/7700
+[PR-8026]: https://github.com/erlang/otp/pull/8026
+
+## Tftp 1.1.1.1
+
+### Fixed Bugs and Malfunctions
+
+* An issue in the undocumented initial state option \[\{root_dir,Dir\}] to the tftp_file module has been fixed. The request file name was just concatenated to Dir so it was possible to traverse above Dir by using "../" file path components. Now the option actually restricts local file operations to the Dir directory and subdirectories.
+
+  The initial state option and how to use it was previously undocumented, so it is unlikely that anyone would have used it without understanding its peculiarities.
+
+  The documentation of the TFTP application has also been clarified to make it obvious that the default server configuration allows read and write access to all files that are readable or writable by the user running the Erlang VM, and that the default configuration therefore should be avoided.
+
+  Thanks to Luigino Camastra at Aisle Research, for finding and reporting this issue.
+
+  Own Id: OTP-19981 Aux Id: PR-10706, CVE-2026-21620
+
+## Tftp 1.1.1
+
+### Fixed Bugs and Malfunctions
+
+- Replaced unintentional Erlang Public License 1.1 headers in some files with
+  the intended Apache License 2.0 header.
+
+  Own Id: OTP-18815 Aux Id: PR-7780
+
+## Tftp 1.1
+
+### Improvements and New Features
+
+- The implementation has been fixed to use `proc_lib:init_fail/2,3` where
+  appropriate, instead of `proc_lib:init_ack/1,2`.
+
+  \*** POTENTIAL INCOMPATIBILITY \***
+
+  Own Id: OTP-18490 Aux Id: OTP-18471, GH-6339, PR-6843
+
+## Tftp 1.0.4
+
+### Improvements and New Features
+
+- Replace size/1 with either tuple_size/1 or byte_size/1
+
+  The [`size/1`](`size/1`) BIF is not optimized by the JIT, and its use can
+  result in worse types for Dialyzer.
+
+  When one knows that the value being tested must be a tuple,
+  [`tuple_size/1`](`tuple_size/1`) should always be preferred.
+
+  When one knows that the value being tested must be a binary,
+  [`byte_size/1`](`byte_size/1`) should be preferred. However,
+  [`byte_size/1`](`byte_size/1`) also accepts a bitstring (rounding up size to a
+  whole number of bytes), so one must make sure that the call to `byte_size/` is
+  preceded by a call to [`is_binary/1`](`is_binary/1`) to ensure that bitstrings
+  are rejected. Note that the compiler removes redundant calls to
+  [`is_binary/1`](`is_binary/1`), so if one is not sure whether previous code
+  had made sure that the argument is a binary, it does not harm to add an
+  [`is_binary/1`](`is_binary/1`) test immediately before the call to
+  [`byte_size/1`](`byte_size/1`).
+
+  Own Id: OTP-18432 Aux Id:
+  GH-6672,PR-6793,PR-6784,PR-6787,PR-6785,PR-6682,PR-6800,PR-6797,PR-6798,PR-6799,PR-6796,PR-6813,PR-6671,PR-6673,PR-6684,PR-6694,GH-6677,PR-6696,PR-6670,PR-6674
+
+## Tftp 1.0.3
+
+### Fixed Bugs and Malfunctions
+
+- Missing runtime dependencies has been added to this application.
+
+  Own Id: OTP-17243 Aux Id: PR-4557
+
+## Tftp 1.0.2
+
+### Improvements and New Features
+
+- Removed compiler warnings.
+
+  Own Id: OTP-16317 Aux Id: OTP-16183
+
+## Tftp 1.0.1
+
+### Fixed Bugs and Malfunctions
+
+- Improved documentation.
+
+  Own Id: OTP-15190
+
+## TFTP 1.0
+
+### First released version
+
+- Inets application was split into multiple smaller protocol specific
+  applications. The TFTP application is a standalone TFTP client and server with
+  the same functionality as TFTP in Inets.
+
+  Own Id: OTP-14113
